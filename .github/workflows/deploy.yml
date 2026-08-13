@@ -26,13 +26,13 @@ jobs:
 
       - name: Build web release
         working-directory: frontend
-        run: flutter build web --release --base-href "/pharma-maroc-gold/"
+        run: flutter build web --release --base-href "/"
 
       - name: Deploy to public Pages repository
         uses: peaceiris/actions-gh-pages@v4
         with:
           personal_token: ${{ secrets.PAGES_TOKEN }}
-          external_repository: meachbani-tech/pharma-maroc-gold
+          external_repository: meachbani-tech/pharma-maroc.github.io
           publish_dir: frontend/build/web
           publish_branch: gh-pages
           user_name: github-actions[bot]
