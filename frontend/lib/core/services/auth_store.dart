@@ -27,7 +27,7 @@ class AuthStore extends ChangeNotifier {
   User? _user;
   bool _initialized = false;
 
-  String _baseUrl = 'http://localhost:4000/api/v1';
+  String _baseUrl = 'https://pharma-maroc-gold-api.onrender.com/api/v1';
   ThemeMode _themeMode = ThemeMode.system;
   String _locale = 'fr';
 
