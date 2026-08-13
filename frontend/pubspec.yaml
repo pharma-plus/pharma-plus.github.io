@@ -1,0 +1,53 @@
+name: pharma_maroc_gold
+description: PHARMA MAROC GOLD ENTERPRISE V2.0 - Gestion de pharmacie multi-succursales.
+publish_to: 'none'
+version: 2.0.0+200
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+  flutter: '>=3.27.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # État & navigation
+  provider: ^6.1.2
+
+  # Réseau
+  http: ^1.2.1
+
+  # Stockage sécurisé / local
+  shared_preferences: ^2.2.3
+  flutter_secure_storage: ^9.2.2
+  sqflite: ^2.3.3
+  path: ^1.9.0
+
+  # Formatage
+  intl: ^0.20.2
+
+  # Scanner de code-barres / QR
+  mobile_scanner: ^5.2.3
+
+  # PDF (factures)
+  pdf: ^3.11.0
+  printing: ^5.13.2
+
+  # Graphiques du tableau de bord
+  fl_chart: ^0.68.0
+
+  # Icônes Material
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/logo/

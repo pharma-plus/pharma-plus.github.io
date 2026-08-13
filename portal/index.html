@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PHARMA MAROC GOLD — Portail Éditeur</title>
+  <style>
+    :root {
+      --green: #1B5E20; --gold: #FFB300; --menu: #0A2A0F;
+      --bg: #F4F7F4; --card: #fff; --text: #14201B; --muted: #6b7a70;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+    header { background: linear-gradient(120deg, var(--menu), var(--green)); color: #fff; padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+    header .logo { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, #FFD54F, var(--gold)); display: grid; place-items: center; font-weight: 900; color: #3E2A00; }
+    header h1 { font-size: 18px; margin: 0; letter-spacing: 1px; }
+    header .spacer { flex: 1; }
+    main { padding: 24px; max-width: 1100px; margin: 0 auto; }
+    .card { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,.08); margin-bottom: 20px; }
+    h2 { margin-top: 0; font-size: 16px; }
+    label { display: block; font-size: 13px; margin: 10px 0 4px; color: var(--muted); }
+    input, select { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #dbe3db; font-size: 14px; }
+    .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    button { margin-top: 14px; background: linear-gradient(135deg, #2E7D32, var(--green)); color: #fff; border: 0; padding: 12px 20px; border-radius: 12px; font-weight: 700; cursor: pointer; }
+    button.gold { background: linear-gradient(135deg, #FFD54F, var(--gold)); color: #3E2A00; }
+    button.ghost { background: transparent; border: 1.5px solid var(--green); color: var(--green); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #eef2ee; }
+    th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+    .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .badge.active { background: #e5f5e6; color: #1B5E20; }
+    .badge.suspended { background: #fdeaea; color: #C62828; }
+    .badge.trial { background: #fff4dd; color: #B26A00; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--menu); color: #fff; padding: 12px 20px; border-radius: 30px; font-size: 13px; opacity: 0; transition: opacity .3s; pointer-events: none; }
+    .toast.show { opacity: 1; }
+    #loginBox { max-width: 420px; margin: 8vh auto 0; }
+    .muted { color: var(--muted); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">G</div>
+    <h1>PHARMA MAROC GOLD — Portail Éditeur</h1>
+    <div class="spacer"></div>
+    <span class="muted" style="color:#cfd8cf" id="whoami"></span>
+  </header>
+
+  <main>
+    <!-- Login -->
+    <div class="card" id="loginBox">
+      <h2>Connexion Super Admin</h2>
+      <label>E-mail</label>
+      <input id="loginEmail" type="email" value="admin@demo.ma">
+      <label>Mot de passe</label>
+      <input id="loginPassword" type="password" value="Demo123!">
+      <button id="loginBtn">Se connecter</button>
+    </div>
+
+    <!-- Tableau de bord -->
+    <div id="app" style="display:none">
+      <div class="card">
+        <h2>Provisionner une pharmacie</h2>
+        <div class="row">
+          <div><label>Nom commercial</label><input id="phName" placeholder="Pharmacie Atlas"></div>
+          <div><label>Slug (URL site)</label><input id="phSlug" placeholder="pharmacie-atlas"></div>
+          <div><label>Ville</label><input id="phCity" placeholder="Casablanca"></div>
+          <div><label>Téléphone</label><input id="phPhone" placeholder="+212 6 00 00 00 00"></div>
+        </div>
+        <div class="row">
+          <div><label>E-mail admin</label><input id="phEmail" placeholder="admin@atlas.ma"></div>
+          <div><label>Mot de passe admin</label><input id="phPass" placeholder="Initial123!"></div>
+          <div><label>Durée licence (mois)</label><input id="phMonths" type="number" value="12"></div>
+          <div><label>Succursales max</label><input id="phBranches" type="number" value="1"></div>
+        </div>
+        <button id="provisionBtn" class="gold">Créer la pharmacie</button>
+      </div>
+
+      <div class="card">
+        <h2>Pharmacies</h2>
+        <table>
+          <thead><tr><th>Nom</th><th>Ville</th><th>Status</th><th>Licence</th><th>Utilisateurs</th><th></th></tr></thead>
+          <tbody id="phTable"></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Résumé global</h2>
+        <div class="muted" id="globalStats">—</div>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API = (localStorage.getItem('pmg_api') || 'http://localhost:4000/api/v1').replace(/\/+$/, '');
+    let token = localStorage.getItem('pmg_token');
+
+    const $ = (id) => document.getElementById(id);
+    const toast = (msg) => { const t = $('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500); };
+
+    async function call(method, path, body) {
+      const res = await fetch(API + path, {
+        method,
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error((json.error && json.error.message) || ('HTTP ' + res.status));
+      return json.data;
+    }
+
+    async function refresh() {
+      const data = await call('GET', '/pharmacies/global-stats');
+      $('globalStats').textContent = JSON.stringify(data).slice(0, 400);
+      const list = await call('GET', '/pharmacies');
+      const rows = (list.items || list).map((p) => `
+        <tr>
+          <td><strong>${p.name}</strong><br><span class="muted">${p.slug}</span></td>
+          <td>${p.city || '—'}</td>
+          <td><span class="badge ${p.status}">${p.status}</span></td>
+          <td>${p.license_type || '—'} · <span class="badge ${p.license_status}">${p.license_status}</span><br><span class="muted">exp. ${(p.expiry_date || '—').slice(0, 10)}</span></td>
+          <td>${p.nb_users ?? '—'}</td>
+          <td><button class="ghost" onclick="toggleSuspend('${p.id}', '${p.status}')">${p.status === 'suspended' ? 'Activer' : 'Suspendre'}</button></td>
+        </tr>`).join('');
+      $('phTable').innerHTML = rows || '<tr><td colspan="6" class="muted">Aucune pharmacie</td></tr>';
+    }
+
+    async function toggleSuspend(id, status) {
+      await call('POST', '/pharmacies/' + id + '/status', { status: status === 'suspended' ? 'active' : 'suspended' });
+      toast('Statut mis à jour');
+      refresh();
+    }
+
+    $('loginBtn').onclick = async () => {
+      try {
+        const data = await call('POST', '/auth/login', {
+          email: $('loginEmail').value, password: $('loginPassword').value,
+          device: { name: 'portal', type: 'web', userAgent: navigator.userAgent },
+        });
+        if (data.requireTwoFactor) { toast('2FA requise — utilisez l\'application mobile'); return; }
+        token = data.accessToken;
+        localStorage.setItem('pmg_token', token);
+        $('whoami').textContent = data.user.email + (data.user.is_super_admin ? ' (Super Admin)' : '');
+        $('loginBox').style.display = 'none';
+        $('app').style.display = 'block';
+        refresh();
+      } catch (e) { toast(e.message); }
+    };
+
+    $('provisionBtn').onclick = async () => {
+      try {
+        const data = await call('POST', '/pharmacies', {
+          name: $('phName').value,
+          slug: $('phSlug').value,
+          city: $('phCity').value,
+          phone: $('phPhone').value,
+          admin_email: $('phEmail').value,
+          admin_password: $('phPass').value,
+          license_duration_months: parseInt($('phMonths').value, 10),
+          max_branches: parseInt($('phBranches').value, 10),
+        });
+        toast('Pharmacie créée : ' + data.pharmacy.name);
+        refresh();
+      } catch (e) { toast(e.message); }
+    };
+
+    if (token) {
+      call('GET', '/auth/me').then((me) => {
+        $('whoami').textContent = me.email + (me.is_super_admin ? ' (Super Admin)' : '');
+        $('loginBox').style.display = 'none';
+        $('app').style.display = 'block';
+        refresh();
+      }).catch(() => { localStorage.removeItem('pmg_token'); token = null; });
+    }
+  </script>
+</body>
+</html>

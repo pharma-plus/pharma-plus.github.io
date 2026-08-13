@@ -1,0 +1,22 @@
+# Fichiers systèmes
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Éditeurs / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Dossiers de build générés (couverts aussi par les .gitignore enfants)
+**/node_modules/
+**/.dart_tool/
+**/build/
+
+# Never commit real secrets (backend/.env is already ignored in backend/.gitignore)
+**/.env
