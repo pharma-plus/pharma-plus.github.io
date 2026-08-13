@@ -1,4 +1,4 @@
-name: Deploy Flutter Web to GitHub Pages
+name: Build & Deploy Flutter Web
 
 on:
   push:
@@ -7,15 +7,9 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -34,21 +28,13 @@ jobs:
         working-directory: frontend
         run: flutter build web --release --base-href "/pharma-maroc-gold/"
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Deploy to public Pages repository
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          path: frontend/build/web
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          personal_token: ${{ secrets.PAGES_TOKEN }}
+          external_repository: meachbani-tech/pharma-maroc-gold
+          publish_dir: frontend/build/web
+          publish_branch: gh-pages
+          user_name: github-actions[bot]
+          user_email: github-actions[bot]@users.noreply.github.com
+          commit_message: "deploy: ${{ github.sha }}"
