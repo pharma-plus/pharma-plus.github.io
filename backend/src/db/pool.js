@@ -3,8 +3,17 @@ import { config } from '../config/index.js';
 
 const { Pool } = pg;
 
+// Connexions cloud (Supabase, AWS RDS, etc.) : on active SSL quand l'URL
+// l'exige. En local (postgres://... sans sslmode) ssl reste undefined.
+const ssl =
+  config.databaseUrl &&
+  /(sslmode=require|supabase|amazonaws|\.rds\.)/i.test(config.databaseUrl)
+    ? { rejectUnauthorized: false }
+    : undefined;
+
 export const pool = new Pool({
   connectionString: config.databaseUrl,
+  ssl,
   max: 20,
   idleTimeoutMillis: 30_000,
   connectionTimeoutMillis: 5_000,

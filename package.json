@@ -1,0 +1,12 @@
+{
+  "name": "pharma-maroc-gold-bonto",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Point d'entree pour le deploy Bonto (backend Node dans ./backend).",
+  "scripts": {
+    "postinstall": "cd backend && npm install",
+    "start": "node backend/src/server.js",
+    "migrate": "node backend/scripts/migrate.js",
+    "seed": "node backend/scripts/seed.js"
+  }
+}
