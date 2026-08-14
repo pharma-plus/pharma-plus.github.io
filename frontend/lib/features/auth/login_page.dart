@@ -55,7 +55,7 @@ class _LoginPageState extends State<LoginPage> {
       setState(() {
         _error = network
             ? 'Impossible de joindre le serveur. '
-                'Vérifiez que le service est démarré (localhost:4000).'
+                'Vérifiez l\'URL de l\'API dans les paramètres (icône ⚙).'
             : S.format('invalidCredentials', locale);
       });
       return;
