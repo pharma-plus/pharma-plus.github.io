@@ -3,8 +3,9 @@ import 'package:provider/provider.dart';
 import 'core/services/auth_store.dart';
 import 'features/auth/login_page.dart';
 import 'features/shell/home_shell.dart';
+import 'features/super_admin/super_admin_portal.dart';
 
-/// Aiguillage : écran de connexion ou application principale.
+/// Aiguillage : écran de connexion, portail Super Admin ou application.
 class RootGate extends StatelessWidget {
   const RootGate({super.key});
 
@@ -16,7 +17,9 @@ class RootGate extends StatelessWidget {
           return const Scaffold(
               body: Center(child: CircularProgressIndicator()));
         }
-        return auth.isAuthenticated ? const HomeShell() : const LoginPage();
+        if (!auth.isAuthenticated) return const LoginPage();
+        if (auth.user?.isSuperAdmin == true) return const SuperAdminPortal();
+        return const HomeShell();
       },
     );
   }
