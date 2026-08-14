@@ -155,13 +155,19 @@ class ApiClient {
     } on ApiResult<T> {
       rethrow;
     } catch (e) {
+      final detail = e.toString();
+      final isTimeout = e is TimeoutException;
+      final code = isTimeout ? 'TIMEOUT' : 'NETWORK_ERROR';
+      final label = isTimeout
+          ? 'Délai d’attente dépassé (le serveur ne répond pas).'
+          : 'Connexion au serveur impossible.';
       return ApiResult._(
         false,
         null,
         null,
         ApiError(
-            'NETWORK_ERROR',
-            'Impossible de joindre le serveur. Vérifiez votre connexion.',
+            code,
+            '$label\nCause technique : $detail',
             const [],
             0),
         0,
