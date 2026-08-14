@@ -303,7 +303,7 @@ class _StockPageState extends State<StockPage> {
                                   name: (item['medication_name'] as String?) ??
                                       '—',
                                   detail:
-                                      '${item['lot_number'] ?? '—'} · ${item['branch_name'] ?? ''} · ${location}',
+                                      '${item['lot_number'] ?? '—'} · ${item['branch_name'] ?? ''} · $location',
                                   expiry: item['expiry_date'] as String?,
                                   quantity: available,
                                   price: _number(item['price_sale']),

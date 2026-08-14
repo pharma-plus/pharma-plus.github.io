@@ -396,12 +396,12 @@ class _DashboardPageState extends State<DashboardPage> {
                     runSpacing: 8,
                     children: [
                       TextButton.icon(
-                        icon: Icon(Icons.picture_as_pdf),
+                        icon: const Icon(Icons.picture_as_pdf),
                         label: Text(S.t('exportPdf', locale)),
                         onPressed: () => _exportPdfReport(context),
                       ),
                       TextButton.icon(
-                        icon: Icon(Icons.table_chart),
+                        icon: const Icon(Icons.table_chart),
                         label: Text(S.t('exportCsv', locale)),
                         onPressed: () => _exportCsvReport(context),
                       ),
