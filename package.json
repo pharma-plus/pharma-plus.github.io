@@ -5,7 +5,7 @@
   "description": "Point d'entree pour le deploy Bonto (backend Node dans ./backend).",
   "scripts": {
     "postinstall": "cd backend && npm install",
-    "start": "node backend/src/server.js",
+    "start": "node backend/scripts/start-prod.mjs",
     "migrate": "node backend/scripts/migrate.js",
     "seed": "node backend/scripts/seed.js"
   }
