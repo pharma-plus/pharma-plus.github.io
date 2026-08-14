@@ -89,12 +89,14 @@ export const stockService = {
             lotId = existingLot.rows[0].id;
           } else {
             const newId = uuid();
+            const lotNumber = (item.lot_number && `${item.lot_number}`.trim())
+              || `LOT-${Date.now()}`;
             await client.query(
               `INSERT INTO lots (id, pharmacy_id, medication_id, supplier_id, lot_number,
                                  manufacture_date, expiry_date, cost_price)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
               [newId, pharmacyId, item.medication_id, item.supplier_id ?? null,
-               item.lot_number, item.manufacture_date ?? null,
+               lotNumber, item.manufacture_date ?? null,
                item.expiry_date, item.cost_price ?? 0],
             );
             lotId = newId;
