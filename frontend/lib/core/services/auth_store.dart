@@ -50,7 +50,14 @@ class AuthStore extends ChangeNotifier {
         orElse: () => ThemeMode.system,
       );
       _locale = prefs.getString(_kLocale) ?? 'fr';
-      _baseUrl = prefs.getString(_kBaseUrl) ?? _baseUrl;
+      final storedUrl = prefs.getString(_kBaseUrl);
+      if (storedUrl != null && storedUrl.isNotEmpty) {
+        final lower = storedUrl.toLowerCase();
+        final isLocal = lower.contains('localhost') ||
+            lower.contains('127.0.0.1') ||
+            lower.contains('::1');
+        if (!isLocal) _baseUrl = storedUrl;
+      }
 
       _accessToken = await _storage.read(key: _kAccess);
       _refreshToken = await _storage.read(key: _kRefresh);
