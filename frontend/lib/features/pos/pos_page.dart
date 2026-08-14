@@ -25,6 +25,30 @@ class _PosPageState extends State<PosPage> {
   List<Medication> _results = [];
   bool _searching = false;
   bool _checkout = false;
+  List<Map<String, dynamic>> _branches = [];
+  String? _branchId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBranches();
+  }
+
+  Future<void> _loadBranches() async {
+    final r = await ApiClient.instance.get<Map<String, dynamic>>('/branches');
+    if (!mounted) return;
+    if (r.success) {
+      final list = (r.data as List? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .toList();
+      final auth = context.read<AuthStore>();
+      setState(() {
+        _branches = list;
+        _branchId = auth.user?.branchId ??
+            (list.isNotEmpty ? '${list[0]['id']}' : null);
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -86,12 +110,18 @@ class _PosPageState extends State<PosPage> {
   Future<void> _checkoutFlow() async {
     if (_cart.isEmpty || _checkout) return;
     final auth = context.read<AuthStore>();
+    if (_branchId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(S.t('selectBranch', auth.locale))),
+      );
+      return;
+    }
     setState(() => _checkout = true);
     try {
       final result = await ApiClient.instance.post<Map<String, dynamic>>(
         '/sales',
         body: {
-          'branchId': auth.user?.branchId,
+          'branchId': _branchId,
           'saleType': 'pos',
           'items': _cart.lines.map((l) => l.toPayload()).toList(),
           'payments': [
@@ -111,11 +141,10 @@ class _PosPageState extends State<PosPage> {
           );
         }
       } else if (result.error?.code == 'NETWORK_ERROR') {
-        // Mode hors-ligne : mise en file locale.
         await OfflineStore.instance.savePendingSale(
           'sale-${DateTime.now().millisecondsSinceEpoch}',
           {
-            'branchId': auth.user?.branchId,
+            'branchId': _branchId,
             'items': _cart.lines.map((l) => l.toPayload()).toList(),
             'payments': [
               {
@@ -129,7 +158,7 @@ class _PosPageState extends State<PosPage> {
           method: 'POST',
           path: '/sales',
           body: {
-            'branchId': auth.user?.branchId,
+            'branchId': _branchId,
             'items': _cart.lines.map((l) => l.toPayload()).toList(),
           },
         );
@@ -158,6 +187,19 @@ class _PosPageState extends State<PosPage> {
       appBar: AppBar(
         title: Text(S.t('pos', locale)),
         actions: [
+          if (_branches.isNotEmpty)
+            DropdownButton<String>(
+              value: _branchId,
+              hint: Text(S.t('branch', locale)),
+              underline: const SizedBox.shrink(),
+              items: _branches
+                  .map((b) => DropdownMenuItem(
+                        value: '${b['id']}',
+                        child: Text('${b['name'] ?? b['code']}'),
+                      ))
+                  .toList(),
+              onChanged: (v) => setState(() => _branchId = v),
+            ),
           IconButton(
             onPressed: _scan,
             tooltip: S.t('barcode', locale),
