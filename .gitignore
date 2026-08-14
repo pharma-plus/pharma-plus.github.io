@@ -20,3 +20,4 @@ Desktop.ini
 
 # Never commit real secrets (backend/.env is already ignored in backend/.gitignore)
 **/.env
+node_modules/
