@@ -17,12 +17,11 @@ class Medication {
   final double minStock;
   final String status;
   final double? stockQuantity;
-  /// Emplacement en pharmacie : A-03-02-05 (Rayon-Étagère-Niveau-Case)
-  final String? locationId;
-  final String? aisle;
-  final String? shelf;
-  final String? level;
-  final String? position;
+  final String? categoryId;
+  final String? categoryName;
+  final String? parentCategoryName;
+  /// Emplacement physique : identifiant de zone du Plan 3D (ex: 'meds').
+  final String? shelfLocation;
 
   const Medication({
     required this.id,
@@ -42,12 +41,14 @@ class Medication {
     this.minStock = 0,
     this.status = 'available',
     this.stockQuantity,
-    this.locationId,
-    this.aisle,
-    this.shelf,
-    this.level,
-    this.position,
+    this.categoryId,
+    this.categoryName,
+    this.parentCategoryName,
+    this.shelfLocation,
   });
+
+  /// Zone du Plan 3D où se trouve le médicament (dérivée de `shelfLocation`).
+  String? get zone => shelfLocation;
 
   bool get inStock => (stockQuantity ?? 0) > 0;
   bool get isLowStock => (stockQuantity ?? 0) <= minStock;
@@ -73,6 +74,10 @@ class Medication {
         reorderLevel: _d(json['reorder_level'] ?? json['reorderLevel']),
         minStock: _d(json['min_stock'] ?? json['minStock']),
         status: json['status'] as String? ?? 'available',
+        categoryId: json['category_id'] as String?,
+        categoryName: json['category_name'] as String?,
+        parentCategoryName: json['parent_category_name'] as String?,
+        shelfLocation: json['shelf_location'] as String?,
         stockQuantity: json['stock_quantity'] != null
             ? _d(json['stock_quantity'])
             : (json['stock'] != null ? _d(json['stock']) : null),

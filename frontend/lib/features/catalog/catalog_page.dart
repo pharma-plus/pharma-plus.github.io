@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/models/medication.dart';
+import '../../core/models/zone.dart';
 import '../../core/services/api_client.dart';
+import '../floor_plan/pharmacy_plan_page.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
@@ -80,11 +82,8 @@ class _CatalogPageState extends State<CatalogPage> {
         text: medication != null ? '${medication.priceSale}' : '');
     final minStock = TextEditingController(
         text: medication != null ? '${medication.minStock}' : '');
-    final aisleCtrl = TextEditingController(text: medication?.aisle ?? '');
-    final shelfCtrl = TextEditingController(text: medication?.shelf ?? '');
-    final levelCtrl = TextEditingController(text: medication?.level ?? '');
-    final positionCtrl = TextEditingController(text: medication?.position ?? '');
-    final locationIdCtrl = TextEditingController(text: medication?.locationId ?? '');
+    String? selectedZone = medication?.shelfLocation;
+    final locale = context.read<AuthStore>().locale;
 
     final saved = await showDialog<bool>(
       context: context,
@@ -106,25 +105,17 @@ class _CatalogPageState extends State<CatalogPage> {
               TextField(
                   controller: barcode,
                   decoration: const InputDecoration(labelText: 'EAN-13')),
-TextField(
-      controller: aisleCtrl,
-      decoration: const InputDecoration(labelText: 'Rayon')),
-              const SizedBox(height: 10),
-              TextField(
-                controller: shelfCtrl,
-                decoration: const InputDecoration(labelText: 'Étagère')),
-              const SizedBox(height: 10),
-              TextField(
-                controller: levelCtrl,
-                decoration: const InputDecoration(labelText: 'Niveau')),
-              const SizedBox(height: 10),
-              TextField(
-                controller: positionCtrl,
-                decoration: const InputDecoration(labelText: 'Case')),
-              const SizedBox(height: 10),
-              TextField(
-                controller: locationIdCtrl,
-                decoration: const InputDecoration(labelText: 'ID Emplacement (optionnel)'),
+              DropdownButtonFormField<String>(
+                initialValue: selectedZone,
+                decoration:
+                    InputDecoration(labelText: S.t('zone', locale)),
+                items: kPlanZones
+                    .map((z) => DropdownMenuItem(
+                          value: z.id,
+                          child: Text(S.t(z.labelKey, locale)),
+                        ))
+                    .toList(),
+                onChanged: (v) => selectedZone = v,
               ),
               const SizedBox(height: 10),
               TextField(
@@ -162,11 +153,7 @@ TextField(
         'price_purchase': double.tryParse(purchase.text) ?? 0,
         'price_sale': double.tryParse(sale.text) ?? 0,
         'min_stock': double.tryParse(minStock.text) ?? 0,
-        'aisle': aisleCtrl.text.trim(),
-        'shelf': shelfCtrl.text.trim(),
-        'level': levelCtrl.text.trim(),
-        'position': positionCtrl.text.trim(),
-        'location_id': locationIdCtrl.text.trim(),
+        'shelf_location': selectedZone,
         'is_parapharmacie': _paraMode,
       });
       if (mounted) _showResult(result.success, result.error?.message ?? 'Créé');
@@ -180,11 +167,7 @@ TextField(
       'price_purchase': double.tryParse(purchase.text),
       'price_sale': double.tryParse(sale.text),
       'min_stock': double.tryParse(minStock.text),
-      'aisle': aisleCtrl.text.trim(),
-      'shelf': shelfCtrl.text.trim(),
-      'level': levelCtrl.text.trim(),
-      'position': positionCtrl.text.trim(),
-      'location_id': locationIdCtrl.text.trim(),
+      'shelf_location': selectedZone,
     });
     if (mounted) {
       _showResult(result.success, result.error?.message ?? 'Enregistré');
@@ -390,6 +373,7 @@ class _MedicationDetail extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final muted = isDark ? Colors.white60 : Colors.black54;
+    final locale = context.read<AuthStore>().locale;
     Widget row(String label, String value) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(
@@ -430,6 +414,20 @@ class _MedicationDetail extends StatelessWidget {
             row('EAN-13', medication.barcodeEan13 ?? '—'),
             row('Ordonnance requise',
                 medication.prescriptionRequired ? 'Oui' : 'Non'),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                icon: const Icon(Icons.view_in_ar),
+                label: Text(S.t('viewInPlan', locale)),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        PharmacyPlanPage(focusZoneId: medication.zone),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),

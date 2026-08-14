@@ -237,6 +237,15 @@ class _PosPageState extends State<PosPage> {
     );
   }
 
+  static int _gridColumns(double w) {
+    if (w >= 1700) return 6;
+    if (w >= 1400) return 5;
+    if (w >= 1100) return 4;
+    if (w >= 760) return 3;
+    if (w >= 480) return 2;
+    return 1;
+  }
+
   Widget _buildProductPanel(String locale) {
     return Column(
       children: [
@@ -267,11 +276,11 @@ class _PosPageState extends State<PosPage> {
               : GridView.builder(
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount:
-                        MediaQuery.of(context).size.width >= 1200 ? 4 : 3,
-                    childAspectRatio: 0.92,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
+                    crossAxisCount: _gridColumns(
+                        MediaQuery.of(context).size.width),
+                    childAspectRatio: 0.95,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
                   ),
                   itemCount: _results.length,
                   itemBuilder: (context, i) => _ProductCard(
@@ -402,7 +411,7 @@ class _CartLineTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
           Expanded(
@@ -413,7 +422,7 @@ class _CartLineTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600)),
+                        fontSize: 14, fontWeight: FontWeight.w700)),
                 Text(
                   '${Fmt.money(line.unitPrice)} × ${Fmt.number(line.quantity)}',
                   style: const TextStyle(fontSize: 12, color: Colors.grey),
@@ -421,37 +430,89 @@ class _CartLineTile extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.remove_circle_outline, size: 20),
-            onPressed: () =>
-                onQuantity((line.quantity - 1).clamp(1, 999).toDouble()),
+          _TouchStepper(
+            quantity: line.quantity,
+            onChanged: onQuantity,
           ),
           SizedBox(
-            width: 44,
-            child: Text(
-              Fmt.number(line.quantity),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline, size: 20),
-            onPressed: () => onQuantity(line.quantity + 1),
-          ),
-          SizedBox(
-            width: 72,
+            width: 80,
             child: Text(
               Fmt.money(line.total),
               textAlign: TextAlign.end,
-              style: const TextStyle(fontWeight: FontWeight.w800),
+              style: const TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.w900),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.close, size: 18, color: AppColors.danger),
+          _TouchIconButton(
+            icon: Icons.close,
+            color: AppColors.danger,
             onPressed: onRemove,
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Bouton tactile large (cible ≥ 48px) pour le POS.
+class _TouchIconButton extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onPressed;
+  const _TouchIconButton(
+      {required this.icon, required this.color, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: 48,
+        height: 48,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          border: Border.all(color: color.withValues(alpha: 0.35)),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Icon(icon, size: 22, color: color),
+      ),
+    );
+  }
+}
+
+/// Incrémenteur tactile (- / nombre / +) avec cibles ≥ 56px.
+class _TouchStepper extends StatelessWidget {
+  final double quantity;
+  final ValueChanged<double> onChanged;
+  const _TouchStepper({required this.quantity, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _TouchIconButton(
+          icon: Icons.remove,
+          color: AppColors.primary,
+          onPressed: () =>
+              onChanged((quantity - 1).clamp(1, 999).toDouble()),
+        ),
+        SizedBox(
+          width: 56,
+          child: Text(
+            Fmt.number(quantity),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+                fontSize: 18, fontWeight: FontWeight.w900),
+          ),
+        ),
+        _TouchIconButton(
+          icon: Icons.add,
+          color: AppColors.primary,
+          onPressed: () => onChanged(quantity + 1),
+        ),
+      ],
     );
   }
 }

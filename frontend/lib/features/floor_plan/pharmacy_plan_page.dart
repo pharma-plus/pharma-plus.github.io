@@ -11,7 +11,8 @@ import '../../core/theme/colors.dart';
 /// Représentation isométrique 2.5D interactive de la pharmacie :
 /// sol, rayons (étagères en volume), zones colorées et interaction au toucher.
 class PharmacyPlanPage extends StatefulWidget {
-  const PharmacyPlanPage({super.key});
+  final String? focusZoneId;
+  const PharmacyPlanPage({super.key, this.focusZoneId});
 
   @override
   State<PharmacyPlanPage> createState() => _PharmacyPlanPageState();
@@ -25,6 +26,12 @@ class _PharmacyPlanPageState extends State<PharmacyPlanPage> {
   Timer? _timer;
 
   final List<_Zone> _zones = _buildZones();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.focusZoneId != null) _selected = widget.focusZoneId;
+  }
 
   @override
   void dispose() {
