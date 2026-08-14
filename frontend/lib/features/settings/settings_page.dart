@@ -205,6 +205,7 @@ class _SettingsPageState extends State<SettingsPage> {
               users: _users,
               roles: _roles,
               error: _usersError,
+              pharmacyId: _pharmacy?['id'] as String?,
               onChanged: () {
                 _loadUsers();
                 _loadAudit();
@@ -360,12 +361,14 @@ class _UsersTile extends StatelessWidget {
   final List<Map<String, dynamic>> roles;
   final String? error;
   final VoidCallback onChanged;
+  final String? pharmacyId;
   const _UsersTile({
     required this.loading,
     required this.users,
     required this.roles,
     this.error,
     required this.onChanged,
+    this.pharmacyId,
   });
 
   @override
@@ -402,7 +405,11 @@ class _UsersTile extends StatelessWidget {
           onTap: () async {
             final created = await showDialog<bool>(
               context: context,
-              builder: (_) => _AddUserDialog(locale: locale, roles: roles),
+              builder: (_) => _AddUserDialog(
+                locale: locale,
+                roles: roles,
+                pharmacyId: pharmacyId,
+              ),
             );
             if (created == true) onChanged();
           },
@@ -619,7 +626,8 @@ class _PharmacyEditDialogState extends State<_PharmacyEditDialog> {
 class _AddUserDialog extends StatefulWidget {
   final String locale;
   final List<Map<String, dynamic>> roles;
-  const _AddUserDialog({required this.locale, required this.roles});
+  final String? pharmacyId;
+  const _AddUserDialog({required this.locale, required this.roles, this.pharmacyId});
   @override
   State<_AddUserDialog> createState() => _AddUserDialogState();
 }
@@ -681,9 +689,17 @@ class _AddUserDialogState extends State<_AddUserDialog> {
             DropdownButtonFormField<String>(
               initialValue: _roleId,
               decoration: InputDecoration(labelText: S.t('role', l)),
-              items: widget.roles
-                  .map((r) => DropdownMenuItem(value: '${r['id']}', child: Text('${r['name']}')))
-                  .toList(),
+              items: (() {
+                final filtered = widget.pharmacyId == null
+                    ? widget.roles
+                    : widget.roles
+                        .where((r) => r['pharmacy_id'] == null || r['pharmacy_id'] == widget.pharmacyId)
+                        .toList();
+                final list = filtered.isEmpty ? widget.roles : filtered;
+                return list
+                    .map((r) => DropdownMenuItem(value: '${r['id']}', child: Text('${r['name']}')))
+                    .toList();
+              })(),
               onChanged: (v) => setState(() => _roleId = v),
             ),
             if (_err != null) ...[
