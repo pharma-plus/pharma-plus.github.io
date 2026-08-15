@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -27,6 +28,7 @@ class AuthStore extends ChangeNotifier {
   User? _user;
   bool _initialized = false;
   bool _initError = false;
+  bool _forcedLogin = false;
 
   String _baseUrl = 'https://pharma-maroc.bonto.run/api/v1';
   ThemeMode _themeMode = ThemeMode.system;
@@ -44,37 +46,43 @@ class AuthStore extends ChangeNotifier {
   String get locale => _locale;
 
   /// Restaure la session persistée au démarrage.
-  /// Ne peut jamais rester bloquée : un garde-fou (timeout) force la fin.
+  /// Garde-fou : toute l'initialisation est bornée à 12 s maximum.
   Future<void> init() async {
-    const watchdog = Duration(seconds: 20);
     try {
-      final prefs = await SharedPreferences.getInstance().timeout(watchdog);
-      _themeMode = ThemeMode.values.firstWhere(
-        (m) => m.name == prefs.getString(_kTheme),
-        orElse: () => ThemeMode.system,
-      );
-      _locale = prefs.getString(_kLocale) ?? 'fr';
-      final storedUrl = prefs.getString(_kBaseUrl);
-      if (storedUrl != null && storedUrl.isNotEmpty) {
-        final lower = storedUrl.toLowerCase();
-        final isLocal = lower.contains('localhost') ||
-            lower.contains('127.0.0.1') ||
-            lower.contains('::1');
-        if (!isLocal) _baseUrl = storedUrl;
-      }
-
-      _accessToken = await _storage.read(key: _kAccess).timeout(watchdog);
-      _refreshToken = await _storage.read(key: _kRefresh).timeout(watchdog);
-      final userRaw = await _storage.read(key: _kUser).timeout(watchdog);
-      if (userRaw != null) {
-        _user = User.fromJson(jsonDecode(userRaw) as Map<String, dynamic>);
-      }
+      await _doInit().timeout(const Duration(seconds: 12));
     } catch (e) {
       debugPrint('[AuthStore] init error: $e');
-      _initError = true;
+      final isMissingPlugin = e is MissingPluginException;
+      if (!_forcedLogin && !isMissingPlugin) _initError = true;
     } finally {
-      _initialized = true;
-      notifyListeners();
+      if (!_forcedLogin) {
+        _initialized = true;
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<void> _doInit() async {
+    final prefs = await SharedPreferences.getInstance();
+    _themeMode = ThemeMode.values.firstWhere(
+      (m) => m.name == prefs.getString(_kTheme),
+      orElse: () => ThemeMode.system,
+    );
+    _locale = prefs.getString(_kLocale) ?? 'fr';
+    final storedUrl = prefs.getString(_kBaseUrl);
+    if (storedUrl != null && storedUrl.isNotEmpty) {
+      final lower = storedUrl.toLowerCase();
+      final isLocal = lower.contains('localhost') ||
+          lower.contains('127.0.0.1') ||
+          lower.contains('::1');
+      if (!isLocal) _baseUrl = storedUrl;
+    }
+
+    _accessToken = await _storage.read(key: _kAccess);
+    _refreshToken = await _storage.read(key: _kRefresh);
+    final userRaw = await _storage.read(key: _kUser);
+    if (userRaw != null) {
+      _user = User.fromJson(jsonDecode(userRaw) as Map<String, dynamic>);
     }
   }
 
@@ -89,6 +97,18 @@ class AuthStore extends ChangeNotifier {
   /// Passe outre une erreur d'initialisation sans session : sûr car on
   /// n'est pas authentifié → on va vers la page de connexion.
   void continueToLogin() {
+    if (_initialized) return;
+    _forcedLogin = true;
+    _initError = false;
+    _initialized = true;
+    notifyListeners();
+  }
+
+  /// Forcé par le Splash si l'init ne termine jamais : garantit qu'on
+  /// n'affiche jamais un chargement infini (→ page de connexion).
+  void forceProceedToLogin() {
+    if (_initialized) return;
+    _forcedLogin = true;
     _initError = false;
     _initialized = true;
     notifyListeners();

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/l10n/strings.dart';
@@ -33,8 +34,34 @@ class RootGate extends StatelessWidget {
   }
 }
 
-class _SplashScreen extends StatelessWidget {
+class _SplashScreen extends StatefulWidget {
   const _SplashScreen();
+
+  @override
+  State<_SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<_SplashScreen> {
+  // Sécurité anti-blocage : si l'init n'a pas terminé au bout de 8 s,
+  // on force l'avancement vers la page de connexion (jamais de chargement
+  // infini). Sûr : on n'est pas authentifié, on ne crée aucune session.
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer(const Duration(seconds: 8), () {
+      if (!mounted) return;
+      final auth = context.read<AuthStore>();
+      if (!auth.isInitialized) auth.forceProceedToLogin();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

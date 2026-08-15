@@ -71,5 +71,18 @@
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
   <script src="flutter_bootstrap.js" async></script>
+  <script>
+    // Supprime l'écran de chargement dès que le premier frame Flutter est rendu.
+    window.addEventListener('flutter-first-frame', function () {
+      var el = document.getElementById('pmg-loading');
+      if (el) el.parentNode && el.parentNode.removeChild(el);
+    });
+    // Sécurité anti-blocage : retire le loader au bout de 15 s quoi qu'il
+    // arrive, afin qu'il ne puisse jamais masquer l'application.
+    setTimeout(function () {
+      var el = document.getElementById('pmg-loading');
+      if (el) el.parentNode && el.parentNode.removeChild(el);
+    }, 15000);
+  </script>
 </body>
 </html>
