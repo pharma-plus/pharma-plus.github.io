@@ -19,7 +19,8 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends State<LoginPage>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _password = TextEditingController();
@@ -29,11 +30,20 @@ class _LoginPageState extends State<LoginPage> {
   bool _online = true;
   String? _error;
 
+  late final AnimationController _anim = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 700));
+  late final Animation<double> _fade =
+      CurvedAnimation(parent: _anim, curve: Curves.easeOut);
+  late final Animation<Offset> _slide = Tween<Offset>(
+          begin: const Offset(0, 0.08), end: Offset.zero)
+      .animate(CurvedAnimation(parent: _anim, curve: Curves.easeOut));
+
   @override
   void initState() {
     super.initState();
     _loadRemembered();
     _checkConnection();
+    _anim.forward();
   }
 
   Future<void> _loadRemembered() async {
@@ -60,6 +70,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   void dispose() {
+    _anim.dispose();
     _email.dispose();
     _password.dispose();
     super.dispose();
@@ -141,7 +152,13 @@ class _LoginPageState extends State<LoginPage> {
           children: [
             _Backdrop(),
             SafeArea(
-              child: isWide ? _buildWide() : _buildNarrow(),
+              child: FadeTransition(
+                opacity: _fade,
+                child: SlideTransition(
+                  position: _slide,
+                  child: isWide ? _buildWide() : _buildNarrow(),
+                ),
+              ),
             ),
             _ThemeToggle(),
           ],
@@ -157,12 +174,15 @@ class _LoginPageState extends State<LoginPage> {
       children: [
         Expanded(
           flex: 5,
-          child: Container(
-            padding: const EdgeInsets.all(56),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
+          child: Stack(
+            children: [
+              const _FloatingMeds(),
+              Container(
+                padding: const EdgeInsets.all(56),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
                 const PharmaPlusLogo(full: true, size: 72),
                 const SizedBox(height: 22),
                 const Text(
@@ -200,6 +220,8 @@ class _LoginPageState extends State<LoginPage> {
               ],
             ),
           ),
+        ],
+        ),
         ),
         Expanded(
           flex: 3,
@@ -261,6 +283,8 @@ class _LoginPageState extends State<LoginPage> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          const Center(child: PharmaPlusLogo(size: 46)),
+          const SizedBox(height: 10),
           Text(
             S.t('welcome', locale),
             textAlign: TextAlign.center,
@@ -424,6 +448,82 @@ class _Backdrop extends StatelessWidget {
               size: 150, color: Colors.white.withValues(alpha: 0.04)),
         ),
       ],
+    );
+  }
+}
+
+/// Éléments médicaux 3D flottants (capsules) pour la zone de marque.
+class _FloatingMeds extends StatelessWidget {
+  const _FloatingMeds();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        const _Pill(top: 70, left: 30, size: 96, color: AppColors.turquoise,
+            opacity: 0.12, rotate: 0.5),
+        const _Pill(top: 230, right: 50, size: 72, color: AppColors.accent,
+            opacity: 0.09, rotate: -0.4),
+        const _Pill(bottom: 150, left: 110, size: 120, color: AppColors.primaryLight,
+            opacity: 0.12, rotate: 0.2),
+        const _Pill(bottom: 60, right: 150, size: 64, color: Colors.white,
+            opacity: 0.07, rotate: -0.6),
+      ],
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  final double? top;
+  final double? left;
+  final double? right;
+  final double? bottom;
+  final double size;
+  final Color color;
+  final double opacity;
+  final double rotate;
+
+  const _Pill({
+    this.top,
+    this.left,
+    this.right,
+    this.bottom,
+    required this.size,
+    required this.color,
+    required this.opacity,
+    required this.rotate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: top,
+      left: left,
+      right: right,
+      bottom: bottom,
+      child: Transform.rotate(
+        angle: rotate,
+        child: Container(
+          width: size,
+          height: size * 0.5,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(size),
+            gradient: LinearGradient(
+              colors: [
+                color.withValues(alpha: opacity),
+                color.withValues(alpha: opacity * 0.4),
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: opacity * 0.6),
+                blurRadius: 26,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
