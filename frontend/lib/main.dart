@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
@@ -7,13 +8,15 @@ import 'core/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await AuthStore.instance.init();
+  // On affiche immédiatement le Splash (RootGate) au lieu de bloquer le
+  // lancement sur une initialisation qui pourrait ne jamais se terminer.
   runApp(
     ChangeNotifierProvider.value(
       value: AuthStore.instance,
       child: const PharmaGoldApp(),
     ),
   );
+  unawaited(AuthStore.instance.init());
 }
 
 class PharmaGoldApp extends StatelessWidget {

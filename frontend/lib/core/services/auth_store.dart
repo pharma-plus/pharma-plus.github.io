@@ -26,6 +26,7 @@ class AuthStore extends ChangeNotifier {
   String? _refreshToken;
   User? _user;
   bool _initialized = false;
+  bool _initError = false;
 
   String _baseUrl = 'https://pharma-maroc.bonto.run/api/v1';
   ThemeMode _themeMode = ThemeMode.system;
@@ -36,15 +37,18 @@ class AuthStore extends ChangeNotifier {
   User? get user => _user;
   bool get isAuthenticated => _accessToken != null && _user != null;
   bool get isInitialized => _initialized;
+  bool get initError => _initError;
 
   String get baseUrl => _baseUrl;
   ThemeMode get themeMode => _themeMode;
   String get locale => _locale;
 
   /// Restaure la session persistée au démarrage.
+  /// Ne peut jamais rester bloquée : un garde-fou (timeout) force la fin.
   Future<void> init() async {
+    const watchdog = Duration(seconds: 20);
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await SharedPreferences.getInstance().timeout(watchdog);
       _themeMode = ThemeMode.values.firstWhere(
         (m) => m.name == prefs.getString(_kTheme),
         orElse: () => ThemeMode.system,
@@ -59,18 +63,35 @@ class AuthStore extends ChangeNotifier {
         if (!isLocal) _baseUrl = storedUrl;
       }
 
-      _accessToken = await _storage.read(key: _kAccess);
-      _refreshToken = await _storage.read(key: _kRefresh);
-      final userRaw = await _storage.read(key: _kUser);
+      _accessToken = await _storage.read(key: _kAccess).timeout(watchdog);
+      _refreshToken = await _storage.read(key: _kRefresh).timeout(watchdog);
+      final userRaw = await _storage.read(key: _kUser).timeout(watchdog);
       if (userRaw != null) {
         _user = User.fromJson(jsonDecode(userRaw) as Map<String, dynamic>);
       }
     } catch (e) {
       debugPrint('[AuthStore] init error: $e');
+      _initError = true;
     } finally {
       _initialized = true;
       notifyListeners();
     }
+  }
+
+  /// Réessaie l'initialisation après une erreur.
+  Future<void> retryInit() async {
+    _initError = false;
+    _initialized = false;
+    notifyListeners();
+    await init();
+  }
+
+  /// Passe outre une erreur d'initialisation sans session : sûr car on
+  /// n'est pas authentifié → on va vers la page de connexion.
+  void continueToLogin() {
+    _initError = false;
+    _initialized = true;
+    notifyListeners();
   }
 
   Future<void> setBaseUrl(String url) async {
