@@ -7,6 +7,7 @@ import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
+import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/pharma3d_card.dart';
 import '../../core/widgets/pharma_wide_card.dart';
 import '../../core/widgets/stats_tile.dart';
@@ -217,6 +218,14 @@ class _DashboardPageState extends State<DashboardPage> {
                     children: items,
                   );
                 }),
+                const SizedBox(height: 20),
+                _WorkspaceSection(
+                  todayRevenue:
+                      double.tryParse('${revenue['revenue_today'] ?? 0}') ?? 0,
+                  lowStock: (alerts['low_stock'] as num?)?.toDouble() ?? 0,
+                  onOpenPlan: () => push(const PharmacyPlanPage()),
+                  onOpenPos: () => push(const PosPage()),
+                ),
                 const SizedBox(height: 20),
                 _SectionLabel(title: S.t('modules', locale)),
                 const SizedBox(height: 10),
@@ -690,4 +699,330 @@ class _ErrorState extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Section centrale du Dashboard (composition image 1) :
+/// grand Plan 3D à gauche + Point de vente à droite.
+class _WorkspaceSection extends StatelessWidget {
+  final double todayRevenue;
+  final double lowStock;
+  final VoidCallback onOpenPlan;
+  final VoidCallback onOpenPos;
+
+  const _WorkspaceSection({
+    required this.todayRevenue,
+    required this.lowStock,
+    required this.onOpenPlan,
+    required this.onOpenPos,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) {
+      final sideBySide = constraints.maxWidth >= 1000;
+      final plan = _Plan3DPanel(onOpen: onOpenPlan);
+      final pos = _PosPanel(
+        todayRevenue: todayRevenue,
+        lowStock: lowStock,
+        onOpen: onOpenPos,
+      );
+      if (sideBySide) {
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(flex: 6, child: plan),
+            const SizedBox(width: 16),
+            Expanded(flex: 4, child: pos),
+          ],
+        );
+      }
+      return Column(
+        children: [
+          plan,
+          const SizedBox(height: 16),
+          pos,
+        ],
+      );
+    });
+  }
+}
+
+class _Plan3DPanel extends StatelessWidget {
+  final VoidCallback onOpen;
+  const _Plan3DPanel({required this.onOpen});
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = context.watch<AuthStore>().locale;
+    return GlassCard(
+      radius: BorderRadius.circular(24),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.storefront_outlined, color: AppColors.turquoise),
+              const SizedBox(width: 10),
+              Text(
+                S.t('pharmacyPlan', locale),
+                style: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
+              ),
+              const Spacer(),
+              const Icon(Icons.auto_fix_high, size: 18, color: AppColors.turquoise),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(
+            height: 210,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF0A2A0F), Color(0xFF123B1A), Color(0xFF081F0C)]),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            ),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _PlanPreviewPainter(),
+                  ),
+                ),
+                Positioned(
+                  bottom: 10,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.45),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      S.t('shelves', locale),
+                      style: const TextStyle(color: Colors.white70, fontSize: 11),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _MiniControl(icon: Icons.add),
+              const SizedBox(width: 6),
+              _MiniControl(icon: Icons.remove),
+              const SizedBox(width: 6),
+              _MiniControl(icon: Icons.rotate_right),
+              const SizedBox(width: 6),
+              _MiniControl(icon: Icons.center_focus_strong),
+            ],
+          ),
+          const SizedBox(height: 12),
+          GradientButton(
+            label: S.t('pharmacyPlanTitle', locale),
+            icon: Icons.open_in_new,
+            onPressed: onOpen,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniControl extends StatelessWidget {
+  final IconData icon;
+  const _MiniControl({required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Icon(icon, size: 18, color: Colors.white70),
+        ),
+      ),
+    );
+  }
+}
+
+class _PosPanel extends StatelessWidget {
+  final double todayRevenue;
+  final double lowStock;
+  final VoidCallback onOpen;
+  const _PosPanel({
+    required this.todayRevenue,
+    required this.lowStock,
+    required this.onOpen,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = context.watch<AuthStore>().locale;
+    final cats = [
+      S.t('zoneMedications', locale),
+      S.t('zoneParapharmacy', locale),
+      S.t('zoneOtc', locale),
+      S.t('zoneCosmetics', locale),
+    ];
+    return GlassCard(
+      radius: BorderRadius.circular(24),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.point_of_sale, color: AppColors.turquoise),
+              const SizedBox(width: 10),
+              Text(
+                S.t('pos', locale),
+                style: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
+              ),
+              const Spacer(),
+              const Icon(Icons.touch_app, size: 18, color: AppColors.turquoise),
+            ],
+          ),
+          const SizedBox(height: 14),
+          InkWell(
+            onTap: onOpen,
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.search, color: Colors.white54),
+                  SizedBox(width: 10),
+                  Text('Rechercher un produit…',
+                      style: TextStyle(color: Colors.white54, fontSize: 15)),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final c in cats)
+                InkWell(
+                  onTap: onOpen,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                    ),
+                    child: Text(c, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              gradient: AppColors.turquoiseGradient,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                Text(S.t('todayRevenue', locale),
+                    style: const TextStyle(color: Colors.white, fontSize: 12)),
+                const SizedBox(height: 2),
+                Text(
+                  Fmt.money(todayRevenue),
+                  style: const TextStyle(
+                      color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          GradientButton(
+            label: S.t('checkout', locale),
+            icon: Icons.payment,
+            onPressed: onOpen,
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onOpen,
+                  icon: const Icon(Icons.qr_code_scanner),
+                  label: const Text('Scanner'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onOpen,
+                  icon: const Icon(Icons.receipt_long),
+                  label: Text(S.t('cart', locale)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Aperçu simplifié du plan (rectangles de zones + grille), sans données.
+class _PlanPreviewPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final grid = Paint()
+      ..color = Colors.white.withValues(alpha: 0.05)
+      ..strokeWidth = 1;
+    const step = 28.0;
+    for (double x = 0; x <= size.width; x += step) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), grid);
+    }
+    for (double y = 0; y <= size.height; y += step) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
+    }
+
+    final zone = (Color c, Rect r) => Paint()
+      ..color = c.withValues(alpha: 0.45)
+      ..style = PaintingStyle.fill;
+    final border = (Color c) => Paint()
+      ..color = c.withValues(alpha: 0.7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+
+    final m = 18.0;
+    final zones = <(Rect, Color)>[
+      (Rect.fromLTWH(m, m, size.width / 2 - m * 1.5, size.height / 2 - m * 1.5), AppColors.greenGradient.colors.first),
+      (Rect.fromLTWH(size.width / 2 + m / 2, m, size.width / 2 - m * 1.5, size.height / 2 - m * 1.5), AppColors.turquoiseDark),
+      (Rect.fromLTWH(m, size.height / 2 + m / 2, size.width / 2 - m * 1.5, size.height / 2 - m * 1.5), AppColors.teal),
+      (Rect.fromLTWH(size.width / 2 + m / 2, size.height / 2 + m / 2, size.width / 2 - m * 1.5, size.height / 2 - m * 1.5), AppColors.accent),
+    ];
+    for (final (r, c) in zones) {
+      final rr = RRect.fromRectAndRadius(r, const Radius.circular(8));
+      canvas.drawRRect(rr, zone(c, r));
+      canvas.drawRRect(rr, border(c));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
 }
