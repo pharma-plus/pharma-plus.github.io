@@ -238,7 +238,8 @@ class _DashboardPageState extends State<DashboardPage> {
                       gradient: const LinearGradient(
                           colors: [Color(0xFF7A4F00), Color(0xFFC77700)]),
                       glow: AppColors.warning,
-                      onTap: () => push(const StockPage()),
+                      onTap: () =>
+                          push(const StockPage(initialFilter: 'low')),
                       badge: null,
                     ),
                     (

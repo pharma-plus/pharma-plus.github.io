@@ -8,7 +8,9 @@ import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
 
 class StockPage extends StatefulWidget {
-  const StockPage({super.key});
+  /// Filtre initial : null | low | expiring | expired.
+  final String? initialFilter;
+  const StockPage({super.key, this.initialFilter});
 
   @override
   State<StockPage> createState() => _StockPageState();
@@ -24,6 +26,7 @@ class _StockPageState extends State<StockPage> {
   @override
   void initState() {
     super.initState();
+    _alertFilter = widget.initialFilter;
     _load();
   }
 
