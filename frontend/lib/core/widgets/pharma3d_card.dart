@@ -14,6 +14,7 @@ class Pharma3DCard extends StatefulWidget {
   final VoidCallback? onTap;
   final String? badge;
   final double iconSize;
+  final Duration entranceDelay;
 
   const Pharma3DCard({
     super.key,
@@ -26,15 +27,48 @@ class Pharma3DCard extends StatefulWidget {
     this.onTap,
     this.badge,
     this.iconSize = 26,
+    this.entranceDelay = Duration.zero,
   });
 
   @override
   State<Pharma3DCard> createState() => _Pharma3DCardState();
 }
 
-class _Pharma3DCardState extends State<Pharma3DCard> {
+class _Pharma3DCardState extends State<Pharma3DCard>
+    with SingleTickerProviderStateMixin {
   bool _hovered = false;
   bool _pressed = false;
+
+  late final AnimationController _entrance = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 520),
+    value: 0,
+  );
+  late final AnimationController _float = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 3200),
+    value: 0.5,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.entranceDelay > Duration.zero) {
+      Future.delayed(widget.entranceDelay, () {
+        if (mounted) _entrance.forward();
+      });
+    } else {
+      _entrance.forward();
+    }
+    _float.repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _entrance.dispose();
+    _float.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,19 +84,31 @@ class _Pharma3DCardState extends State<Pharma3DCard> {
         onTapUp: (_) => setState(() => _pressed = false),
         onTapCancel: () => setState(() => _pressed = false),
         onTap: widget.onTap,
-        child: AnimatedScale(
-          scale: _pressed ? 0.97 : (_hovered ? 1.03 : 1),
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOutBack,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOut,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: _shadows(),
-            ),
-            child: _buildSurface(),
-          ),
+        child: AnimatedBuilder(
+          animation: Listenable.merge([_entrance, _float]),
+          builder: (context, _) {
+            final entrance = Curves.easeOutBack.transform(_entrance.value);
+            final floatDy = ((_float.value - 0.5) * 6) * (_hovered ? 0 : 1);
+            return Opacity(
+              opacity: _entrance.value,
+              child: Transform.translate(
+                offset: Offset(0, floatDy),
+                child: Transform.scale(
+                  scale: (0.9 + 0.1 * entrance) *
+                      (_pressed ? 0.97 : (_hovered ? 1.03 : 1)),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOut,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: _shadows(),
+                    ),
+                    child: _buildSurface(),
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );

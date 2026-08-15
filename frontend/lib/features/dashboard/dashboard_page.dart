@@ -226,8 +226,17 @@ class _DashboardPageState extends State<DashboardPage> {
                       : constraints.maxWidth >= 700
                           ? 3
                           : 2;
-                  final items = <Widget>[
-                    Pharma3DCard(
+                  final cardData = <({
+                    IconData icon,
+                    String label,
+                    String value,
+                    String? subtitle,
+                    Gradient gradient,
+                    Color glow,
+                    VoidCallback onTap,
+                    String? badge,
+                  })>[
+                    (
                       icon: Icons.medication_outlined,
                       label: S.t('medications', locale),
                       value: '${meds['available'] ?? 0}',
@@ -235,8 +244,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       gradient: AppColors.greenGradient,
                       glow: AppColors.primary,
                       onTap: () => push(const CatalogPage()),
+                      badge: null,
                     ),
-                    Pharma3DCard(
+                    (
                       icon: Icons.inventory_2_outlined,
                       label: S.t('stock', locale),
                       value: Fmt.money(double.tryParse('${stockInfo['stock_value'] ?? 0}') ?? 0),
@@ -244,8 +254,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       gradient: const LinearGradient(colors: [Color(0xFF0D47A1), Color(0xFF1565C0), Color(0xFF0A2A6B)]),
                       glow: AppColors.secondary,
                       onTap: () => push(const StockPage()),
+                      badge: null,
                     ),
-                    Pharma3DCard(
+                    (
                       icon: Icons.point_of_sale,
                       label: S.t('sales', locale),
                       value: Fmt.number((revenue['sales_month'] as num?)?.toDouble() ?? 0),
@@ -253,8 +264,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       gradient: AppColors.turquoiseGradient,
                       glow: AppColors.turquoise,
                       onTap: () => push(const PosPage()),
+                      badge: null,
                     ),
-                    Pharma3DCard(
+                    (
                       icon: Icons.payments_outlined,
                       label: S.t('revenue', locale),
                       value: Fmt.money(double.tryParse('${revenue['revenue_month'] ?? 0}') ?? 0),
@@ -262,8 +274,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       gradient: AppColors.goldGradient,
                       glow: AppColors.accent,
                       onTap: () => push(const ReportsPage()),
+                      badge: null,
                     ),
-                    Pharma3DCard(
+                    (
                       icon: Icons.description_outlined,
                       label: S.t('prescriptions', locale),
                       value: '${presc['month'] ?? 0}',
@@ -271,8 +284,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       gradient: const LinearGradient(colors: [Color(0xFF7B1FA2), Color(0xFF512DA8), Color(0xFF311B92)]),
                       glow: const Color(0xFF9C27B0),
                       onTap: () => push(const PrescriptionsPage()),
+                      badge: null,
                     ),
-                    Pharma3DCard(
+                    (
                       icon: Icons.people_outline,
                       label: S.t('customers', locale),
                       value: '${customers['active'] ?? 0}',
@@ -280,8 +294,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       gradient: const LinearGradient(colors: [Color(0xFF00838F), Color(0xFF00695C), Color(0xFF004D40)]),
                       glow: const Color(0xFF00ACC1),
                       onTap: () => push(const CustomersPage()),
+                      badge: null,
                     ),
-                    Pharma3DCard(
+                    (
                       icon: Icons.local_shipping_outlined,
                       label: S.t('suppliers', locale),
                       value: '${suppliers['active'] ?? 0}',
@@ -289,8 +304,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       gradient: const LinearGradient(colors: [Color(0xFFEF6C00), Color(0xFFE65100), Color(0xFFBF360C)]),
                       glow: const Color(0xFFFF8F00),
                       onTap: () => push(const SuppliersPage()),
+                      badge: null,
                     ),
-                    Pharma3DCard(
+                    (
                       icon: Icons.spa_outlined,
                       label: S.t('parapharmacy', locale),
                       value: Fmt.number((para['products'] as num?)?.toDouble() ?? 0),
@@ -298,18 +314,19 @@ class _DashboardPageState extends State<DashboardPage> {
                       gradient: AppColors.turquoiseGradient,
                       glow: AppColors.turquoise,
                       onTap: () => push(const CatalogPage(parapharmacy: true)),
+                      badge: null,
                     ),
-                    Pharma3DCard(
+                    (
                       icon: Icons.warning_amber_outlined,
                       label: S.t('alerts', locale),
                       value: '${alerts['low_stock'] ?? 0}',
                       subtitle: '${S.t('expiring', locale)}: ${alerts['expiring'] ?? 0} · ${S.t('expired', locale)}: ${alerts['expired'] ?? 0}',
                       gradient: const LinearGradient(colors: [Color(0xFFD32F2F), Color(0xFFC62828), Color(0xFF8E0000)]),
                       glow: AppColors.danger,
-                      badge: '!',
                       onTap: () => push(const StockPage()),
+                      badge: '!',
                     ),
-                    Pharma3DCard(
+                    (
                       icon: Icons.qr_code_scanner,
                       label: S.t('barcode', locale),
                       value: 'Scan',
@@ -317,8 +334,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       gradient: const LinearGradient(colors: [Color(0xFF1E88E5), Color(0xFF0277BD), Color(0xFF01579B)]),
                       glow: AppColors.info,
                       onTap: () => push(const PosPage()),
+                      badge: null,
                     ),
-                    Pharma3DCard(
+                    (
                       icon: Icons.videocam_outlined,
                       label: S.t('cameras', locale),
                       value: '${(cams['online'] as num?)?.toInt() ?? 0}/${(cams['total'] as num?)?.toInt() ?? 0}',
@@ -326,8 +344,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       gradient: const LinearGradient(colors: [Color(0xFF0D47A1), Color(0xFF1B5E20)]),
                       glow: AppColors.primary,
                       onTap: () => push(const CamerasPage()),
+                      badge: null,
                     ),
-                    Pharma3DCard(
+                    (
                       icon: Icons.medication_liquid_outlined,
                       label: S.t('baseMaroc', locale),
                       value: '${ref['total'] ?? _syncTotal(lastSync)}',
@@ -335,8 +354,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       gradient: const LinearGradient(colors: [Color(0xFF00BFA5), Color(0xFF0D47A1)]),
                       glow: AppColors.turquoise,
                       onTap: () => push(const ReferencePage()),
+                      badge: null,
                     ),
-                    Pharma3DCard(
+                    (
                       icon: Icons.storefront_outlined,
                       label: S.t('pharmacyPlan', locale),
                       value: '3D',
@@ -344,7 +364,23 @@ class _DashboardPageState extends State<DashboardPage> {
                       gradient: AppColors.turquoiseGradient,
                       glow: AppColors.turquoise,
                       onTap: () => push(const PharmacyPlanPage()),
+                      badge: null,
                     ),
+                  ];
+                  final items = <Widget>[
+                    for (var i = 0; i < cardData.length; i++)
+                      Pharma3DCard(
+                        key: ValueKey('mod-${cardData[i].label}'),
+                        icon: cardData[i].icon,
+                        label: cardData[i].label,
+                        value: cardData[i].value,
+                        subtitle: cardData[i].subtitle,
+                        gradient: cardData[i].gradient,
+                        glow: cardData[i].glow,
+                        onTap: cardData[i].onTap,
+                        badge: cardData[i].badge,
+                        entranceDelay: Duration(milliseconds: i * 70),
+                      ),
                   ];
                   return GridView.count(
                     crossAxisCount: columns,
