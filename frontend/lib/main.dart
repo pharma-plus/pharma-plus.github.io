@@ -25,7 +25,7 @@ class PharmaGoldApp extends StatelessWidget {
       builder: (context, auth, _) {
         final rtl = auth.locale == 'ar';
         return MaterialApp(
-          title: 'PHARMA MAROC GOLD',
+          title: 'PHARMA+',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),

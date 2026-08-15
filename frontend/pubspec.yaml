@@ -41,6 +41,9 @@ dependencies:
   # Icônes Material
   cupertino_icons: ^1.0.8
 
+  # Rendu du logo vectoriel PHARMA+
+  flutter_svg: ^2.0.10
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

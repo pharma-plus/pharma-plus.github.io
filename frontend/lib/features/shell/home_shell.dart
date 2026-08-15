@@ -4,6 +4,7 @@ import '../../core/l10n/strings.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/services/sync_engine.dart';
 import '../../core/theme/colors.dart';
+import '../../core/widgets/pharma_logo.dart';
 import '../dashboard/dashboard_page.dart';
 import '../pos/pos_page.dart';
 import '../catalog/catalog_page.dart';
@@ -158,15 +159,7 @@ class _DarkRail extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 24),
-          Container(
-            width: 52,
-            height: 52,
-            decoration: const BoxDecoration(
-              gradient: AppColors.goldGradient,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.local_pharmacy, color: Color(0xFF3E2A00)),
-          ),
+          const PharmaPlusLogo(size: 54),
           const SizedBox(height: 28),
           for (var i = 0; i < labels.length; i++)
             Padding(
@@ -182,10 +175,10 @@ class _DarkRail extends StatelessWidget {
           const Padding(
             padding: EdgeInsets.only(bottom: 20),
             child: Text(
-              'GOLD',
+              'PHARMA+',
               style: TextStyle(
                 fontSize: 10,
-                letterSpacing: 3,
+                letterSpacing: 2,
                 color: Color(0x66FFFFFF),
                 fontWeight: FontWeight.w800,
               ),

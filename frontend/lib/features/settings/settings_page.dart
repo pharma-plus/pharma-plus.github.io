@@ -288,7 +288,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: 24),
           const Center(
-            child: Text('PHARMA MAROC GOLD ENTERPRISE v2.0.0',
+            child: Text('PHARMA+  v2.0.0',
                 style: TextStyle(fontSize: 11, color: Colors.grey)),
           ),
         ],

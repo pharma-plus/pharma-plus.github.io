@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import '../../core/l10n/strings.dart';
 import '../../core/models/user.dart';
 import '../../core/services/api_client.dart';
@@ -7,6 +9,7 @@ import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/glass_card.dart';
+import '../../core/widgets/pharma_logo.dart';
 import 'two_factor_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -22,7 +25,38 @@ class _LoginPageState extends State<LoginPage> {
   final _password = TextEditingController();
   bool _obscure = true;
   bool _loading = false;
+  bool _remember = true;
+  bool _online = true;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRemembered();
+    _checkConnection();
+  }
+
+  Future<void> _loadRemembered() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString('pmg_email');
+    if (saved != null && saved.isNotEmpty) {
+      _email.text = saved;
+    }
+  }
+
+  Future<void> _checkConnection() async {
+    final url = context.read<AuthStore>().baseUrl;
+    try {
+      final res = await http
+          .get(Uri.parse('$url/health'))
+          .timeout(const Duration(seconds: 4));
+      if (!mounted) return;
+      setState(() => _online = res.statusCode < 500);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _online = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -52,16 +86,27 @@ class _LoginPageState extends State<LoginPage> {
     if (!result.success) {
       final network =
           result.error?.code == 'NETWORK_ERROR' || result.statusCode == 0;
+      final starting = result.error?.code == 'SERVER_STARTING';
       setState(() {
         _error = network
-            ? 'Impossible de joindre le serveur. '
-                'Vérifiez l\'URL de l\'API dans les paramètres (icône ⚙).'
+            ? (starting
+                ? 'Le serveur démarre, veuillez patienter quelques secondes.'
+                : 'Impossible de joindre le serveur. '
+                    'Vérifiez l\'URL de l\'API dans les paramètres (icône ⚙).')
             : S.format('invalidCredentials', locale);
       });
       return;
     }
 
+    if (_remember) {
+      (await SharedPreferences.getInstance())
+          .setString('pmg_email', _email.text.trim());
+    } else {
+      (await SharedPreferences.getInstance()).remove('pmg_email');
+    }
+
     final data = result.data!;
+    if (!mounted) return;
     if (data['requireTwoFactor'] == true) {
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -72,6 +117,7 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
+    if (!mounted) return;
     await context.read<AuthStore>().saveSession(
           accessToken: data['accessToken'] as String,
           refreshToken: data['refreshToken'] as String,
@@ -81,45 +127,30 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isWide = MediaQuery.of(context).size.width >= 900;
     return Scaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final wide = constraints.maxWidth >= 900;
-          return Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [AppColors.menu, Color(0xFF12401B), Color(0xFF1B5E20)],
-              ),
-            ),
-            child: SafeArea(
-              child: wide ? _buildWide() : _buildNarrow(),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  // ---- Layout mobile / tablette : carte centrée -------------------------
-  Widget _buildNarrow() {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 460),
-          child: GlassCard(
-            radius: BorderRadius.circular(28),
-            padding: const EdgeInsets.all(28),
-            child: _buildForm(),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.menu, Color(0xFF12401B), Color(0xFF1B5E20)],
           ),
+        ),
+        child: Stack(
+          children: [
+            _Backdrop(),
+            SafeArea(
+              child: isWide ? _buildWide() : _buildNarrow(),
+            ),
+            _ThemeToggle(),
+          ],
         ),
       ),
     );
   }
 
-  // ---- Layout web : panneau marque + formulaire -------------------------
+  // ---- Layout web : marque + formulaire -------------------------------
   Widget _buildWide() {
     final locale = context.watch<AuthStore>().locale;
     return Row(
@@ -128,35 +159,24 @@ class _LoginPageState extends State<LoginPage> {
           flex: 5,
           child: Container(
             padding: const EdgeInsets.all(56),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF071A0B),
-                  Color(0xFF0A2A0F),
-                  Color(0xFF12401B),
-                ],
-              ),
-            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const _BrandMark(size: 92),
-                const SizedBox(height: 40),
+                const PharmaPlusLogo(full: true, size: 72),
+                const SizedBox(height: 22),
                 const Text(
-                  'PHARMA MAROC GOLD',
+                  'PHARMA+',
                   style: TextStyle(
-                    fontSize: 34,
+                    fontSize: 40,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 3,
+                    letterSpacing: 2,
                     color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'ENTERPRISE V2.0',
+                  'LOGICIEL DE PHARMACIE',
                   style: TextStyle(
                     fontSize: 13,
                     letterSpacing: 6,
@@ -164,30 +184,19 @@ class _LoginPageState extends State<LoginPage> {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 22),
+                Text(
+                  S.t('slogan', locale),
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 28),
                 _Features(locale: locale),
                 const Spacer(),
-                Row(
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 2,
-                      decoration: BoxDecoration(
-                        gradient: AppColors.goldGradient,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      S.t('tagline', locale),
-                      style: const TextStyle(
-                        color: Colors.white60,
-                        fontSize: 13,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
+                _Footer(locale: locale, online: _online),
               ],
             ),
           ),
@@ -198,7 +207,7 @@ class _LoginPageState extends State<LoginPage> {
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(32),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
+                constraints: const BoxConstraints(maxWidth: 440),
                 child: GlassCard(
                   radius: BorderRadius.circular(28),
                   padding: const EdgeInsets.all(32),
@@ -212,6 +221,38 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  // ---- Layout mobile / tablette ---------------------------------------
+  Widget _buildNarrow() {
+    final locale = context.watch<AuthStore>().locale;
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 460),
+          child: GlassCard(
+            radius: BorderRadius.circular(28),
+            padding: const EdgeInsets.all(26),
+            child: Column(
+              children: [
+                const PharmaPlusLogo(full: true, size: 52),
+                const SizedBox(height: 16),
+                Text(
+                  S.t('slogan', locale),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+                _buildForm(),
+                const SizedBox(height: 16),
+                _Footer(locale: locale, online: _online),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildForm() {
     final locale = context.watch<AuthStore>().locale;
     return Form(
@@ -220,10 +261,8 @@ class _LoginPageState extends State<LoginPage> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _Logo(),
-          const SizedBox(height: 24),
           Text(
-            S.t('login', locale),
+            S.t('welcome', locale),
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 26,
@@ -232,7 +271,7 @@ class _LoginPageState extends State<LoginPage> {
           ),
           const SizedBox(height: 6),
           Text(
-            S.t('signInSubtitle', locale),
+            S.t('connectToSpace', locale),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
@@ -277,6 +316,45 @@ class _LoginPageState extends State<LoginPage> {
             validator: (v) =>
                 (v == null || v.isEmpty) ? S.t('password', locale) : null,
           ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () => setState(() => _remember = !_remember),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: Checkbox(
+                          value: _remember,
+                          visualDensity: VisualDensity.compact,
+                          onChanged: (v) =>
+                              setState(() => _remember = v ?? false),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          S.t('rememberMe', locale),
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: _forgotPassword,
+                child: Text(
+                  S.t('forgotPassword', locale),
+                  style: const TextStyle(fontSize: 13),
+                ),
+              ),
+            ],
+          ),
           if (_error != null) ...[
             const SizedBox(height: 14),
             _ErrorBanner(message: _error!),
@@ -292,62 +370,83 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
-}
 
-class _BrandMark extends StatelessWidget {
-  final double size;
-  const _BrandMark({this.size = 84});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        gradient: AppColors.goldGradient,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xAAFFB300),
-            blurRadius: size / 3,
-            offset: Offset(0, size / 8),
-          ),
-        ],
+  void _forgotPassword() {
+    final locale = context.read<AuthStore>().locale;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(S.t('forgotPasswordHint', locale)),
+        behavior: SnackBarBehavior.floating,
       ),
-      child: Icon(Icons.local_pharmacy,
-          size: size * 0.52, color: const Color(0xFF3E2A00)),
     );
   }
 }
 
-class _Logo extends StatelessWidget {
-  const _Logo();
-
+class _Backdrop extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    return Stack(
       children: [
-        _BrandMark(),
-        SizedBox(height: 16),
-        Text(
-          'PHARMA MAROC GOLD',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 2,
-            color: AppColors.accent,
+        Positioned(
+          top: -120,
+          left: -80,
+          child: Container(
+            width: 320,
+            height: 320,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.primary.withValues(alpha: 0.22),
+            ),
           ),
         ),
-        Text(
-          'ENTERPRISE V2.0',
-          style: TextStyle(
-            fontSize: 11,
-            letterSpacing: 4,
-            color: Colors.white70,
+        Positioned(
+          bottom: -140,
+          right: -60,
+          child: Container(
+            width: 360,
+            height: 360,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.turquoise.withValues(alpha: 0.14),
+            ),
           ),
+        ),
+        Positioned(
+          top: 80,
+          right: 120,
+          child: Icon(Icons.medication,
+              size: 120, color: Colors.white.withValues(alpha: 0.04)),
+        ),
+        Positioned(
+          bottom: 120,
+          left: 90,
+          child: Icon(Icons.local_pharmacy,
+              size: 150, color: Colors.white.withValues(alpha: 0.04)),
         ),
       ],
+    );
+  }
+}
+
+class _ThemeToggle extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthStore>();
+    final isDark = auth.themeMode != ThemeMode.light;
+    return Positioned(
+      top: 16,
+      right: 16,
+      child: Material(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(30),
+        child: IconButton(
+          icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode,
+              color: Colors.white),
+          tooltip: 'Thème',
+          onPressed: () => auth.setThemeMode(
+              isDark ? ThemeMode.light : ThemeMode.dark),
+        ),
+      ),
     );
   }
 }
@@ -359,21 +458,9 @@ class _Features extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      (
-        S.t('featPosTitle', locale),
-        Icons.point_of_sale,
-        S.t('featPosSub', locale)
-      ),
-      (
-        S.t('featStockTitle', locale),
-        Icons.inventory_2_outlined,
-        S.t('featStockSub', locale)
-      ),
-      (
-        S.t('featReportingTitle', locale),
-        Icons.insights,
-        S.t('featReportingSub', locale)
-      ),
+      (S.t('featPosTitle', locale), Icons.point_of_sale, S.t('featPosSub', locale)),
+      (S.t('featStockTitle', locale), Icons.inventory_2_outlined, S.t('featStockSub', locale)),
+      (S.t('featReportingTitle', locale), Icons.insights, S.t('featReportingSub', locale)),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -393,29 +480,65 @@ class _Features extends StatelessWidget {
                   child: Icon(icon, color: AppColors.accent, size: 22),
                 ),
                 const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      sub,
-                      style: const TextStyle(
-                        color: Colors.white60,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700)),
+                      Text(sub,
+                          style: const TextStyle(
+                              color: Colors.white60, fontSize: 13)),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
+      ],
+    );
+  }
+}
+
+class _Footer extends StatelessWidget {
+  final String locale;
+  final bool online;
+  const _Footer({required this.locale, required this.online});
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 10,
+      runSpacing: 6,
+      children: [
+        const Text('PHARMA+',
+            style: TextStyle(
+                fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white70)),
+        const Text('• v2.0.0',
+            style: TextStyle(fontSize: 12, color: Colors.white54)),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: online ? AppColors.success : AppColors.danger,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '${S.t('connectionStatus', locale)}: ${online ? S.t('online', locale) : S.t('offline', locale)}',
+              style: const TextStyle(fontSize: 12, color: Colors.white54),
+            ),
+          ],
+        ),
       ],
     );
   }
