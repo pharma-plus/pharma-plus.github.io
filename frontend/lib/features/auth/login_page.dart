@@ -310,10 +310,7 @@ class _LoginPageState extends State<LoginPage>
             controller: _email,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
-            decoration: InputDecoration(
-              labelText: S.t('email', locale),
-              prefixIcon: const Icon(Icons.mail_outline),
-            ),
+            decoration: _fieldDecoration(S.t('email', locale), Icons.mail_outline),
             validator: (v) {
               final value = v?.trim() ?? '';
               if (value.isEmpty) return S.t('email', locale);
@@ -329,10 +326,10 @@ class _LoginPageState extends State<LoginPage>
             obscureText: _obscure,
             textInputAction: TextInputAction.done,
             onFieldSubmitted: (_) => _submit(),
-            decoration: InputDecoration(
-              labelText: S.t('password', locale),
-              prefixIcon: const Icon(Icons.lock_outline),
-              suffixIcon: IconButton(
+            decoration: _fieldDecoration(
+              S.t('password', locale),
+              Icons.lock_outline,
+              suffix: IconButton(
                 icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
                 onPressed: () => setState(() => _obscure = !_obscure),
               ),
@@ -391,6 +388,38 @@ class _LoginPageState extends State<LoginPage>
             onPressed: _submit,
           ),
         ],
+      ),
+    );
+  }
+
+  InputDecoration _fieldDecoration(String label, IconData icon, {Widget? suffix}) {
+    final cs = Theme.of(context).colorScheme;
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: cs.primary),
+      suffixIcon: suffix,
+      filled: true,
+      fillColor: cs.surface.withValues(alpha: 0.5),
+      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: cs.outline.withValues(alpha: 0.3)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: cs.outline.withValues(alpha: 0.3)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: cs.primary, width: 1.6),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: cs.error),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: cs.error, width: 1.6),
       ),
     );
   }
