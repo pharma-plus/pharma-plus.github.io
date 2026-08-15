@@ -5,6 +5,7 @@ import '../../core/l10n/strings.dart';
 import '../../core/models/medication.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/auth_store.dart';
+import '../../core/services/receipt_pdf.dart';
 import '../../core/services/offline_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
@@ -54,6 +55,12 @@ class _PosPageState extends State<PosPage> {
   void dispose() {
     _search.dispose();
     super.dispose();
+  }
+
+  String _branchName() {
+    final b = _branches.where((e) => '${e['id']}' == _branchId).firstOrNull;
+    final name = b?['name'];
+    return (name != null && '$name'.trim().isNotEmpty) ? '$name' : 'PHARMA+';
   }
 
   Future<void> _searchMedications(String query) async {
@@ -134,10 +141,26 @@ class _PosPageState extends State<PosPage> {
         },
       );
       if (result.success) {
+        final lines = _cart.lines
+            .map((l) => CartLineLike(
+                  name: l.medication.name,
+                  quantity: l.quantity,
+                  unitPrice: l.unitPrice,
+                  tvaRate: l.tvaRate,
+                ))
+            .toList();
+        final gdp = _cart.globalDiscountPercent;
+        final pharmacyName = _branchName();
         _cart.clear();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(S.t('saleSuccess', auth.locale))),
+          );
+          ReceiptPdf.printSaleReceipt(
+            lines: lines,
+            pharmacyName: pharmacyName,
+            locale: auth.locale,
+            globalDiscountPercent: gdp,
           );
         }
       } else if (result.error?.code == 'NETWORK_ERROR') {
