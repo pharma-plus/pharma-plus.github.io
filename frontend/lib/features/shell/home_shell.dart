@@ -9,11 +9,15 @@ import '../dashboard/dashboard_page.dart';
 import '../pos/pos_page.dart';
 import '../catalog/catalog_page.dart';
 import '../stock/stock_page.dart';
-import '../modules/modules_page.dart';
+import '../suppliers/suppliers_page.dart';
+import '../purchases/purchases_page.dart';
+import '../customers/customers_page.dart';
+import '../employees/employees_page.dart';
+import '../reports/reports_page.dart';
 import '../floor_plan/pharmacy_plan_page.dart';
 import '../settings/settings_page.dart';
 
-/// Coquille principale : menu sombre 3D + navigation par onglets.
+/// Coquille principale : sidebar 3D + navigation.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -29,9 +33,14 @@ class _HomeShellState extends State<HomeShell> {
     DashboardPage(),
     PosPage(),
     CatalogPage(),
+    CatalogPage(),
     StockPage(),
+    SuppliersPage(),
+    PurchasesPage(),
+    CustomersPage(),
+    EmployeesPage(),
+    ReportsPage(),
     PharmacyPlanPage(),
-    ModulesPage(),
     SettingsPage(),
   ];
 
@@ -53,35 +62,41 @@ class _HomeShellState extends State<HomeShell> {
     final locale = context.watch<AuthStore>().locale;
     final isWide = MediaQuery.of(context).size.width >= 900;
 
-    final destinations = [
-      NavigationDestination(
-          icon: const Icon(Icons.dashboard_outlined),
-          selectedIcon: const Icon(Icons.dashboard),
-          label: S.t('dashboard', locale)),
-      NavigationDestination(
-          icon: const Icon(Icons.point_of_sale_outlined),
-          selectedIcon: const Icon(Icons.point_of_sale),
-          label: S.t('pos', locale)),
-      NavigationDestination(
-          icon: const Icon(Icons.medication_outlined),
-          selectedIcon: const Icon(Icons.medication),
-          label: S.t('catalog', locale)),
-      NavigationDestination(
-          icon: const Icon(Icons.inventory_2_outlined),
-          selectedIcon: const Icon(Icons.inventory_2),
-          label: S.t('stock', locale)),
-      NavigationDestination(
-          icon: const Icon(Icons.storefront_outlined),
-          selectedIcon: const Icon(Icons.storefront),
-          label: S.t('pharmacyPlan', locale)),
-      NavigationDestination(
-          icon: const Icon(Icons.grid_view_outlined),
-          selectedIcon: const Icon(Icons.grid_view),
-          label: S.t('modules', locale)),
-      NavigationDestination(
-          icon: const Icon(Icons.settings_outlined),
-          selectedIcon: const Icon(Icons.settings),
-          label: S.t('settings', locale)),
+    // Navigation complète (12 entrées) : icône + icône actif + clé de libellé.
+    const navItems = <(IconData, IconData, String)>[
+      (Icons.dashboard_outlined, Icons.dashboard, 'dashboard'),
+      (Icons.point_of_sale_outlined, Icons.point_of_sale, 'pos'),
+      (Icons.grid_view_outlined, Icons.grid_view, 'catalog'),
+      (Icons.medication_outlined, Icons.medication, 'medications'),
+      (Icons.inventory_2_outlined, Icons.inventory_2, 'stock'),
+      (Icons.local_shipping_outlined, Icons.local_shipping, 'suppliers'),
+      (Icons.receipt_long_outlined, Icons.receipt_long, 'purchases'),
+      (Icons.people_outline, Icons.people, 'customers'),
+      (Icons.badge_outlined, Icons.badge, 'employees'),
+      (Icons.insights_outlined, Icons.insights, 'reports'),
+      (Icons.storefront_outlined, Icons.storefront, 'pharmacyPlan'),
+      (Icons.settings_outlined, Icons.settings, 'settings'),
+    ];
+
+    // Barre basse (écrans étroits) : sous-ensemble représentatif.
+    const mobileItems = <(IconData, IconData, String, int)>[
+      (Icons.dashboard_outlined, Icons.dashboard, 'dashboard', 0),
+      (Icons.point_of_sale_outlined, Icons.point_of_sale, 'pos', 1),
+      (Icons.medication_outlined, Icons.medication, 'medications', 3),
+      (Icons.inventory_2_outlined, Icons.inventory_2, 'stock', 4),
+      (Icons.storefront_outlined, Icons.storefront, 'pharmacyPlan', 10),
+      (Icons.settings_outlined, Icons.settings, 'settings', 11),
+    ];
+    final mobileDestinations = [
+      for (final (ic, icS, key, _) in mobileItems)
+        NavigationDestination(
+          icon: Icon(ic),
+          selectedIcon: Icon(icS),
+          label: S.t(key, locale),
+        ),
+    ];
+    final navLabels = [
+      for (final (_, _, key) in navItems) S.t(key, locale),
     ];
 
     return Scaffold(
@@ -91,7 +106,9 @@ class _HomeShellState extends State<HomeShell> {
             if (isWide)
               _DarkRail(
                 selectedIndex: _index,
-                labels: destinations.map((d) => d.label).toList(),
+                labels: navLabels,
+                icons: navItems.map((n) => n.$1).toList(),
+                selectedIcons: navItems.map((n) => n.$2).toList(),
                 onSelect: (i) => setState(() => _index = i),
               ),
             Expanded(
@@ -108,9 +125,13 @@ class _HomeShellState extends State<HomeShell> {
       bottomNavigationBar: isWide
           ? null
           : NavigationBar(
-              selectedIndex: _index,
-              onDestinationSelected: (i) => setState(() => _index = i),
-              destinations: destinations,
+              selectedIndex: mobileItems
+                  .map((m) => m.$4)
+                  .toList()
+                  .indexOf(_index),
+              onDestinationSelected: (i) =>
+                  setState(() => _index = mobileItems[i].$4),
+              destinations: mobileDestinations,
             ),
     );
   }
@@ -120,28 +141,22 @@ class _HomeShellState extends State<HomeShell> {
 class _DarkRail extends StatelessWidget {
   final int selectedIndex;
   final List<String> labels;
+  final List<IconData> icons;
+  final List<IconData> selectedIcons;
   final ValueChanged<int> onSelect;
 
   const _DarkRail({
     required this.selectedIndex,
     required this.labels,
+    required this.icons,
+    required this.selectedIcons,
     required this.onSelect,
   });
-
-  static const _icons = [
-    Icons.dashboard_outlined,
-    Icons.point_of_sale_outlined,
-    Icons.medication_outlined,
-    Icons.inventory_2_outlined,
-    Icons.storefront_outlined,
-    Icons.grid_view_outlined,
-    Icons.settings_outlined,
-  ];
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 96,
+      width: 236,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -158,28 +173,32 @@ class _DarkRail extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const SizedBox(height: 24),
-          const PharmaPlusLogo(size: 54),
-          const SizedBox(height: 28),
-          for (var i = 0; i < labels.length; i++)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 18),
-              child: _RailItem(
-                icon: _icons[i],
+          const SizedBox(height: 20),
+          const PharmaPlusLogo(size: 46),
+          const SizedBox(height: 20),
+          const Divider(color: Color(0x22FFFFFF), height: 1),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+              itemCount: labels.length,
+              itemBuilder: (context, i) => _RailItem(
+                icon: icons[i],
+                selectedIcon: selectedIcons[i],
                 label: labels[i],
                 selected: i == selectedIndex,
                 onTap: () => onSelect(i),
               ),
             ),
-          const Spacer(),
+          ),
+          const Divider(color: Color(0x22FFFFFF), height: 1),
           const Padding(
-            padding: EdgeInsets.only(bottom: 20),
+            padding: EdgeInsets.symmetric(vertical: 16),
             child: Text(
               'PHARMA+',
               style: TextStyle(
-                fontSize: 10,
-                letterSpacing: 2,
-                color: Color(0x66FFFFFF),
+                fontSize: 11,
+                letterSpacing: 3,
+                color: Color(0x55FFFFFF),
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -192,60 +211,70 @@ class _DarkRail extends StatelessWidget {
 
 class _RailItem extends StatelessWidget {
   final IconData icon;
+  final IconData selectedIcon;
   final String label;
   final bool selected;
   final VoidCallback onTap;
 
-  const _RailItem(
-      {required this.icon,
-      required this.label,
-      required this.selected,
-      required this.onTap});
+  const _RailItem({
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: label,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 54,
-              height: 54,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: selected ? AppColors.goldGradient : null,
-                boxShadow: selected
-                    ? [
-                        BoxShadow(
-                          color: AppColors.accent.withValues(alpha: 0.5),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
-                        ),
-                      ]
-                    : const [],
-              ),
-              child: Icon(
-                icon,
-                color: selected ? const Color(0xFF3E2A00) : Colors.white54,
-                size: 26,
-              ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              gradient: selected ? AppColors.greenGradient : null,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: selected
+                  ? [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.5),
+                        blurRadius: 18,
+                        offset: const Offset(0, 6),
+                      ),
+                    ]
+                  : const [],
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected ? AppColors.accent : Colors.white60,
-              ),
+            child: Row(
+              children: [
+                Icon(
+                  selected ? selectedIcon : icon,
+                  color: selected ? Colors.white : Colors.white60,
+                  size: 22,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight:
+                          selected ? FontWeight.w700 : FontWeight.w500,
+                      color: selected ? Colors.white : Colors.white70,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

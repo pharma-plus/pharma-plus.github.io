@@ -2,21 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../core/l10n/strings.dart';
+import '../../core/models/medication.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/auth_store.dart';
+import '../../core/services/receipt_pdf.dart';
+import '../../core/services/offline_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/pharma3d_card.dart';
 import '../../core/widgets/pharma_wide_card.dart';
-import '../../core/widgets/stats_tile.dart';
+import '../pos/pos_models.dart';
 import '../cameras/cameras_page.dart';
 import '../catalog/catalog_page.dart';
 import '../customers/customers_page.dart';
+import '../employees/employees_page.dart';
 import '../notifications/notifications_page.dart';
 import '../pos/pos_page.dart';
 import '../prescriptions/prescriptions_page.dart';
+import '../purchases/purchases_page.dart';
 import '../reference/reference_page.dart';
 import '../reports/reports_page.dart';
 import '../stock/stock_page.dart';
@@ -97,10 +102,12 @@ class _DashboardPageState extends State<DashboardPage> {
 
     void push(Widget p) =>
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => p));
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: CustomScrollView(
-        slivers: [
+    return LayoutBuilder(builder: (context, constraints) {
+      final showPos = constraints.maxWidth >= 1180;
+      final Widget center = RefreshIndicator(
+        onRefresh: _load,
+        child: CustomScrollView(
+          slivers: [
           SliverAppBar(
             pinned: true,
             expandedHeight: 120,
@@ -163,6 +170,12 @@ class _DashboardPageState extends State<DashboardPage> {
                             ),
                           ],
                         ),
+                        const SizedBox(height: 14),
+                        _GlobalSearchBar(
+                          onSearch: () =>
+                              push(const CatalogPage()),
+                          onScan: () => push(const PosPage()),
+                        ),
                       ],
                     ),
                   ),
@@ -175,47 +188,141 @@ class _DashboardPageState extends State<DashboardPage> {
             sliver: SliverList.list(
               children: [
                 LayoutBuilder(builder: (context, constraints) {
-                  final columns = constraints.maxWidth >= 1100
+                  final columns = constraints.maxWidth >= 1500
                       ? 4
-                      : constraints.maxWidth >= 700
-                          ? 2
-                          : 2;
-                  final items = [
-                    StatsTile(
+                      : constraints.maxWidth >= 1000
+                          ? 4
+                          : constraints.maxWidth >= 640
+                              ? 2
+                              : 1;
+                  final kpis = <({
+                    IconData icon,
+                    String label,
+                    String value,
+                    String? subtitle,
+                    Gradient gradient,
+                    Color glow,
+                    VoidCallback onTap,
+                    String? badge,
+                  })>[
+                    (
                       icon: Icons.payments_outlined,
                       label: S.t('todayRevenue', locale),
-                      value:
+                      value: Fmt.money(
                           double.tryParse('${revenue['revenue_today'] ?? 0}') ??
-                              0,
-                      money: true,
+                              0),
+                      subtitle:
+                          '${S.t('transactions', locale)}: ${revenue['sales_today'] ?? 0}',
+                      gradient: AppColors.goldGradient,
+                      glow: AppColors.accent,
+                      onTap: () => push(const ReportsPage()),
+                      badge: null,
                     ),
-                    StatsTile(
-                      icon: Icons.shopping_cart_outlined,
-                      label: S.t('transactions', locale),
-                      value: (revenue['sales_today'] as num?)?.toDouble() ?? 0,
+                    (
+                      icon: Icons.medication_outlined,
+                      label: S.t('medications', locale),
+                      value: '${meds['total'] ?? 0}',
+                      subtitle:
+                          '${S.t('total', locale)}: ${meds['available'] ?? 0}',
+                      gradient: AppColors.greenGradient,
+                      glow: AppColors.primary,
+                      onTap: () => push(const CatalogPage()),
+                      badge: null,
                     ),
-                    StatsTile(
-                      icon: Icons.trending_up,
-                      label: S.t('revenue30d', locale),
-                      value:
-                          double.tryParse('${revenue['revenue_month'] ?? 0}') ??
-                              0,
-                      money: true,
-                    ),
-                    StatsTile(
+                    (
                       icon: Icons.warning_amber_outlined,
                       label: S.t('lowStock', locale),
-                      value: (alerts['low_stock'] as num?)?.toDouble() ?? 0,
+                      value: '${alerts['low_stock'] ?? 0}',
+                      subtitle:
+                          '${S.t('expiring', locale)}: ${alerts['expiring'] ?? 0}',
+                      gradient: const LinearGradient(
+                          colors: [Color(0xFF7A4F00), Color(0xFFC77700)]),
+                      glow: AppColors.warning,
+                      onTap: () => push(const StockPage()),
+                      badge: null,
+                    ),
+                    (
+                      icon: Icons.receipt_long_outlined,
+                      label: S.t('pendingOrders', locale),
+                      value: '${alerts['pending_orders'] ?? 0}',
+                      subtitle: S.t('purchases', locale),
+                      gradient: const LinearGradient(
+                          colors: [Color(0xFF0D47A1), Color(0xFF1976D2)]),
+                      glow: const Color(0xFF42A5F5),
+                      onTap: () => push(const PurchasesPage()),
+                      badge: null,
+                    ),
+                    (
+                      icon: Icons.local_shipping_outlined,
+                      label: S.t('suppliers', locale),
+                      value: '${suppliers['total'] ?? 0}',
+                      subtitle:
+                          '${S.t('active', locale)}: ${suppliers['active'] ?? 0}',
+                      gradient: const LinearGradient(
+                          colors: [Color(0xFF283593), Color(0xFF3949AB)]),
+                      glow: const Color(0xFF5C6BC0),
+                      onTap: () => push(const SuppliersPage()),
+                      badge: null,
+                    ),
+                    (
+                      icon: Icons.people_outline,
+                      label: S.t('customers', locale),
+                      value: '${customers['total'] ?? 0}',
+                      subtitle:
+                          '${S.t('active', locale)}: ${customers['active'] ?? 0}',
+                      gradient: const LinearGradient(
+                          colors: [Color(0xFF4A148C), Color(0xFF7B1FA2)]),
+                      glow: const Color(0xFFAB47BC),
+                      onTap: () => push(const CustomersPage()),
+                      badge: null,
+                    ),
+                    (
+                      icon: Icons.badge_outlined,
+                      label: S.t('employees', locale),
+                      value: '${_data?['employees_present'] ?? 0}',
+                      subtitle: S.t('present', locale),
+                      gradient: const LinearGradient(
+                          colors: [Color(0xFF00695C), Color(0xFF00897B)]),
+                      glow: const Color(0xFF26A69A),
+                      onTap: () => push(const EmployeesPage()),
+                      badge: null,
+                    ),
+                    (
+                      icon: Icons.trending_up,
+                      label: S.t('profit', locale),
+                      value: Fmt.money(double.tryParse(
+                              '${revenue['profit_month'] ?? 0}') ??
+                          0),
+                      subtitle: S.t('revenue30d', locale),
+                      gradient: const LinearGradient(
+                          colors: [Color(0xFF1B5E20), Color(0xFF43A047)]),
+                      glow: const Color(0xFF66BB6A),
+                      onTap: () => push(const ReportsPage()),
+                      badge: null,
                     ),
                   ];
                   return GridView.count(
                     crossAxisCount: columns,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    childAspectRatio: 1.55,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    children: items,
+                    childAspectRatio: 1.45,
+                    crossAxisSpacing: 14,
+                    mainAxisSpacing: 14,
+                    children: [
+                      for (var i = 0; i < kpis.length; i++)
+                        Pharma3DCard(
+                          key: ValueKey('kpi-${kpis[i].label}'),
+                          icon: kpis[i].icon,
+                          label: kpis[i].label,
+                          value: kpis[i].value,
+                          subtitle: kpis[i].subtitle,
+                          gradient: kpis[i].gradient,
+                          glow: kpis[i].glow,
+                          onTap: kpis[i].onTap,
+                          badge: kpis[i].badge,
+                          entranceDelay: Duration(milliseconds: i * 60),
+                        ),
+                    ],
                   );
                 }),
                 const SizedBox(height: 20),
@@ -462,7 +569,17 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ],
       ),
-    );
+      );
+      if (!showPos) return center;
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: center),
+          Container(width: 1, color: Theme.of(context).dividerColor),
+          SizedBox(width: 400, child: const DashboardPosPanel()),
+        ],
+      );
+    });
   }
 
   List<FlSpot> _trendPoints(List<dynamic> rows) {
@@ -1025,4 +1142,539 @@ class _PlanPreviewPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// Colonne Point de vente intégrée au Dashboard (fonctionnelle).
+class DashboardPosPanel extends StatefulWidget {
+  const DashboardPosPanel({super.key});
+
+  @override
+  State<DashboardPosPanel> createState() => _DashboardPosPanelState();
+}
+
+class _DashboardPosPanelState extends State<DashboardPosPanel> {
+  final Cart _cart = Cart();
+  final _search = TextEditingController();
+  List<Medication> _results = [];
+  bool _searching = false;
+  bool _checkout = false;
+  List<Map<String, dynamic>> _branches = [];
+  String? _branchId;
+  List<CartLine>? _suspended;
+
+  static const _categories = [
+    'Antalgiques',
+    'Antibiotiques',
+    'Cardiologie',
+    'Diabète',
+    'Vitamines',
+    'Respiratoire',
+    'Digestif',
+    'Autres',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBranches();
+  }
+
+  Future<void> _loadBranches() async {
+    final r =
+        await ApiClient.instance.get<Map<String, dynamic>>('/branches');
+    if (!mounted) return;
+    if (r.success) {
+      final list = (r.data as List? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .toList();
+      final auth = context.read<AuthStore>();
+      setState(() {
+        _branches = list;
+        _branchId = auth.user?.branchId ??
+            (list.isNotEmpty ? '${list[0]['id']}' : null);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  String _branchName() {
+    final b = _branches.where((e) => '${e['id']}' == _branchId).firstOrNull;
+    final name = b?['name'];
+    return (name != null && '$name'.trim().isNotEmpty) ? '$name' : 'PHARMA+';
+  }
+
+  Future<void> _searchMedications(String query) async {
+    if (query.trim().isEmpty) {
+      setState(() {
+        _results = [];
+        _searching = false;
+      });
+      return;
+    }
+    setState(() => _searching = true);
+    final result = await ApiClient.instance.get<Map<String, dynamic>>(
+      '/catalog/medications',
+      query: {'q': query.trim(), 'limit': 20},
+    );
+    if (!mounted) return;
+    final rows = result.success
+        ? (result.data?['items'] as List? ?? const [])
+        : const [];
+    setState(() {
+      _results = rows
+          .whereType<Map<String, dynamic>>()
+          .map(Medication.fromJson)
+          .where((m) => m.stockQuantity == null || m.stockQuantity! > 0)
+          .toList();
+      _searching = false;
+    });
+  }
+
+  void _selectCategory(String cat) {
+    _search.text = cat;
+    _searchMedications(cat);
+  }
+
+  void _suspend() {
+    if (_cart.isEmpty) return;
+    setState(() {
+      _suspended = List<CartLine>.from(_cart.lines);
+      _cart.clear();
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+            '${S.t('suspended', context.read<AuthStore>().locale)} (${_suspended!.length})'),
+      ),
+    );
+  }
+
+  void _resume() {
+    if (_suspended == null || _suspended!.isEmpty) return;
+    setState(() {
+      _cart.lines.addAll(_suspended!);
+      _suspended = null;
+    });
+  }
+
+  Future<void> _checkoutFlow() async {
+    if (_cart.isEmpty || _checkout) return;
+    final auth = context.read<AuthStore>();
+    if (_branchId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(S.t('selectBranch', auth.locale))),
+      );
+      return;
+    }
+    setState(() => _checkout = true);
+    try {
+      final result = await ApiClient.instance.post<Map<String, dynamic>>(
+        '/sales',
+        body: {
+          'branchId': _branchId,
+          'saleType': 'pos',
+          'items': _cart.lines.map((l) => l.toPayload()).toList(),
+          'payments': [
+            {
+              'method': 'cash',
+              'amount': double.parse(_cart.total.toStringAsFixed(2)),
+              'generateInvoice': true,
+            }
+          ],
+        },
+      );
+      if (result.success) {
+        final lines = _cart.lines
+            .map((l) => CartLineLike(
+                  name: l.medication.name,
+                  quantity: l.quantity,
+                  unitPrice: l.unitPrice,
+                  tvaRate: l.tvaRate,
+                ))
+            .toList();
+        final gdp = _cart.globalDiscountPercent;
+        _cart.clear();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(S.t('saleSuccess', auth.locale))),
+          );
+          ReceiptPdf.printSaleReceipt(
+            lines: lines,
+            pharmacyName: _branchName(),
+            locale: auth.locale,
+            globalDiscountPercent: gdp,
+          );
+        }
+      } else if (result.error?.code == 'NETWORK_ERROR') {
+        await OfflineStore.instance.savePendingSale(
+          'sale-${DateTime.now().millisecondsSinceEpoch}',
+          {
+            'branchId': _branchId,
+            'items': _cart.lines.map((l) => l.toPayload()).toList(),
+            'payments': [
+              {
+                'method': 'cash',
+                'amount': double.parse(_cart.total.toStringAsFixed(2)),
+              }
+            ],
+          },
+        );
+        await OfflineStore.instance.enqueue(
+          method: 'POST',
+          path: '/sales',
+          body: {
+            'branchId': _branchId,
+            'items': _cart.lines.map((l) => l.toPayload()).toList(),
+          },
+        );
+        _cart.clear();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(S.t('offline', auth.locale))),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(
+                    result.error?.readableMessage ?? 'Erreur')),
+          );
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _checkout = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = context.watch<AuthStore>().locale;
+    return Container(
+      color: const Color(0xFF0A100C),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [AppColors.menu, AppColors.primary],
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.point_of_sale, color: Colors.white),
+                const SizedBox(width: 10),
+                Text(
+                  S.t('pos', locale),
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800),
+                ),
+                const Spacer(),
+                if (_suspended != null && _suspended!.isNotEmpty)
+                  IconButton(
+                    tooltip: 'Reprendre',
+                    onPressed: _resume,
+                    icon: const Icon(Icons.play_circle_outline,
+                        color: Colors.white),
+                  ),
+                IconButton(
+                  tooltip: S.t('barcode', locale),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const PosPage()),
+                  ),
+                  icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
+              controller: _search,
+              onChanged: _searchMedications,
+              decoration: InputDecoration(
+                hintText: S.t('search', locale),
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searching
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    : null,
+              ),
+            ),
+          ),
+          if (_results.isNotEmpty)
+            Container(
+              height: 150,
+              margin: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: ListView.builder(
+                itemCount: _results.length,
+                itemBuilder: (context, i) {
+                  final m = _results[i];
+                  return ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.medication,
+                        color: AppColors.primary),
+                    title: Text(m.name,
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    subtitle: Text(Fmt.money(m.priceSale)),
+                    trailing: const Icon(Icons.add_circle_outline),
+                    onTap: () => setState(() {
+                      _cart.add(m);
+                      _results = [];
+                      _search.clear();
+                    }),
+                  );
+                },
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final c in _categories)
+                  InkWell(
+                    onTap: () => _selectCategory(c),
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.3)),
+                      ),
+                      child: Text(c,
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 12)),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: Color(0x22FFFFFF)),
+          Expanded(
+            child: _cart.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.shopping_cart_outlined,
+                            size: 44, color: Colors.white24),
+                        const SizedBox(height: 8),
+                        Text(S.t('emptyCart', locale),
+                            style: const TextStyle(color: Colors.white54)),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: _cart.lines.length,
+                    itemBuilder: (context, i) {
+                      final l = _cart.lines[i];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 5),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(l.medication.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700)),
+                                  Text(
+                                    '${Fmt.money(l.unitPrice)} × ${Fmt.number(l.quantity)}',
+                                    style: const TextStyle(
+                                        fontSize: 11, color: Colors.white54),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _PosQtyBtn(
+                                    icon: Icons.remove,
+                                    onTap: () => setState(() => l.quantity =
+                                        (l.quantity - 1).clamp(1, 999))),
+                                SizedBox(
+                                  width: 30,
+                                  child: Text(
+                                    Fmt.number(l.quantity),
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w900),
+                                  ),
+                                ),
+                                _PosQtyBtn(
+                                    icon: Icons.add,
+                                    onTap: () => setState(() => l.quantity += 1)),
+                                const SizedBox(width: 4),
+                                _PosQtyBtn(
+                                    icon: Icons.close,
+                                    color: AppColors.danger,
+                                    onTap: () => setState(() => _cart
+                                        .removeLine(l.medication.id))),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          const Divider(height: 1, color: Color(0x22FFFFFF)),
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(S.t('total', locale),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700)),
+                    Text(
+                      Fmt.money(_cart.total),
+                      style: const TextStyle(
+                          color: AppColors.turquoise,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                GradientButton(
+                  label: S.t('checkout', locale),
+                  icon: Icons.payments_outlined,
+                  loading: _checkout,
+                  onPressed: _cart.isEmpty ? null : _checkoutFlow,
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _cart.isEmpty ? null : _suspend,
+                        icon: const Icon(Icons.pause_circle_outline),
+                        label: Text(S.t('suspend', locale)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _cart.isEmpty ? null : () => setState(_cart.clear),
+                        icon: const Icon(Icons.delete_outline),
+                        label: Text(S.t('clearCart', locale)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PosQtyBtn extends StatelessWidget {
+  final IconData icon;
+  final Color? color;
+  final VoidCallback onTap;
+  const _PosQtyBtn({required this.icon, this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: 32,
+        height: 32,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon,
+            size: 18,
+            color: color ?? AppColors.primary),
+      ),
+    );
+  }
+}
+
+/// Barre de recherche globale du Dashboard.
+class _GlobalSearchBar extends StatelessWidget {
+  final VoidCallback onSearch;
+  final VoidCallback onScan;
+  const _GlobalSearchBar({required this.onSearch, required this.onScan});
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = context.watch<AuthStore>().locale;
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            onSubmitted: (_) => onSearch(),
+            readOnly: true,
+            onTap: onSearch,
+            decoration: InputDecoration(
+              hintText: S.t('search', locale),
+              prefixIcon: const Icon(Icons.search, color: Colors.white70),
+              filled: true,
+              fillColor: Colors.white.withValues(alpha: 0.12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        IconButton(
+          tooltip: S.t('barcode', locale),
+          onPressed: onScan,
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.white.withValues(alpha: 0.12),
+          ),
+          icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
+        ),
+      ],
+    );
+  }
 }
