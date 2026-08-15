@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Palette de marque PHARMA MAROC GOLD.
+/// Palette de marque PHARMA+.
 /// Les couleurs peuvent être surchargées par celles reçues de l'API
 /// (`pharmacies.colors`), appliquées à la volée dans [ThemeOverride].
 class AppColors {

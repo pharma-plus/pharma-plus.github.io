@@ -145,12 +145,12 @@ class _LoginPageState extends State<LoginPage>
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [AppColors.menu, Color(0xFF12401B), Color(0xFF1B5E20)],
+            colors: [AppColors.menu, Color(0xFF0E3A1C), Color(0xFF082310)],
           ),
         ),
         child: Stack(
           children: [
-            _Backdrop(),
+            const _Backdrop3D(),
             SafeArea(
               child: FadeTransition(
                 opacity: _fade,
@@ -183,45 +183,38 @@ class _LoginPageState extends State<LoginPage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                const PharmaPlusLogo(full: true, size: 72),
-                const SizedBox(height: 22),
-                const Text(
-                  'PHARMA+',
-                  style: TextStyle(
-                    fontSize: 40,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 2,
-                    color: Colors.white,
-                  ),
+                    const _PharmacyCross(size: 66),
+                    const SizedBox(height: 20),
+                    const PharmaPlusLogo(full: true, size: 74),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'LOGICIEL DE PHARMACIE',
+                      style: TextStyle(
+                        fontSize: 13,
+                        letterSpacing: 6,
+                        color: AppColors.turquoiseLight,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    Text(
+                      S.t('slogan', locale),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        height: 1.35,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    _Features(locale: locale),
+                    const Spacer(),
+                    _Footer(locale: locale, online: _online),
+                  ],
                 ),
-                const SizedBox(height: 6),
-                const Text(
-                  'LOGICIEL DE PHARMACIE',
-                  style: TextStyle(
-                    fontSize: 13,
-                    letterSpacing: 6,
-                    color: AppColors.accent,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 22),
-                Text(
-                  S.t('slogan', locale),
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 28),
-                _Features(locale: locale),
-                const Spacer(),
-                _Footer(locale: locale, online: _online),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-        ),
         ),
         Expanded(
           flex: 3,
@@ -232,7 +225,7 @@ class _LoginPageState extends State<LoginPage>
                 constraints: const BoxConstraints(maxWidth: 440),
                 child: GlassCard(
                   radius: BorderRadius.circular(28),
-                  padding: const EdgeInsets.all(32),
+                  padding: const EdgeInsets.all(36),
                   child: _buildForm(),
                 ),
               ),
@@ -253,17 +246,19 @@ class _LoginPageState extends State<LoginPage>
           constraints: const BoxConstraints(maxWidth: 460),
           child: GlassCard(
             radius: BorderRadius.circular(28),
-            padding: const EdgeInsets.all(26),
+            padding: const EdgeInsets.all(30),
             child: Column(
               children: [
-                const PharmaPlusLogo(full: true, size: 52),
+                const _PharmacyCross(size: 56),
                 const SizedBox(height: 16),
+                const PharmaPlusLogo(full: true, size: 54),
+                const SizedBox(height: 14),
                 Text(
                   S.t('slogan', locale),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  style: const TextStyle(color: Colors.white70, fontSize: 15),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 _buildForm(),
                 const SizedBox(height: 16),
                 _Footer(locale: locale, online: _online),
@@ -283,14 +278,15 @@ class _LoginPageState extends State<LoginPage>
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Center(child: PharmaPlusLogo(size: 46)),
-          const SizedBox(height: 10),
+          const Center(child: PharmaPlusLogo(size: 44)),
+          const SizedBox(height: 14),
           Text(
             S.t('welcome', locale),
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 26,
               fontWeight: FontWeight.w800,
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: 6),
@@ -305,12 +301,14 @@ class _LoginPageState extends State<LoginPage>
                   .withValues(alpha: 0.6),
             ),
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 30),
           TextFormField(
             controller: _email,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
-            decoration: _fieldDecoration(S.t('email', locale), Icons.mail_outline),
+            style: const TextStyle(fontSize: 16),
+            decoration:
+                _fieldDecoration(S.t('email', locale), Icons.mail_outline),
             validator: (v) {
               final value = v?.trim() ?? '';
               if (value.isEmpty) return S.t('email', locale);
@@ -326,18 +324,20 @@ class _LoginPageState extends State<LoginPage>
             obscureText: _obscure,
             textInputAction: TextInputAction.done,
             onFieldSubmitted: (_) => _submit(),
+            style: const TextStyle(fontSize: 16),
             decoration: _fieldDecoration(
               S.t('password', locale),
               Icons.lock_outline,
               suffix: IconButton(
-                icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
+                icon: Icon(
+                    _obscure ? Icons.visibility_off : Icons.visibility),
                 onPressed: () => setState(() => _obscure = !_obscure),
               ),
             ),
             validator: (v) =>
                 (v == null || v.isEmpty) ? S.t('password', locale) : null,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -380,7 +380,7 @@ class _LoginPageState extends State<LoginPage>
             const SizedBox(height: 14),
             _ErrorBanner(message: _error!),
           ],
-          const SizedBox(height: 24),
+          const SizedBox(height: 26),
           GradientButton(
             label: S.t('signIn', locale),
             icon: Icons.login,
@@ -396,11 +396,11 @@ class _LoginPageState extends State<LoginPage>
     final cs = Theme.of(context).colorScheme;
     return InputDecoration(
       labelText: label,
-      prefixIcon: Icon(icon, color: cs.primary),
+      prefixIcon: Icon(icon, color: AppColors.turquoise),
       suffixIcon: suffix,
       filled: true,
       fillColor: cs.surface.withValues(alpha: 0.5),
-      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+      contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide(color: cs.outline.withValues(alpha: 0.3)),
@@ -411,7 +411,7 @@ class _LoginPageState extends State<LoginPage>
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: cs.primary, width: 1.6),
+        borderSide: BorderSide(color: AppColors.turquoise, width: 1.8),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
@@ -419,7 +419,7 @@ class _LoginPageState extends State<LoginPage>
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: cs.error, width: 1.6),
+        borderSide: BorderSide(color: cs.error, width: 1.8),
       ),
     );
   }
@@ -435,48 +435,153 @@ class _LoginPageState extends State<LoginPage>
   }
 }
 
-class _Backdrop extends StatelessWidget {
+/// Fond 3D : halos verts, grille en perspective, vignette de profondeur,
+/// et icônes pharmaceutiques discrètes.
+class _Backdrop3D extends StatelessWidget {
+  const _Backdrop3D();
+
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
         Positioned(
-          top: -120,
-          left: -80,
+          top: -140,
+          left: -100,
           child: Container(
-            width: 320,
-            height: 320,
+            width: 380,
+            height: 380,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.primary.withValues(alpha: 0.22),
+              color: AppColors.primary.withValues(alpha: 0.28),
             ),
           ),
         ),
         Positioned(
-          bottom: -140,
-          right: -60,
+          bottom: -160,
+          right: -80,
           child: Container(
-            width: 360,
-            height: 360,
+            width: 420,
+            height: 420,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.turquoise.withValues(alpha: 0.14),
+              color: AppColors.turquoise.withValues(alpha: 0.16),
+            ),
+          ),
+        ),
+        const _GridBackdrop(),
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment.center,
+                radius: 1.15,
+                colors: [
+                  Colors.transparent,
+                  AppColors.menu.withValues(alpha: 0.55),
+                ],
+              ),
             ),
           ),
         ),
         Positioned(
-          top: 80,
+          top: 70,
           right: 120,
           child: Icon(Icons.medication,
-              size: 120, color: Colors.white.withValues(alpha: 0.04)),
+              size: 140, color: Colors.white.withValues(alpha: 0.035)),
         ),
         Positioned(
-          bottom: 120,
-          left: 90,
+          bottom: 110,
+          left: 80,
           child: Icon(Icons.local_pharmacy,
-              size: 150, color: Colors.white.withValues(alpha: 0.04)),
+              size: 170, color: Colors.white.withValues(alpha: 0.035)),
         ),
       ],
+    );
+  }
+}
+
+/// Grille technique subtile pour l'effet de profondeur 3D.
+class _GridBackdrop extends StatelessWidget {
+  const _GridBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: CustomPaint(
+        painter: _GridPainter(Colors.white.withValues(alpha: 0.04)),
+      ),
+    );
+  }
+}
+
+class _GridPainter extends CustomPainter {
+  final Color color;
+  const _GridPainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color..strokeWidth = 1;
+    const step = 46.0;
+    for (double x = 0; x <= size.width; x += step) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+    for (double y = 0; y <= size.height; y += step) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// Écusson pharmacie (croix +) lumineux, rendu 3D.
+class _PharmacyCross extends StatelessWidget {
+  final double size;
+  const _PharmacyCross({this.size = 56});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: AppColors.turquoise.withValues(alpha: 0.14),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.turquoise.withValues(alpha: 0.5),
+            blurRadius: 32,
+            spreadRadius: 4,
+          ),
+        ],
+      ),
+      child: Center(
+        child: SizedBox(
+          width: size * 0.52,
+          height: size * 0.52,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: size * 0.18,
+                height: size * 0.52,
+                decoration: BoxDecoration(
+                  color: AppColors.turquoiseLight,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              Container(
+                width: size * 0.52,
+                height: size * 0.18,
+                decoration: BoxDecoration(
+                  color: AppColors.turquoiseLight,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -600,13 +705,20 @@ class _Features extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 44,
-                  height: 44,
+                  width: 46,
+                  height: 46,
                   decoration: BoxDecoration(
-                    color: AppColors.primaryLight.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(12),
+                    gradient: AppColors.turquoiseGradient,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.turquoise.withValues(alpha: 0.4),
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
-                  child: Icon(icon, color: AppColors.accent, size: 22),
+                  child: Icon(icon, color: Colors.white, size: 22),
                 ),
                 const SizedBox(width: 16),
                 Expanded(

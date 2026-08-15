@@ -33,8 +33,35 @@
 
   <title>PHARMA+ — Gestion de pharmacie</title>
   <link rel="manifest" href="manifest.json">
+  <style>
+    html, body { margin: 0; padding: 0; background: #082310; }
+    #pmg-loading {
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 22px;
+      background: linear-gradient(135deg, #0A2A0F 0%, #0E3A1C 50%, #082310 100%);
+    }
+    #pmg-loading .pmg-mark {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      font-size: 34px; font-weight: 900; letter-spacing: 2px;
+      color: #fff;
+      text-shadow: 0 0 24px rgba(0, 191, 165, 0.55);
+    }
+    #pmg-loading .pmg-spinner {
+      width: 38px; height: 38px; border-radius: 50%;
+      border: 4px solid rgba(0, 191, 165, 0.25);
+      border-top-color: #00BFA5;
+      animation: pmg-spin 0.9s linear infinite;
+    }
+    @keyframes pmg-spin { to { transform: rotate(360deg); } }
+  </style>
 </head>
 <body>
+  <!-- Écran de chargement PHARMA+ (masqué une fois Flutter initialisé) -->
+  <div id="pmg-loading">
+    <div class="pmg-mark">PHARMA+</div>
+    <div class="pmg-spinner"></div>
+  </div>
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader
