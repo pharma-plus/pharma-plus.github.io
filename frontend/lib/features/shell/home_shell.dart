@@ -5,6 +5,7 @@ import '../../core/services/auth_store.dart';
 import '../../core/services/sync_engine.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/pharma_logo.dart';
+import '../../core/widgets/pharma_background.dart';
 import '../dashboard/dashboard_page.dart';
 import '../pos/pos_page.dart';
 import '../catalog/catalog_page.dart';
@@ -100,26 +101,28 @@ class _HomeShellState extends State<HomeShell> {
     ];
 
     return Scaffold(
-      body: SafeArea(
-        child: Row(
-          children: [
-            if (isWide)
-              _DarkRail(
-                selectedIndex: _index,
-                labels: navLabels,
-                icons: navItems.map((n) => n.$1).toList(),
-                selectedIcons: navItems.map((n) => n.$2).toList(),
-                onSelect: (i) => setState(() => _index = i),
+      body: PharmaBackground(
+        child: SafeArea(
+          child: Row(
+            children: [
+              if (isWide)
+                _DarkRail(
+                  selectedIndex: _index,
+                  labels: navLabels,
+                  icons: navItems.map((n) => n.$1).toList(),
+                  selectedIcons: navItems.map((n) => n.$2).toList(),
+                  onSelect: (i) => setState(() => _index = i),
+                ),
+              Expanded(
+                child: Stack(
+                  children: [
+                    IndexedStack(index: _index, children: _pages),
+                    if (_syncing) _SyncBanner(label: S.t('syncing', locale)),
+                  ],
+                ),
               ),
-            Expanded(
-              child: Stack(
-                children: [
-                  IndexedStack(index: _index, children: _pages),
-                  if (_syncing) _SyncBanner(label: S.t('syncing', locale)),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: isWide

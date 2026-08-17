@@ -444,6 +444,30 @@ class _Backdrop3D extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
+        Positioned.fill(
+          child: Image.asset(
+            'assets/images/pharma_login_background.webp',
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          ),
+        ),
+        Positioned.fill(
+          child: ColoredBox(color: Color(0xB3000B08)),
+        ),
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [
+                  AppColors.menu.withValues(alpha: 0.12),
+                  AppColors.menu.withValues(alpha: 0.78),
+                ],
+              ),
+            ),
+          ),
+        ),
         Positioned(
           top: -140,
           left: -100,

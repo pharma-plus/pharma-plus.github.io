@@ -5,6 +5,7 @@ import 'core/l10n/strings.dart';
 import 'core/services/auth_store.dart';
 import 'core/theme/colors.dart';
 import 'core/widgets/pharma_logo.dart';
+import 'core/widgets/pharma_background.dart';
 import 'features/auth/login_page.dart';
 import 'features/shell/home_shell.dart';
 import 'features/super_admin/super_admin_portal.dart';
@@ -67,7 +68,8 @@ class _SplashScreenState extends State<_SplashScreen> {
   Widget build(BuildContext context) {
     return const Scaffold(
       backgroundColor: AppColors.menu,
-      body: Center(
+      body: PharmaBackground(
+        child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -92,6 +94,7 @@ class _SplashScreenState extends State<_SplashScreen> {
               ),
             ),
           ],
+        ),
         ),
       ),
     );
