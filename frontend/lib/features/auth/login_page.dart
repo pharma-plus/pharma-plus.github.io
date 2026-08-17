@@ -10,6 +10,7 @@ import '../../core/theme/colors.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/pharma_logo.dart';
+import '../../core/widgets/pharma_background.dart';
 import 'two_factor_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -140,17 +141,10 @@ class _LoginPageState extends State<LoginPage>
   Widget build(BuildContext context) {
     final isWide = MediaQuery.of(context).size.width >= 900;
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.menu, Color(0xFF0E3A1C), Color(0xFF082310)],
-          ),
-        ),
+      body: PharmaBackground(
+        overlayOpacity: 0.45,
         child: Stack(
           children: [
-            const _Backdrop3D(),
             SafeArea(
               child: FadeTransition(
                 opacity: _fade,

@@ -8,7 +8,7 @@ class PharmaBackground extends StatelessWidget {
   const PharmaBackground({
     super.key,
     required this.child,
-    this.overlayOpacity = 0.78,
+    this.overlayOpacity = 0.52,
   });
 
   @override
