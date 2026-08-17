@@ -448,7 +448,11 @@ class _Backdrop3D extends StatelessWidget {
           child: Image.asset(
             'assets/images/pharma_login_background.webp',
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            errorBuilder: (_, __, ___) => Image.network(
+              'assets/assets/images/pharma_login_background.webp',
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
           ),
         ),
         Positioned.fill(

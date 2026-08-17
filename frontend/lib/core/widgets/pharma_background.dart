@@ -19,7 +19,11 @@ class PharmaBackground extends StatelessWidget {
         Image.asset(
           'assets/images/pharma_login_background.webp',
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFF07130F)),
+          errorBuilder: (_, __, ___) => Image.network(
+            'assets/assets/images/pharma_login_background.webp',
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFF07130F)),
+          ),
         ),
         ColoredBox(color: const Color(0xFF00110A).withValues(alpha: overlayOpacity)),
         child,
