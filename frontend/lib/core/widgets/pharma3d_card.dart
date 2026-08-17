@@ -13,6 +13,7 @@ class Pharma3DCard extends StatefulWidget {
   final Color glow;
   final VoidCallback? onTap;
   final String? badge;
+  final Widget? visual;
   final double iconSize;
   final Duration entranceDelay;
 
@@ -26,6 +27,7 @@ class Pharma3DCard extends StatefulWidget {
     required this.glow,
     this.onTap,
     this.badge,
+    this.visual,
     this.iconSize = 26,
     this.entranceDelay = Duration.zero,
   });
@@ -179,9 +181,9 @@ class _Pharma3DCardState extends State<Pharma3DCard>
                 ),
               ),
             ),
-            Positioned(
-              right: 6,
-              bottom: 6,
+             Positioned(
+               right: 6,
+               bottom: 6,
               child: Container(
                 width: 44,
                 height: 44,
@@ -191,7 +193,13 @@ class _Pharma3DCardState extends State<Pharma3DCard>
                       color: Colors.white.withValues(alpha: 0.16)),
                 ),
               ),
-            ),
+             ),
+            if (widget.visual != null)
+              Positioned(
+                right: 8,
+                bottom: 4,
+                child: IgnorePointer(child: widget.visual!),
+              ),
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -226,13 +234,13 @@ class _Pharma3DCardState extends State<Pharma3DCard>
                     ],
                   ),
                   const SizedBox(height: 12),
-                  Text(
-                    widget.value,
+                   Text(
+                     widget.value,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 22,
+                       fontSize: 22,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.3,
                       shadows: [

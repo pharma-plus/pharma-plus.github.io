@@ -320,8 +320,9 @@ class _DashboardPageState extends State<DashboardPage> {
                           gradient: kpis[i].gradient,
                           glow: kpis[i].glow,
                           onTap: kpis[i].onTap,
-                          badge: kpis[i].badge,
-                          entranceDelay: Duration(milliseconds: i * 60),
+                           badge: kpis[i].badge,
+                           visual: _KpiVisual(kind: i, color: kpis[i].glow),
+                           entranceDelay: Duration(milliseconds: i * 60),
                         ),
                     ],
                   );
@@ -643,6 +644,84 @@ class _SectionLabel extends StatelessWidget {
               fontSize: 15,
               fontWeight: FontWeight.w800,
               letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Illustration légère codée en Flutter : plusieurs couches, relief et ombre
+/// remplacent les images lourdes de la maquette tout en restant dynamique.
+class _KpiVisual extends StatelessWidget {
+  final int kind;
+  final Color color;
+
+  const _KpiVisual({required this.kind, required this.color});
+
+  IconData get _icon => switch (kind) {
+        0 => Icons.point_of_sale,
+        1 => Icons.medication,
+        2 => Icons.inventory_2,
+        3 => Icons.assignment,
+        4 => Icons.local_shipping,
+        5 => Icons.groups,
+        6 => Icons.badge,
+        _ => Icons.bar_chart,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 102,
+      height: 88,
+      child: Stack(
+        alignment: Alignment.bottomCenter,
+        children: [
+          Positioned(
+            bottom: 0,
+            child: Container(
+              width: 82,
+              height: 18,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                gradient: LinearGradient(
+                    colors: [color.withValues(alpha: 0.95), color.withValues(alpha: 0.3)]),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.45), blurRadius: 10, offset: const Offset(0, 7)),
+                ],
+              ),
+            ),
+          ),
+          Transform.rotate(
+            angle: kind.isOdd ? -0.08 : 0.06,
+            child: Container(
+              width: 66,
+              height: 66,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(kind == 5 ? 34 : 18),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Colors.white.withValues(alpha: 0.75), color.withValues(alpha: 0.9), color.withValues(alpha: 0.28)],
+                ),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.45)),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 12, offset: const Offset(4, 8)),
+                  BoxShadow(color: color.withValues(alpha: 0.35), blurRadius: 16),
+                ],
+              ),
+              child: Icon(_icon, size: 38, color: Colors.white.withValues(alpha: 0.95)),
+            ),
+          ),
+          Positioned(
+            top: 8,
+            right: 12,
+            child: Container(
+              width: 14,
+              height: 14,
+              decoration: const BoxDecoration(color: Colors.white70, shape: BoxShape.circle),
             ),
           ),
         ],
@@ -1219,6 +1298,20 @@ class _PosPanel extends StatelessWidget {
 class _PlanPreviewPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
+    final floor = Path()
+      ..moveTo(size.width * 0.08, size.height * 0.28)
+      ..lineTo(size.width * 0.78, size.height * 0.08)
+      ..lineTo(size.width * 0.92, size.height * 0.68)
+      ..lineTo(size.width * 0.32, size.height * 0.94)
+      ..close();
+    canvas.drawPath(
+      floor,
+      Paint()
+        ..shader = const LinearGradient(
+          colors: [Color(0xFF31463B), Color(0xFF12271B)],
+        ).createShader(Offset.zero & size),
+    );
+
     final grid = Paint()
       ..color = Colors.white.withValues(alpha: 0.05)
       ..strokeWidth = 1;
@@ -1250,6 +1343,31 @@ class _PlanPreviewPainter extends CustomPainter {
       canvas.drawRRect(rr, zone(c, r));
       canvas.drawRRect(rr, border(c));
     }
+
+    // Rayons en perspective : le rendu reste léger mais évoque le plan 3D.
+    final shelf = Paint()
+      ..color = Colors.white.withValues(alpha: 0.48)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    for (var row = 0; row < 4; row++) {
+      final y = size.height * (0.34 + row * 0.12);
+      final path = Path()
+        ..moveTo(size.width * (0.18 + row * 0.025), y)
+        ..lineTo(size.width * (0.52 + row * 0.02), y - size.height * 0.13)
+        ..lineTo(size.width * (0.68 + row * 0.02), y - size.height * 0.07);
+      canvas.drawPath(path, shelf);
+      canvas.drawLine(
+        Offset(size.width * (0.21 + row * 0.025), y - 5),
+        Offset(size.width * (0.52 + row * 0.02), y - size.height * 0.13 - 5),
+        shelf,
+      );
+    }
+    final checkout = RRect.fromRectAndRadius(
+      Rect.fromLTWH(size.width * 0.4, size.height * 0.72, size.width * 0.16, size.height * 0.12),
+      const Radius.circular(5),
+    );
+    canvas.drawRRect(checkout, Paint()..color = AppColors.primary.withValues(alpha: 0.8));
+    canvas.drawRRect(checkout, shelf);
   }
 
   @override
