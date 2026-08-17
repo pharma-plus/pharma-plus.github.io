@@ -174,8 +174,21 @@ class _DarkRail extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 20),
-          const PharmaPlusLogo(size: 46),
-          const SizedBox(height: 20),
+          Row(
+            children: [
+              const SizedBox(width: 18),
+              const PharmaPlusLogo(size: 42),
+              const SizedBox(width: 10),
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('PHARMA+', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+                  Text('Gestion de pharmacie', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
           const Divider(color: Color(0x22FFFFFF), height: 1),
           Expanded(
             child: ListView.builder(
@@ -191,16 +204,31 @@ class _DarkRail extends StatelessWidget {
             ),
           ),
           const Divider(color: Color(0x22FFFFFF), height: 1),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Text(
-              'PHARMA+',
-              style: TextStyle(
-                fontSize: 11,
-                letterSpacing: 3,
-                color: Color(0x55FFFFFF),
-                fontWeight: FontWeight.w800,
-              ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 19,
+                  backgroundColor: AppColors.primary,
+                  child: Text(context.watch<AuthStore>().user?.initials ?? 'P',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    context.watch<AuthStore>().user?.fullName ?? 'Utilisateur',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                  ),
+                ),
+                IconButton(
+                  tooltip: S.t('logout', context.watch<AuthStore>().locale),
+                  onPressed: () => context.read<AuthStore>().signOut(),
+                  icon: const Icon(Icons.logout, color: Colors.white60, size: 20),
+                ),
+              ],
             ),
           ),
         ],

@@ -327,13 +327,12 @@ class _DashboardPageState extends State<DashboardPage> {
                   );
                 }),
                 const SizedBox(height: 20),
-                _WorkspaceSection(
-                  todayRevenue:
-                      double.tryParse('${revenue['revenue_today'] ?? 0}') ?? 0,
-                  lowStock: (alerts['low_stock'] as num?)?.toDouble() ?? 0,
-                  onOpenPlan: () => push(const PharmacyPlanPage()),
-                  onOpenPos: () => push(const PosPage()),
-                ),
+                 _WorkspaceSection(
+                   todayRevenue:
+                       double.tryParse('${revenue['revenue_today'] ?? 0}') ?? 0,
+                   lowStock: (alerts['low_stock'] as num?)?.toDouble() ?? 0,
+                   onOpenPlan: () => push(const PharmacyPlanPage()),
+                 ),
                 const SizedBox(height: 20),
                 _SectionLabel(title: S.t('modules', locale)),
                 const SizedBox(height: 10),
@@ -825,13 +824,11 @@ class _WorkspaceSection extends StatelessWidget {
   final double todayRevenue;
   final double lowStock;
   final VoidCallback onOpenPlan;
-  final VoidCallback onOpenPos;
 
   const _WorkspaceSection({
     required this.todayRevenue,
     required this.lowStock,
     required this.onOpenPlan,
-    required this.onOpenPos,
   });
 
   @override
@@ -839,18 +836,17 @@ class _WorkspaceSection extends StatelessWidget {
     return LayoutBuilder(builder: (context, constraints) {
       final sideBySide = constraints.maxWidth >= 1000;
       final plan = _Plan3DPanel(onOpen: onOpenPlan);
-      final pos = _PosPanel(
+      final alerts = _AlertsPanel(
         todayRevenue: todayRevenue,
         lowStock: lowStock,
-        onOpen: onOpenPos,
       );
       if (sideBySide) {
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(flex: 6, child: plan),
+            Expanded(flex: 7, child: plan),
             const SizedBox(width: 16),
-            Expanded(flex: 4, child: pos),
+            Expanded(flex: 3, child: alerts),
           ],
         );
       }
@@ -858,10 +854,125 @@ class _WorkspaceSection extends StatelessWidget {
         children: [
           plan,
           const SizedBox(height: 16),
-          pos,
+          alerts,
         ],
       );
     });
+  }
+}
+
+class _AlertsPanel extends StatelessWidget {
+  final double todayRevenue;
+  final double lowStock;
+
+  const _AlertsPanel({required this.todayRevenue, required this.lowStock});
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = context.watch<AuthStore>().locale;
+    return GlassCard(
+      radius: BorderRadius.circular(24),
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.notifications_active_outlined,
+                  color: AppColors.warning),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  S.t('alerts', locale),
+                  style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${lowStock.toInt()}',
+                  style: const TextStyle(
+                      color: AppColors.warning, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _AlertRow(
+            icon: Icons.inventory_2_outlined,
+            label: S.t('lowStock', locale),
+            value: '${lowStock.toInt()}',
+            color: AppColors.warning,
+          ),
+          const SizedBox(height: 10),
+          _AlertRow(
+            icon: Icons.payments_outlined,
+            label: S.t('todayRevenue', locale),
+            value: Fmt.money(todayRevenue),
+            color: AppColors.primary,
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => const StockPage(initialFilter: 'low')),
+              ),
+              icon: const Icon(Icons.visibility_outlined),
+              label: Text(S.t('viewAll', locale)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AlertRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+
+  const _AlertRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.045),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 21),
+          const SizedBox(width: 10),
+          Expanded(
+              child: Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white70))),
+          Text(value,
+              style: TextStyle(color: color, fontWeight: FontWeight.w800)),
+        ],
+      ),
+    );
   }
 }
 
