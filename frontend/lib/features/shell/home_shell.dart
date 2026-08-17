@@ -114,11 +114,17 @@ class _HomeShellState extends State<HomeShell> {
                   onSelect: (i) => setState(() => _index = i),
                 ),
               Expanded(
-                child: Stack(
-                  children: [
-                    IndexedStack(index: _index, children: _pages),
-                    if (_syncing) _SyncBanner(label: S.t('syncing', locale)),
-                  ],
+                child: Theme(
+                  data: Theme.of(context).copyWith(
+                    scaffoldBackgroundColor: Colors.transparent,
+                    canvasColor: Colors.transparent,
+                  ),
+                  child: Stack(
+                    children: [
+                      IndexedStack(index: _index, children: _pages),
+                      if (_syncing) _SyncBanner(label: S.t('syncing', locale)),
+                    ],
+                  ),
                 ),
               ),
             ],
