@@ -36956,7 +36956,7 @@ this.b=b},
 l0:function l0(a,b){var _=this
 _.c=_.b=_.a=null
 _.f=_.e=_.d=!1
-_.r="https://pharma-maroc.bonto.run/api/v1"
+_.r="https://lwepnnecnrqdzadesyqo.supabase.co/functions/v1/pharma-api/api/v1"
 _.w=a
 _.x="fr"
 _.fr$=0
