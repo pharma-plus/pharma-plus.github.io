@@ -131863,7 +131863,7 @@ if(k==null)k=g
 if(k==null)k=0
 j=A.m("modules",s)
 p=A.oH(new A.aOk(s,h.z,o,q,p,h.Q,h.as,h.at,h.ax,h.ay))
-c=A.b([new A.Lm(new A.Hd(b,g),c,!0,g),new A.Lp(B.dL,new A.Lo(A.a4t(A.b([n,m,new A.aiz(l,k,new A.aOl(q),g),B.eM,new A.afX(j,g),B.ci,p,A.cz(g,A.bM(a,g,d).w.a.a<700?12:20,g)],r),!0,!0,!0),g),g)],r)
+c=A.b([new A.Lm(new A.Hd(b,g),c,!0,g),new A.Lp(B.dL,new A.Lo(A.a4t(A.b([n,m,new A.aiz(l,k,new A.aOl(q),g),B.eM,new A.afX(j,g),B.ci,p,A.cz(g,A.bM(a,g,d).w.a.a<700?8:12,g)],r),!0,!0,!0),g),g)],r)
 i=A.p7(new A.WW(c,B.aE,!1,g,g,B.lV,g,!1,g,0,g,g,g,B.hU,B.S,g,g,B.H,B.bM,g),e.gZh())
 if(!(f>=1180))return i
 return A.aX(A.b([A.b_(i,1),A.bP(g,g,B.N,A.R(a).ch,g,g,g,g,g,g,g,g,1),A.cz(B.a4g,g,400)],r),B.e5,B.A,B.F,0)},
@@ -131944,9 +131944,10 @@ b3=A.b([new A.hi([null,B.dw,B.fE,B.f8,q,new A.aOd(k),m+": "+l,n]),new A.hi([null
 b4=c2<700
 b5=c2<1100
 b6=b4||b5?A.iX(b3,0,A.q5(4,"count",t.S),t.Zb).hV(0):b3
-c2=b4?1.65:1.45
-r=b4?10:14
-q=b4?10:14
+if(b4)c2=2.2
+else c2=b5?1.9:1.45
+r=b4?8:14
+q=b4?8:14
 p=A.b([],t.p)
 for(o=t.kK,b7=0;b7<b6.length;++b7){n=b6[b7].a
 m=n[4]
@@ -132061,9 +132062,9 @@ b2=[new A.hi([null,B.hc,B.a9N,B.iD,q,new A.aO_(m),o+": "+n,p]),new A.hi([null,B.
 b6=A.b([],t.p)
 for(q=t.kK,b3=0;b3<8;++b3){p=b2[b3].a
 o=p[4]
-b6.push(new A.B8(p[3],o,p[7],p[6],p[2],p[1],p[5],p[0],b5,new A.bm(1000*(b3*70)),new A.dF("mod-"+o,q)))}q=r?1.55:1.35
-p=r?10:14
-return A.bcv(q,b6,s,p,r?10:14,B.vK,!0)},
+b6.push(new A.B8(p[3],o,p[7],p[6],p[2],p[1],p[5],p[0],b5,new A.bm(1000*(b3*70)),new A.dF("mod-"+o,q)))}q=r?2:1.6
+p=r?8:14
+return A.bcv(q,b6,s,p,r?8:14,B.vK,!0)},
 $S:273}
 A.aO_.prototype={
 $0(){return this.a.$1(B.XD)},
