@@ -83,8 +83,8 @@ class _DashboardPageState extends State<DashboardPage> {
     return fallback.toDouble();
   }
 
-  static int _nested(Map<String, dynamic>? data, String a, String b,
-      String key, int fallback) {
+  static int _nested(Map<String, dynamic>? data, String a, String b, String key,
+      int fallback) {
     final m1 = data?[a];
     if (m1 is Map) {
       final m2 = m1[b];
@@ -166,50 +166,62 @@ class _DashboardPageState extends State<DashboardPage> {
                   _TopBar(
                     onSearch: () => _push(const CatalogPage()),
                     onScan: () => _push(const PosPage()),
-                    onNotifications: () =>
-                        _push(const NotificationsPage()),
+                    onNotifications: () => _push(const NotificationsPage()),
                     onSettings: () => _push(const SettingsPage()),
                     onLogout: _onLogout,
                   ),
                   Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(18, 14, 18, 8),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _buildKpiGrid(),
-                          const SizedBox(height: 14),
-                          LayoutBuilder(builder: (context, c) {
-                            final sideBySide = c.maxWidth >= 860;
-                            final alerts = _AlertsStockPanel(
-                              lowStock: _lowStock,
-                              expiring: _expiring,
-                              onViewAll: () => _push(
-                                  const StockPage(initialFilter: 'low')),
-                            );
-                            final plan = _Plan3DPanel(
-                              onOpen: () => _push(const PharmacyPlanPage()),
-                            );
-                            if (!sideBySide) {
-                              return Column(
-                                children: [alerts, const SizedBox(height: 14), plan],
+                          Expanded(
+                            flex: 6,
+                            child: _buildKpiGrid(),
+                          ),
+                          const SizedBox(height: 10),
+                          Expanded(
+                            flex: 5,
+                            child: LayoutBuilder(builder: (context, c) {
+                              final sideBySide = c.maxWidth >= 700;
+                              final alerts = _AlertsStockPanel(
+                                lowStock: _lowStock,
+                                expiring: _expiring,
+                                onViewAll: () => _push(
+                                    const StockPage(initialFilter: 'low')),
                               );
-                            }
-                            return Row(
-                              children: [
-                                Expanded(flex: 5, child: alerts),
-                                const SizedBox(width: 14),
-                                Expanded(flex: 7, child: plan),
-                              ],
-                            );
-                          }),
-                          const SizedBox(height: 14),
-                          _BottomBar(
-                            revenueToday: _revenueToday,
-                            revenueMonth: _revenueMonth,
-                            profitMonth: _profitMonth,
-                            expiring: _expiring,
-                            lowStock: _lowStock,
+                              final plan = _Plan3DPanel(
+                                onOpen: () => _push(const PharmacyPlanPage()),
+                              );
+                              if (!sideBySide) {
+                                return Row(
+                                  children: [
+                                    Expanded(child: alerts),
+                                    const SizedBox(width: 10),
+                                    Expanded(child: plan),
+                                  ],
+                                );
+                              }
+                              return Row(
+                                children: [
+                                  Expanded(flex: 5, child: alerts),
+                                  const SizedBox(width: 10),
+                                  Expanded(flex: 7, child: plan),
+                                ],
+                              );
+                            }),
+                          ),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            height: 72,
+                            child: _BottomBar(
+                              revenueToday: _revenueToday,
+                              revenueMonth: _revenueMonth,
+                              profitMonth: _profitMonth,
+                              expiring: _expiring,
+                              lowStock: _lowStock,
+                            ),
                           ),
                         ],
                       ),
@@ -290,23 +302,25 @@ class _DashboardPageState extends State<DashboardPage> {
     ];
 
     return LayoutBuilder(builder: (context, constraints) {
-      final columns = constraints.maxWidth >= 900
+      final maxW = constraints.maxWidth;
+      final maxH = constraints.maxHeight;
+      final columns = maxW >= 900
           ? 4
-          : constraints.maxWidth >= 640
+          : maxW >= 640
               ? 3
               : 2;
-      final cardAspect = constraints.maxWidth >= 900
-          ? 1.35
-          : constraints.maxWidth >= 640
-              ? 1.5
-              : 2.2;
+      final spacing = 12.0;
+      final rows = (kpis.length / columns).ceil();
+      final cardWidth = (maxW - (columns - 1) * spacing) / columns;
+      final cardHeight = (maxH - (rows - 1) * spacing) / rows - 2;
+      final cardAspect = (cardWidth / cardHeight).clamp(0.9, 2.6);
       return GridView.count(
         crossAxisCount: columns,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         childAspectRatio: cardAspect,
-        crossAxisSpacing: 14,
-        mainAxisSpacing: 14,
+        crossAxisSpacing: spacing,
+        mainAxisSpacing: spacing,
         children: [
           for (var i = 0; i < kpis.length; i++)
             _KpiCard(
@@ -432,7 +446,8 @@ class _Sidebar extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: AppColors.sidebarGradient,
         border: Border(
-          right: BorderSide(color: AppColors.dividerDark.withValues(alpha: 0.6)),
+          right:
+              BorderSide(color: AppColors.dividerDark.withValues(alpha: 0.6)),
         ),
       ),
       child: Column(
@@ -564,7 +579,8 @@ class _Sidebar extends StatelessWidget {
                         shape: BoxShape.circle,
                         color: Color(0xFF1E2E31),
                         border: Border(
-                            bottom: BorderSide(color: AppColors.emerald, width: 2)),
+                            bottom:
+                                BorderSide(color: AppColors.emerald, width: 2)),
                       ),
                       child: const Icon(Icons.person, color: Colors.white70),
                     ),
@@ -633,8 +649,8 @@ class _TopBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
         border: Border(
-          bottom: BorderSide(
-              color: AppColors.dividerDark.withValues(alpha: 0.6)),
+          bottom:
+              BorderSide(color: AppColors.dividerDark.withValues(alpha: 0.6)),
         ),
       ),
       child: Row(
@@ -741,7 +757,8 @@ class _TopIcon extends StatelessWidget {
   final VoidCallback onTap;
   final Color? color;
 
-  const _TopIcon({required this.icon, this.badge, required this.onTap, this.color});
+  const _TopIcon(
+      {required this.icon, this.badge, required this.onTap, this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -767,7 +784,9 @@ class _TopIcon extends StatelessWidget {
                   ),
                   child: Text(badge!,
                       style: const TextStyle(
-                          color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800)),
                 ),
               ),
           ],
@@ -791,12 +810,12 @@ class _KpiCard extends StatelessWidget {
     final colors = _themeColors(data.theme);
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(14, 12, 10, 8),
+          padding: const EdgeInsets.fromLTRB(12, 10, 8, 6),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -806,103 +825,106 @@ class _KpiCard extends StatelessWidget {
                 colors[1],
               ],
             ),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-                color: colors[2].withValues(alpha: 0.5)),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: colors[2].withValues(alpha: 0.5)),
             boxShadow: [
               BoxShadow(
                 color: colors[3].withValues(alpha: 0.35),
-                blurRadius: 14,
-                offset: const Offset(0, 8),
+                blurRadius: 12,
+                offset: const Offset(0, 7),
               ),
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.3),
-                blurRadius: 6,
+                blurRadius: 5,
                 offset: const Offset(0, 3),
               ),
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: Stack(
-              children: [
-                // Reflet lumière
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: 60,
-                  child: IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.white.withValues(alpha: 0.10),
-                            Colors.white.withValues(alpha: 0.0),
-                          ],
+            borderRadius: BorderRadius.circular(16),
+            child: LayoutBuilder(builder: (context, c) {
+              final h = c.maxHeight;
+              final visual = (h * 0.82).clamp(40.0, 104.0);
+              return Stack(
+                children: [
+                  // Reflet lumière
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: h * 0.5,
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.white.withValues(alpha: 0.10),
+                              Colors.white.withValues(alpha: 0.0),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                // Illustration 3D (bas/droite)
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: ClipRect(
-                    child: SizedBox(
-                      width: 118,
-                      height: 118,
-                      child: data.visual,
+                  // Illustration 3D (bas/droite)
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: ClipRect(
+                      child: SizedBox(
+                        width: visual,
+                        height: visual,
+                        child: data.visual,
+                      ),
                     ),
                   ),
-                ),
-                Positioned(
-                  left: 12,
-                  top: 10,
-                  child: Text(
-                    data.label,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.4,
+                  Positioned(
+                    left: 10,
+                    top: 8,
+                    child: Text(
+                      data.label,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.4,
+                      ),
                     ),
                   ),
-                ),
-                Positioned(
-                  left: 12,
-                  top: 28,
-                  child: Text(
-                    data.value,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 23,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.3,
+                  Positioned(
+                    left: 10,
+                    top: 26,
+                    child: Text(
+                      data.value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.3,
+                      ),
                     ),
                   ),
-                ),
-                Positioned(
-                  left: 12,
-                  top: 58,
-                  child: Text(
-                    data.subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: colors[4].withValues(alpha: 0.9),
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w600,
+                  Positioned(
+                    left: 10,
+                    top: 51,
+                    child: Text(
+                      data.subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colors[4].withValues(alpha: 0.9),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              );
+            }),
           ),
         ),
       ),
@@ -1051,8 +1073,7 @@ class _KpiVisualPainter extends CustomPainter {
     final paint = Paint()
       ..shader = LinearGradient(
         colors: [c.withValues(alpha: 0.95), c.withValues(alpha: 0.35)],
-      ).createShader(
-          Rect.fromLTWH(0, size.height - 16, size.width, 16));
+      ).createShader(Rect.fromLTWH(0, size.height - 16, size.width, 16));
     final path = Path()
       ..moveTo(size.width * 0.10, size.height - 8)
       ..lineTo(size.width * 0.90, size.height - 8)
@@ -1069,8 +1090,12 @@ class _KpiVisualPainter extends CustomPainter {
     final paint = Paint()
       ..color = c.withValues(alpha: 0.45)
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, blur);
-    canvas.drawOval(Rect.fromCenter(
-        center: Offset(rect.center.dx, rect.bottom + 2), width: rect.width * 0.8, height: 8), paint);
+    canvas.drawOval(
+        Rect.fromCenter(
+            center: Offset(rect.center.dx, rect.bottom + 2),
+            width: rect.width * 0.8,
+            height: 8),
+        paint);
   }
 
   void _drawTerminal(Canvas canvas, Size size, Color color) {
@@ -1083,7 +1108,8 @@ class _KpiVisualPainter extends CustomPainter {
         colors: const [Color(0xFF3A4048), Color(0xFF171B21)],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
     final screenRect = RRect.fromRectAndRadius(
-        Rect.fromLTWH(size.width * 0.18, size.height * 0.16, size.width * 0.62, size.height * 0.42),
+        Rect.fromLTWH(size.width * 0.18, size.height * 0.16, size.width * 0.62,
+            size.height * 0.42),
         const Radius.circular(8));
     canvas.drawRRect(screenRect, screen);
     canvas.drawRRect(
@@ -1093,11 +1119,11 @@ class _KpiVisualPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5);
     // Affichage vert
-    final display = Paint()
-      ..color = color.withValues(alpha: 0.85);
+    final display = Paint()..color = color.withValues(alpha: 0.85);
     canvas.drawRRect(
         RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.26, size.height * 0.24, size.width * 0.46, size.height * 0.2),
+            Rect.fromLTWH(size.width * 0.26, size.height * 0.24,
+                size.width * 0.46, size.height * 0.2),
             const Radius.circular(4)),
         display);
     // Clavier
@@ -1106,13 +1132,17 @@ class _KpiVisualPainter extends CustomPainter {
       for (var c = 0; c < 4; c++) {
         canvas.drawRRect(
             RRect.fromRectAndRadius(
-                Rect.fromLTWH(size.width * (0.20 + c * 0.15),
-                    size.height * (0.62 + r * 0.08), size.width * 0.11, size.height * 0.05),
+                Rect.fromLTWH(
+                    size.width * (0.20 + c * 0.15),
+                    size.height * (0.62 + r * 0.08),
+                    size.width * 0.11,
+                    size.height * 0.05),
                 const Radius.circular(3)),
             key);
       }
     }
-    _shadow(canvas, screenRect.inflate(6).outerRect, 10, const Color(0xFF000000));
+    _shadow(
+        canvas, screenRect.inflate(6).outerRect, 10, const Color(0xFF000000));
   }
 
   void _drawBottle(Canvas canvas, Size size, Color color) {
@@ -1125,33 +1155,42 @@ class _KpiVisualPainter extends CustomPainter {
           .createShader(Rect.fromLTWH(0, 0, size.width, size.height));
     // Corps de la bouteille
     final body = RRect.fromRectAndRadius(
-        Rect.fromLTWH(size.width * 0.34, size.height * 0.26, size.width * 0.34, size.height * 0.52),
+        Rect.fromLTWH(size.width * 0.34, size.height * 0.26, size.width * 0.34,
+            size.height * 0.52),
         const Radius.circular(10));
     canvas.drawRRect(body, bodyPaint);
     // Bouchon bleu
     final cap = Paint()
-      ..shader = LinearGradient(
-          colors: [color, color.withValues(alpha: 0.6)]).createShader(
-              Rect.fromLTWH(size.width * 0.40, size.height * 0.12, size.width * 0.22, size.height * 0.14));
+      ..shader = LinearGradient(colors: [color, color.withValues(alpha: 0.6)])
+          .createShader(Rect.fromLTWH(size.width * 0.40, size.height * 0.12,
+              size.width * 0.22, size.height * 0.14));
     canvas.drawRRect(
         RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.40, size.height * 0.12, size.width * 0.22, size.height * 0.14),
+            Rect.fromLTWH(size.width * 0.40, size.height * 0.12,
+                size.width * 0.22, size.height * 0.14),
             const Radius.circular(4)),
         cap);
     // Croix médicale bleue
     final cross = Paint()..color = color;
     canvas.drawRect(
-        Rect.fromCenter(center: Offset(size.width * 0.51, size.height * 0.50), width: 10, height: 26),
+        Rect.fromCenter(
+            center: Offset(size.width * 0.51, size.height * 0.50),
+            width: 10,
+            height: 26),
         cross);
     canvas.drawRect(
-        Rect.fromCenter(center: Offset(size.width * 0.51, size.height * 0.50), width: 26, height: 10),
+        Rect.fromCenter(
+            center: Offset(size.width * 0.51, size.height * 0.50),
+            width: 26,
+            height: 10),
         cross);
     // Comprimés
     final pill = Paint()..color = Colors.white.withValues(alpha: 0.85);
     for (var i = 0; i < 3; i++) {
       canvas.drawRRect(
           RRect.fromRectAndRadius(
-              Rect.fromLTWH(size.width * (0.28 + i * 0.18), size.height * 0.84, 16, 7),
+              Rect.fromLTWH(
+                  size.width * (0.28 + i * 0.18), size.height * 0.84, 16, 7),
               const Radius.circular(4)),
           pill);
     }
@@ -1169,21 +1208,30 @@ class _KpiVisualPainter extends CustomPainter {
     // Cartons empilés
     canvas.drawRRect(
         RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.16, size.height * 0.30, size.width * 0.30, size.height * 0.18),
+            Rect.fromLTWH(size.width * 0.16, size.height * 0.30,
+                size.width * 0.30, size.height * 0.18),
             const Radius.circular(3)),
         boxPaint);
     canvas.drawRRect(
         RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.22, size.height * 0.48, size.width * 0.34, size.height * 0.20),
+            Rect.fromLTWH(size.width * 0.22, size.height * 0.48,
+                size.width * 0.34, size.height * 0.20),
             const Radius.circular(3)),
         boxPaint);
     canvas.drawRRect(
         RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.30, size.height * 0.66, size.width * 0.40, size.height * 0.18),
+            Rect.fromLTWH(size.width * 0.30, size.height * 0.66,
+                size.width * 0.40, size.height * 0.18),
             const Radius.circular(3)),
         boxPaint);
-    _drawBoxLid(canvas, Rect.fromLTWH(size.width * 0.16, size.height * 0.30, size.width * 0.30, size.height * 0.18));
-    _drawBoxLid(canvas, Rect.fromLTWH(size.width * 0.30, size.height * 0.66, size.width * 0.40, size.height * 0.18));
+    _drawBoxLid(
+        canvas,
+        Rect.fromLTWH(size.width * 0.16, size.height * 0.30, size.width * 0.30,
+            size.height * 0.18));
+    _drawBoxLid(
+        canvas,
+        Rect.fromLTWH(size.width * 0.30, size.height * 0.66, size.width * 0.40,
+            size.height * 0.18));
     // Panneau triangle + point d'exclamation
     final warn = Paint()..color = color;
     final triangle = Path()
@@ -1199,10 +1247,14 @@ class _KpiVisualPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
     canvas.drawLine(Offset(size.width * 0.68, size.height * 0.40),
         Offset(size.width * 0.68, size.height * 0.47), exclaim);
-    canvas.drawCircle(Offset(size.width * 0.68, size.height * 0.50), 1.6, exclaim..style = PaintingStyle.fill);
-    _shadow(canvas,
-        Rect.fromLTWH(size.width * 0.16, size.height * 0.30, size.width * 0.54, size.height * 0.54),
-        10, const Color(0xFF000000));
+    canvas.drawCircle(Offset(size.width * 0.68, size.height * 0.50), 1.6,
+        exclaim..style = PaintingStyle.fill);
+    _shadow(
+        canvas,
+        Rect.fromLTWH(size.width * 0.16, size.height * 0.30, size.width * 0.54,
+            size.height * 0.54),
+        10,
+        const Color(0xFF000000));
   }
 
   void _drawBoxLid(Canvas canvas, Rect rect) {
@@ -1217,7 +1269,8 @@ class _KpiVisualPainter extends CustomPainter {
     final clip = Paint()..color = const Color(0xFF9E9E9E);
     canvas.drawRRect(
         RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.44, size.height * 0.10, size.width * 0.12, size.height * 0.06),
+            Rect.fromLTWH(size.width * 0.44, size.height * 0.10,
+                size.width * 0.12, size.height * 0.06),
             const Radius.circular(3)),
         clip);
     // Planche violette
@@ -1225,17 +1278,22 @@ class _KpiVisualPainter extends CustomPainter {
       ..shader = LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [color.withValues(alpha: 0.85), color.withValues(alpha: 0.55)]).createShader(
-              Rect.fromLTWH(size.width * 0.20, size.height * 0.14, size.width * 0.60, size.height * 0.72));
+          colors: [
+            color.withValues(alpha: 0.85),
+            color.withValues(alpha: 0.55)
+          ]).createShader(Rect.fromLTWH(size.width * 0.20, size.height * 0.14,
+          size.width * 0.60, size.height * 0.72));
     final board = RRect.fromRectAndRadius(
-        Rect.fromLTWH(size.width * 0.22, size.height * 0.14, size.width * 0.56, size.height * 0.72),
+        Rect.fromLTWH(size.width * 0.22, size.height * 0.14, size.width * 0.56,
+            size.height * 0.72),
         const Radius.circular(8));
     canvas.drawRRect(board, boardPaint);
     // Feuille blanche
     final sheet = Paint()..color = const Color(0xFFF2F4F7);
     canvas.drawRRect(
         RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.30, size.height * 0.22, size.width * 0.40, size.height * 0.56),
+            Rect.fromLTWH(size.width * 0.30, size.height * 0.22,
+                size.width * 0.40, size.height * 0.56),
             const Radius.circular(4)),
         sheet);
     // Lignes + cases cochées
@@ -1243,7 +1301,8 @@ class _KpiVisualPainter extends CustomPainter {
     for (var i = 0; i < 4; i++) {
       canvas.drawRRect(
           RRect.fromRectAndRadius(
-              Rect.fromLTWH(size.width * 0.34, size.height * (0.28 + i * 0.10), size.width * 0.30, 3),
+              Rect.fromLTWH(size.width * 0.34, size.height * (0.28 + i * 0.10),
+                  size.width * 0.30, 3),
               const Radius.circular(2)),
           lines);
     }
@@ -1270,11 +1329,15 @@ class _KpiVisualPainter extends CustomPainter {
       ..shader = LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [color.withValues(alpha: 0.85), color.withValues(alpha: 0.5)]).createShader(
-              Rect.fromLTWH(size.width * 0.12, size.height * 0.20, size.width * 0.46, size.height * 0.44));
+          colors: [
+            color.withValues(alpha: 0.85),
+            color.withValues(alpha: 0.5)
+          ]).createShader(Rect.fromLTWH(size.width * 0.12, size.height * 0.20,
+          size.width * 0.46, size.height * 0.44));
     canvas.drawRRect(
         RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.12, size.height * 0.22, size.width * 0.46, size.height * 0.46),
+            Rect.fromLTWH(size.width * 0.12, size.height * 0.22,
+                size.width * 0.46, size.height * 0.46),
             const Radius.circular(4)),
         boxPaint);
     // Cabine blanche
@@ -1286,13 +1349,15 @@ class _KpiVisualPainter extends CustomPainter {
           .createShader(Rect.fromLTWH(0, 0, size.width, size.height));
     canvas.drawRRect(
         RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.58, size.height * 0.28, size.width * 0.28, size.height * 0.40),
+            Rect.fromLTWH(size.width * 0.58, size.height * 0.28,
+                size.width * 0.28, size.height * 0.40),
             const Radius.circular(6)),
         cabPaint);
     // Fenêtre
     canvas.drawRRect(
         RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.62, size.height * 0.32, size.width * 0.18, size.height * 0.14),
+            Rect.fromLTWH(size.width * 0.62, size.height * 0.32,
+                size.width * 0.18, size.height * 0.14),
             const Radius.circular(4)),
         Paint()..color = Colors.white.withValues(alpha: 0.6));
     // Roues
@@ -1304,14 +1369,15 @@ class _KpiVisualPainter extends CustomPainter {
       ..color = Colors.white.withValues(alpha: 0.35)
       ..strokeWidth = 1.5;
     for (var i = 1; i <= 2; i++) {
-      canvas.drawLine(
-          Offset(size.width * (0.12 + i * 0.1), size.height * 0.22),
-          Offset(size.width * (0.12 + i * 0.1), size.height * 0.68),
-          boxLines);
+      canvas.drawLine(Offset(size.width * (0.12 + i * 0.1), size.height * 0.22),
+          Offset(size.width * (0.12 + i * 0.1), size.height * 0.68), boxLines);
     }
-    _shadow(canvas,
-        Rect.fromLTWH(size.width * 0.12, size.height * 0.22, size.width * 0.74, size.height * 0.52),
-        10, const Color(0xFF000000));
+    _shadow(
+        canvas,
+        Rect.fromLTWH(size.width * 0.12, size.height * 0.22, size.width * 0.74,
+            size.height * 0.52),
+        10,
+        const Color(0xFF000000));
   }
 
   void _drawPeople(Canvas canvas, Size size, Color color) {
@@ -1332,20 +1398,27 @@ class _KpiVisualPainter extends CustomPainter {
       ..shader = LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [color.withValues(alpha: 0.95), color.withValues(alpha: 0.6)]).createShader(
-              Rect.fromLTWH(size.width * 0.42, size.height * 0.10, size.width * 0.2, size.height * 0.8));
+          colors: [
+            color.withValues(alpha: 0.95),
+            color.withValues(alpha: 0.6)
+          ]).createShader(Rect.fromLTWH(size.width * 0.42, size.height * 0.10,
+          size.width * 0.2, size.height * 0.8));
     canvas.drawCircle(Offset(size.width * 0.52, size.height * 0.16), 12, mainC);
     canvas.drawRRect(
         RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.42, size.height * 0.28, 26, size.height * 0.52),
+            Rect.fromLTWH(
+                size.width * 0.42, size.height * 0.28, 26, size.height * 0.52),
             const Radius.circular(13)),
         mainC);
     // Ombre portée
     canvas.drawCircle(Offset(size.width * 0.52, size.height * 0.44), 9,
         Paint()..color = Colors.black.withValues(alpha: 0.12));
-    _shadow(canvas,
-        Rect.fromLTWH(size.width * 0.24, size.height * 0.14, size.width * 0.56, size.height * 0.62),
-        12, color);
+    _shadow(
+        canvas,
+        Rect.fromLTWH(size.width * 0.24, size.height * 0.14, size.width * 0.56,
+            size.height * 0.62),
+        12,
+        color);
   }
 
   void _drawPharmacist(Canvas canvas, Size size, Color color) {
@@ -1359,7 +1432,8 @@ class _KpiVisualPainter extends CustomPainter {
           .createShader(Rect.fromLTWH(0, 0, size.width, size.height));
     canvas.drawRRect(
         RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.36, size.height * 0.30, size.width * 0.28, size.height * 0.50),
+            Rect.fromLTWH(size.width * 0.36, size.height * 0.30,
+                size.width * 0.28, size.height * 0.50),
             const Radius.circular(14)),
         coat);
     // Tête (cheveux noirs)
@@ -1371,19 +1445,29 @@ class _KpiVisualPainter extends CustomPainter {
     final collar = Paint()..color = color.withValues(alpha: 0.9);
     canvas.drawRRect(
         RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.42, size.height * 0.30, size.width * 0.16, size.height * 0.06),
+            Rect.fromLTWH(size.width * 0.42, size.height * 0.30,
+                size.width * 0.16, size.height * 0.06),
             const Radius.circular(3)),
         collar);
     // Croix médicale sur la blouse
     canvas.drawRect(
-        Rect.fromCenter(center: Offset(size.width * 0.50, size.height * 0.46), width: 7, height: 18),
+        Rect.fromCenter(
+            center: Offset(size.width * 0.50, size.height * 0.46),
+            width: 7,
+            height: 18),
         Paint()..color = color);
     canvas.drawRect(
-        Rect.fromCenter(center: Offset(size.width * 0.50, size.height * 0.46), width: 18, height: 7),
+        Rect.fromCenter(
+            center: Offset(size.width * 0.50, size.height * 0.46),
+            width: 18,
+            height: 7),
         Paint()..color = color);
-    _shadow(canvas,
-        Rect.fromLTWH(size.width * 0.36, size.height * 0.10, size.width * 0.34, size.height * 0.72),
-        10, const Color(0xFF000000));
+    _shadow(
+        canvas,
+        Rect.fromLTWH(size.width * 0.36, size.height * 0.10, size.width * 0.34,
+            size.height * 0.72),
+        10,
+        const Color(0xFF000000));
   }
 
   void _drawChart(Canvas canvas, Size size, Color color) {
@@ -1399,13 +1483,16 @@ class _KpiVisualPainter extends CustomPainter {
       final isLast = x > 0.62;
       final paint = Paint()
         ..shader = LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isLast
-                ? [AppColors.emerald, const Color(0xFF00A24C)]
-                : [color, color.withValues(alpha: 0.45)]).createShader(
-                    Rect.fromLTWH(size.width * x, size.height * (0.62 - 0.5 * h),
-                        size.width * 0.10, size.height * 0.5 * h));
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: isLast
+                    ? [AppColors.emerald, const Color(0xFF00A24C)]
+                    : [color, color.withValues(alpha: 0.45)])
+            .createShader(Rect.fromLTWH(
+                size.width * x,
+                size.height * (0.62 - 0.5 * h),
+                size.width * 0.10,
+                size.height * 0.5 * h));
       canvas.drawRRect(
           RRect.fromRectAndRadius(
               Rect.fromLTWH(size.width * x, size.height * (0.62 - 0.5 * h),
@@ -1425,9 +1512,12 @@ class _KpiVisualPainter extends CustomPainter {
       ..lineTo(size.width * 0.44, size.height * 0.5)
       ..lineTo(size.width * 0.62, size.height * 0.28);
     canvas.drawPath(path, arrow);
-    _shadow(canvas,
-        Rect.fromLTWH(size.width * 0.10, size.height * 0.2, size.width * 0.8, size.height * 0.5),
-        10, const Color(0xFF000000));
+    _shadow(
+        canvas,
+        Rect.fromLTWH(size.width * 0.10, size.height * 0.2, size.width * 0.8,
+            size.height * 0.5),
+        10,
+        const Color(0xFF000000));
     // Courbe verte pour première carte (dessinée au-dessus en overlay)
   }
 
@@ -1453,8 +1543,18 @@ class _AlertsStockPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rows = [
-      ('Amoxicilline 500mg', 'Stock faible (8)', AppColors.warning, Icons.arrow_downward),
-      ('Doliprane 1g', 'Stock faible (12)', AppColors.warning, Icons.arrow_downward),
+      (
+        'Amoxicilline 500mg',
+        'Stock faible (8)',
+        AppColors.warning,
+        Icons.arrow_downward
+      ),
+      (
+        'Doliprane 1g',
+        'Stock faible (12)',
+        AppColors.warning,
+        Icons.arrow_downward
+      ),
       ('Vitamine D3', 'Rupture de stock', AppColors.danger, Icons.block),
       ('Fer B9', 'Expire dans 15 j', AppColors.info, Icons.hourglass_bottom),
     ];
@@ -1471,17 +1571,17 @@ class _AlertsStockPanel extends StatelessWidget {
               color: rows[i].$3,
               icon: rows[i].$4,
             ),
-            if (i < rows.length - 1) const SizedBox(height: 8),
+            if (i < rows.length - 1) const SizedBox(height: 6),
           ],
-          const SizedBox(height: 12),
+          const Spacer(),
           SizedBox(
             width: double.infinity,
-            height: 38,
+            height: 34,
             child: OutlinedButton.icon(
               onPressed: onViewAll,
               style: OutlinedButton.styleFrom(
-                side: BorderSide(
-                    color: AppColors.emerald.withValues(alpha: 0.5)),
+                side:
+                    BorderSide(color: AppColors.emerald.withValues(alpha: 0.5)),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
               ),
@@ -1517,8 +1617,7 @@ class _AlertRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-            color: AppColors.dividerDark.withValues(alpha: 0.8)),
+        border: Border.all(color: AppColors.dividerDark.withValues(alpha: 0.8)),
       ),
       child: Row(
         children: [
@@ -1556,8 +1655,7 @@ class _AlertRow extends StatelessWidget {
                         color: Colors.white,
                         fontSize: 13,
                         fontWeight: FontWeight.w600)),
-                Text(detail,
-                    style: TextStyle(color: color, fontSize: 11)),
+                Text(detail, style: TextStyle(color: color, fontSize: 11)),
               ],
             ),
           ),
@@ -1593,79 +1691,81 @@ class _Plan3DPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Vue 3D isométrique
-          Container(
-            height: 190,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF101C16), Color(0xFF0A120E)],
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF101C16), Color(0xFF0A120E)],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                    color: AppColors.dividerDark.withValues(alpha: 0.9)),
               ),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                  color: AppColors.dividerDark.withValues(alpha: 0.9)),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: CustomPaint(painter: _PlanPainter()),
-                  ),
-                  // Contrôles à droite
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Column(
-                      children: [
-                        _PlanChip(label: 'Vue 3D', icon: Icons.view_in_ar),
-                        const SizedBox(height: 6),
-                        _PlanChip(label: 'Tourner', icon: Icons.rotate_right),
-                        const SizedBox(height: 6),
-                        Wrap(
-                          spacing: 4,
-                          children: const [
-                            _MiniRound(icon: Icons.add),
-                            _MiniRound(icon: Icons.remove),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        _PlanChip(label: 'Plein écran', icon: Icons.fullscreen),
-                      ],
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: CustomPaint(painter: _PlanPainter()),
                     ),
-                  ),
-                  // Marqueurs zones
-                  const Positioned(
-                    left: 20,
-                    top: 26,
-                    child: _ZoneMarker(label: 'A'),
-                  ),
-                  const Positioned(
-                    left: 72,
-                    top: 18,
-                    child: _ZoneMarker(label: 'D'),
-                  ),
-                  const Positioned(
-                    left: 34,
-                    bottom: 30,
-                    child: _ZoneMarker(label: 'C'),
-                  ),
-                  const Positioned(
-                    left: 84,
-                    bottom: 24,
-                    child: _ZoneMarker(label: 'E'),
-                  ),
-                  const Positioned(
-                    left: 46,
-                    bottom: 4,
-                    child: _ZoneMarker(label: 'B'),
-                  ),
-                  const Positioned(
-                    right: 70,
-                    bottom: 24,
-                    child: _ZoneMarker(label: 'Caisse', special: true),
-                  ),
-                ],
+                    // Contrôles à droite
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Column(
+                        children: [
+                          _PlanChip(label: 'Vue 3D', icon: Icons.view_in_ar),
+                          const SizedBox(height: 6),
+                          _PlanChip(label: 'Tourner', icon: Icons.rotate_right),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 4,
+                            children: const [
+                              _MiniRound(icon: Icons.add),
+                              _MiniRound(icon: Icons.remove),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          _PlanChip(
+                              label: 'Plein écran', icon: Icons.fullscreen),
+                        ],
+                      ),
+                    ),
+                    // Marqueurs zones
+                    const Positioned(
+                      left: 20,
+                      top: 26,
+                      child: _ZoneMarker(label: 'A'),
+                    ),
+                    const Positioned(
+                      left: 72,
+                      top: 18,
+                      child: _ZoneMarker(label: 'D'),
+                    ),
+                    const Positioned(
+                      left: 34,
+                      bottom: 30,
+                      child: _ZoneMarker(label: 'C'),
+                    ),
+                    const Positioned(
+                      left: 84,
+                      bottom: 24,
+                      child: _ZoneMarker(label: 'E'),
+                    ),
+                    const Positioned(
+                      left: 46,
+                      bottom: 4,
+                      child: _ZoneMarker(label: 'B'),
+                    ),
+                    const Positioned(
+                      right: 70,
+                      bottom: 24,
+                      child: _ZoneMarker(label: 'Caisse', special: true),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1695,8 +1795,7 @@ class _PlanChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-            color: AppColors.emerald.withValues(alpha: 0.4)),
+        border: Border.all(color: AppColors.emerald.withValues(alpha: 0.4)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1704,8 +1803,7 @@ class _PlanChip extends StatelessWidget {
           Icon(icon, size: 13, color: AppColors.emeraldLight),
           const SizedBox(width: 4),
           Text(label,
-              style: const TextStyle(
-                  color: Colors.white70, fontSize: 10.5)),
+              style: const TextStyle(color: Colors.white70, fontSize: 10.5)),
         ],
       ),
     );
@@ -1797,8 +1895,8 @@ class _LegendItem extends StatelessWidget {
         ),
         const SizedBox(width: 4),
         Text(name,
-            style: const TextStyle(
-                color: AppColors.textSecondary, fontSize: 10)),
+            style:
+                const TextStyle(color: AppColors.textSecondary, fontSize: 10)),
       ],
     );
   }
@@ -1850,10 +1948,12 @@ class _PlanPainter extends CustomPainter {
 
     // Comptoir en bas
     final counter = RRect.fromRectAndRadius(
-      Rect.fromLTWH(size.width * 0.42, size.height * 0.76, size.width * 0.16, size.height * 0.10),
+      Rect.fromLTWH(size.width * 0.42, size.height * 0.76, size.width * 0.16,
+          size.height * 0.10),
       const Radius.circular(4),
     );
-    canvas.drawRRect(counter, Paint()..color = const Color(0xFF00C853).withValues(alpha: 0.7));
+    canvas.drawRRect(counter,
+        Paint()..color = const Color(0xFF00C853).withValues(alpha: 0.7));
     canvas.drawRRect(
         counter,
         Paint()
@@ -1885,16 +1985,15 @@ class _DarkPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [Color(0xFF101C16), Color(0xFF0B1210)],
         ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color: AppColors.dividerDark.withValues(alpha: 0.9)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.dividerDark.withValues(alpha: 0.9)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.35),
@@ -1908,17 +2007,17 @@ class _DarkPanel extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 17, color: iconColor),
-              const SizedBox(width: 8),
+              Icon(icon, size: 16, color: iconColor),
+              const SizedBox(width: 7),
               Text(title,
                   style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 13.5,
+                      fontSize: 12.5,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.4)),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           child,
         ],
       ),
@@ -2044,8 +2143,7 @@ class _PosPanel extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Total ($totalQty produits)',
-                    style: const TextStyle(
-                        color: Colors.white, fontSize: 13)),
+                    style: const TextStyle(color: Colors.white, fontSize: 13)),
                 Text(Fmt.money(total),
                     style: const TextStyle(
                         color: Colors.white,
@@ -2170,8 +2268,7 @@ class _HeaderCell extends StatelessWidget {
     return Text(
       text,
       textAlign: alignRight ? TextAlign.right : TextAlign.left,
-      style: const TextStyle(
-          color: AppColors.textTertiary, fontSize: 10.5),
+      style: const TextStyle(color: AppColors.textTertiary, fontSize: 10.5),
     );
   }
 }
@@ -2181,7 +2278,8 @@ class _CategoryCell extends StatelessWidget {
   final IconData icon;
   final Color color;
 
-  const _CategoryCell({required this.name, required this.icon, required this.color});
+  const _CategoryCell(
+      {required this.name, required this.icon, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -2294,8 +2392,8 @@ class _ProductRow extends StatelessWidget {
             child: Text(
               Fmt.money(price),
               textAlign: TextAlign.right,
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 11),
+              style:
+                  const TextStyle(color: AppColors.textSecondary, fontSize: 11),
             ),
           ),
           // Total
@@ -2425,11 +2523,10 @@ class _BottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
-        border:
-            Border.all(color: AppColors.dividerDark.withValues(alpha: 0.9)),
+        border: Border.all(color: AppColors.dividerDark.withValues(alpha: 0.9)),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -2474,8 +2571,7 @@ class _BottomBar extends StatelessWidget {
           const Spacer(),
           // Date/heure
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(10),
@@ -2562,8 +2658,7 @@ class _BottomStat extends StatelessWidget {
                   if (subtitled != null)
                     Text(subtitled!,
                         style: TextStyle(
-                            color: color.withValues(alpha: 0.9),
-                            fontSize: 10)),
+                            color: color.withValues(alpha: 0.9), fontSize: 10)),
                 ],
               ),
             ),
@@ -2594,10 +2689,10 @@ class _MiniCurvePainter extends CustomPainter {
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, 0.5);
     final path = Path()
       ..moveTo(0, size.height * 0.8)
-      ..quadraticBezierTo(size.width * 0.3, size.height * 0.9,
-          size.width * 0.5, size.height * 0.45)
-      ..quadraticBezierTo(size.width * 0.7, size.height * 0.05,
-          size.width, size.height * 0.2);
+      ..quadraticBezierTo(size.width * 0.3, size.height * 0.9, size.width * 0.5,
+          size.height * 0.45)
+      ..quadraticBezierTo(
+          size.width * 0.7, size.height * 0.05, size.width, size.height * 0.2);
     canvas.drawPath(path, paint);
     final fill = Paint()
       ..shader = LinearGradient(

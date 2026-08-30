@@ -4,7 +4,6 @@ import '../../core/l10n/strings.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/services/sync_engine.dart';
 import '../../core/theme/colors.dart';
-import '../../core/widgets/pharma_logo.dart';
 import '../../core/widgets/pharma_background.dart';
 import '../dashboard/dashboard_page.dart';
 import '../pos/pos_page.dart';
@@ -63,22 +62,6 @@ class _HomeShellState extends State<HomeShell> {
     final locale = context.watch<AuthStore>().locale;
     final isWide = MediaQuery.of(context).size.width >= 900;
 
-    // Navigation complète (12 entrées) : icône + icône actif + clé de libellé.
-    const navItems = <(IconData, IconData, String)>[
-      (Icons.dashboard_outlined, Icons.dashboard, 'dashboard'),
-      (Icons.point_of_sale_outlined, Icons.point_of_sale, 'pos'),
-      (Icons.grid_view_outlined, Icons.grid_view, 'catalog'),
-      (Icons.medication_outlined, Icons.medication, 'medications'),
-      (Icons.inventory_2_outlined, Icons.inventory_2, 'stock'),
-      (Icons.local_shipping_outlined, Icons.local_shipping, 'suppliers'),
-      (Icons.receipt_long_outlined, Icons.receipt_long, 'purchases'),
-      (Icons.people_outline, Icons.people, 'customers'),
-      (Icons.badge_outlined, Icons.badge, 'employees'),
-      (Icons.insights_outlined, Icons.insights, 'reports'),
-      (Icons.storefront_outlined, Icons.storefront, 'pharmacyPlan'),
-      (Icons.settings_outlined, Icons.settings, 'settings'),
-    ];
-
     // Barre basse (écrans étroits) : sous-ensemble représentatif.
     const mobileItems = <(IconData, IconData, String, int)>[
       (Icons.dashboard_outlined, Icons.dashboard, 'dashboard', 0),
@@ -96,224 +79,33 @@ class _HomeShellState extends State<HomeShell> {
           label: S.t(key, locale),
         ),
     ];
-    final navLabels = [
-      for (final (_, _, key) in navItems) S.t(key, locale),
-    ];
 
     return Scaffold(
       body: PharmaBackground(
         child: SafeArea(
-          child: Row(
-            children: [
-              if (isWide)
-                _DarkRail(
-                  selectedIndex: _index,
-                  labels: navLabels,
-                  icons: navItems.map((n) => n.$1).toList(),
-                  selectedIcons: navItems.map((n) => n.$2).toList(),
-                  onSelect: (i) => setState(() => _index = i),
-                ),
-              Expanded(
-                child: Theme(
-                  data: Theme.of(context).copyWith(
-                    scaffoldBackgroundColor: Colors.transparent,
-                    canvasColor: Colors.transparent,
-                  ),
-                  child: Stack(
-                    children: [
-                      IndexedStack(index: _index, children: _pages),
-                      if (_syncing) _SyncBanner(label: S.t('syncing', locale)),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              scaffoldBackgroundColor: Colors.transparent,
+              canvasColor: Colors.transparent,
+            ),
+            child: Stack(
+              children: [
+                IndexedStack(index: _index, children: _pages),
+                if (_syncing) _SyncBanner(label: S.t('syncing', locale)),
+              ],
+            ),
           ),
         ),
       ),
       bottomNavigationBar: isWide
           ? null
           : NavigationBar(
-              selectedIndex: mobileItems
-                  .map((m) => m.$4)
-                  .toList()
-                  .indexOf(_index),
+              selectedIndex:
+                  mobileItems.map((m) => m.$4).toList().indexOf(_index),
               onDestinationSelected: (i) =>
                   setState(() => _index = mobileItems[i].$4),
               destinations: mobileDestinations,
             ),
-    );
-  }
-}
-
-/// Menu latéral vert très sombre avec effet 3D (design premium).
-class _DarkRail extends StatelessWidget {
-  final int selectedIndex;
-  final List<String> labels;
-  final List<IconData> icons;
-  final List<IconData> selectedIcons;
-  final ValueChanged<int> onSelect;
-
-  const _DarkRail({
-    required this.selectedIndex,
-    required this.labels,
-    required this.icons,
-    required this.selectedIcons,
-    required this.onSelect,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 236,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [AppColors.menu, Color(0xFF081F0C)],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black45,
-            blurRadius: 24,
-            offset: Offset(4, 0),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              const SizedBox(width: 18),
-              const PharmaPlusLogo(size: 42),
-              const SizedBox(width: 10),
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('PHARMA+', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
-                  Text('Gestion de pharmacie', style: TextStyle(color: Colors.white54, fontSize: 11)),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          const Divider(color: Color(0x22FFFFFF), height: 1),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-              itemCount: labels.length,
-              itemBuilder: (context, i) => _RailItem(
-                icon: icons[i],
-                selectedIcon: selectedIcons[i],
-                label: labels[i],
-                selected: i == selectedIndex,
-                onTap: () => onSelect(i),
-              ),
-            ),
-          ),
-          const Divider(color: Color(0x22FFFFFF), height: 1),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 19,
-                  backgroundColor: AppColors.primary,
-                  child: Text(context.watch<AuthStore>().user?.initials ?? 'P',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    context.watch<AuthStore>().user?.fullName ?? 'Utilisateur',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-                  ),
-                ),
-                IconButton(
-                  tooltip: S.t('logout', context.watch<AuthStore>().locale),
-                  onPressed: () => context.read<AuthStore>().signOut(),
-                  icon: const Icon(Icons.logout, color: Colors.white60, size: 20),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RailItem extends StatelessWidget {
-  final IconData icon;
-  final IconData selectedIcon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _RailItem({
-    required this.icon,
-    required this.selectedIcon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              gradient: selected ? AppColors.greenGradient : null,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: selected
-                  ? [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.5),
-                        blurRadius: 18,
-                        offset: const Offset(0, 6),
-                      ),
-                    ]
-                  : const [],
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  selected ? selectedIcon : icon,
-                  color: selected ? Colors.white : Colors.white60,
-                  size: 22,
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight:
-                          selected ? FontWeight.w700 : FontWeight.w500,
-                      color: selected ? Colors.white : Colors.white70,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
