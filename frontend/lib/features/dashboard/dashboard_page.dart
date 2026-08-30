@@ -312,22 +312,35 @@ class _DashboardPageState extends State<DashboardPage> {
               : 2;
       final spacing = 12.0;
       final rows = (kpis.length / columns).ceil();
-      final cardWidth = (maxW - (columns - 1) * spacing) / columns;
-      final cardHeight = (maxH - (rows - 1) * spacing) / rows - 2;
-      final cardAspect = (cardWidth / cardHeight).clamp(0.9, 2.6);
-      return GridView.count(
-        crossAxisCount: columns,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        childAspectRatio: cardAspect,
-        crossAxisSpacing: spacing,
-        mainAxisSpacing: spacing,
+      final widthPerCard = (maxW - (columns - 1) * spacing) / columns;
+      final heightPerCard = (maxH - (rows - 1) * spacing) / rows;
+      final side = widthPerCard < heightPerCard ? widthPerCard : heightPerCard;
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          for (var i = 0; i < kpis.length; i++)
-            _KpiCard(
-              key: ValueKey('kpi-$i'),
-              data: kpis[i],
-              onTap: _kpiTap(i),
+          for (var r = 0; r < rows; r++)
+            Padding(
+              padding: EdgeInsets.symmetric(
+                  vertical: r < rows - 1 ? spacing / 2 : 0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (var c = 0; c < columns; c++)
+                    if (r * columns + c < kpis.length)
+                      Padding(
+                        padding: EdgeInsets.only(left: c > 0 ? spacing : 0),
+                        child: SizedBox(
+                          width: side,
+                          height: side,
+                          child: _KpiCard(
+                            key: ValueKey('kpi-${r * columns + c}'),
+                            data: kpis[r * columns + c],
+                            onTap: _kpiTap(r * columns + c),
+                          ),
+                        ),
+                      ),
+                ],
+              ),
             ),
         ],
       );
@@ -465,7 +478,7 @@ class _Sidebar extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const PharmaPlusLogo(size: 38),
+                const PharmaPlusLogo(size: 76),
                 const SizedBox(width: 12),
                 const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
