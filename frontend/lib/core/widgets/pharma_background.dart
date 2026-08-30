@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
-/// Fond visuel PHARMA+ partagé par le démarrage et l'espace applicatif.
 class PharmaBackground extends StatelessWidget {
   final Widget child;
   final double overlayOpacity;
@@ -19,7 +18,7 @@ class PharmaBackground extends StatelessWidget {
       children: [
         kIsWeb
             ? Image.network(
-                'https://meachbani-tech.github.io/assets/assets/images/pharma_login_background.webp',
+                'images/pharma_login_background.jpg',
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFF07130F)),
               )

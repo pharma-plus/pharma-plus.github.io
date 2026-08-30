@@ -1,0 +1,12 @@
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[functions.pharma-api]
+enabled = true
+verify_jwt = false
+import_map = "./functions/pharma-api/import_map.json"
+entrypoint = "./functions/pharma-api/index.ts"

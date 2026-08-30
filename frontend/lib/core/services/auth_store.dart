@@ -30,7 +30,7 @@ class AuthStore extends ChangeNotifier {
   bool _initError = false;
   bool _forcedLogin = false;
 
-  String _baseUrl = 'https://pharma-maroc.bonto.run/api/v1';
+  String _baseUrl = 'https://lwepnnecnrqdzadesyqo.supabase.co/functions/v1/pharma-api/api/v1';
   ThemeMode _themeMode = ThemeMode.system;
   String _locale = 'fr';
 

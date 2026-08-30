@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -172,36 +173,49 @@ class _LoginPageState extends State<LoginPage>
             children: [
               const _FloatingMeds(),
               Container(
-                padding: const EdgeInsets.all(56),
+                padding: const EdgeInsets.fromLTRB(32, 28, 32, 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    const _PharmacyCross(size: 66),
-                    const SizedBox(height: 20),
-                    const PharmaPlusLogo(full: true, size: 74),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'LOGICIEL DE PHARMACIE',
-                      style: TextStyle(
-                        fontSize: 13,
-                        letterSpacing: 6,
-                        color: AppColors.turquoiseLight,
-                        fontWeight: FontWeight.w700,
+                    Align(
+                      alignment: Alignment.topLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 48, top: 8, right: 64),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const PharmaPlusLogo(full: true, size: 110),
+                            const SizedBox(height: 6),
+                            Text(
+                              'LOGICIEL DE PHARMACIE',
+                              textAlign: TextAlign.left,
+                              style: TextStyle(
+                                fontSize: 15,
+                                letterSpacing: 5,
+                                height: 0.5,
+                                color: AppColors.turquoiseLight,
+                                fontWeight: FontWeight.w900,
+                                shadows: [
+                                  Shadow(
+                                    color: AppColors.turquoise,
+                                    blurRadius: 14,
+                                    offset: Offset(0, 2),
+                                  ),
+                                  Shadow(
+                                    color: Color(0x2EFFFFFF),
+                                    blurRadius: 28,
+                                    offset: Offset(0, 5),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 22),
-                    Text(
-                      S.t('slogan', locale),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        height: 1.35,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    _Features(locale: locale),
+                    const SizedBox(height: 48),
+                    _FeaturesWithSlogan(locale: locale),
                     const Spacer(),
                     _Footer(locale: locale, online: _online),
                   ],
@@ -243,9 +257,7 @@ class _LoginPageState extends State<LoginPage>
             padding: const EdgeInsets.all(30),
             child: Column(
               children: [
-                const _PharmacyCross(size: 56),
-                const SizedBox(height: 16),
-                const PharmaPlusLogo(full: true, size: 54),
+                const PharmaPlusLogo(full: true, size: 120),
                 const SizedBox(height: 14),
                 Text(
                   S.t('slogan', locale),
@@ -272,7 +284,6 @@ class _LoginPageState extends State<LoginPage>
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Center(child: PharmaPlusLogo(size: 44)),
           const SizedBox(height: 14),
           Text(
             S.t('welcome', locale),
@@ -300,7 +311,7 @@ class _LoginPageState extends State<LoginPage>
             controller: _email,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
-            style: const TextStyle(fontSize: 16),
+            style: const TextStyle(fontSize: 18),
             decoration:
                 _fieldDecoration(S.t('email', locale), Icons.mail_outline),
             validator: (v) {
@@ -318,7 +329,7 @@ class _LoginPageState extends State<LoginPage>
             obscureText: _obscure,
             textInputAction: TextInputAction.done,
             onFieldSubmitted: (_) => _submit(),
-            style: const TextStyle(fontSize: 16),
+            style: const TextStyle(fontSize: 18),
             decoration: _fieldDecoration(
               S.t('password', locale),
               Icons.lock_outline,
@@ -394,7 +405,8 @@ class _LoginPageState extends State<LoginPage>
       suffixIcon: suffix,
       filled: true,
       fillColor: cs.surface.withValues(alpha: 0.5),
-      contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+      contentPadding: const EdgeInsets.symmetric(vertical: 22, horizontal: 18),
+      labelStyle: const TextStyle(fontSize: 17),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide(color: cs.outline.withValues(alpha: 0.3)),
@@ -439,15 +451,17 @@ class _Backdrop3D extends StatelessWidget {
     return Stack(
       children: [
         Positioned.fill(
-          child: Image.asset(
-            'assets/images/pharma_login_background.webp',
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Image.network(
-              'assets/assets/images/pharma_login_background.webp',
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-            ),
-          ),
+          child: kIsWeb
+              ? Image.network(
+                  'images/pharma_login_background.jpg',
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                )
+              : Image.asset(
+                  'assets/images/pharma_login_background.webp',
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
         ),
         Positioned.fill(
           child: ColoredBox(color: Color(0xB3000B08)),
@@ -755,6 +769,136 @@ class _Features extends StatelessWidget {
                       Text(sub,
                           style: const TextStyle(
                               color: Colors.white60, fontSize: 13)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _FeaturesWithSlogan extends StatelessWidget {
+  final String locale;
+  const _FeaturesWithSlogan({required this.locale});
+
+  @override
+  Widget build(BuildContext context) {
+    final items = [
+      (S.t('featPosTitle', locale), Icons.point_of_sale, S.t('featPosSub', locale)),
+      (S.t('featStockTitle', locale), Icons.inventory_2_outlined, S.t('featStockSub', locale)),
+      (S.t('featReportingTitle', locale), Icons.insights, S.t('featReportingSub', locale)),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Slogan complet au-dessus de l'icône Comptoir
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              S.t('slogan', locale),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                color: AppColors.turquoiseLight,
+                height: 1.5,
+                shadows: [
+                  Shadow(
+                    color: AppColors.turquoise,
+                    blurRadius: 20,
+                    offset: Offset(0, 4),
+                  ),
+                  Shadow(
+                    color: Color(0x2EFFFFFF),
+                    blurRadius: 40,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    gradient: AppColors.turquoiseGradient,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.turquoise.withValues(alpha: 0.4),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Icon(Icons.point_of_sale, color: Colors.white, size: 28),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        S.t('featPosTitle', locale),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        S.t('featPosSub', locale),
+                        style: const TextStyle(
+                          color: Colors.white70, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        // Autres features
+        for (int i = 1; i < items.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: Row(
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    gradient: AppColors.turquoiseGradient,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.turquoise.withValues(alpha: 0.4),
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Icon(items[i].$2, color: Colors.white, size: 24),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(items[i].$1,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700)),
+                      Text(items[i].$3,
+                          style: const TextStyle(
+                              color: Colors.white60, fontSize: 14)),
                     ],
                   ),
                 ),
