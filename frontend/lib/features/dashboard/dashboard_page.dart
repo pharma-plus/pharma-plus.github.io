@@ -4,6 +4,7 @@ import '../../core/services/api_client.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
+import '../../core/widgets/pharma_logo.dart';
 import '../catalog/catalog_page.dart';
 import '../customers/customers_page.dart';
 import '../employees/employees_page.dart';
@@ -464,27 +465,7 @@ class _Sidebar extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(11),
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF00C853), Color(0xFF008F57)],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.emerald.withValues(alpha: 0.4),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(Icons.local_pharmacy,
-                      color: Colors.white, size: 24),
-                ),
+                const PharmaPlusLogo(size: 38),
                 const SizedBox(width: 12),
                 const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
