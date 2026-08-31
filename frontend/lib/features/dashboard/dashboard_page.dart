@@ -265,7 +265,7 @@ class _DashboardPageState extends State<DashboardPage> {
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: 12,
       mainAxisSpacing: 12,
-      childAspectRatio: 1.48,
+      childAspectRatio: 1.32,
       children: [
         for (var i = 0; i < kpis.length; i++)
           _KpiCard(key: ValueKey('kpi-$i'), data: kpis[i], onTap: _kpiTap(i))
@@ -682,7 +682,7 @@ class _KpiCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             child: LayoutBuilder(builder: (context, c) {
               final h = c.maxHeight;
-              final visual = (h * 0.72).clamp(68.0, 112.0);
+              final visual = (h * 0.86).clamp(84.0, 128.0);
               return Stack(children: [
                 Positioned(
                   top: 0,
@@ -894,7 +894,7 @@ class _KpiVisualPainter extends CustomPainter {
   void _platform(Canvas canvas, Size size, Color c) {
     final paint = Paint()
       ..shader = LinearGradient(
-              colors: [c.withValues(alpha: 0.55), c.withValues(alpha: 0.18)])
+              colors: [c.withValues(alpha: 0.78), c.withValues(alpha: 0.32)])
           .createShader(Rect.fromLTWH(0, size.height - 16, size.width, 16));
     final path = Path()
       ..moveTo(size.width * 0.10, size.height - 8)
@@ -907,7 +907,7 @@ class _KpiVisualPainter extends CustomPainter {
 
   void _shadow(Canvas canvas, Rect rect, double blur, Color c) {
     final paint = Paint()
-      ..color = c.withValues(alpha: 0.22)
+      ..color = c.withValues(alpha: 0.30)
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, blur);
     canvas.drawOval(
         Rect.fromCenter(
