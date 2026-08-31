@@ -4,6 +4,7 @@ import '../../core/l10n/strings.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/services/sync_engine.dart';
 import '../../core/theme/colors.dart';
+import '../../core/utils/responsive.dart';
 import '../../core/widgets/pharma_background.dart';
 import '../dashboard/dashboard_page.dart';
 import '../modules/modules_page.dart';
@@ -61,9 +62,10 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
-    final isWide = MediaQuery.of(context).size.width >= 900;
+    final deviceType = ResponsiveHelper.getDeviceType(MediaQuery.of(context).size.width);
+    final showBottomNav = deviceType == DeviceType.mobile;
 
-    // Barre basse (écrans étroits) : sous-ensemble représentatif.
+    // Navigation items
     const mobileItems = <(IconData, IconData, String, int)>[
       (Icons.dashboard_outlined, Icons.dashboard, 'dashboard', 0),
       (Icons.grid_view_rounded, Icons.grid_view_rounded, 'modules', 1),
@@ -73,6 +75,7 @@ class _HomeShellState extends State<HomeShell> {
       (Icons.storefront_outlined, Icons.storefront, 'pharmacyPlan', 10),
       (Icons.settings_outlined, Icons.settings, 'settings', 11),
     ];
+    
     final mobileDestinations = [
       for (final (ic, icS, key, _) in mobileItems)
         NavigationDestination(
@@ -99,15 +102,18 @@ class _HomeShellState extends State<HomeShell> {
           ),
         ),
       ),
-      bottomNavigationBar: isWide
-          ? null
-          : NavigationBar(
+      bottomNavigationBar: showBottomNav
+          ? NavigationBar(
               selectedIndex:
                   mobileItems.map((m) => m.$4).toList().indexOf(_index),
               onDestinationSelected: (i) =>
                   setState(() => _index = mobileItems[i].$4),
               destinations: mobileDestinations,
-            ),
+              // Optimisation tactile : hauteur augmentée pour doigts
+              height: 80,
+              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+            )
+          : null,
     );
   }
 }

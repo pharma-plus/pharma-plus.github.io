@@ -4,6 +4,7 @@ import '../../core/services/api_client.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
+import '../../core/utils/responsive.dart';
 import '../../core/widgets/pharma_logo.dart';
 import '../catalog/catalog_page.dart';
 import '../customers/customers_page.dart';
@@ -139,12 +140,62 @@ class _DashboardPageState extends State<DashboardPage> {
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       body: LayoutBuilder(builder: (context, constraints) {
-        final sidebar =
-            _Sidebar(activeIndex: 0, onSelect: (i) => _onMenuSelect(i, auth));
+        final isMobile = ResponsiveHelper.isMobile(context);
+        final isTablet = ResponsiveHelper.isTablet(context);
+        
+        // Mobile: contenu simple
+        if (isMobile) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _TopBar(
+                onSearch: () => _push(const CatalogPage()),
+                onScan: () => _push(const PosPage()),
+                onNotifications: () => _push(const NotificationsPage()),
+                onSettings: () => _push(const SettingsPage()),
+                onLogout: _onLogout,
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildKpiGrid(),
+                      const SizedBox(height: 12),
+                      _AlertsStockPanel(
+                        lowStock: _lowStock,
+                        expiring: _expiring,
+                        onViewAll: () => _push(const StockPage(initialFilter: 'low')),
+                      ),
+                      const SizedBox(height: 12),
+                      _Plan3DPanel(onOpen: () => _push(const PharmacyPlanPage())),
+                      const SizedBox(height: 12),
+                      _BottomBar(
+                        revenueToday: _revenueToday,
+                        revenueMonth: _revenueMonth,
+                        profitMonth: _profitMonth,
+                        expiring: _expiring,
+                        lowStock: _lowStock,
+                      ),
+                      const SizedBox(height: 12),
+                      _PosPanel(onCheckout: () => _push(const PosPage())),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+
+        // Tablette + Desktop
+        final sidebar = _Sidebar(activeIndex: 0, onSelect: (i) => _onMenuSelect(i, auth));
         final pos = _PosPanel(onCheckout: () => _push(const PosPage()));
+        final sidebarWidth = isTablet ? 160.0 : 220.0;
         final posWidth = constraints.maxWidth >= 1500 ? 440.0 : 390.0;
+        
         return Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          SizedBox(width: 220, child: sidebar),
+          SizedBox(width: sidebarWidth, child: sidebar),
           Container(width: 1, color: AppColors.dividerDark),
           Expanded(
             child: Column(
