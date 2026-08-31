@@ -130564,7 +130564,7 @@ p=A.b5q(m.d,l,"customers",k,1328)
 o=[new A.nI("VENTES DU JOUR",i,"+12.5% vs hier",B.bte,B.btx),new A.nI("M\xc9DICAMENTS",h,"R\xe9f\xe9rences",B.YJ,B.bty),new A.nI("STOCK FAIBLE",""+s,"Produits",B.btf,B.btv),new A.nI("COMMANDES",""+r,"En attente",B.btg,B.btw),new A.nI("FOURNISSEURS",q,"Actifs",B.bth,B.btz),new A.nI("CLIENTS",A.jv(0,j).e4(p),"Total",B.bti,B.btt),new A.nI("EMPLOY\xc9S",""+A.btr(m.d,"employees_present",15),"Actifs",B.btj,B.btu),new A.nI("B\xc9N\xc9FICE MOIS",A.d_(A.nF(m.d,"revenue","profit_month",28650)),"+8.3% vs mois dernier",B.YJ,B.bts)]
 p=A.b([],t.p)
 for(i=t.kK,n=0;n<8;++n)p.push(new A.abX(o[n],m.avu(n),new A.dQ("kpi-"+n,i)))
-return A.b9O(1.48,p,4,12,12,B.vA,!0)},
+return A.b9O(1.32,p,4,12,12,B.vA,!0)},
 ax2(){var s=this.c
 s.toString
 return A.bz(s,!1,t.y).oO()},
@@ -130700,7 +130700,7 @@ A.abX.prototype={
 F(a){var s=null,r=A.bxk(this.c.d),q=A.b6(16),p=A.b6(16),o=A.b([r[0],r[1]],t.O),n=A.b6(16),m=A.eV(r[2].aJ(0.22),1),l=A.b([new A.c3(0,B.aC,B.T.aJ(0.28),B.l0,8)],t.V)
 return A.eG(!1,B.as,!0,q,A.h7(!1,p,!0,A.bu(s,A.Ud(A.b6(16),A.Aq(new A.aQS(this,r)),B.dN),B.N,s,s,new A.bd(s,s,m,n,l,new A.dE(B.bC,B.cu,B.bc,o,s,s),B.ao),s,s,s,s,s,s,s),s,!0,s,s,s,s,s,s,s,s,s,s,this.d,s,s,s,s,s,s,s),B.N,B.ab,0,s,s,s,s,s,B.cM)}}
 A.aQS.prototype={
-$2(a,b){var s=null,r=b.d,q=B.n.aU(r*0.72,68,112),p=this.a.c,o=q*0.55
+$2(a,b){var s=null,r=b.d,q=B.n.aU(r*0.86,84,128),p=this.a.c,o=q*0.55
 return A.fD(B.ce,A.b([A.hV(s,A.kX(A.qt(s,new A.bd(s,s,s,s,s,new A.dE(B.fn,B.fm,B.bc,A.b([B.D.aJ(0.05),B.D.aJ(0)],t.O),s,s),B.ao),B.eX),!0,s),r*0.42,s,0,0,0,s),A.hV(-2,A.cy(p.e,q,q),s,s,s,-2,s,s),A.hV(s,A.v(p.a,1,B.aF,s,s,B.bl4,s,s,s),s,s,12,o,10,s),A.hV(s,A.v(p.b,1,B.aF,s,s,B.bjN,s,s,s),s,s,12,12,27,s),A.hV(s,A.v(p.c,1,B.aF,s,s,A.di(s,s,this.b[4].aJ(0.88),s,s,s,s,s,s,s,s,10,s,s,B.e8,s,s,!0,s,s,s,s,s,s,s,s),s,s,s),s,s,12,o,51,s)],t.p),B.L,B.c4,s)},
 $S:262}
 A.nJ.prototype={
@@ -130800,7 +130800,7 @@ break
 case 7:a1.aoj(a2,a3,a1.c)
 break}},
 qv(a,b,c){var s,r=$.a8(),q=A.aB(),p=b.b,o=p-16,n=b.a
-q.siQ(new A.dE(B.i_,B.jC,B.bc,A.b([c.aJ(0.55),c.aJ(0.18)],t.O),null,null).kH(0,new A.w(0,o,0+n,o+16)))
+q.siQ(new A.dE(B.i_,B.jC,B.bc,A.b([c.aJ(0.78),c.aJ(0.32)],t.O),null,null).kH(0,new A.w(0,o,0+n,o+16)))
 s=A.c9(r.r)
 r=p-8
 s.ap(new A.dx(n*0.1,r))
@@ -130813,7 +130813,7 @@ a.eL(s,q)},
 qB(a,b,c,d){var s
 $.a8()
 s=A.aB()
-s.r=d.aJ(0.22).gp(0)
+s.r=d.aJ(0.3).gp(0)
 s.z=new A.AA(B.aC,c)
 a.S5(A.wu(new A.k(b.gbW().a,b.d+2),8,(b.c-b.a)*0.8),s)},
 aoo(a,b,c){var s,r,q,p,o,n,m,l,k,j,i,h,g,f,e
