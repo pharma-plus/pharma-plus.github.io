@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/colors.dart';
 import '../utils/responsive.dart';
 
 /// Bouton tactile optimisé - au moins 48dp pour doigts
