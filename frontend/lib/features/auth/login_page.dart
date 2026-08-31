@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
 import '../../core/l10n/strings.dart';
 import '../../core/models/user.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
-import '../../core/widgets/gradient_button.dart';
-import '../../core/widgets/glass_card.dart';
-import '../../core/widgets/pharma_logo.dart';
 import '../../core/widgets/pharma_background.dart';
 import 'two_factor_page.dart';
 
@@ -29,7 +24,6 @@ class _LoginPageState extends State<LoginPage>
   bool _obscure = true;
   bool _loading = false;
   bool _remember = true;
-  bool _online = true;
   String? _error;
 
   late final AnimationController _anim = AnimationController(
@@ -57,17 +51,7 @@ class _LoginPageState extends State<LoginPage>
   }
 
   Future<void> _checkConnection() async {
-    final url = context.read<AuthStore>().baseUrl;
-    try {
-      final res = await http
-          .get(Uri.parse('$url/health'))
-          .timeout(const Duration(seconds: 4));
-      if (!mounted) return;
-      setState(() => _online = res.statusCode < 500);
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _online = false);
-    }
+    // Connection check disabled - auto-retry on failure
   }
 
   @override
@@ -162,114 +146,330 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-  // ---- Layout web : marque + formulaire -------------------------------
+  // ---- Layout web : maquette premium PHARMA+ -----------------------
   Widget _buildWide() {
-    final locale = context.watch<AuthStore>().locale;
-    return Row(
-      children: [
-        Expanded(
-          flex: 5,
-          child: Stack(
-            children: [
-              const _FloatingMeds(),
-              Container(
-                padding: const EdgeInsets.fromLTRB(32, 28, 32, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Align(
-                      alignment: Alignment.topLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 48, top: 8, right: 64),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const PharmaPlusLogo(full: true, size: 110),
-                            const SizedBox(height: 6),
-                            Text(
-                              'LOGICIEL DE PHARMACIE',
-                              textAlign: TextAlign.left,
-                              style: TextStyle(
-                                fontSize: 15,
-                                letterSpacing: 5,
-                                height: 0.5,
-                                color: AppColors.turquoiseLight,
-                                fontWeight: FontWeight.w900,
-                                shadows: [
-                                  Shadow(
-                                    color: AppColors.turquoise,
-                                    blurRadius: 14,
-                                    offset: Offset(0, 2),
-                                  ),
-                                  Shadow(
-                                    color: Color(0x2EFFFFFF),
-                                    blurRadius: 28,
-                                    offset: Offset(0, 5),
-                                  ),
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            Color(0xFF071A1B),
+            Color(0xFF0A1619),
+            Color(0xFF071A20),
+          ],
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 5,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(32, 24, 32, 18),
+              child: Stack(
+                children: [
+                  Positioned(
+                    left: 0,
+                    top: 40,
+                    child: Container(
+                      width: 110,
+                      height: 110,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.emerald.withValues(alpha: 0.12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.emerald.withValues(alpha: 0.25),
+                            blurRadius: 35,
+                          )
+                        ],
+                      ),
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const SizedBox(height: 18),
+                        Container(
+                          width: 160,
+                          height: 160,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: [
+                                AppColors.emerald.withValues(alpha: 0.45),
+                                AppColors.emerald.withValues(alpha: 0.12),
+                                Colors.transparent,
+                              ],
+                              radius: 1.1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.emerald.withValues(alpha: 0.25),
+                                blurRadius: 50,
+                              )
+                            ],
+                          ),
+                          child: Center(
+                            child: Container(
+                              width: 110,
+                              height: 110,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: const LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Color(0xFF2BFF96),
+                                    Color(0xFF00A960),
+                                  ],
+                                ),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.25),
+                                  width: 2,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.emerald.withValues(alpha: 0.45),
+                                    blurRadius: 18,
+                                  )
                                 ],
                               ),
+                              child: const Icon(
+                                Icons.local_pharmacy_rounded,
+                                size: 52,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        ShaderMask(
+                          shaderCallback: (bounds) => const LinearGradient(
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                            colors: [
+                              Color(0xFFE4FFF7),
+                              Color(0xFF7BFFBF),
+                              Color(0xFF1DE28B),
+                            ],
+                          ).createShader(bounds),
+                          child: const Text(
+                            'PHARMA+',
+                            style: TextStyle(
+                              fontSize: 94,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -6,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 7),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(
+                              color: AppColors.emerald.withValues(alpha: 0.7),
+                              width: 1.4,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.emerald.withValues(alpha: 0.3),
+                                blurRadius: 12,
+                              )
+                            ],
+                          ),
+                          child: const Text(
+                            'LOGICIEL DE PHARMACIE',
+                            style: TextStyle(
+                              color: AppColors.emeraldLight,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 3,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 40),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 60),
+                          child: Text(
+                            'Gérez votre pharmacie avec intelligence\net simplicité',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w600,
+                              height: 1.2,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 62),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            _BadgeFeature(
+                              icon: Icons.verified_user_rounded,
+                              text: 'Sécurisé',
+                              sub: 'Vos données sont protégées',
+                            ),
+                            SizedBox(width: 18),
+                            _BadgeFeature(
+                              icon: Icons.speed_rounded,
+                              text: 'Rapide',
+                              sub: 'Performance optimale',
+                            ),
+                            SizedBox(width: 18),
+                            _BadgeFeature(
+                              icon: Icons.sync_rounded,
+                              text: 'Moderne',
+                              sub: 'Interface intuitive',
                             ),
                           ],
                         ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(height: 48),
-                    _FeaturesWithSlogan(locale: locale),
-                    const Spacer(),
-                    _Footer(locale: locale, online: _online),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          flex: 3,
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(32),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 440),
-                child: GlassCard(
-                  radius: BorderRadius.circular(28),
-                  padding: const EdgeInsets.all(36),
-                  child: _buildForm(),
-                ),
+                  ),
+                ],
               ),
             ),
           ),
-        ),
-      ],
+          Expanded(
+            flex: 4,
+            child: Center(
+              child: Container(
+                width: 520,
+                margin: const EdgeInsets.only(right: 32, top: 20, bottom: 20),
+                padding: const EdgeInsets.fromLTRB(30, 28, 30, 20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0A1820).withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(
+                    color: AppColors.emerald.withValues(alpha: 0.35),
+                    width: 1.4,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.45),
+                      blurRadius: 26,
+                      offset: const Offset(0, 12),
+                    )
+                  ],
+                ),
+                child: _buildForm(),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  // ---- Layout mobile / tablette ---------------------------------------
   Widget _buildNarrow() {
-    final locale = context.watch<AuthStore>().locale;
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF071A1B),
+            Color(0xFF0A1619),
+            Color(0xFF071A20),
+          ],
+        ),
+      ),
+      child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 460),
-          child: GlassCard(
-            radius: BorderRadius.circular(28),
-            padding: const EdgeInsets.all(30),
-            child: Column(
-              children: [
-                const PharmaPlusLogo(full: true, size: 120),
-                const SizedBox(height: 14),
-                Text(
-                  S.t('slogan', locale),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white70, fontSize: 15),
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF2BFF96), Color(0xFF00A960)],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.emerald.withValues(alpha: 0.45),
+                      blurRadius: 20,
+                    )
+                  ],
                 ),
-                const SizedBox(height: 14),
-                _buildForm(),
-                const SizedBox(height: 16),
-                _Footer(locale: locale, online: _online),
-              ],
-            ),
+                child: const Icon(
+                  Icons.local_pharmacy_rounded,
+                  size: 60,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 18),
+              ShaderMask(
+                shaderCallback: (bounds) => const LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    Color(0xFFE4FFF7),
+                    Color(0xFF7BFFBF),
+                    Color(0xFF1DE28B),
+                  ],
+                ).createShader(bounds),
+                child: const Text(
+                  'PHARMA+',
+                  style: TextStyle(
+                    fontSize: 54,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -3,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(
+                    color: AppColors.emerald.withValues(alpha: 0.7),
+                    width: 1.3,
+                  ),
+                ),
+                child: const Text(
+                  'LOGICIEL DE PHARMACIE',
+                  style: TextStyle(
+                    color: AppColors.emeraldLight,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 2,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0A1820).withValues(alpha: 0.90),
+                  borderRadius: BorderRadius.circular(26),
+                  border: Border.all(
+                    color: AppColors.emerald.withValues(alpha: 0.30),
+                    width: 1.2,
+                  ),
+                ),
+                child: _buildForm(),
+              ),
+            ],
           ),
         ),
       ),
@@ -277,61 +477,106 @@ class _LoginPageState extends State<LoginPage>
   }
 
   Widget _buildForm() {
-    final locale = context.watch<AuthStore>().locale;
     return Form(
       key: _formKey,
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 14),
-          Text(
-            S.t('welcome', locale),
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Container(
+              width: 52,
+              height: 52,
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF2BFF96), Color(0xFF00A960)],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.emerald.withValues(alpha: 0.35),
+                    blurRadius: 18,
+                  )
+                ],
+              ),
+              child: const Icon(Icons.local_pharmacy_rounded, color: Colors.white),
+            ),
+          ),
+          const Text(
+            'Bienvenue sur PHARMA+',
+            style: TextStyle(
               color: Colors.white,
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 6),
-          Text(
-            S.t('connectToSpace', locale),
-            textAlign: TextAlign.center,
+          const Text(
+            'Connectez-vous à votre espace',
             style: TextStyle(
-              fontSize: 14,
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withValues(alpha: 0.6),
+              color: Colors.white70,
+              fontSize: 15,
             ),
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 26),
+          const Text(
+            'Adresse e-mail',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
           TextFormField(
             controller: _email,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
-            style: const TextStyle(fontSize: 18),
-            decoration:
-                _fieldDecoration(S.t('email', locale), Icons.mail_outline),
+            style: const TextStyle(fontSize: 17, color: Colors.white),
+            decoration: _fieldDecoration('', Icons.mail_outline),
             validator: (v) {
               final value = v?.trim() ?? '';
-              if (value.isEmpty) return S.t('email', locale);
+              if (value.isEmpty) return 'Adresse e-mail';
               if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value)) {
-                return S.t('email', locale);
+                return 'Adresse e-mail';
               }
               return null;
             },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: const [
+              Text(
+                'Mot de passe',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                'Mot de passe oublié ?',
+                style: TextStyle(
+                  color: AppColors.emeraldLight,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           TextFormField(
             controller: _password,
             obscureText: _obscure,
             textInputAction: TextInputAction.done,
             onFieldSubmitted: (_) => _submit(),
-            style: const TextStyle(fontSize: 18),
+            style: const TextStyle(fontSize: 17, color: Colors.white),
             decoration: _fieldDecoration(
-              S.t('password', locale),
+              '',
               Icons.lock_outline,
               suffix: IconButton(
                 icon: Icon(
@@ -340,363 +585,198 @@ class _LoginPageState extends State<LoginPage>
               ),
             ),
             validator: (v) =>
-                (v == null || v.isEmpty) ? S.t('password', locale) : null,
+                (v == null || v.isEmpty) ? 'Mot de passe' : null,
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: InkWell(
-                  onTap: () => setState(() => _remember = !_remember),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: Checkbox(
-                          value: _remember,
-                          visualDensity: VisualDensity.compact,
-                          onChanged: (v) =>
-                              setState(() => _remember = v ?? false),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          S.t('rememberMe', locale),
-                          style: const TextStyle(fontSize: 13),
-                        ),
-                      ),
-                    ],
+          const SizedBox(height: 18),
+          InkWell(
+            onTap: () => setState(() => _remember = !_remember),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: Checkbox(
+                    value: _remember,
+                    activeColor: AppColors.emerald,
+                    side: const BorderSide(color: Colors.white70),
+                    onChanged: (v) => setState(() => _remember = v ?? false),
                   ),
                 ),
-              ),
-              TextButton(
-                onPressed: _forgotPassword,
-                child: Text(
-                  S.t('forgotPassword', locale),
-                  style: const TextStyle(fontSize: 13),
+                const SizedBox(width: 10),
+                const Text(
+                  'Se souvenir de moi',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           if (_error != null) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             _ErrorBanner(message: _error!),
           ],
-          const SizedBox(height: 26),
-          GradientButton(
-            label: S.t('signIn', locale),
-            icon: Icons.login,
-            loading: _loading,
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: _loading ? null : _submit,
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.emerald,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            icon: const Icon(Icons.login_rounded),
+            label: const Text(
+              'Se connecter',
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 16,
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          const Text(
+            'ou',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white38,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 18),
+          OutlinedButton.icon(
             onPressed: _submit,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.25)),
+              padding: const EdgeInsets.symmetric(vertical: 17),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            icon: const Icon(Icons.pin_rounded),
+            label: const Text(
+              'Connexion avec code PIN',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+              ),
+            ),
+          ),
+          const SizedBox(height: 22),
+          const Text(
+            'Version 2.0.0',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white38,
+              fontSize: 12,
+            ),
           ),
         ],
       ),
     );
   }
 
+
+
   InputDecoration _fieldDecoration(String label, IconData icon, {Widget? suffix}) {
-    final cs = Theme.of(context).colorScheme;
     return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon, color: AppColors.turquoise),
+      hintText: label,
+      hintStyle: const TextStyle(color: Colors.white38, fontSize: 15),
+      prefixIcon: Icon(icon, color: AppColors.emeraldLight, size: 20),
       suffixIcon: suffix,
       filled: true,
-      fillColor: cs.surface.withValues(alpha: 0.5),
-      contentPadding: const EdgeInsets.symmetric(vertical: 22, horizontal: 18),
-      labelStyle: const TextStyle(fontSize: 17),
+      fillColor: const Color(0xFF0E1B22),
+      contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: cs.outline.withValues(alpha: 0.3)),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: cs.outline.withValues(alpha: 0.3)),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: AppColors.turquoise, width: 1.8),
+        borderSide: BorderSide(color: AppColors.emerald, width: 1.6),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: cs.error),
+        borderSide: BorderSide(color: AppColors.danger),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: cs.error, width: 1.8),
-      ),
-    );
-  }
-
-  void _forgotPassword() {
-    final locale = context.read<AuthStore>().locale;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(S.t('forgotPasswordHint', locale)),
-        behavior: SnackBarBehavior.floating,
+        borderSide: BorderSide(color: AppColors.danger, width: 1.6),
       ),
     );
   }
 }
 
-/// Fond 3D : halos verts, grille en perspective, vignette de profondeur,
-/// et icônes pharmaceutiques discrètes.
-class _Backdrop3D extends StatelessWidget {
-  const _Backdrop3D();
+class _BadgeFeature extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final String sub;
 
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: kIsWeb
-              ? Image.network(
-                  'images/pharma_login_background.jpg',
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                )
-              : Image.asset(
-                  'assets/images/pharma_login_background.webp',
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                ),
-        ),
-        Positioned.fill(
-          child: ColoredBox(color: Color(0xB3000B08)),
-        ),
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [
-                  AppColors.menu.withValues(alpha: 0.12),
-                  AppColors.menu.withValues(alpha: 0.78),
-                ],
-              ),
-            ),
-          ),
-        ),
-        Positioned(
-          top: -140,
-          left: -100,
-          child: Container(
-            width: 380,
-            height: 380,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.primary.withValues(alpha: 0.28),
-            ),
-          ),
-        ),
-        Positioned(
-          bottom: -160,
-          right: -80,
-          child: Container(
-            width: 420,
-            height: 420,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.turquoise.withValues(alpha: 0.16),
-            ),
-          ),
-        ),
-        const _GridBackdrop(),
-        Positioned.fill(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment.center,
-                radius: 1.15,
-                colors: [
-                  Colors.transparent,
-                  AppColors.menu.withValues(alpha: 0.55),
-                ],
-              ),
-            ),
-          ),
-        ),
-        Positioned(
-          top: 70,
-          right: 120,
-          child: Icon(Icons.medication,
-              size: 140, color: Colors.white.withValues(alpha: 0.035)),
-        ),
-        Positioned(
-          bottom: 110,
-          left: 80,
-          child: Icon(Icons.local_pharmacy,
-              size: 170, color: Colors.white.withValues(alpha: 0.035)),
-        ),
-      ],
-    );
-  }
-}
-
-/// Grille technique subtile pour l'effet de profondeur 3D.
-class _GridBackdrop extends StatelessWidget {
-  const _GridBackdrop();
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned.fill(
-      child: CustomPaint(
-        painter: _GridPainter(Colors.white.withValues(alpha: 0.04)),
-      ),
-    );
-  }
-}
-
-class _GridPainter extends CustomPainter {
-  final Color color;
-  const _GridPainter(this.color);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = color..strokeWidth = 1;
-    const step = 46.0;
-    for (double x = 0; x <= size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y <= size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter old) => false;
-}
-
-/// Écusson pharmacie (croix +) lumineux, rendu 3D.
-class _PharmacyCross extends StatelessWidget {
-  final double size;
-  const _PharmacyCross({this.size = 56});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: AppColors.turquoise.withValues(alpha: 0.14),
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.turquoise.withValues(alpha: 0.5),
-            blurRadius: 32,
-            spreadRadius: 4,
-          ),
-        ],
-      ),
-      child: Center(
-        child: SizedBox(
-          width: size * 0.52,
-          height: size * 0.52,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: size * 0.18,
-                height: size * 0.52,
-                decoration: BoxDecoration(
-                  color: AppColors.turquoiseLight,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-              ),
-              Container(
-                width: size * 0.52,
-                height: size * 0.18,
-                decoration: BoxDecoration(
-                  color: AppColors.turquoiseLight,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Éléments médicaux 3D flottants (capsules) pour la zone de marque.
-class _FloatingMeds extends StatelessWidget {
-  const _FloatingMeds();
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        const _Pill(top: 70, left: 30, size: 96, color: AppColors.turquoise,
-            opacity: 0.12, rotate: 0.5),
-        const _Pill(top: 230, right: 50, size: 72, color: AppColors.accent,
-            opacity: 0.09, rotate: -0.4),
-        const _Pill(bottom: 150, left: 110, size: 120, color: AppColors.primaryLight,
-            opacity: 0.12, rotate: 0.2),
-        const _Pill(bottom: 60, right: 150, size: 64, color: Colors.white,
-            opacity: 0.07, rotate: -0.6),
-      ],
-    );
-  }
-}
-
-class _Pill extends StatelessWidget {
-  final double? top;
-  final double? left;
-  final double? right;
-  final double? bottom;
-  final double size;
-  final Color color;
-  final double opacity;
-  final double rotate;
-
-  const _Pill({
-    this.top,
-    this.left,
-    this.right,
-    this.bottom,
-    required this.size,
-    required this.color,
-    required this.opacity,
-    required this.rotate,
+  const _BadgeFeature({
+    required this.icon,
+    required this.text,
+    required this.sub,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-      top: top,
-      left: left,
-      right: right,
-      bottom: bottom,
-      child: Transform.rotate(
-        angle: rotate,
-        child: Container(
-          width: size,
-          height: size * 0.5,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(size),
-            gradient: LinearGradient(
-              colors: [
-                color.withValues(alpha: opacity),
-                color.withValues(alpha: opacity * 0.4),
-              ],
+    return Container(
+      width: 170,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: AppColors.emerald.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: opacity * 0.6),
-                blurRadius: 26,
-                offset: const Offset(0, 12),
+            child: Icon(icon, size: 16, color: AppColors.emeraldLight),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                text,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                sub,
+                style: const TextStyle(
+                  color: Colors.white54,
+                  fontSize: 9,
+                ),
               ),
             ],
-          ),
-        ),
+          )
+        ],
       ),
     );
   }
 }
+
+
 
 class _ThemeToggle extends StatelessWidget {
   @override
@@ -721,235 +801,7 @@ class _ThemeToggle extends StatelessWidget {
   }
 }
 
-class _Features extends StatelessWidget {
-  final String locale;
-  const _Features({required this.locale});
 
-  @override
-  Widget build(BuildContext context) {
-    final items = [
-      (S.t('featPosTitle', locale), Icons.point_of_sale, S.t('featPosSub', locale)),
-      (S.t('featStockTitle', locale), Icons.inventory_2_outlined, S.t('featStockSub', locale)),
-      (S.t('featReportingTitle', locale), Icons.insights, S.t('featReportingSub', locale)),
-    ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final (title, icon, sub) in items)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Row(
-              children: [
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    gradient: AppColors.turquoiseGradient,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.turquoise.withValues(alpha: 0.4),
-                        blurRadius: 16,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Icon(icon, color: Colors.white, size: 22),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700)),
-                      Text(sub,
-                          style: const TextStyle(
-                              color: Colors.white60, fontSize: 13)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _FeaturesWithSlogan extends StatelessWidget {
-  final String locale;
-  const _FeaturesWithSlogan({required this.locale});
-
-  @override
-  Widget build(BuildContext context) {
-    final items = [
-      (S.t('featPosTitle', locale), Icons.point_of_sale, S.t('featPosSub', locale)),
-      (S.t('featStockTitle', locale), Icons.inventory_2_outlined, S.t('featStockSub', locale)),
-      (S.t('featReportingTitle', locale), Icons.insights, S.t('featReportingSub', locale)),
-    ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Slogan complet au-dessus de l'icône Comptoir
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              S.t('slogan', locale),
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-                color: AppColors.turquoiseLight,
-                height: 1.5,
-                shadows: [
-                  Shadow(
-                    color: AppColors.turquoise,
-                    blurRadius: 20,
-                    offset: Offset(0, 4),
-                  ),
-                  Shadow(
-                    color: Color(0x2EFFFFFF),
-                    blurRadius: 40,
-                    offset: Offset(0, 8),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    gradient: AppColors.turquoiseGradient,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.turquoise.withValues(alpha: 0.4),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Icon(Icons.point_of_sale, color: Colors.white, size: 28),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        S.t('featPosTitle', locale),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      Text(
-                        S.t('featPosSub', locale),
-                        style: const TextStyle(
-                          color: Colors.white70, fontSize: 14),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        // Autres features
-        for (int i = 1; i < items.length; i++)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 20),
-            child: Row(
-              children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    gradient: AppColors.turquoiseGradient,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.turquoise.withValues(alpha: 0.4),
-                        blurRadius: 16,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Icon(items[i].$2, color: Colors.white, size: 24),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(items[i].$1,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700)),
-                      Text(items[i].$3,
-                          style: const TextStyle(
-                              color: Colors.white60, fontSize: 14)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _Footer extends StatelessWidget {
-  final String locale;
-  final bool online;
-  const _Footer({required this.locale, required this.online});
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      alignment: WrapAlignment.center,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 10,
-      runSpacing: 6,
-      children: [
-        const Text('PHARMA+',
-            style: TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white70)),
-        const Text('• v2.0.0',
-            style: TextStyle(fontSize: 12, color: Colors.white54)),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: online ? AppColors.success : AppColors.danger,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              '${S.t('connectionStatus', locale)}: ${online ? S.t('online', locale) : S.t('offline', locale)}',
-              style: const TextStyle(fontSize: 12, color: Colors.white54),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
 
 class _ErrorBanner extends StatelessWidget {
   final String message;

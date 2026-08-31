@@ -6,6 +6,7 @@ import '../../core/services/sync_engine.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/pharma_background.dart';
 import '../dashboard/dashboard_page.dart';
+import '../modules/modules_page.dart';
 import '../pos/pos_page.dart';
 import '../catalog/catalog_page.dart';
 import '../stock/stock_page.dart';
@@ -31,8 +32,8 @@ class _HomeShellState extends State<HomeShell> {
 
   static const _pages = [
     DashboardPage(),
+    ModulesPage(),
     PosPage(),
-    CatalogPage(),
     CatalogPage(),
     StockPage(),
     SuppliersPage(),
@@ -65,7 +66,8 @@ class _HomeShellState extends State<HomeShell> {
     // Barre basse (écrans étroits) : sous-ensemble représentatif.
     const mobileItems = <(IconData, IconData, String, int)>[
       (Icons.dashboard_outlined, Icons.dashboard, 'dashboard', 0),
-      (Icons.point_of_sale_outlined, Icons.point_of_sale, 'pos', 1),
+      (Icons.grid_view_rounded, Icons.grid_view_rounded, 'modules', 1),
+      (Icons.point_of_sale_outlined, Icons.point_of_sale, 'pos', 2),
       (Icons.medication_outlined, Icons.medication, 'medications', 3),
       (Icons.inventory_2_outlined, Icons.inventory_2, 'stock', 4),
       (Icons.storefront_outlined, Icons.storefront, 'pharmacyPlan', 10),

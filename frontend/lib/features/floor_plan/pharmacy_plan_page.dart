@@ -30,7 +30,7 @@ class _PharmacyPlanPageState extends State<PharmacyPlanPage> {
   @override
   void initState() {
     super.initState();
-    if (widget.focusZoneId != null) _selected = widget.focusZoneId;
+    _selected = widget.focusZoneId ?? 'meds';
   }
 
   @override
@@ -146,7 +146,7 @@ class _PharmacyPlanPageState extends State<PharmacyPlanPage> {
                           _DetailPanel(
                             zone: sel,
                             locale: locale,
-                            onClose: () => setState(() => _selected = null),
+                            onClose: () => setState(() => _selected = 'meds'),
                           ),
                       ],
                     );
@@ -491,37 +491,37 @@ List<_Zone> _buildZones() => [
         id: 'entrance',
         labelKey: 'zoneEntrance',
         color: Color(0xFF9E9E9E),
-        x0: -1.5,
-        y0: 3.0,
-        x1: 1.5,
-        y1: 4.0,
+        x0: -0.9,
+        y0: 3.15,
+        x1: 0.9,
+        y1: 4.15,
         hasShelves: false,
       ),
       const _Zone(
         id: 'counter',
         labelKey: 'zoneCounter',
         color: Color(0xFFFFB300),
-        x0: -1.5,
-        y0: 2.0,
-        x1: 1.5,
-        y1: 3.0,
+        x0: -2.0,
+        y0: 2.1,
+        x1: 2.0,
+        y1: 3.15,
         hasShelves: true,
-        shelfHeight: 0.7,
-        shelfCount: 3,
-        occupancy: 80,
-        products: ['Caisse', 'Conseil', 'TPE'],
+        shelfHeight: 0.8,
+        shelfCount: 4,
+        occupancy: 86,
+        products: ['Caisse', 'Conseil', 'TPE', 'Paiement'],
       ),
       const _Zone(
         id: 'meds',
         labelKey: 'zoneMedications',
         color: Color(0xFF2E7D32),
-        x0: -4.7,
-        y0: -3.7,
-        x1: -0.5,
-        y1: 0.9,
-        shelfHeight: 1.6,
-        shelfCount: 18,
-        occupancy: 74,
+        x0: -5.0,
+        y0: -4.0,
+        x1: -0.7,
+        y1: 0.8,
+        shelfHeight: 1.7,
+        shelfCount: 20,
+        occupancy: 78,
         products: [
           'Doliprane 1000',
           'Augmentin',
@@ -532,16 +532,42 @@ List<_Zone> _buildZones() => [
         ],
       ),
       const _Zone(
+        id: 'presc',
+        labelKey: 'zonePrescriptions',
+        color: Color(0xFF7B1FA2),
+        x0: -4.9,
+        y0: 1.0,
+        x1: -2.6,
+        y1: 3.1,
+        shelfHeight: 1.4,
+        shelfCount: 8,
+        occupancy: 46,
+        products: ['Ordonnances', 'Boîtes', 'Trames', 'Ajustement'],
+      ),
+      const _Zone(
+        id: 'vac',
+        labelKey: 'zoneVaccines',
+        color: Color(0xFF039BE5),
+        x0: -2.5,
+        y0: 1.0,
+        x1: -0.8,
+        y1: 3.1,
+        shelfHeight: 1.2,
+        shelfCount: 6,
+        occupancy: 38,
+        products: ['Vaccin grippe', 'Réfrigérateur', 'Antitétanique'],
+      ),
+      const _Zone(
         id: 'para',
         labelKey: 'zoneParapharmacy',
         color: Color(0xFF00BFA5),
-        x0: 0.7,
-        y0: -3.7,
-        x1: 4.7,
-        y1: -1.5,
-        shelfHeight: 1.3,
-        shelfCount: 12,
-        occupancy: 61,
+        x0: 0.8,
+        y0: -4.0,
+        x1: 5.0,
+        y1: -1.2,
+        shelfHeight: 1.4,
+        shelfCount: 13,
+        occupancy: 66,
         products: [
           'Biafine',
           'La Roche-Posay',
@@ -554,45 +580,19 @@ List<_Zone> _buildZones() => [
         id: 'cos',
         labelKey: 'zoneCosmetics',
         color: Color(0xFFD81B60),
-        x0: 0.7,
-        y0: -1.3,
-        x1: 4.7,
-        y1: 0.7,
-        shelfHeight: 1.3,
+        x0: 0.8,
+        y0: -1.2,
+        x1: 5.0,
+        y1: 1.0,
+        shelfHeight: 1.35,
         shelfCount: 12,
-        occupancy: 55,
+        occupancy: 58,
         products: [
           'Rouge à lèvres',
           'Fond de teint',
           'Mascara',
           'Crème jour'
         ],
-      ),
-      const _Zone(
-        id: 'presc',
-        labelKey: 'zonePrescriptions',
-        color: Color(0xFF7B1FA2),
-        x0: -4.7,
-        y0: 1.1,
-        x1: -2.7,
-        y1: 3.3,
-        shelfHeight: 1.5,
-        shelfCount: 8,
-        occupancy: 42,
-        products: ['Ordonnances', 'Boîtes', 'Trames'],
-      ),
-      const _Zone(
-        id: 'vac',
-        labelKey: 'zoneVaccines',
-        color: Color(0xFF039BE5),
-        x0: -2.5,
-        y0: 1.1,
-        x1: -0.9,
-        y1: 3.3,
-        shelfHeight: 1.2,
-        shelfCount: 6,
-        occupancy: 33,
-        products: ['Vaccin grippe', 'Réfrigérateur', 'Antitétanique'],
       ),
     ];
 
@@ -684,15 +684,15 @@ class _PlanPainter extends CustomPainter {
       canvas.drawPath(
           path,
           Paint()
-            ..color = z.color
-                .withValues(alpha: selected ? 0.30 : 0.16));
+            ..color = z.color.withValues(alpha: selected ? 0.38 : 0.18)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
       if (selected) {
         canvas.drawPath(
             path,
             Paint()
-              ..color = z.color.withValues(alpha: 0.9)
+              ..color = z.color.withValues(alpha: 1)
               ..style = PaintingStyle.stroke
-              ..strokeWidth = 2);
+              ..strokeWidth = 3);
       }
     }
   }
@@ -749,22 +749,33 @@ class _PlanPainter extends CustomPainter {
   void _drawLabels(Canvas canvas) {
     for (final z in zones) {
       final c = _proj.project((z.x0 + z.x1) / 2, (z.y0 + z.y1) / 2, 0);
+      final active = z.id == selectedId;
       final tp = TextPainter(
         text: TextSpan(
           text: S.t(z.labelKey, locale),
-          style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w700),
+          style: TextStyle(
+              color: active ? Colors.white : Colors.white.withValues(alpha: 0.88),
+              fontSize: active ? 12.5 : 11.5,
+              fontWeight: FontWeight.w800,
+              letterSpacing: active ? 0.5 : 0.2),
         ),
         textDirection: ui.TextDirection.ltr,
       )..layout();
       final r = Rect.fromCenter(
-          center: c, width: tp.width + 16, height: tp.height + 8);
+          center: c, width: tp.width + 22, height: tp.height + 10);
       canvas.drawRRect(
-        RRect.fromRectAndRadius(r, const Radius.circular(8)),
-        Paint()..color = z.color.withValues(alpha: 0.9),
+        RRect.fromRectAndRadius(r, const Radius.circular(10)),
+        Paint()..color = z.color.withValues(alpha: active ? 0.94 : 0.75),
       );
+      if (active) {
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(r, const Radius.circular(10)),
+          Paint()
+            ..color = Colors.white.withValues(alpha: 0.2)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5,
+        );
+      }
       tp.paint(canvas, Offset(c.dx - tp.width / 2, c.dy - tp.height / 2));
     }
   }

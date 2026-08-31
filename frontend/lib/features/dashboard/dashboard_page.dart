@@ -142,9 +142,9 @@ class _DashboardPageState extends State<DashboardPage> {
         final sidebar =
             _Sidebar(activeIndex: 0, onSelect: (i) => _onMenuSelect(i, auth));
         final pos = _PosPanel(onCheckout: () => _push(const PosPage()));
-        final posWidth = constraints.maxWidth >= 1400 ? 440.0 : 410.0;
+        final posWidth = constraints.maxWidth >= 1500 ? 440.0 : 390.0;
         return Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          SizedBox(width: 230, child: sidebar),
+          SizedBox(width: 220, child: sidebar),
           Container(width: 1, color: AppColors.dividerDark),
           Expanded(
             child: Column(
@@ -159,14 +159,12 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                   Expanded(
                     child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            // 8 cartes 4x2
                             _buildKpiGrid(),
-                            const SizedBox(height: 12),
-                            // Alertes + Plan cote a cote — hauteur intrinseque, pas de clipping
+                            const SizedBox(height: 14),
                             Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -187,7 +185,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                             _push(const PharmacyPlanPage())),
                                   ),
                                 ]),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 14),
                             _BottomBar(
                               revenueToday: _revenueToday,
                               revenueMonth: _revenueMonth,
@@ -210,62 +208,62 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _buildKpiGrid() {
     final kpis = [
       _KpiData(
-          label: 'VENTES DU JOUR',
+          label: 'Ventes du jour',
           subtitle: '+12.5% vs hier',
           value: Fmt.money(_revenueToday),
           theme: _KpiTheme.green,
-          visual: _KpiVisual.kTerminal(this)),
+          icon: Icons.sell_outlined),
       _KpiData(
-          label: 'MÉDICAMENTS',
+          label: 'Médicaments',
           subtitle: 'Références',
           value: Fmt.number(_medications),
           theme: _KpiTheme.blue,
-          visual: _KpiVisual.kBottle(this)),
+          icon: Icons.medication_outlined),
       _KpiData(
-          label: 'STOCK FAIBLE',
+          label: 'Stock faible',
           subtitle: 'Produits',
           value: '$_lowStock',
           theme: _KpiTheme.orange,
-          visual: _KpiVisual.kBoxes(this)),
+          icon: Icons.warning_amber_rounded),
       _KpiData(
-          label: 'COMMANDES',
+          label: 'Commandes',
           subtitle: 'En attente',
           value: '$_pendingOrders',
           theme: _KpiTheme.purple,
-          visual: _KpiVisual.kClipboard(this)),
+          icon: Icons.inventory_2_outlined),
       _KpiData(
-          label: 'FOURNISSEURS',
+          label: 'Fournisseurs',
           subtitle: 'Actifs',
           value: Fmt.number(_suppliers),
           theme: _KpiTheme.cyan,
-          visual: _KpiVisual.kTruck(this)),
+          icon: Icons.local_shipping_outlined),
       _KpiData(
-          label: 'CLIENTS',
+          label: 'Clients',
           subtitle: 'Total',
           value: Fmt.number(_customers),
           theme: _KpiTheme.pink,
-          visual: _KpiVisual.kPeople(this)),
+          icon: Icons.people_outline),
       _KpiData(
-          label: 'EMPLOYÉS',
+          label: 'Employés',
           subtitle: 'Actifs',
           value: '$_employees',
           theme: _KpiTheme.olive,
-          visual: _KpiVisual.kPharmacist(this)),
+          icon: Icons.badge_outlined),
       _KpiData(
-          label: 'BÉNÉFICE MOIS',
-          subtitle: '+8.3% vs mois dernier',
+          label: 'Bénéfice',
+          subtitle: '+8.3% ce mois',
           value: Fmt.money(_profitMonth),
           theme: _KpiTheme.blue,
-          visual: _KpiVisual.kChart(this)),
+          icon: Icons.trending_up_rounded),
     ];
-    // 4 colonnes x 2 lignes — remplit toute la largeur centrale
+
     return GridView.count(
       crossAxisCount: 4,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: 12,
       mainAxisSpacing: 12,
-      childAspectRatio: 1.32,
+      childAspectRatio: 1.42,
       children: [
         for (var i = 0; i < kpis.length; i++)
           _KpiCard(key: ValueKey('kpi-$i'), data: kpis[i], onTap: _kpiTap(i))
@@ -342,13 +340,13 @@ class _KpiData {
   final String value;
   final String subtitle;
   final _KpiTheme theme;
-  final _KpiVisual visual;
+  final IconData icon;
   const _KpiData(
       {required this.label,
       required this.value,
       required this.subtitle,
       required this.theme,
-      required this.visual});
+      required this.icon});
 }
 
 // ============================================================
@@ -657,99 +655,79 @@ class _KpiCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = _themeColors(data.theme);
+    final accent = colors[2];
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         child: Container(
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [colors[0], colors[1]]),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: colors[2].withValues(alpha: 0.22)),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: accent.withValues(alpha: 0.30)),
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.28),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4))
+                  color: Colors.black.withValues(alpha: 0.25),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5))
             ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: LayoutBuilder(builder: (context, c) {
-              final h = c.maxHeight;
-              final visual = (h * 0.86).clamp(84.0, 128.0);
-              return Stack(children: [
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: h * 0.42,
-                  child: IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.white.withValues(alpha: 0.05),
-                              Colors.white.withValues(alpha: 0.0)
-                            ]),
-                      ),
-                    ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(10)),
+                    child: Icon(data.icon, color: accent, size: 18),
                   ),
-                ),
-                Positioned(
-                  right: -2,
-                  bottom: -2,
-                  child: SizedBox(
-                      width: visual, height: visual, child: data.visual),
-                ),
-                // Texte — contraint pour ne jamais passer sous l'image
-                Positioned(
-                  left: 12,
-                  right: visual * 0.55,
-                  top: 10,
-                  child: Text(data.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 10.2,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.35)),
-                ),
-                Positioned(
-                  left: 12,
-                  right: 12,
-                  top: 27,
-                  child: Text(data.value,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 19,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.2)),
-                ),
-                Positioned(
-                  left: 12,
-                  right: visual * 0.55,
-                  top: 51,
-                  child: Text(data.subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  const Spacer(),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(20)),
+                    child: Text(
+                      data.subtitle,
                       style: TextStyle(
-                          color: colors[4].withValues(alpha: 0.88),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600)),
-                ),
-              ]);
-            }),
+                          color: colors[4],
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700),
+                    ),
+                  )
+                ],
+              ),
+              const SizedBox(height: 18),
+              Text(
+                data.label,
+                style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.4),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                data.value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900),
+              ),
+            ],
           ),
         ),
       ),
@@ -816,503 +794,6 @@ List<Color> _themeColors(_KpiTheme theme) {
         Color(0xFFC5E1A5)
       ];
   }
-}
-
-// ============================================================
-// ILLUSTRATIONS 3D (CUSTOM PAINTER)
-// ============================================================
-enum _KpiVisualKind {
-  terminal,
-  bottle,
-  boxes,
-  clipboard,
-  truck,
-  people,
-  pharmacist,
-  chart
-}
-
-class _KpiVisual extends StatelessWidget {
-  final _KpiVisualKind kind;
-  final Color color;
-  const _KpiVisual(this.kind, this.color);
-  factory _KpiVisual.kTerminal(dynamic _) =>
-      const _KpiVisual(_KpiVisualKind.terminal, AppColors.emerald);
-  factory _KpiVisual.kBottle(dynamic _) =>
-      const _KpiVisual(_KpiVisualKind.bottle, AppColors.info);
-  factory _KpiVisual.kBoxes(dynamic _) =>
-      const _KpiVisual(_KpiVisualKind.boxes, AppColors.warning);
-  factory _KpiVisual.kClipboard(dynamic _) =>
-      const _KpiVisual(_KpiVisualKind.clipboard, AppColors.purple);
-  factory _KpiVisual.kTruck(dynamic _) =>
-      const _KpiVisual(_KpiVisualKind.truck, AppColors.cyan);
-  factory _KpiVisual.kPeople(dynamic _) =>
-      const _KpiVisual(_KpiVisualKind.people, AppColors.pink);
-  factory _KpiVisual.kPharmacist(dynamic _) =>
-      const _KpiVisual(_KpiVisualKind.pharmacist, AppColors.olive);
-  factory _KpiVisual.kChart(dynamic _) =>
-      const _KpiVisual(_KpiVisualKind.chart, AppColors.info);
-  @override
-  Widget build(BuildContext context) => CustomPaint(
-      painter: _KpiVisualPainter(kind, color), size: const Size(118, 118));
-}
-
-class _KpiVisualPainter extends CustomPainter {
-  final _KpiVisualKind kind;
-  final Color color;
-  _KpiVisualPainter(this.kind, this.color);
-  @override
-  void paint(Canvas canvas, Size size) {
-    switch (kind) {
-      case _KpiVisualKind.terminal:
-        _drawTerminal(canvas, size, color);
-        break;
-      case _KpiVisualKind.bottle:
-        _drawBottle(canvas, size, color);
-        break;
-      case _KpiVisualKind.boxes:
-        _drawBoxes(canvas, size, color);
-        break;
-      case _KpiVisualKind.clipboard:
-        _drawClipboard(canvas, size, color);
-        break;
-      case _KpiVisualKind.truck:
-        _drawTruck(canvas, size, color);
-        break;
-      case _KpiVisualKind.people:
-        _drawPeople(canvas, size, color);
-        break;
-      case _KpiVisualKind.pharmacist:
-        _drawPharmacist(canvas, size, color);
-        break;
-      case _KpiVisualKind.chart:
-        _drawChart(canvas, size, color);
-        break;
-    }
-  }
-
-  void _platform(Canvas canvas, Size size, Color c) {
-    final paint = Paint()
-      ..shader = LinearGradient(
-              colors: [c.withValues(alpha: 0.78), c.withValues(alpha: 0.32)])
-          .createShader(Rect.fromLTWH(0, size.height - 16, size.width, 16));
-    final path = Path()
-      ..moveTo(size.width * 0.10, size.height - 8)
-      ..lineTo(size.width * 0.90, size.height - 8)
-      ..lineTo(size.width * 0.80, size.height - 2)
-      ..lineTo(size.width * 0.20, size.height - 2)
-      ..close();
-    canvas.drawPath(path, paint);
-  }
-
-  void _shadow(Canvas canvas, Rect rect, double blur, Color c) {
-    final paint = Paint()
-      ..color = c.withValues(alpha: 0.30)
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, blur);
-    canvas.drawOval(
-        Rect.fromCenter(
-            center: Offset(rect.center.dx, rect.bottom + 2),
-            width: rect.width * 0.8,
-            height: 8),
-        paint);
-  }
-
-  void _drawTerminal(Canvas canvas, Size size, Color color) {
-    _platform(canvas, size, color);
-    final screen = Paint()
-      ..shader = const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF3A4048), Color(0xFF171B21)])
-          .createShader(Rect.fromLTWH(0, 0, 118, 118));
-    final screenRect = RRect.fromRectAndRadius(
-        Rect.fromLTWH(size.width * 0.18, size.height * 0.16, size.width * 0.62,
-            size.height * 0.42),
-        const Radius.circular(8));
-    canvas.drawRRect(screenRect, screen);
-    canvas.drawRRect(
-        screenRect,
-        Paint()
-          ..color = Colors.white.withValues(alpha: 0.10)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.2);
-    final display = Paint()..color = color.withValues(alpha: 0.78);
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.26, size.height * 0.24,
-                size.width * 0.46, size.height * 0.2),
-            const Radius.circular(4)),
-        display);
-    final key = Paint()..color = Colors.white.withValues(alpha: 0.22);
-    for (var r = 0; r < 2; r++) {
-      for (var c = 0; c < 4; c++) {
-        canvas.drawRRect(
-            RRect.fromRectAndRadius(
-                Rect.fromLTWH(
-                    size.width * (0.20 + c * 0.15),
-                    size.height * (0.62 + r * 0.08),
-                    size.width * 0.11,
-                    size.height * 0.05),
-                const Radius.circular(3)),
-            key);
-      }
-    }
-    _shadow(
-        canvas, screenRect.inflate(6).outerRect, 8, const Color(0xFF000000));
-  }
-
-  void _drawBottle(Canvas canvas, Size size, Color color) {
-    _platform(canvas, size, color);
-    final bodyPaint = Paint()
-      ..shader = const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFFF4F6F8), Color(0xFFCFD6DC)])
-          .createShader(Rect.fromLTWH(0, 0, 118, 118));
-    final body = RRect.fromRectAndRadius(
-        Rect.fromLTWH(size.width * 0.34, size.height * 0.26, size.width * 0.34,
-            size.height * 0.52),
-        const Radius.circular(10));
-    canvas.drawRRect(body, bodyPaint);
-    final cap = Paint()
-      ..shader = LinearGradient(colors: [color, color.withValues(alpha: 0.6)])
-          .createShader(Rect.fromLTWH(size.width * 0.40, size.height * 0.12,
-              size.width * 0.22, size.height * 0.14));
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.40, size.height * 0.12,
-                size.width * 0.22, size.height * 0.14),
-            const Radius.circular(4)),
-        cap);
-    final cross = Paint()..color = color;
-    canvas.drawRect(
-        Rect.fromCenter(
-            center: Offset(size.width * 0.51, size.height * 0.50),
-            width: 10,
-            height: 26),
-        cross);
-    canvas.drawRect(
-        Rect.fromCenter(
-            center: Offset(size.width * 0.51, size.height * 0.50),
-            width: 26,
-            height: 10),
-        cross);
-    final pill = Paint()..color = Colors.white.withValues(alpha: 0.80);
-    for (var i = 0; i < 3; i++) {
-      canvas.drawRRect(
-          RRect.fromRectAndRadius(
-              Rect.fromLTWH(
-                  size.width * (0.28 + i * 0.18), size.height * 0.84, 16, 7),
-              const Radius.circular(4)),
-          pill);
-    }
-    _shadow(canvas, body.outerRect, 8, const Color(0xFF000000));
-  }
-
-  void _drawBoxes(Canvas canvas, Size size, Color color) {
-    _platform(canvas, size, color);
-    final boxPaint = Paint()
-      ..shader = const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF8D6E63), Color(0xFF5D4037)])
-          .createShader(Rect.fromLTWH(0, 0, 118, 118));
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.16, size.height * 0.30,
-                size.width * 0.30, size.height * 0.18),
-            const Radius.circular(3)),
-        boxPaint);
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.22, size.height * 0.48,
-                size.width * 0.34, size.height * 0.20),
-            const Radius.circular(3)),
-        boxPaint);
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.30, size.height * 0.66,
-                size.width * 0.40, size.height * 0.18),
-            const Radius.circular(3)),
-        boxPaint);
-    _drawBoxLid(
-        canvas,
-        Rect.fromLTWH(size.width * 0.16, size.height * 0.30, size.width * 0.30,
-            size.height * 0.18));
-    _drawBoxLid(
-        canvas,
-        Rect.fromLTWH(size.width * 0.30, size.height * 0.66, size.width * 0.40,
-            size.height * 0.18));
-    final warn = Paint()..color = color;
-    final triangle = Path()
-      ..moveTo(size.width * 0.68, size.height * 0.34)
-      ..lineTo(size.width * 0.86, size.height * 0.52)
-      ..lineTo(size.width * 0.50, size.height * 0.52)
-      ..close();
-    canvas.drawPath(triangle, warn);
-    final exclaim = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(Offset(size.width * 0.68, size.height * 0.40),
-        Offset(size.width * 0.68, size.height * 0.47), exclaim);
-    canvas.drawCircle(Offset(size.width * 0.68, size.height * 0.50), 1.6,
-        exclaim..style = PaintingStyle.fill);
-    _shadow(
-        canvas,
-        Rect.fromLTWH(size.width * 0.16, size.height * 0.30, size.width * 0.54,
-            size.height * 0.54),
-        8,
-        const Color(0xFF000000));
-  }
-
-  void _drawBoxLid(Canvas canvas, Rect rect) {
-    final p = Paint()..color = Colors.black.withValues(alpha: 0.18);
-    canvas.drawRect(Rect.fromLTWH(rect.left, rect.top - 4, rect.width, 4), p);
-  }
-
-  void _drawClipboard(Canvas canvas, Size size, Color color) {
-    _platform(canvas, size, color);
-    final clip = Paint()..color = const Color(0xFF9E9E9E);
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.44, size.height * 0.10,
-                size.width * 0.12, size.height * 0.06),
-            const Radius.circular(3)),
-        clip);
-    final boardPaint = Paint()
-      ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            color.withValues(alpha: 0.82),
-            color.withValues(alpha: 0.48)
-          ]).createShader(Rect.fromLTWH(size.width * 0.20, size.height * 0.14,
-          size.width * 0.60, size.height * 0.72));
-    final board = RRect.fromRectAndRadius(
-        Rect.fromLTWH(size.width * 0.22, size.height * 0.14, size.width * 0.56,
-            size.height * 0.72),
-        const Radius.circular(8));
-    canvas.drawRRect(board, boardPaint);
-    final sheet = Paint()..color = const Color(0xFFF2F4F7);
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.30, size.height * 0.22,
-                size.width * 0.40, size.height * 0.56),
-            const Radius.circular(4)),
-        sheet);
-    final lines = Paint()..color = Colors.black.withValues(alpha: 0.16);
-    for (var i = 0; i < 4; i++) {
-      canvas.drawRRect(
-          RRect.fromRectAndRadius(
-              Rect.fromLTWH(size.width * 0.34, size.height * (0.28 + i * 0.10),
-                  size.width * 0.30, 3),
-              const Radius.circular(2)),
-          lines);
-    }
-    final checks = Paint()
-      ..color = color
-      ..strokeWidth = 2.5
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    for (var i = 0; i < 4; i++) {
-      final y = size.height * (0.28 + i * 0.10) - 1;
-      final path = Path()
-        ..moveTo(size.width * 0.315, y + 5)
-        ..lineTo(size.width * 0.325, y + 9)
-        ..lineTo(size.width * 0.34, y + 3);
-      canvas.drawPath(path, checks);
-    }
-    _shadow(canvas, board.outerRect, 8, const Color(0xFF000000));
-  }
-
-  void _drawTruck(Canvas canvas, Size size, Color color) {
-    _platform(canvas, size, color);
-    final boxPaint = Paint()
-      ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            color.withValues(alpha: 0.82),
-            color.withValues(alpha: 0.46)
-          ]).createShader(Rect.fromLTWH(size.width * 0.12, size.height * 0.20,
-          size.width * 0.46, size.height * 0.44));
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.12, size.height * 0.22,
-                size.width * 0.46, size.height * 0.46),
-            const Radius.circular(4)),
-        boxPaint);
-    final cabPaint = Paint()
-      ..shader = const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFFF2F4F7), Color(0xFFB9C0C8)])
-          .createShader(Rect.fromLTWH(0, 0, 118, 118));
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.58, size.height * 0.28,
-                size.width * 0.28, size.height * 0.40),
-            const Radius.circular(6)),
-        cabPaint);
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.62, size.height * 0.32,
-                size.width * 0.18, size.height * 0.14),
-            const Radius.circular(4)),
-        Paint()..color = Colors.white.withValues(alpha: 0.55));
-    final wheel = Paint()..color = const Color(0xFF22262B);
-    canvas.drawCircle(Offset(size.width * 0.26, size.height * 0.76), 7, wheel);
-    canvas.drawCircle(Offset(size.width * 0.72, size.height * 0.76), 7, wheel);
-    final boxLines = Paint()
-      ..color = Colors.white.withValues(alpha: 0.30)
-      ..strokeWidth = 1.5;
-    for (var i = 1; i <= 2; i++) {
-      canvas.drawLine(Offset(size.width * (0.12 + i * 0.1), size.height * 0.22),
-          Offset(size.width * (0.12 + i * 0.1), size.height * 0.68), boxLines);
-    }
-    _shadow(
-        canvas,
-        Rect.fromLTWH(size.width * 0.12, size.height * 0.22, size.width * 0.74,
-            size.height * 0.52),
-        8,
-        const Color(0xFF000000));
-  }
-
-  void _drawPeople(Canvas canvas, Size size, Color color) {
-    _platform(canvas, size, color);
-    for (var i = 0; i < 3; i++) {
-      final x = size.width * (0.24 + i * 0.20);
-      final c = color.withValues(alpha: 0.28 + i * 0.14);
-      canvas.drawCircle(Offset(x, size.height * 0.16), 8, Paint()..color = c);
-      canvas.drawRRect(
-          RRect.fromRectAndRadius(
-              Rect.fromLTWH(x - 11, size.height * 0.26, 22, size.height * 0.44),
-              const Radius.circular(11)),
-          Paint()..color = c);
-    }
-    final mainC = Paint()
-      ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            color.withValues(alpha: 0.90),
-            color.withValues(alpha: 0.55)
-          ]).createShader(Rect.fromLTWH(size.width * 0.42, size.height * 0.10,
-          size.width * 0.2, size.height * 0.8));
-    canvas.drawCircle(Offset(size.width * 0.52, size.height * 0.16), 12, mainC);
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(
-            Rect.fromLTWH(
-                size.width * 0.42, size.height * 0.28, 26, size.height * 0.52),
-            const Radius.circular(13)),
-        mainC);
-    _shadow(
-        canvas,
-        Rect.fromLTWH(size.width * 0.24, size.height * 0.14, size.width * 0.56,
-            size.height * 0.62),
-        8,
-        color);
-  }
-
-  void _drawPharmacist(Canvas canvas, Size size, Color color) {
-    _platform(canvas, size, color);
-    final coat = Paint()
-      ..shader = const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFFF6F8FA), Color(0xFFD6DBDF)])
-          .createShader(Rect.fromLTWH(0, 0, 118, 118));
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.36, size.height * 0.30,
-                size.width * 0.28, size.height * 0.50),
-            const Radius.circular(14)),
-        coat);
-    final head = Paint()..color = const Color(0xFF22262B);
-    canvas.drawCircle(Offset(size.width * 0.50, size.height * 0.16), 12, head);
-    final face = Paint()..color = const Color(0xFFF0C8A0);
-    canvas.drawCircle(Offset(size.width * 0.50, size.height * 0.16), 9, face);
-    final collar = Paint()..color = color.withValues(alpha: 0.85);
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.42, size.height * 0.30,
-                size.width * 0.16, size.height * 0.06),
-            const Radius.circular(3)),
-        collar);
-    canvas.drawRect(
-        Rect.fromCenter(
-            center: Offset(size.width * 0.50, size.height * 0.46),
-            width: 7,
-            height: 18),
-        Paint()..color = color);
-    canvas.drawRect(
-        Rect.fromCenter(
-            center: Offset(size.width * 0.50, size.height * 0.46),
-            width: 18,
-            height: 7),
-        Paint()..color = color);
-    _shadow(
-        canvas,
-        Rect.fromLTWH(size.width * 0.36, size.height * 0.10, size.width * 0.34,
-            size.height * 0.72),
-        8,
-        const Color(0xFF000000));
-  }
-
-  void _drawChart(Canvas canvas, Size size, Color color) {
-    _platform(canvas, size, color);
-    final bars = [
-      (0.12, 0.5),
-      (0.26, 0.7),
-      (0.40, 0.4),
-      (0.54, 0.6),
-      (0.68, 0.85)
-    ];
-    for (final (x, h) in bars) {
-      final isLast = x > 0.62;
-      final paint = Paint()
-        ..shader = LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: isLast
-                    ? [AppColors.emerald, const Color(0xFF00A24C)]
-                    : [color, color.withValues(alpha: 0.42)])
-            .createShader(Rect.fromLTWH(
-                size.width * x,
-                size.height * (0.62 - 0.5 * h),
-                size.width * 0.10,
-                size.height * 0.5 * h));
-      canvas.drawRRect(
-          RRect.fromRectAndRadius(
-              Rect.fromLTWH(size.width * x, size.height * (0.62 - 0.5 * h),
-                  size.width * 0.10, size.height * 0.5 * h),
-              const Radius.circular(3)),
-          paint);
-    }
-    final arrow = Paint()
-      ..color = AppColors.emeraldLight
-      ..strokeWidth = 2.5
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    final path = Path()
-      ..moveTo(size.width * 0.14, size.height * 0.6)
-      ..lineTo(size.width * 0.32, size.height * 0.42)
-      ..lineTo(size.width * 0.44, size.height * 0.5)
-      ..lineTo(size.width * 0.62, size.height * 0.28);
-    canvas.drawPath(path, arrow);
-    _shadow(
-        canvas,
-        Rect.fromLTWH(size.width * 0.10, size.height * 0.2, size.width * 0.8,
-            size.height * 0.5),
-        8,
-        const Color(0xFF000000));
-  }
-
-  @override
-  bool shouldRepaint(covariant _KpiVisualPainter oldDelegate) =>
-      oldDelegate.kind != kind || oldDelegate.color != color;
 }
 
 // ============================================================
@@ -2129,59 +1610,90 @@ class _BottomBar extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [Color(0xFF101C16), Color(0xFF0B1210)])),
-      child: Row(children: [
-        _BottomStat(
-            label: 'VENTES AUJOURD\'HUI',
-            value: Fmt.money(revenueToday),
-            trend: '+12.5%',
-            color: AppColors.emerald,
-            curve: true),
-        _BottomStat(
-            label: 'VENTES MOIS',
-            value: Fmt.money(revenueMonth),
-            trend: '+8.3%',
-            color: AppColors.emerald,
-            curve: true),
-        _BottomStat(
-            label: 'BÉNÉFICE MOIS',
-            value: Fmt.money(profitMonth),
-            trend: '+8.3%',
-            color: AppColors.emerald,
-            curve: true),
-        _BottomStat(
-            label: 'PRODUITS EXPIRÉS',
-            value: '$expiring',
-            subtitled: 'Produits',
-            color: AppColors.danger),
-        _BottomStat(
-            label: 'STOCK FAIBLE',
-            value: '$lowStock',
-            subtitled: 'Produits',
-            color: AppColors.warning),
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.04),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.dividerDark)),
-          child: Row(children: [
-            const Icon(Icons.calendar_today_outlined,
-                size: 15, color: AppColors.emeraldLight),
+      child: LayoutBuilder(builder: (context, constraints) {
+        final available = constraints.maxWidth;
+        final statWidth = available > 1200 ? 170.0 : 150.0;
+        final dateWidth = available > 1200 ? 180.0 : 150.0;
+
+        return Row(
+          children: [
+            SizedBox(
+              width: statWidth,
+              child: _BottomStat(
+                  label: 'VENTES AUJOURD\'HUI',
+                  value: Fmt.money(revenueToday),
+                  trend: '+12.5%',
+                  color: AppColors.emerald,
+                  curve: true),
+            ),
+            SizedBox(
+              width: statWidth,
+              child: _BottomStat(
+                  label: 'VENTES MOIS',
+                  value: Fmt.money(revenueMonth),
+                  trend: '+8.3%',
+                  color: AppColors.emerald,
+                  curve: true),
+            ),
+            SizedBox(
+              width: statWidth,
+              child: _BottomStat(
+                  label: 'BÉNÉFICE MOIS',
+                  value: Fmt.money(profitMonth),
+                  trend: '+8.3%',
+                  color: AppColors.emerald,
+                  curve: true),
+            ),
+            SizedBox(
+              width: statWidth,
+              child: _BottomStat(
+                  label: 'PRODUITS EXPIRÉS',
+                  value: '$expiring',
+                  subtitled: 'Produits',
+                  color: AppColors.danger),
+            ),
+            SizedBox(
+              width: statWidth,
+              child: _BottomStat(
+                  label: 'STOCK FAIBLE',
+                  value: '$lowStock',
+                  subtitled: 'Produits',
+                  color: AppColors.warning),
+            ),
             const SizedBox(width: 8),
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(Fmt.time(now),
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800)),
-              Text(Fmt.shortDate(now),
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 10.5))
-            ]),
-          ]),
-        ),
-      ]),
+            SizedBox(
+              width: dateWidth,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.dividerDark)),
+                child: Row(children: [
+                  const Icon(Icons.calendar_today_outlined,
+                      size: 15, color: AppColors.emeraldLight),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(Fmt.time(now),
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800)),
+                          Text(Fmt.shortDate(now),
+                              style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 10.5))
+                        ]),
+                  ),
+                ]),
+              ),
+            ),
+          ],
+        );
+      }),
     );
   }
 }
