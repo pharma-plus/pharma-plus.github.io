@@ -7,6 +7,7 @@ import '../../core/services/api_client.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/pharma_background.dart';
+import '../../core/widgets/pharma_logo.dart';
 import 'two_factor_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -242,11 +243,7 @@ class _LoginPageState extends State<LoginPage>
                                         )
                                       ],
                                     ),
-                                    child: const Icon(
-                                      Icons.local_pharmacy_rounded,
-                                      size: 52,
-                                      color: Colors.white,
-                                    ),
+                                    child: const PharmaPlusLogo(size: 108),
                                   ),
                                 ),
                               ),
@@ -450,29 +447,7 @@ class _LoginPageState extends State<LoginPage>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFF2BFF96), Color(0xFF00A960)],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.emerald.withValues(alpha: 0.45),
-                      blurRadius: 20,
-                    )
-                  ],
-                ),
-                child: const Icon(
-                  Icons.local_pharmacy_rounded,
-                  size: 60,
-                  color: Colors.white,
-                ),
-              ),
+              const PharmaPlusLogo(size: 116),
               const SizedBox(height: 18),
               ShaderMask(
                 shaderCallback: (bounds) => const LinearGradient(
@@ -560,7 +535,7 @@ class _LoginPageState extends State<LoginPage>
                   )
                 ],
               ),
-              child: const Icon(Icons.local_pharmacy_rounded, color: Colors.white),
+              child: const PharmaPlusLogo(size: 50),
             ),
           ),
           const Text(
