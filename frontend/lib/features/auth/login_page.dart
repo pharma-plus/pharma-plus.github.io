@@ -162,206 +162,264 @@ class _LoginPageState extends State<LoginPage>
           ],
         ),
       ),
-      child: Row(
+      child: Column(
         children: [
           Expanded(
-            flex: 5,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(32, 24, 32, 18),
-              child: Stack(
-                children: [
-                  Positioned(
-                    left: 0,
-                    top: 40,
-                    child: Container(
-                      width: 110,
-                      height: 110,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.emerald.withValues(alpha: 0.12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.emerald.withValues(alpha: 0.25),
-                            blurRadius: 35,
-                          )
-                        ],
-                      ),
-                    ),
-                  ),
-                  Positioned.fill(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 5,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(32, 24, 32, 18),
+                    child: Stack(
                       children: [
-                        const SizedBox(height: 18),
-                        Container(
-                          width: 160,
-                          height: 160,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: RadialGradient(
-                              colors: [
-                                AppColors.emerald.withValues(alpha: 0.45),
-                                AppColors.emerald.withValues(alpha: 0.12),
-                                Colors.transparent,
+                        Positioned(
+                          left: 0,
+                          top: 40,
+                          child: Container(
+                            width: 110,
+                            height: 110,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.emerald.withValues(alpha: 0.12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.emerald.withValues(alpha: 0.25),
+                                  blurRadius: 35,
+                                )
                               ],
-                              radius: 1.1,
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.emerald.withValues(alpha: 0.25),
-                                blurRadius: 50,
-                              )
-                            ],
                           ),
-                          child: Center(
-                            child: Container(
-                              width: 110,
-                              height: 110,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: const LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    Color(0xFF2BFF96),
-                                    Color(0xFF00A960),
+                        ),
+                        Positioned.fill(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              const SizedBox(height: 18),
+                              Container(
+                                width: 160,
+                                height: 160,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: RadialGradient(
+                                    colors: [
+                                      AppColors.emerald.withValues(alpha: 0.45),
+                                      AppColors.emerald.withValues(alpha: 0.12),
+                                      Colors.transparent,
+                                    ],
+                                    radius: 1.1,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.emerald.withValues(alpha: 0.25),
+                                      blurRadius: 50,
+                                    )
                                   ],
                                 ),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.25),
-                                  width: 2,
+                                child: Center(
+                                  child: Container(
+                                    width: 110,
+                                    height: 110,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      gradient: const LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          Color(0xFF2BFF96),
+                                          Color(0xFF00A960),
+                                        ],
+                                      ),
+                                      border: Border.all(
+                                        color: Colors.white.withValues(alpha: 0.25),
+                                        width: 2,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppColors.emerald.withValues(alpha: 0.45),
+                                          blurRadius: 18,
+                                        )
+                                      ],
+                                    ),
+                                    child: const Icon(
+                                      Icons.local_pharmacy_rounded,
+                                      size: 52,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                                 ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.emerald.withValues(alpha: 0.45),
-                                    blurRadius: 18,
-                                  )
+                              ),
+                              const SizedBox(height: 28),
+                              ShaderMask(
+                                shaderCallback: (bounds) => const LinearGradient(
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                  colors: [
+                                    Color(0xFFE4FFF7),
+                                    Color(0xFF7BFFBF),
+                                    Color(0xFF1DE28B),
+                                  ],
+                                ).createShader(bounds),
+                                child: const Text(
+                                  'PHARMA+',
+                                  style: TextStyle(
+                                    fontSize: 94,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: -6,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 18, vertical: 7),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(30),
+                                  border: Border.all(
+                                    color: AppColors.emerald.withValues(alpha: 0.7),
+                                    width: 1.4,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.emerald.withValues(alpha: 0.3),
+                                      blurRadius: 12,
+                                    )
+                                  ],
+                                ),
+                                child: const Text(
+                                  'LOGICIEL DE PHARMACIE',
+                                  style: TextStyle(
+                                    color: AppColors.emeraldLight,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 3,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 40),
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 60),
+                                child: Text(
+                                  'Gérez votre pharmacie avec intelligence\net simplicité',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.2,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 62),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  _BadgeFeature(
+                                    icon: Icons.verified_user_rounded,
+                                    text: 'Sécurisé',
+                                    sub: 'Vos données sont protégées',
+                                  ),
+                                  SizedBox(width: 18),
+                                  _BadgeFeature(
+                                    icon: Icons.speed_rounded,
+                                    text: 'Rapide',
+                                    sub: 'Performance optimale',
+                                  ),
+                                  SizedBox(width: 18),
+                                  _BadgeFeature(
+                                    icon: Icons.sync_rounded,
+                                    text: 'Moderne',
+                                    sub: 'Interface intuitive',
+                                  ),
                                 ],
                               ),
-                              child: const Icon(
-                                Icons.local_pharmacy_rounded,
-                                size: 52,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 28),
-                        ShaderMask(
-                          shaderCallback: (bounds) => const LinearGradient(
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                            colors: [
-                              Color(0xFFE4FFF7),
-                              Color(0xFF7BFFBF),
-                              Color(0xFF1DE28B),
-                            ],
-                          ).createShader(bounds),
-                          child: const Text(
-                            'PHARMA+',
-                            style: TextStyle(
-                              fontSize: 94,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -6,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 18, vertical: 7),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(30),
-                            border: Border.all(
-                              color: AppColors.emerald.withValues(alpha: 0.7),
-                              width: 1.4,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.emerald.withValues(alpha: 0.3),
-                                blurRadius: 12,
-                              )
                             ],
                           ),
-                          child: const Text(
-                            'LOGICIEL DE PHARMACIE',
-                            style: TextStyle(
-                              color: AppColors.emeraldLight,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 3,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 40),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 60),
-                          child: Text(
-                            'Gérez votre pharmacie avec intelligence\net simplicité',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 28,
-                              fontWeight: FontWeight.w600,
-                              height: 1.2,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 62),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            _BadgeFeature(
-                              icon: Icons.verified_user_rounded,
-                              text: 'Sécurisé',
-                              sub: 'Vos données sont protégées',
-                            ),
-                            SizedBox(width: 18),
-                            _BadgeFeature(
-                              icon: Icons.speed_rounded,
-                              text: 'Rapide',
-                              sub: 'Performance optimale',
-                            ),
-                            SizedBox(width: 18),
-                            _BadgeFeature(
-                              icon: Icons.sync_rounded,
-                              text: 'Moderne',
-                              sub: 'Interface intuitive',
-                            ),
-                          ],
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
+                ),
+                Expanded(
+                  flex: 4,
+                  child: Center(
+                    child: Container(
+                      width: 520,
+                      margin: const EdgeInsets.only(right: 32, top: 20, bottom: 20),
+                      padding: const EdgeInsets.fromLTRB(30, 28, 30, 20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0A1820).withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(
+                          color: AppColors.emerald.withValues(alpha: 0.35),
+                          width: 1.4,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.45),
+                            blurRadius: 26,
+                            offset: const Offset(0, 12),
+                          )
+                        ],
+                      ),
+                      child: _buildForm(),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          Expanded(
-            flex: 4,
-            child: Center(
-              child: Container(
-                width: 520,
-                margin: const EdgeInsets.only(right: 32, top: 20, bottom: 20),
-                padding: const EdgeInsets.fromLTRB(30, 28, 30, 20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0A1820).withValues(alpha: 0.92),
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(
-                    color: AppColors.emerald.withValues(alpha: 0.35),
-                    width: 1.4,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.45),
-                      blurRadius: 26,
-                      offset: const Offset(0, 12),
-                    )
-                  ],
+          // FOOTER avec infos
+          Container(
+            height: 70,
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  width: 1,
                 ),
-                child: _buildForm(),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: const [
+                      _FooterFeature(icon: Icons.verified_user_rounded, text: 'Sécurisé'),
+                      SizedBox(width: 24),
+                      _FooterFeature(icon: Icons.speed_rounded, text: 'Rapide'),
+                      SizedBox(width: 24),
+                      _FooterFeature(icon: Icons.check_circle_outline_rounded, text: 'Fiable'),
+                      SizedBox(width: 24),
+                      _FooterFeature(icon: Icons.dashboard_customize_rounded, text: 'Moderne'),
+                      SizedBox(width: 24),
+                      _FooterFeature(icon: Icons.headphones_rounded, text: 'Support'),
+                      SizedBox(width: 24),
+                      _FooterFeature(icon: Icons.language_rounded, text: 'Site web'),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      const Text(
+                        'Mode sombre',
+                        style: TextStyle(
+                          color: Colors.white60,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Switch(
+                        value: true,
+                        activeColor: AppColors.emerald,
+                        onChanged: (_) {},
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
@@ -829,6 +887,35 @@ class _ErrorBanner extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _FooterFeature extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _FooterFeature({
+    required this.icon,
+    required this.text,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 18, color: AppColors.emeraldLight),
+        const SizedBox(height: 2),
+        Text(
+          text,
+          style: const TextStyle(
+            color: Colors.white60,
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 }
