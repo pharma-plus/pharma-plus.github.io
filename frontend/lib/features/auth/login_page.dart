@@ -174,6 +174,18 @@ class _LoginPageState extends State<LoginPage>
                     padding: const EdgeInsets.fromLTRB(32, 24, 32, 18),
                     child: Stack(
                       children: [
+                        Positioned.fill(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(24),
+                            child: Image.asset(
+                              'assets/images/connexion photo 4.png',
+                              fit: BoxFit.cover,
+                              alignment: Alignment.centerLeft,
+                              color: Colors.black.withValues(alpha: 0.18),
+                              colorBlendMode: BlendMode.darken,
+                            ),
+                          ),
+                        ),
                         Positioned(
                           left: 0,
                           top: 40,
