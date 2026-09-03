@@ -7,3 +7,6 @@ frontend/.flutter-plugins-dependencies
 frontend/.idea/
 frontend/__pycache__/
 *.log
+
+# Depot git imbrique (pharma-plus-api) : ne pas ajouter comme gitlink
+backend/
