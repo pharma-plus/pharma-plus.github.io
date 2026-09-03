@@ -18,6 +18,8 @@ class _AiPageState extends State<AiPage> {
   final _chatController = TextEditingController();
   final _messages = <Map<String, String>>[];
   Map<String, dynamic>? _insights;
+  Map<String, dynamic>? _plan;
+  Map<String, dynamic>? _analysis;
   bool _loading = true;
   bool _sending = false;
   String? _error;
@@ -25,9 +27,11 @@ class _AiPageState extends State<AiPage> {
 
   static const _tabs = [
     ('reorder_soon', Icons.inventory_outlined),
+    ('reorder_plan', Icons.local_shipping_outlined),
     ('expiring_within_60d', Icons.event_busy_outlined),
     ('no_sales_30d', Icons.speed_outlined),
     ('top_sellers_30d', Icons.trending_up),
+    ('sales_analysis', Icons.query_stats),
   ];
 
   @override
@@ -37,18 +41,25 @@ class _AiPageState extends State<AiPage> {
   }
 
   Future<void> _load() async {
-    final result =
-        await ApiClient.instance.get<Map<String, dynamic>>('/ai/insights');
-    if (!mounted) return;
-    if (!result.success) {
-      setState(() {
-        _loading = false;
-        _error = result.error?.readableMessage ?? 'Erreur';
-      });
-      return;
-    }
     setState(() {
-      _insights = result.data;
+      _loading = true;
+      _error = null;
+    });
+    final results = await Future.wait<ApiResult<Map<String, dynamic>>>([
+      ApiClient.instance.get<Map<String, dynamic>>('/ai/insights'),
+      ApiClient.instance.get<Map<String, dynamic>>('/ai/reorder-plan'),
+      ApiClient.instance.get<Map<String, dynamic>>('/ai/sales-analysis'),
+    ]);
+    if (!mounted) return;
+    final insights = results[0];
+    setState(() {
+      if (!insights.success) {
+        _error = insights.error?.readableMessage ?? 'Erreur';
+      } else {
+        _insights = insights.data;
+        _plan = results[1].success ? results[1].data : null;
+        _analysis = results[2].success ? results[2].data : null;
+      }
       _loading = false;
       _activeTab ??= 'reorder_soon';
     });
@@ -208,6 +219,9 @@ class _AiPageState extends State<AiPage> {
   }
 
   Widget _buildInsightList() {
+    if (_activeTab == 'reorder_plan') return _buildReorderPlan();
+    if (_activeTab == 'sales_analysis') return _buildSalesAnalysis();
+
     final rows = (_insights?[_activeTab] as List? ?? const []);
     if (rows.isEmpty) {
       return GlassCard(
@@ -241,16 +255,336 @@ class _AiPageState extends State<AiPage> {
     );
   }
 
+  Color _priorityColor(String? priority) {
+    switch (priority) {
+      case 'rupture':
+        return Colors.red.shade400;
+      case 'critique':
+        return AppColors.warning;
+      case 'haute':
+        return AppColors.gold;
+      default:
+        return AppColors.textSecondary;
+    }
+  }
+
+  String _priorityLabel(String? priority) {
+    switch (priority) {
+      case 'rupture':
+        return S.t('pOut', locale);
+      case 'critique':
+        return S.t('pCritical', locale);
+      case 'haute':
+        return S.t('pHigh', locale);
+      default:
+        return S.t('pNormal', locale);
+    }
+  }
+
+  Widget _buildReorderPlan() {
+    final items = (_plan?['items'] as List? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .toList();
+    if (items.isEmpty) {
+      return GlassCard(child: Text(S.t('noData', locale)));
+    }
+    final totalCost = double.tryParse('${_plan?['total_estimated_cost'] ?? 0}') ?? 0;
+    final totalQty = double.tryParse('${_plan?['total_suggested_qty'] ?? 0}') ?? 0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GlassCard(
+          child: Row(
+            children: [
+              const Icon(Icons.local_shipping_outlined,
+                  color: AppColors.emerald, size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${items.length} ${S.t('productsToOrder', locale)}',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w800, fontSize: 14),
+                    ),
+                    Text(
+                      '${Fmt.number(totalQty, decimals: 0)} u. · ${S.t('totalEstCost', locale)} : ${Fmt.money(totalCost)}',
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        for (final row in items)
+          GlassCard(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: _priorityColor('${row['priority']}'),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${row['name'] ?? ''}',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    Text(
+                      _priorityLabel('${row['priority']}'),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: _priorityColor('${row['priority']}'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${S.t('suggestedQty', locale)} : ${Fmt.number(double.tryParse('${row['suggested_qty'] ?? 0}') ?? 0, decimals: 0)} u.'
+                  '  ·  ${S.t('stock', locale)} : ${_qty(row['stock'])}'
+                  '  ·  ${S.t('daysCover', locale)} : ${row['days_of_cover'] == null ? '∞' : _qty(row['days_of_cover'])} j'
+                  '${row['estimated_cost'] == null ? '' : '  ·  ${S.t('estimatedCost', locale)} : ${Fmt.money(double.tryParse('${row['estimated_cost']}') ?? 0)}'}'
+                  '${row['supplier_name'] == null ? '' : '  ·  ${row['supplier_name']}'}',
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSalesAnalysis() {
+    final analysis = _analysis;
+    if (analysis == null) {
+      return GlassCard(child: Text(S.t('noData', locale)));
+    }
+    final summary = (analysis['summary'] as Map<String, dynamic>? ?? {});
+    final series = (analysis['series'] as List? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .toList();
+    final recent = series.length > 14 ? series.sublist(series.length - 14) : series;
+    final maxRevenue = recent.fold<double>(
+        0, (m, r) => m + (double.tryParse('${r['revenue'] ?? 0}') ?? 0));
+    final forecastTotal =
+        double.tryParse('${(analysis['forecast_7d'] as Map?)?['total'] ?? 0}') ?? 0;
+    final change = summary['revenue_change_pct'];
+    final margin = summary['margin_pct'];
+    final peakHours = (analysis['peak_hours'] as List? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .take(3)
+        .toList();
+    final categories = (analysis['top_categories'] as List? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .take(5)
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _kpiCard(
+                S.t('revenue30dShort', locale),
+                Fmt.money(double.tryParse('${summary['revenue'] ?? 0}') ?? 0),
+                subtitle: change == null
+                    ? null
+                    : '${change is num && change >= 0 ? '+' : ''}$change % ${S.t('vsPrevPeriod', locale)}',
+                subtitleColor: change is num && change < 0
+                    ? Colors.red.shade300
+                    : AppColors.emerald,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _kpiCard(
+                S.t('averageBasket', locale),
+                Fmt.money(double.tryParse('${summary['avg_basket'] ?? 0}') ?? 0),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _kpiCard(
+                S.t('margin', locale),
+                margin == null ? '—' : '$margin %',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        GlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(S.t('revenueChart', locale),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 64,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    for (final r in recent)
+                      Expanded(
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                          height: maxRevenue > 0
+                              ? 8 +
+                                  56 *
+                                      ((double.tryParse('${r['revenue'] ?? 0}') ?? 0) /
+                                          maxRevenue)
+                              : 8,
+                          decoration: BoxDecoration(
+                            color: AppColors.emerald.withValues(alpha: 0.75),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        GlassCard(
+          child: Row(
+            children: [
+              const Icon(Icons.query_stats, color: AppColors.gold, size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '${S.t('forecast7d', locale)} : ${Fmt.money(forecastTotal)}',
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (peakHours.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          GlassCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(S.t('peakHours', locale),
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                const SizedBox(height: 6),
+                for (final h in peakHours)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      children: [
+                        Text('${'${h['hour']}'.padLeft(2, '0')}h',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w700, fontSize: 12)),
+                        const Spacer(),
+                        Text(
+                          Fmt.money(double.tryParse('${h['revenue'] ?? 0}') ?? 0),
+                          style: const TextStyle(
+                              fontSize: 12, color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+        if (categories.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          GlassCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(S.t('topCategories', locale),
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                const SizedBox(height: 6),
+                for (final c in categories)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.circle, size: 7, color: AppColors.turquoise),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text('${c['name'] ?? '—'}',
+                              style: const TextStyle(fontSize: 12)),
+                        ),
+                        Text(
+                          Fmt.money(double.tryParse('${c['revenue'] ?? 0}') ?? 0),
+                          style: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _kpiCard(String label, String value,
+      {String? subtitle, Color? subtitleColor}) {
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              style:
+                  const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+          const SizedBox(height: 4),
+          FittedBox(
+            child: Text(value,
+                style:
+                    const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+          ),
+          if (subtitle != null)
+            Text(subtitle,
+                style: TextStyle(
+                    fontSize: 10,
+                    color: subtitleColor ?? AppColors.textSecondary)),
+        ],
+      ),
+    );
+  }
+
   String _tabLabel(String key) {
     switch (key) {
       case 'reorder_soon':
         return S.t('lowStock', locale);
+      case 'reorder_plan':
+        return S.t('reorderPlan', locale);
       case 'expiring_within_60d':
         return S.t('expiring', locale);
       case 'no_sales_30d':
         return S.t('noSales30d', locale);
       case 'top_sellers_30d':
         return S.t('topProducts', locale);
+      case 'sales_analysis':
+        return S.t('salesAnalysis', locale);
     }
     return key;
   }
