@@ -18,7 +18,7 @@ class PharmaLogoMedallion extends StatelessWidget {
   final String? subtitle;
 
   /// Or de marque (liserés, accents actifs, titres secondaires).
-  static const Color goldBorder = Color(0xFFD7AE4F);
+  static const Color goldBorder = AppColors.brandGold;
 
   /// Or clair du titre « PHARMA+ » (maquette connexion).
   static const Color titleGold = Color(0xFFF0D89E);

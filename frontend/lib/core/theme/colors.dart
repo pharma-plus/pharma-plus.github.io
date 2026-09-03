@@ -36,6 +36,9 @@ class AppColors {
   static const Color warningLight = Color(0xFFFFB347);   // Orange clair
   static const Color gold = Color(0xFFFFD100);           // Or 24K
 
+  // === OR DE MARQUE (maquette connexion) ===
+  static const Color brandGold = Color(0xFFD7AE4F);      // Liseré or des cartes/panneaux
+
   // === VIOLET POUR COMMANDES ===
   static const Color purple = Color(0xFF9C27B0);        // Violet principal
   static const Color purpleDark = Color(0xFF7B1FA2);    // Violet foncé

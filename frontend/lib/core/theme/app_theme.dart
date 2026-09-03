@@ -41,6 +41,10 @@ class AppTheme {
             : AppColors.primary.withValues(alpha: 0.04),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
+          side: isDark
+              ? BorderSide(
+                  color: AppColors.brandGold.withValues(alpha: 0.30))
+              : BorderSide.none,
         ),
         color: isDark ? AppColors.surfaceDark : Colors.white,
       ),

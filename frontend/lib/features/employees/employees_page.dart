@@ -271,7 +271,7 @@ class StatsChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: Theme.of(context).brightness == Brightness.dark
-              ? AppColors.dividerDark
+              ? AppColors.brandGold.withValues(alpha: 0.30)
               : Colors.white,
         ),
         boxShadow: [

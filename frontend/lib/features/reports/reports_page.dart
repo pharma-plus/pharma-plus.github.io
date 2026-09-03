@@ -351,7 +351,7 @@ class _ReportsPageState extends State<ReportsPage> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: Theme.of(context).brightness == Brightness.dark
-              ? AppColors.dividerDark
+              ? AppColors.brandGold.withValues(alpha: 0.30)
               : Colors.white,
         ),
       ),

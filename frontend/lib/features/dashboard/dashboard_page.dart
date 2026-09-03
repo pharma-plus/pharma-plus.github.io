@@ -1020,8 +1020,8 @@ class _AlertRow extends StatelessWidget {
       decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.04),
           borderRadius: BorderRadius.circular(10),
-          border:
-              Border.all(color: AppColors.dividerDark.withValues(alpha: 0.8))),
+          border: Border.all(
+              color: AppColors.brandGold.withValues(alpha: 0.30))),
       child: Row(children: [
         Icon(icon, size: 18, color: color),
         const SizedBox(width: 12),
@@ -1611,7 +1611,8 @@ class _ProductRow extends StatelessWidget {
         decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.035),
             borderRadius: BorderRadius.circular(9),
-            border: Border.all(color: AppColors.dividerDark)),
+            border: Border.all(
+                color: AppColors.brandGold.withValues(alpha: 0.30))),
         child: Row(children: [
           Container(
               width: 34,
@@ -1755,8 +1756,8 @@ class _BottomBar extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
-          border:
-              Border.all(color: AppColors.dividerDark.withValues(alpha: 0.9)),
+          border: Border.all(
+              color: AppColors.brandGold.withValues(alpha: 0.30)),
           gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -1819,7 +1820,8 @@ class _BottomBar extends StatelessWidget {
                 decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.04),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.dividerDark)),
+                    border: Border.all(
+                        color: AppColors.brandGold.withValues(alpha: 0.30))),
                 child: Row(children: [
                   const Icon(Icons.calendar_today_outlined,
                       size: 15, color: AppColors.emeraldLight),
