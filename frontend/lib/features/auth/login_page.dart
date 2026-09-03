@@ -104,7 +104,7 @@ class _LoginPageState extends State<LoginPage>
                 ? 'Le serveur démarre, veuillez patienter quelques secondes.'
                 : 'Impossible de joindre le serveur. Vérifiez l\'URL de l\'API dans les paramètres (icône ⚙).')
             : isValidation
-                ? 'Saisie invalide : vérifiez votre adresse e-mail et votre mot de passe (8 caractères minimum).'
+                ? 'Saisie invalide : vérifiez votre identifiant (nom d\'utilisateur ou e-mail) et votre mot de passe (8 caractères minimum).'
                 : S.format('invalidCredentials', locale);
       });
       return;
@@ -305,18 +305,22 @@ class _LoginPageState extends State<LoginPage>
           TextFormField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
-            autofillHints: const [AutofillHints.email],
+            autofillHints: const [AutofillHints.username, AutofillHints.email],
             textInputAction: TextInputAction.next,
             style: const TextStyle(color: Colors.white, fontSize: 16),
             decoration: _fieldDecoration(
-              hintText: 'Adresse e-mail',
-              icon: Icons.mail_outline,
+              hintText: 'Nom d\'utilisateur',
+              icon: Icons.person_outline,
             ),
             validator: (value) {
               final text = value?.trim() ?? '';
-              if (text.isEmpty) return 'Veuillez saisir votre adresse e-mail';
-              if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(text)) {
-                return 'Adresse e-mail invalide (ex. vous@pharmacie.ma)';
+              if (text.isEmpty) {
+                return 'Veuillez saisir votre nom d\'utilisateur ou votre e-mail';
+              }
+              final isEmail = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(text);
+              final isUsername = RegExp(r'^[a-zA-Z0-9._-]{3,40}$').hasMatch(text);
+              if (!isEmail && !isUsername) {
+                return 'Nom d\'utilisateur ou adresse e-mail invalide';
               }
               return null;
             },
