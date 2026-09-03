@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 200" width="540" height="200">
+  <defs>
+    <linearGradient id="pmg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00E0C6"/>
+      <stop offset="48%" stop-color="#12A06A"/>
+      <stop offset="100%" stop-color="#0A3D2E"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.30"/>
+      <stop offset="55%" stop-color="#FFFFFF" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Marque -->
+  <g transform="translate(20,28) scale(0.5833)">
+    <rect x="16" y="16" width="208" height="208" rx="54" ry="54" fill="url(#pmg)"/>
+    <rect x="16" y="16" width="208" height="208" rx="54" ry="54" fill="none" stroke="#FFFFFF" stroke-opacity="0.28" stroke-width="2"/>
+    <rect x="16" y="16" width="208" height="120" rx="54" ry="54" fill="url(#sheen)"/>
+    <g fill="#FFFFFF">
+      <rect x="104" y="52" width="32" height="136" rx="15"/>
+      <rect x="52" y="104" width="136" height="32" rx="15"/>
+    </g>
+    <g fill="none" stroke="#00E0C6" stroke-opacity="0.55" stroke-width="3">
+      <rect x="104" y="52" width="32" height="136" rx="15"/>
+      <rect x="52" y="104" width="136" height="32" rx="15"/>
+    </g>
+    <g transform="rotate(-45 168 168)">
+      <rect x="134" y="155" width="68" height="26" rx="13" fill="#FFFFFF" fill-opacity="0.92"/>
+      <rect x="134" y="155" width="34" height="26" rx="13" fill="#00E0C6"/>
+    </g>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="186" y="112" font-family="Arial, Helvetica, sans-serif" font-size="62" font-weight="900" letter-spacing="1" fill="#FFFFFF">PHARMA<tspan fill="#00E0C6">+</tspan></text>
+  <text x="190" y="148" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" letter-spacing="5" fill="#9FE9D6">LOGICIEL DE PHARMACIE</text>
+</svg>
