@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'core/l10n/strings.dart';
 import 'core/services/auth_store.dart';
 import 'core/theme/colors.dart';
-import 'core/widgets/pharma_logo.dart';
+import 'core/widgets/pharma_logo_medallion.dart';
 import 'core/widgets/pharma_background.dart';
 import 'features/auth/login_page.dart';
 import 'features/shell/home_shell.dart';
@@ -70,31 +70,25 @@ class _SplashScreenState extends State<_SplashScreen> {
       backgroundColor: AppColors.menu,
       body: PharmaBackground(
         child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            PharmaPlusLogo(size: 96),
-            SizedBox(height: 24),
-            SizedBox(
-              width: 34,
-              height: 34,
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                color: AppColors.turquoise,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              PharmaLogoMedallion(
+                size: 150,
+                showTitle: true,
+                subtitle: 'Gestion intelligente de votre pharmacie',
               ),
-            ),
-            SizedBox(height: 16),
-            Text(
-              'PHARMA+',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-                letterSpacing: 4,
-                fontWeight: FontWeight.w800,
+              SizedBox(height: 26),
+              SizedBox(
+                width: 34,
+                height: 34,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                  color: PharmaLogoMedallion.goldBorder,
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         ),
       ),
     );
@@ -117,7 +111,7 @@ class _InitErrorScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const PharmaPlusLogo(size: 80),
+              const PharmaLogoMedallion(size: 110),
               const SizedBox(height: 28),
               const Icon(Icons.error_outline,
                   size: 56, color: AppColors.danger),
@@ -140,7 +134,8 @@ class _InitErrorScreen extends StatelessWidget {
               const SizedBox(height: 24),
               FilledButton.icon(
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: PharmaLogoMedallion.goldBorder,
+                  foregroundColor: const Color(0xFF07201B),
                   minimumSize: const Size(220, 52),
                 ),
                 onPressed: onRetry,

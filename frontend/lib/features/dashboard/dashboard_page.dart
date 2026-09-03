@@ -4,7 +4,7 @@ import '../../core/services/api_client.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
-import '../../core/widgets/pharma_logo.dart';
+import '../../core/widgets/pharma_logo_medallion.dart';
 import '../catalog/catalog_page.dart';
 import '../cameras/cameras_page.dart';
 import '../customers/customers_page.dart';
@@ -394,17 +394,17 @@ class _Sidebar extends StatelessWidget {
                   bottom: BorderSide(
                       color: AppColors.dividerDark.withValues(alpha: 0.6)))),
           child: Row(children: [
-            const PharmaPlusLogo(size: 76),
+            const PharmaLogoMedallion(size: 56),
             const SizedBox(width: 12),
             const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('PHARMA+',
                       style: TextStyle(
-                          color: Colors.white,
+                          color: PharmaLogoMedallion.titleGold,
                           fontSize: 17,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.5)),
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.5)),
                   Text('Gestion de pharmacie',
                       style: TextStyle(
                           color: AppColors.textSecondary, fontSize: 11)),
@@ -433,15 +433,15 @@ class _Sidebar extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                         border: active
                             ? Border.all(
-                                color:
-                                    AppColors.emerald.withValues(alpha: 0.35))
+                                color: PharmaLogoMedallion.goldBorder
+                                    .withValues(alpha: 0.45))
                             : null,
                       ),
                       child: Row(children: [
                         Icon(icon,
                             size: 19,
                             color: active
-                                ? AppColors.emeraldLight
+                                ? PharmaLogoMedallion.goldBorder
                                 : AppColors.textSecondary),
                         const SizedBox(width: 12),
                         Text(label,
@@ -541,10 +541,10 @@ class _TopBar extends StatelessWidget {
       child: Row(children: [
         const Text('PHARMA+',
             style: TextStyle(
-                color: AppColors.emeraldLight,
+                color: PharmaLogoMedallion.titleGold,
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
-                letterSpacing: 1)),
+                letterSpacing: -0.5)),
         const SizedBox(width: 24),
         Expanded(
           child: Center(
@@ -1333,8 +1333,8 @@ class _DarkPanel extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: [Color(0xFF101C16), Color(0xFF0B1210)]),
           borderRadius: BorderRadius.circular(14),
-          border:
-              Border.all(color: AppColors.dividerDark.withValues(alpha: 0.9)),
+          border: Border.all(
+              color: PharmaLogoMedallion.goldBorder.withValues(alpha: 0.30)),
           boxShadow: [
             BoxShadow(
                 color: Colors.black.withValues(alpha: 0.30),
