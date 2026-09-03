@@ -42,8 +42,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
           side: isDark
-              ? BorderSide(
-                  color: AppColors.brandGold.withValues(alpha: 0.30))
+              ? BorderSide(color: AppColors.goldBorder) // liseré or maquette
               : BorderSide.none,
         ),
         color: isDark ? AppColors.surfaceDark : Colors.white,
@@ -76,7 +75,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppColors.turquoise, width: 2),
+          borderSide: BorderSide(color: AppColors.gold, width: 1.6),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -114,16 +113,16 @@ class AppTheme {
       navigationRailTheme: NavigationRailThemeData(
         backgroundColor: isDark ? AppColors.menu : AppColors.backgroundLight,
         selectedIconTheme: IconThemeData(
-            color: isDark ? AppColors.turquoise : AppColors.primary),
+            color: isDark ? AppColors.gold : AppColors.primary),
         selectedLabelTextStyle: TextStyle(
-          color: isDark ? AppColors.turquoise : AppColors.primary,
+          color: isDark ? AppColors.gold : AppColors.primary,
           fontWeight: FontWeight.w700,
         ),
         unselectedIconTheme: IconThemeData(
             color: isDark ? Colors.white60 : Colors.black54),
         unselectedLabelTextStyle: TextStyle(
             color: isDark ? Colors.white60 : Colors.black54),
-        indicatorColor: (isDark ? AppColors.turquoise : AppColors.primary)
+        indicatorColor: (isDark ? AppColors.gold : AppColors.primary)
             .withValues(alpha: 0.18),
       ),
       drawerTheme: DrawerThemeData(

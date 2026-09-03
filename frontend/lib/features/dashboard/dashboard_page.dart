@@ -254,7 +254,7 @@ class _DashboardPageState extends State<DashboardPage> {
           label: 'Bénéfice',
           subtitle: '+8.3% ce mois',
           value: Fmt.money(_profitMonth),
-          theme: _KpiTheme.blue,
+          theme: _KpiTheme.chart,
           icon: Icons.trending_up_rounded),
     ];
 
@@ -340,7 +340,7 @@ class _DashboardPageState extends State<DashboardPage> {
 // ============================================================
 // DATA
 // ============================================================
-enum _KpiTheme { green, blue, orange, purple, cyan, pink, olive }
+enum _KpiTheme { green, blue, orange, purple, cyan, pink, olive, chart }
 
 class _KpiData {
   final String label;
@@ -421,7 +421,7 @@ class _Sidebar extends StatelessWidget {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 3),
                 child: Material(
-                  color: active ? const Color(0xFF143D2F) : Colors.transparent,
+                  color: active ? const Color(0xFF0E3326) : Colors.transparent,
                   borderRadius: BorderRadius.circular(10),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(10),
@@ -758,25 +758,6 @@ class _KpiIllustration extends StatelessWidget {
   final Color accent;
   const _KpiIllustration({required this.theme, required this.accent});
 
-  IconData get _object {
-    switch (theme) {
-      case _KpiTheme.green:
-        return Icons.point_of_sale;
-      case _KpiTheme.blue:
-        return Icons.medication;
-      case _KpiTheme.orange:
-        return Icons.inventory_2;
-      case _KpiTheme.purple:
-        return Icons.assignment;
-      case _KpiTheme.cyan:
-        return Icons.local_shipping;
-      case _KpiTheme.pink:
-        return Icons.groups;
-      case _KpiTheme.olive:
-        return Icons.person;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -832,44 +813,187 @@ class _KpiObjectPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final shadow = Paint()..color = Colors.black.withValues(alpha: 0.32);
     canvas.drawOval(Rect.fromLTWH(7, 34, size.width - 14, 11), shadow);
-    final body = Paint()..color = accent.withValues(alpha: 0.88);
     final highlight = Paint()..color = Colors.white.withValues(alpha: 0.75);
-    final dark = Paint()..color = accent.withValues(alpha: 0.42);
 
     switch (theme) {
       case _KpiTheme.green:
-        canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(8, 24, 38, 19), const Radius.circular(4)), body);
-        canvas.drawPath(Path()..moveTo(8, 24)..lineTo(17, 18)..lineTo(53, 18)..lineTo(46, 24)..close(), highlight);
-        canvas.drawLine(const Offset(18, 28), const Offset(39, 28), dark..strokeWidth = 3);
-      case _KpiTheme.blue:
-        canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(18, 12, 23, 31), const Radius.circular(7)), body);
-        canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(15, 8, 29, 9), const Radius.circular(3)), dark);
-        canvas.drawLine(const Offset(30, 22), const Offset(30, 35), highlight..strokeWidth = 3);
-        canvas.drawLine(const Offset(24, 28), const Offset(36, 28), highlight..strokeWidth = 3);
-      case _KpiTheme.orange:
-        for (var i = 0; i < 3; i++) {
-          final x = 8.0 + i * 14;
-          canvas.drawRect(Rect.fromLTWH(x, 23 - i * 5, 18, 19), body);
-          canvas.drawLine(Offset(x, 23 - i * 5), Offset(x + 18, 23 - i * 5), highlight..strokeWidth = 1.5);
+        // Terminal de paiement — corps sombre, écran vert, clavier, base verte.
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(const Rect.fromLTWH(6, 20, 42, 23), const Radius.circular(5)),
+          Paint()..color = const Color(0xFF202422));
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(const Rect.fromLTWH(8, 22, 9, 12), const Radius.circular(2)),
+          Paint()..color = const Color(0xFF00C96B));
+        canvas.drawLine(
+          const Offset(10, 29),
+          const Offset(15, 29),
+          Paint()
+            ..color = const Color(0xFF06251D)
+            ..strokeWidth = 2,
+        );
+        final key = Paint()..color = const Color(0xFF5A605E);
+        for (var r = 0; r < 2; r++) {
+          for (var c = 0; c < 4; c++) {
+            if (r == 0 && c == 3) continue;
+            canvas.drawCircle(Offset(31 + c * 5, 25 + r * 5), 1.9, key);
+          }
         }
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(const Rect.fromLTWH(12, 40, 30, 3), const Radius.circular(1.5)),
+          Paint()..color = const Color(0xFF00C96B));
+      case _KpiTheme.blue:
+        // Flacon : bouchon bleu/gris, corps blanc, croix médicale, comprimés.
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(const Rect.fromLTWH(20, 8, 22, 9), const Radius.circular(3)),
+          Paint()..color = const Color(0xFF5B8FD9));
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(const Rect.fromLTWH(15, 17, 32, 28), const Radius.circular(6)),
+          Paint()..color = const Color(0xFFEDF3F0));
+        final flaconCross = Paint()..color = const Color(0xFF00C96B);
+        canvas.drawRect(const Rect.fromLTWH(29, 24, 4, 14), flaconCross);
+        canvas.drawRect(const Rect.fromLTWH(24, 29, 14, 4), flaconCross);
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(const Rect.fromLTWH(5, 27, 8, 4), const Radius.circular(2)),
+          Paint()..color = const Color(0xFF5B8FD9));
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(const Rect.fromLTWH(50, 35, 8, 4), const Radius.circular(2)),
+          Paint()..color = const Color(0xFF5B8FD9));
+      case _KpiTheme.orange:
+        // Boîtes empilées + triangle d'avertissement + point d'exclamation.
+        final cardBox = Paint()..color = const Color(0xFF4A4030);
+        for (var i = 0; i < 3; i++) {
+          final x = 6.0 + i * 13;
+          final w = 19.0 + i * 3;
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(Rect.fromLTWH(x, 21 - i * 5, w, 15), const Radius.circular(2)),
+            cardBox,
+          );
+          canvas.drawLine(Offset(x, 21 - i * 5), Offset(x + w, 21 - i * 5), highlight..strokeWidth = 1.6);
+        }
+        final warn = Path()
+          ..moveTo(27, 2)
+          ..lineTo(37, 19)
+          ..lineTo(17, 19)
+          ..close();
+        canvas.drawPath(warn, Paint()..color = const Color(0xFFF59E0B));
+        canvas.drawRect(const Rect.fromLTWH(26, 8, 2, 6), Paint()..color = const Color(0xFF241A0F));
+        canvas.drawRect(const Rect.fromLTWH(26, 16, 2, 2), Paint()..color = const Color(0xFF241A0F));
       case _KpiTheme.purple:
-        canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(15, 11, 29, 32), const Radius.circular(4)), body);
-        canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(20, 17, 19, 22), const Radius.circular(2)), highlight);
-        for (var y = 21.0; y < 35; y += 6) canvas.drawLine(Offset(24, y), Offset(35, y), dark..strokeWidth = 2);
+        // Presse-papiers : ardoise violette, feuille claire, cases cochées.
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(const Rect.fromLTWH(15, 7, 30, 39), const Radius.circular(4)),
+          Paint()..color = const Color(0xFF9B5FC0));
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(const Rect.fromLTWH(20, 4, 20, 8), const Radius.circular(2)),
+          Paint()..color = const Color(0xFF7A3FA8));
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(const Rect.fromLTWH(19, 15, 22, 27), const Radius.circular(2)),
+          Paint()..color = const Color(0xFFF3EFEA));
+        final check = Paint()..color = const Color(0xFF9B5FC0);
+        for (var y = 19.0; y < 39; y += 6) {
+          canvas.drawRect(Rect.fromLTWH(22, y, 3, 3), check);
+          final tick = Path()
+            ..moveTo(27, y + 1.5)
+            ..lineTo(29, y + 3)
+            ..lineTo(36, y - 1);
+          canvas.drawPath(
+            tick,
+            Paint()
+              ..color = const Color(0xFF00C96B)
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1.6,
+          );
+        }
       case _KpiTheme.cyan:
-        canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(7, 21, 38, 20), const Radius.circular(4)), body);
-        canvas.drawPath(Path()..moveTo(45, 25)..lineTo(53, 29)..lineTo(53, 41)..lineTo(45, 41)..close(), dark);
-        canvas.drawCircle(const Offset(17, 42), 4, shadow);
-        canvas.drawCircle(const Offset(40, 42), 4, shadow);
+        // Camion de livraison : caisse turquoise, cabine, roues.
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(const Rect.fromLTWH(4, 22, 30, 15), const Radius.circular(3)),
+          Paint()..color = const Color(0xFF2BD4C4));
+        canvas.drawPath(
+          Path()
+            ..moveTo(34, 23)
+            ..lineTo(43, 23)
+            ..lineTo(47, 29)
+            ..lineTo(47, 37)
+            ..lineTo(34, 37)
+            ..close(),
+          Paint()..color = const Color(0xFF1E9E92));
+        canvas.drawRect(const Rect.fromLTWH(8, 25, 13, 8), Paint()..color = const Color(0xFFB8FFF6));
+        canvas.drawRect(const Rect.fromLTWH(8, 15, 15, 6), Paint()..color = const Color(0xFF67E6DA));
+        canvas.drawCircle(const Offset(13, 37), 3.4, Paint()..color = const Color(0xFF0A241B));
+        canvas.drawCircle(const Offset(33, 37), 3.4, Paint()..color = const Color(0xFF0A241B));
       case _KpiTheme.pink:
-        for (final point in [const Offset(30, 18), const Offset(18, 27), const Offset(42, 27)]) {
-          canvas.drawCircle(point, point.dy == 18 ? 8 : 6, body);
-          canvas.drawOval(Rect.fromCenter(center: Offset(point.dx, point.dy + 13), width: 17, height: 19), dark);
+        // Groupe de clients : têtes + épaules 3D.
+        final skin = Paint()..color = accent.withValues(alpha: 0.9);
+        final shoulders = Paint()..color = accent.withValues(alpha: 0.5);
+        for (final point in [
+          const Offset(30, 13),
+          const Offset(17, 21),
+          const Offset(43, 21),
+        ]) {
+          canvas.drawCircle(point, point.dy == 13 ? 8 : 6, skin);
+          canvas.drawOval(
+            Rect.fromCenter(
+                center: Offset(point.dx, point.dy + 12), width: 18, height: 18),
+            shoulders,
+          );
         }
       case _KpiTheme.olive:
-        canvas.drawCircle(const Offset(30, 15), 8, highlight);
-        canvas.drawOval(Rect.fromCenter(center: const Offset(30, 32), width: 27, height: 24), body);
-        canvas.drawLine(const Offset(30, 25), const Offset(30, 39), dark..strokeWidth = 3);
+        // Pharmacien : tête, blouse blanche, croix verte.
+        canvas.drawCircle(
+            const Offset(30, 13), 8, Paint()..color = const Color(0xFFEAD9C8));
+        canvas.drawOval(
+          Rect.fromCenter(center: const Offset(30, 33), width: 27, height: 26),
+          Paint()..color = const Color(0xFFF3F1EC));
+        final greenCross = Paint()..color = const Color(0xFF00C96B);
+        canvas.drawRect(const Rect.fromLTWH(28, 26, 4, 13), greenCross);
+        canvas.drawRect(const Rect.fromLTWH(23, 31, 14, 4), greenCross);
+        canvas.drawLine(
+            const Offset(23, 20), const Offset(37, 20), highlight..strokeWidth = 2);
+      case _KpiTheme.chart:
+        // Graphique financier 3D : barres bleues, dernière verte, flèche ↑.
+        final bars = [14.0, 20.0, 17.0, 26.0];
+        for (var i = 0; i < bars.length; i++) {
+          final x = 7.0 + i * 10;
+          final b = bars[i];
+          final isLast = i == bars.length - 1;
+          canvas.drawRect(
+            Rect.fromLTWH(x, 38 - b, 7, b),
+            isLast
+                ? (Paint()..color = const Color(0xFF00C96B))
+                : (Paint()..color = const Color(0xFF42A5F5)),
+          );
+          canvas.drawRect(
+            Rect.fromLTWH(x, 38 - b, 2.4, b),
+            isLast
+                ? (Paint()..color = const Color(0xFF8FFFE0))
+                : (Paint()..color = const Color(0xFF90CAF9)),
+          );
+        }
+        canvas.drawLine(
+          const Offset(7, 38),
+          const Offset(48, 38),
+          Paint()
+            ..color = Colors.white.withValues(alpha: 0.25)
+            ..strokeWidth = 1,
+        );
+        canvas.drawPath(
+          Path()
+            ..moveTo(10, 34)
+            ..lineTo(46, 8),
+          Paint()
+            ..color = const Color(0xFF00C96B)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2.4
+            ..strokeCap = StrokeCap.round,
+        );
+        final head = Path()
+          ..moveTo(46, 8)
+          ..lineTo(37, 8)
+          ..lineTo(46, 8)
+          ..lineTo(46, 17)
+          ..close();
+        canvas.drawPath(head, Paint()..color = const Color(0xFF00C96B));
     }
   }
 
@@ -882,59 +1006,67 @@ List<Color> _themeColors(_KpiTheme theme) {
   switch (theme) {
     case _KpiTheme.green:
       return const [
-        Color(0xFF0F2A1E),
-        Color(0xFF0A1A12),
-        Color(0xFF00C853),
-        Color(0xFF00C853),
-        Color(0xFF69F0AE)
+        Color(0xFF0C2418),
+        Color(0xFF081B12),
+        Color(0xFF00C96B),
+        Color(0xFF00C96B),
+        Color(0xFF3BE39A),
       ];
     case _KpiTheme.blue:
       return const [
-        Color(0xFF0F2435),
-        Color(0xFF0A1620),
+        Color(0xFF0B2030),
+        Color(0xFF071420),
         Color(0xFF42A5F5),
         Color(0xFF1E88E5),
-        Color(0xFF90CAF9)
+        Color(0xFF90CAF9),
       ];
     case _KpiTheme.orange:
       return const [
-        Color(0xFF2A1E0F),
-        Color(0xFF1A1006),
-        Color(0xFFFF8F00),
-        Color(0xFFFF8F00),
-        Color(0xFFFFB347)
+        Color(0xFF271A0E),
+        Color(0xFF180E06),
+        Color(0xFFF59E0B),
+        Color(0xFFF59E0B),
+        Color(0xFFFBBF49),
       ];
     case _KpiTheme.purple:
       return const [
         Color(0xFF23152E),
         Color(0xFF130A18),
-        Color(0xFF9C27B0),
-        Color(0xFFAB47BC),
-        Color(0xFFCE93D8)
+        Color(0xFF9B5FC0),
+        Color(0xFFAB7FD0),
+        Color(0xFFC9A0E2),
       ];
     case _KpiTheme.cyan:
       return const [
         Color(0xFF0E262E),
         Color(0xFF07151C),
-        Color(0xFF00BCD4),
-        Color(0xFF00BCD4),
-        Color(0xFF80DEEA)
+        Color(0xFF2BD4C4),
+        Color(0xFF2BD4C4),
+        Color(0xFF8DEBE0),
       ];
     case _KpiTheme.pink:
       return const [
         Color(0xFF2A1428),
         Color(0xFF180A16),
-        Color(0xFFE91E63),
-        Color(0xFFEC407A),
-        Color(0xFFF48FB1)
+        Color(0xFFE0557C),
+        Color(0xFFEC7FA0),
+        Color(0xFFF2A9C0),
       ];
     case _KpiTheme.olive:
       return const [
         Color(0xFF1C2612),
         Color(0xFF0F1809),
-        Color(0xFF8BC34A),
-        Color(0xFF9CCC65),
-        Color(0xFFC5E1A5)
+        Color(0xFF9BCB6B),
+        Color(0xFFAED882),
+        Color(0xFFD0E8B5),
+      ];
+    case _KpiTheme.chart:
+      return const [
+        Color(0xFF0D2433),
+        Color(0xFF081620),
+        Color(0xFF42A5F5),
+        Color(0xFF1E88E5),
+        Color(0xFF90CAF9),
       ];
   }
 }
