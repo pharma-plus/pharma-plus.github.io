@@ -20,64 +20,75 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  final _email = TextEditingController();
-  final _password = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+
   bool _obscure = true;
   bool _loading = false;
   bool _remember = true;
   String? _error;
 
-  late final AnimationController _anim = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 700));
-  late final Animation<double> _fade =
-      CurvedAnimation(parent: _anim, curve: Curves.easeOut);
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 700),
+  );
+  late final Animation<double> _fade = CurvedAnimation(
+    parent: _controller,
+    curve: Curves.easeOut,
+  );
   late final Animation<Offset> _slide = Tween<Offset>(
-          begin: const Offset(0, 0.08), end: Offset.zero)
-      .animate(CurvedAnimation(parent: _anim, curve: Curves.easeOut));
+    begin: const Offset(0, 0.08),
+    end: Offset.zero,
+  ).animate(CurvedAnimation(
+    parent: _controller,
+    curve: Curves.easeOut,
+  ));
 
   @override
   void initState() {
     super.initState();
-    _loadRemembered();
-    _checkConnection();
-    _anim.forward();
-  }
-
-  Future<void> _loadRemembered() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('pmg_email');
-    if (saved != null && saved.isNotEmpty) {
-      _email.text = saved;
-    }
-  }
-
-  Future<void> _checkConnection() async {
-    // Connection check disabled - auto-retry on failure
+    _loadSavedEmail();
+    _controller.forward();
   }
 
   @override
   void dispose() {
-    _anim.dispose();
-    _email.dispose();
-    _password.dispose();
+    _controller.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadSavedEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString('pmg_email');
+    if (saved != null && saved.isNotEmpty && mounted) {
+      setState(() => _emailController.text = saved);
+    }
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
     setState(() {
       _loading = true;
       _error = null;
     });
+
     final locale = context.read<AuthStore>().locale;
     final result = await ApiClient.instance.post<Map<String, dynamic>>(
       '/auth/login',
       body: {
-        'email': _email.text.trim(),
-        'password': _password.text,
-        'device': {'name': 'Flutter', 'type': 'mobile', 'userAgent': 'pmg-app'},
+        'email': _emailController.text.trim(),
+        'password': _passwordController.text,
+        'device': {
+          'name': 'Flutter',
+          'type': 'mobile',
+          'userAgent': 'pmg-app'
+        },
       },
     );
+
     if (!mounted) return;
     setState(() => _loading = false);
 
@@ -85,27 +96,31 @@ class _LoginPageState extends State<LoginPage>
       final network =
           result.error?.code == 'NETWORK_ERROR' || result.statusCode == 0;
       final starting = result.error?.code == 'SERVER_STARTING';
+      final isValidation = result.statusCode == 422 ||
+          result.error?.code == 'VALIDATION_ERROR';
       setState(() {
         _error = network
             ? (starting
                 ? 'Le serveur démarre, veuillez patienter quelques secondes.'
-                : 'Impossible de joindre le serveur. '
-                    'Vérifiez l\'URL de l\'API dans les paramètres (icône ⚙).')
-            : S.format('invalidCredentials', locale);
+                : 'Impossible de joindre le serveur. Vérifiez l\'URL de l\'API dans les paramètres (icône ⚙).')
+            : isValidation
+                ? 'Saisie invalide : vérifiez votre adresse e-mail et votre mot de passe (8 caractères minimum).'
+                : S.format('invalidCredentials', locale);
       });
       return;
     }
 
     if (_remember) {
-      (await SharedPreferences.getInstance())
-          .setString('pmg_email', _email.text.trim());
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('pmg_email', _emailController.text.trim());
     } else {
-      (await SharedPreferences.getInstance()).remove('pmg_email');
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('pmg_email');
     }
 
     final data = result.data!;
-    if (!mounted) return;
     if (data['requireTwoFactor'] == true) {
+      if (!mounted) return;
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) =>
@@ -117,15 +132,16 @@ class _LoginPageState extends State<LoginPage>
 
     if (!mounted) return;
     await context.read<AuthStore>().saveSession(
-          accessToken: data['accessToken'] as String,
-          refreshToken: data['refreshToken'] as String,
-          user: User.fromJson(data['user'] as Map<String, dynamic>),
-        );
+      accessToken: data['accessToken'] as String,
+      refreshToken: data['refreshToken'] as String,
+      user: User.fromJson(data['user'] as Map<String, dynamic>),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final isWide = MediaQuery.of(context).size.width >= 900;
+
     return Scaffold(
       body: PharmaBackground(
         overlayOpacity: 0.45,
@@ -136,385 +152,68 @@ class _LoginPageState extends State<LoginPage>
                 opacity: _fade,
                 child: SlideTransition(
                   position: _slide,
-                  child: isWide ? _buildWide() : _buildNarrow(),
+                  child: isWide ? _buildWideCard() : _buildMobileCard(),
                 ),
               ),
             ),
-            _ThemeToggle(),
+            const _ThemeToggle(),
           ],
         ),
       ),
     );
   }
 
-  // ---- Layout web : maquette premium PHARMA+ -----------------------
-  Widget _buildWide() {
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [
-            Color(0xFF071A1B),
-            Color(0xFF0A1619),
-            Color(0xFF071A20),
-          ],
+  Widget _buildWideCard() {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(32, 28, 32, 24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF041C18).withValues(alpha: 0.96),
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(
+              color: const Color(0xFFD7AE4F),
+              width: 1.4,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.45),
+                blurRadius: 30,
+                offset: const Offset(0, 18),
+              ),
+            ],
+          ),
+          child: _buildForm(),
         ),
       ),
-      child: Column(
-        children: [
-          Expanded(
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 5,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(32, 24, 32, 18),
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(24),
-                            child: Image.asset(
-                              'assets/images/connexion photo 4.png',
-                              fit: BoxFit.cover,
-                              alignment: Alignment.centerLeft,
-                              color: Colors.black.withValues(alpha: 0.18),
-                              colorBlendMode: BlendMode.darken,
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          left: 0,
-                          top: 40,
-                          child: Container(
-                            width: 110,
-                            height: 110,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppColors.emerald.withValues(alpha: 0.12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.emerald.withValues(alpha: 0.25),
-                                  blurRadius: 35,
-                                )
-                              ],
-                            ),
-                          ),
-                        ),
-                        Positioned.fill(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              const SizedBox(height: 18),
-                              Container(
-                                width: 160,
-                                height: 160,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: RadialGradient(
-                                    colors: [
-                                      AppColors.emerald.withValues(alpha: 0.45),
-                                      AppColors.emerald.withValues(alpha: 0.12),
-                                      Colors.transparent,
-                                    ],
-                                    radius: 1.1,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.emerald.withValues(alpha: 0.25),
-                                      blurRadius: 50,
-                                    )
-                                  ],
-                                ),
-                                child: Center(
-                                  child: Container(
-                                    width: 110,
-                                    height: 110,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      gradient: const LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: [
-                                          Color(0xFF2BFF96),
-                                          Color(0xFF00A960),
-                                        ],
-                                      ),
-                                      border: Border.all(
-                                        color: Colors.white.withValues(alpha: 0.25),
-                                        width: 2,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.emerald.withValues(alpha: 0.45),
-                                          blurRadius: 18,
-                                        )
-                                      ],
-                                    ),
-                                    child: const PharmaPlusLogo(size: 108),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 28),
-                              ShaderMask(
-                                shaderCallback: (bounds) => const LinearGradient(
-                                  begin: Alignment.centerLeft,
-                                  end: Alignment.centerRight,
-                                  colors: [
-                                    Color(0xFFE4FFF7),
-                                    Color(0xFF7BFFBF),
-                                    Color(0xFF1DE28B),
-                                  ],
-                                ).createShader(bounds),
-                                child: const Text(
-                                  'PHARMA+',
-                                  style: TextStyle(
-                                    fontSize: 94,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: -6,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 18),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 18, vertical: 7),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(30),
-                                  border: Border.all(
-                                    color: AppColors.emerald.withValues(alpha: 0.7),
-                                    width: 1.4,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.emerald.withValues(alpha: 0.3),
-                                      blurRadius: 12,
-                                    )
-                                  ],
-                                ),
-                                child: const Text(
-                                  'LOGICIEL DE PHARMACIE',
-                                  style: TextStyle(
-                                    color: AppColors.emeraldLight,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 3,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 40),
-                              const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 60),
-                                child: Text(
-                                  'Gérez votre pharmacie avec intelligence\net simplicité',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.w600,
-                                    height: 1.2,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 62),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  _BadgeFeature(
-                                    icon: Icons.verified_user_rounded,
-                                    text: 'Sécurisé',
-                                    sub: 'Vos données sont protégées',
-                                  ),
-                                  SizedBox(width: 18),
-                                  _BadgeFeature(
-                                    icon: Icons.speed_rounded,
-                                    text: 'Rapide',
-                                    sub: 'Performance optimale',
-                                  ),
-                                  SizedBox(width: 18),
-                                  _BadgeFeature(
-                                    icon: Icons.sync_rounded,
-                                    text: 'Moderne',
-                                    sub: 'Interface intuitive',
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 4,
-                  child: Center(
-                    child: Container(
-                      width: 520,
-                      margin: const EdgeInsets.only(right: 32, top: 20, bottom: 20),
-                      padding: const EdgeInsets.fromLTRB(30, 28, 30, 20),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0A1820).withValues(alpha: 0.92),
-                        borderRadius: BorderRadius.circular(28),
-                        border: Border.all(
-                          color: AppColors.emerald.withValues(alpha: 0.35),
-                          width: 1.4,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.45),
-                            blurRadius: 26,
-                            offset: const Offset(0, 12),
-                          )
-                        ],
-                      ),
-                      child: _buildForm(),
-                    ),
-                  ),
+    );
+  }
+
+  Widget _buildMobileCard() {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(22),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(22, 20, 22, 18),
+            decoration: BoxDecoration(
+              color: const Color(0xFF041C18).withValues(alpha: 0.96),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: const Color(0xFFD7AE4F),
+                width: 1.4,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.45),
+                  blurRadius: 26,
+                  offset: const Offset(0, 14),
                 ),
               ],
             ),
-          ),
-          // FOOTER avec infos
-          Container(
-            height: 70,
-            decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.05),
-                  width: 1,
-                ),
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: const [
-                      _FooterFeature(icon: Icons.verified_user_rounded, text: 'Sécurisé'),
-                      SizedBox(width: 24),
-                      _FooterFeature(icon: Icons.speed_rounded, text: 'Rapide'),
-                      SizedBox(width: 24),
-                      _FooterFeature(icon: Icons.check_circle_outline_rounded, text: 'Fiable'),
-                      SizedBox(width: 24),
-                      _FooterFeature(icon: Icons.dashboard_customize_rounded, text: 'Moderne'),
-                      SizedBox(width: 24),
-                      _FooterFeature(icon: Icons.headphones_rounded, text: 'Support'),
-                      SizedBox(width: 24),
-                      _FooterFeature(icon: Icons.language_rounded, text: 'Site web'),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      const Text(
-                        'Mode sombre',
-                        style: TextStyle(
-                          color: Colors.white60,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Switch(
-                        value: true,
-                        activeColor: AppColors.emerald,
-                        onChanged: (_) {},
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNarrow() {
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      padding: const EdgeInsets.all(22),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF071A1B),
-            Color(0xFF0A1619),
-            Color(0xFF071A20),
-          ],
-        ),
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 500),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const PharmaPlusLogo(size: 116),
-              const SizedBox(height: 18),
-              ShaderMask(
-                shaderCallback: (bounds) => const LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [
-                    Color(0xFFE4FFF7),
-                    Color(0xFF7BFFBF),
-                    Color(0xFF1DE28B),
-                  ],
-                ).createShader(bounds),
-                child: const Text(
-                  'PHARMA+',
-                  style: TextStyle(
-                    fontSize: 54,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -3,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(
-                    color: AppColors.emerald.withValues(alpha: 0.7),
-                    width: 1.3,
-                  ),
-                ),
-                child: const Text(
-                  'LOGICIEL DE PHARMACIE',
-                  style: TextStyle(
-                    color: AppColors.emeraldLight,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 2,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0A1820).withValues(alpha: 0.90),
-                  borderRadius: BorderRadius.circular(26),
-                  border: Border.all(
-                    color: AppColors.emerald.withValues(alpha: 0.30),
-                    width: 1.2,
-                  ),
-                ),
-                child: _buildForm(),
-              ),
-            ],
+            child: _buildForm(),
           ),
         ),
       ),
@@ -527,198 +226,264 @@ class _LoginPageState extends State<LoginPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Align(
-            alignment: Alignment.centerLeft,
+          const SizedBox(height: 6),
+          Center(
             child: Container(
-              width: 52,
-              height: 52,
-              margin: const EdgeInsets.only(bottom: 12),
+              width: 170,
+              height: 170,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF2BFF96), Color(0xFF00A960)],
+                  colors: [
+                    const Color(0xFF0B3A2A).withValues(alpha: 0.95),
+                    const Color(0xFF06251D),
+                  ],
                 ),
-                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: const Color(0xFFD7AE4F),
+                  width: 2,
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.emerald.withValues(alpha: 0.35),
-                    blurRadius: 18,
-                  )
+                    color: AppColors.emerald.withValues(alpha: 0.38),
+                    blurRadius: 28,
+                  ),
                 ],
               ),
-              child: const PharmaPlusLogo(size: 50),
+              child: const PharmaPlusLogo(size: 110),
             ),
           ),
-          const Text(
-            'Bienvenue sur PHARMA+',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.w800,
+          const SizedBox(height: 16),
+          const Center(
+            child: Text(
+              'PHARMA+',
+              style: TextStyle(
+                color: Color(0xFFF0D89E),
+                fontSize: 42,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -2,
+              ),
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Connectez-vous à votre espace',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 15,
+          const Center(
+            child: Text(
+              'Gestion intelligente de votre pharmacie',
+              style: TextStyle(
+                color: Color(0xFFB9E5D1),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.4,
+              ),
             ),
           ),
-          const SizedBox(height: 26),
-          const Text(
-            'Adresse e-mail',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
+          const SizedBox(height: 18),
+          const Center(
+            child: Text(
+              'Bienvenue',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
+          const Center(
+            child: Text(
+              'Connectez-vous à votre espace professionnel',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
           TextFormField(
-            controller: _email,
+            controller: _emailController,
             keyboardType: TextInputType.emailAddress,
+            autofillHints: const [AutofillHints.email],
             textInputAction: TextInputAction.next,
-            style: const TextStyle(fontSize: 17, color: Colors.white),
-            decoration: _fieldDecoration('', Icons.mail_outline),
-            validator: (v) {
-              final value = v?.trim() ?? '';
-              if (value.isEmpty) return 'Adresse e-mail';
-              if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value)) {
-                return 'Adresse e-mail';
+            style: const TextStyle(color: Colors.white, fontSize: 16),
+            decoration: _fieldDecoration(
+              hintText: 'Adresse e-mail',
+              icon: Icons.mail_outline,
+            ),
+            validator: (value) {
+              final text = value?.trim() ?? '';
+              if (text.isEmpty) return 'Veuillez saisir votre adresse e-mail';
+              if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(text)) {
+                return 'Adresse e-mail invalide (ex. vous@pharmacie.ma)';
               }
               return null;
             },
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
+          TextFormField(
+            controller: _passwordController,
+            obscureText: _obscure,
+            textInputAction: TextInputAction.done,
+            onFieldSubmitted: (_) => _submit(),
+            style: const TextStyle(color: Colors.white, fontSize: 16),
+            decoration: _fieldDecoration(
+              hintText: 'Mot de passe',
+              icon: Icons.lock_outline,
+              suffix: IconButton(
+                splashRadius: 18,
+                icon: Icon(
+                  _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  color: AppColors.emeraldLight,
+                ),
+                onPressed: () => setState(() => _obscure = !_obscure),
+              ),
+            ),
+            validator: (value) {
+              final text = value ?? '';
+              if (text.isEmpty) return 'Veuillez saisir votre mot de passe';
+              if (text.length < 8) {
+                return 'Le mot de passe contient au moins 8 caractères';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 10),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text(
-                'Mot de passe',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+            children: [
+              Expanded(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () => setState(() => _remember = !_remember),
+                  child: Row(
+                    children: [
+                      Checkbox(
+                        value: _remember,
+                        activeColor: AppColors.emerald,
+                        side: const BorderSide(color: Colors.white70),
+                        onChanged: (value) =>
+                            setState(() => _remember = value ?? false),
+                      ),
+                      const Text(
+                        'Se souvenir de moi',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              Text(
-                'Mot de passe oublié ?',
-                style: TextStyle(
-                  color: AppColors.emeraldLight,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
+              TextButton(
+                onPressed: () {},
+                child: const Text(
+                  'Mot de passe oublié ?',
+                  style: TextStyle(
+                    color: AppColors.emeraldLight,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: _password,
-            obscureText: _obscure,
-            textInputAction: TextInputAction.done,
-            onFieldSubmitted: (_) => _submit(),
-            style: const TextStyle(fontSize: 17, color: Colors.white),
-            decoration: _fieldDecoration(
-              '',
-              Icons.lock_outline,
-              suffix: IconButton(
-                icon: Icon(
-                    _obscure ? Icons.visibility_off : Icons.visibility),
-                onPressed: () => setState(() => _obscure = !_obscure),
-              ),
-            ),
-            validator: (v) =>
-                (v == null || v.isEmpty) ? 'Mot de passe' : null,
-          ),
-          const SizedBox(height: 18),
-          InkWell(
-            onTap: () => setState(() => _remember = !_remember),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: Checkbox(
-                    value: _remember,
-                    activeColor: AppColors.emerald,
-                    side: const BorderSide(color: Colors.white70),
-                    onChanged: (v) => setState(() => _remember = v ?? false),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                const Text(
-                  'Se souvenir de moi',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
           if (_error != null) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             _ErrorBanner(message: _error!),
           ],
-          const SizedBox(height: 24),
+          const SizedBox(height: 18),
           FilledButton.icon(
             onPressed: _loading ? null : _submit,
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.emerald,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 18),
+              backgroundColor: const Color(0xFFD7AE4F),
+              foregroundColor: const Color(0xFF07201B),
+              minimumSize: const Size.fromHeight(54),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(16),
               ),
             ),
-            icon: const Icon(Icons.login_rounded),
+            icon: _loading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Color(0xFF07201B),
+                    ),
+                  )
+                : const Icon(Icons.login_rounded),
             label: const Text(
-              'Se connecter',
+              'SE CONNECTER',
               style: TextStyle(
                 fontWeight: FontWeight.w800,
                 fontSize: 16,
+                letterSpacing: 0.4,
               ),
             ),
           ),
           const SizedBox(height: 18),
-          const Text(
-            'ou',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white38,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+          const Center(
+            child: Text(
+              'ou',
+              style: TextStyle(
+                color: Colors.white38,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
           OutlinedButton.icon(
-            onPressed: _submit,
+            onPressed: _loading ? null : _submit,
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.white,
-              side: BorderSide(color: Colors.white.withValues(alpha: 0.25)),
-              padding: const EdgeInsets.symmetric(vertical: 17),
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.28)),
+              minimumSize: const Size.fromHeight(52),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
               ),
             ),
-            icon: const Icon(Icons.pin_rounded),
+            icon: const Icon(Icons.fingerprint_rounded),
             label: const Text(
-              'Connexion avec code PIN',
+              'Connexion biométrique',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 15,
               ),
             ),
           ),
-          const SizedBox(height: 22),
-          const Text(
-            'Version 2.0.0',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white38,
-              fontSize: 12,
+          const SizedBox(height: 16),
+          const Center(
+            child: Text(
+              'Votre santé, notre priorité',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Center(
+            child: Text(
+              'PHARMA+ – Gestion intelligente, pharmacie performante.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white60,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          const Center(
+            child: Text(
+              'v2.0.0',
+              style: TextStyle(
+                color: Colors.white38,
+                fontSize: 11,
+              ),
             ),
           ),
         ],
@@ -726,130 +491,71 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-
-
-  InputDecoration _fieldDecoration(String label, IconData icon, {Widget? suffix}) {
+  InputDecoration _fieldDecoration({
+    required String hintText,
+    required IconData icon,
+    Widget? suffix,
+  }) {
     return InputDecoration(
-      hintText: label,
-      hintStyle: const TextStyle(color: Colors.white38, fontSize: 15),
-      prefixIcon: Icon(icon, color: AppColors.emeraldLight, size: 20),
-      suffixIcon: suffix,
       filled: true,
-      fillColor: const Color(0xFF0E1B22),
-      contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
-      ),
+      fillColor: const Color(0xFF0A221E),
+      hintText: hintText,
+      hintStyle: const TextStyle(color: Colors.white38),
+      prefixIcon: Icon(icon, color: AppColors.emeraldLight),
+      suffixIcon: suffix,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: AppColors.emerald, width: 1.6),
+        borderSide: const BorderSide(color: AppColors.emerald, width: 1.6),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: AppColors.danger),
+        borderSide: const BorderSide(color: Colors.redAccent),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: AppColors.danger, width: 1.6),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1.6),
       ),
     );
   }
 }
-
-class _BadgeFeature extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  final String sub;
-
-  const _BadgeFeature({
-    required this.icon,
-    required this.text,
-    required this.sub,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 170,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: AppColors.emerald.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: 16, color: AppColors.emeraldLight),
-          ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                text,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              Text(
-                sub,
-                style: const TextStyle(
-                  color: Colors.white54,
-                  fontSize: 9,
-                ),
-              ),
-            ],
-          )
-        ],
-      ),
-    );
-  }
-}
-
-
 
 class _ThemeToggle extends StatelessWidget {
+  const _ThemeToggle();
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthStore>();
     final isDark = auth.themeMode != ThemeMode.light;
+
     return Positioned(
-      top: 16,
-      right: 16,
+      top: 18,
+      right: 18,
       child: Material(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(30),
+        color: Colors.white.withValues(alpha: 0.06),
+        shape: const CircleBorder(),
         child: IconButton(
-          icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode,
-              color: Colors.white),
-          tooltip: 'Thème',
           onPressed: () => auth.setThemeMode(
-              isDark ? ThemeMode.light : ThemeMode.dark),
+            isDark ? ThemeMode.light : ThemeMode.dark,
+          ),
+          tooltip: 'Thème',
+          icon: Icon(
+            isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+            color: Colors.white,
+          ),
         ),
       ),
     );
   }
 }
 
-
-
 class _ErrorBanner extends StatelessWidget {
   final String message;
+
   const _ErrorBanner({required this.message});
 
   @override
@@ -857,19 +563,21 @@ class _ErrorBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.danger.withValues(alpha: 0.1),
+        color: AppColors.danger.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.danger.withValues(alpha: 0.4)),
+        border: Border.all(color: AppColors.danger.withValues(alpha: 0.45)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline, color: AppColors.danger, size: 20),
+          const Icon(Icons.error_outline_rounded, color: AppColors.danger),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               message,
               style: const TextStyle(
-                  color: AppColors.danger, fontWeight: FontWeight.w600),
+                color: AppColors.danger,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -878,31 +586,3 @@ class _ErrorBanner extends StatelessWidget {
   }
 }
 
-class _FooterFeature extends StatelessWidget {
-  final IconData icon;
-  final String text;
-
-  const _FooterFeature({
-    required this.icon,
-    required this.text,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 18, color: AppColors.emeraldLight),
-        const SizedBox(height: 2),
-        Text(
-          text,
-          style: const TextStyle(
-            color: Colors.white60,
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-}
