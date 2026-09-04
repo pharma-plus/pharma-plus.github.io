@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
 
-/// Carte vitrée avec profondeur (fond translucide, liseré lumineux).
+/// Carte premium PHARMA+ — surface sombre unie, liseré or, ombre subtile.
+///
+/// Refonte v3 : plus d'effet verre/transparence. On utilise une surface unie
+/// sombre (palette officielle) avec bordure or champagne (1px rgba(214,168,79,0.15))
+/// et une ombre douce pour la profondeur.
 class GlassCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
@@ -21,31 +25,24 @@ class GlassCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final effective = gradient ??
-        LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [
-                  AppColors.surfaceDark,
-                  AppColors.surfaceDark.withValues(alpha: 0.85)
-                ]
-              : [Colors.white, Colors.white.withValues(alpha: 0.92)],
-        );
+    final bgColor = isDark
+        ? AppColors.pharmaSurface
+        : Colors.white.withValues(alpha: 0.92);
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        gradient: effective,
-        borderRadius: radius ?? BorderRadius.circular(20),
+        color: bgColor,
+        gradient: gradient,
+        borderRadius: radius ?? BorderRadius.circular(18),
         border: Border.all(
-          color: isDark ? AppColors.dividerDark : Colors.white,
+          color: AppColors.goldBorder,
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: isDark ? 0.30 : 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -53,7 +50,7 @@ class GlassCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: radius ?? BorderRadius.circular(20),
+          borderRadius: radius ?? BorderRadius.circular(18),
           child: Padding(padding: padding, child: child),
         ),
       ),

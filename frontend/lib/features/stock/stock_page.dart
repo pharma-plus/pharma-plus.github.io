@@ -231,10 +231,19 @@ class _StockPageState extends State<StockPage> {
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(S.t('stock', locale)),
+             appBar: AppBar(
+        backgroundColor: AppColors.pharmaSurface,
+        foregroundColor: AppColors.pharmaText,
+        elevation: 0,
+        title: Text(S.t('stock', locale),
+            style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: AppColors.pharmaText)),
         actions: [
-          IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
+          IconButton(
+              onPressed: _load,
+              icon: const Icon(Icons.refresh, color: AppColors.pharmaGold)),
         ],
       ),
       body: Column(
@@ -244,9 +253,20 @@ class _StockPageState extends State<StockPage> {
             child: TextField(
               controller: _search,
               onChanged: (_) => _load(),
+              style: const TextStyle(color: AppColors.pharmaText),
               decoration: InputDecoration(
                 hintText: S.t('search', locale),
-                prefixIcon: const Icon(Icons.search),
+                prefixIcon:
+                    const Icon(Icons.search, color: AppColors.pharmaMuted),
+                hintStyle: const TextStyle(color: AppColors.pharmaMuted),
+                fillColor: AppColors.pharmaSurface2,
+                filled: true,
+                border: const OutlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.goldBorder)),
+                enabledBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.goldBorder)),
+                focusedBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.pharmaGold)),
               ),
             ),
           ),
