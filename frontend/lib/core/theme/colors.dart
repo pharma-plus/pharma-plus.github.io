@@ -31,7 +31,7 @@ class AppColors {
   /// Liseré or maquette : 1px rgba(214,168,79,0.15)
   static const Color goldBorder = Color(0x26D6A84F);
   /// Liseré or renforcé : rgba(214,168,79,0.32)
-  static const Color goldBorderStrong = Color(0x52D6A84F);
+      static const Color goldBorderStrong = Color(0x52D6A84F);
 
   // === MARQUE PHARMA+ ===
   static const Color primary = Color(0xFF006B43);        // Vert pétrole profond
@@ -40,6 +40,13 @@ class AppColors {
   static const Color emerald = Color(0xFF00C96B);        // Vert PHARMA+ (actif)
   static const Color emeraldDark = Color(0xFF006B43);    // Vert foncé
   static const Color emeraldLight = Color(0xFF3BE39A);   // Vert clair subtil
+
+  /// Palette graphique cohérente (illustrations / KPI / rapports)
+  static const Color chart = Color(0xFF5B8FD9);         // Bleu outil/graphique
+  static const Color chartAccent = Color(0xFF00C96B);    // Dernière barre / flèche ↑
+  static const Color warnAmber = Color(0xFFF59E0B);     // Alertes expirations / stock faible
+  static const Color alertRed = Color(0xFFEF4444);      // Rupture / danger
+  static const Color danger = Color(0xFFEF4444);
 
   // === FONDS PREMIUM SOMBRES ===
   static const Color backgroundDark = Color(0xFF03100D); // Vert pétrole profond
@@ -84,9 +91,8 @@ class AppColors {
   static const Color olive = Color(0xFF9BCB6B);         // Olive
   static const Color oliveLight = Color(0xFFB9E091);    // Olive clair
 
-  // === SEMANTIQUE ===
+    // === SEMANTIQUE ===
   static const Color success = Color(0xFF00C96B);
-  static const Color danger = Color(0xFFEF4444);
   static const Color info = Color(0xFF5BB8E8);
 
   // === GLOW / OMBRE COULEURS ===
@@ -337,3 +343,5 @@ class AppColors {
     ),
   };
 }
+
+

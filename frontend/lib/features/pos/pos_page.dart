@@ -11,6 +11,7 @@ import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
+import 'pos_categories.dart';
 import 'pos_models.dart';
 
 class PosPage extends StatefulWidget {
@@ -279,7 +280,7 @@ class _PosPageState extends State<PosPage> {
             onChanged: _searchMedications,
             decoration: InputDecoration(
               hintText: S.t('search', locale),
-              prefixIcon: const Icon(Icons.search),
+              prefixIcon:          const Icon(Icons.search),
               suffixIcon: _searching
                   ? const Padding(
                       padding: EdgeInsets.all(12),
@@ -290,6 +291,42 @@ class _PosPageState extends State<PosPage> {
                       ),
                     )
                   : null,
+              fillColor: AppColors.pharmaSurface,
+              filled: true,
+            ),
+          ),
+        ),
+        // Catégories 4×2 premium
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: Text(
+              S.t('categories', locale),
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.pharmaMuted,
+              ),
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: 340,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: PosCategoriesGrid(
+                onSelected: (cat) {
+                  setState(() {
+                    _results = _results
+                        .where((m) =>
+                            (m.category?.toLowerCase() ==
+                                cat.id.toLowerCase()) ||
+                            cat.id == 'autres')
+                        .toList();
+                  });
+                },
+              ),
             ),
           ),
         ),

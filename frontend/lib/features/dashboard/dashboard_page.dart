@@ -1363,79 +1363,148 @@ class _LegendItem extends StatelessWidget {
 
 class _PlanPainter extends CustomPainter {
   @override
-  void paint(Canvas canvas, Size size) {
-    final floor = Path()
-      ..moveTo(size.width * 0.08, size.height * 0.3)
-      ..lineTo(size.width * 0.78, size.height * 0.10)
-      ..lineTo(size.width * 0.92, size.height * 0.70)
-      ..lineTo(size.width * 0.30, size.height * 0.94)
+    void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // ---- Sol : damier sombre subtil ----
+    canvas.drawRect(
+        Offset.zero & size, Paint()..color = AppColors.pharmaSurface2);
+    final tile = Paint()
+      ..color = Colors.white.withValues(alpha: 0.032)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.5;
+    const t = 18.0;
+    for (double x = 0; x <= w; x += t) {
+      canvas.drawLine(Offset(x, 0), Offset(x, h), tile);
+    }
+    for (double y = 0; y <= h; y += t) {
+      canvas.drawLine(Offset(0, y), Offset(w, y), tile);
+    }
+
+    // ---- Murs (arrière + côté) — bois sombre métallisé ----
+    final rearWall = Path()
+      ..moveTo(w * 0.08, h * 0.22)
+      ..lineTo(w * 0.84, h * 0.10)
+      ..lineTo(w * 0.84, h * 0.32)
+      ..lineTo(w * 0.08, h * 0.40)
       ..close();
     canvas.drawPath(
-        floor,
-        Paint()
-          ..shader = const LinearGradient(
-                  colors: [Color(0xFF1B3A2A), Color(0xFF0E1F16)])
-              .createShader(Offset.zero & size));
-    final grid = Paint()
-      ..color = Colors.white.withValues(alpha: 0.06)
-      ..strokeWidth = 1;
-    const step = 26.0;
-    for (double x = 0; x <= size.width; x += step)
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), grid);
-    for (double y = 0; y <= size.height; y += step)
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
-    final shelf = Paint()
-      ..color = Colors.white.withValues(alpha: 0.20)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.8;
-    for (var row = 0; row < 4; row++) {
-      final y = size.height * (0.36 + row * 0.12);
-      final path = Path()
-        ..moveTo(size.width * (0.14 + row * 0.03), y)
-        ..lineTo(size.width * (0.52 + row * 0.03), y - size.height * 0.12)
-        ..lineTo(size.width * (0.68 + row * 0.03), y - size.height * 0.06);
-      canvas.drawPath(path, shelf);
-    }
-    // Produits sur etageres — petits points
-    final prod = Paint()..color = AppColors.emerald.withValues(alpha: 0.55);
-    for (var row = 0; row < 4; row++) {
-      for (var col = 0; col < 3; col++) {
-        final y =
-            size.height * (0.36 + row * 0.12) - size.height * 0.06 + col * 4;
-        final x = size.width * (0.22 + row * 0.03 + col * 0.08);
-        canvas.drawCircle(Offset(x, y), 2.2, prod);
-      }
-    }
-    // Murs
-    final wall = Paint()
-      ..color = Colors.white.withValues(alpha: 0.08)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
-    final wallPath = Path()
-      ..moveTo(size.width * 0.08, size.height * 0.30)
-      ..lineTo(size.width * 0.08, size.height * 0.18)
-      ..lineTo(size.width * 0.78, size.height * 0.04)
-      ..lineTo(size.width * 0.78, size.height * 0.10);
-    canvas.drawPath(wallPath, wall);
-    final counter = RRect.fromRectAndRadius(
-        Rect.fromLTWH(size.width * 0.42, size.height * 0.76, size.width * 0.16,
-            size.height * 0.10),
-        const Radius.circular(4));
-    canvas.drawRRect(counter,
-        Paint()..color = const Color(0xFF00C853).withValues(alpha: 0.65));
-    canvas.drawRRect(
-        counter,
-        Paint()
-          ..color = Colors.white.withValues(alpha: 0.35)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.2);
-    // Caisse — petit rectangle blanc
-    canvas.drawRRect(
+      rearWall,
+      Paint()..color = AppColors.pharmaSurface.withValues(alpha: 0.55),
+    );
+    final sideWall = Path()
+      ..moveTo(w * 0.08, h * 0.40)
+      ..lineTo(w * 0.08, h * 0.80)
+      ..lineTo(w * 0.30, h * 0.92)
+      ..lineTo(w * 0.30, h * 0.50)
+      ..close();
+    canvas.drawPath(
+      sideWall,
+      Paint()..color = AppColors.pharmaSurface.withValues(alpha: 0.42),
+    );
+
+    // ---- Rayonnages en bois sombre + produits colorés par catégorie ----
+    final rackWood = Paint()..color = const Color(0xFF3B2A18);
+    final rackEdge = Paint()..color = const Color(0xFF1E1006);
+    final prodColors = [
+      AppColors.pharmaGreenDark,
+      AppColors.pharmaGreen,
+      const Color(0xFF5B8FD9),
+      const Color(0xFFF59E0B),
+      const Color(0xFF9B5FC0),
+      const Color(0xFF2BD4C4),
+      const Color(0xFFE0557C),
+      AppColors.pharmaGold,
+    ];
+    for (var r = 0; r < 5; r++) {
+      final y = h * (0.33 + r * 0.11);
+      final left = w * (0.11 + r * 0.018);
+      final right = w * (0.78 + r * 0.018);
+      canvas.drawRRect(
         RRect.fromRectAndRadius(
-            Rect.fromLTWH(size.width * 0.46, size.height * 0.78,
-                size.width * 0.08, size.height * 0.05),
-            const Radius.circular(2)),
-        Paint()..color = Colors.white.withValues(alpha: 0.85));
+          Rect.fromLTWH(left, y, right - left, 16),
+          const Radius.circular(2),
+        ),
+        rackWood,
+      );
+      // Produits : bouteilles colorées (par catégorie)
+      const n = 9;
+      final step = (right - left) / n;
+      for (var p = 0; p < n; p++) {
+        final px = left + step * p + step / 2;
+        final color = prodColors[(r + p) % prodColors.length];
+        final bh = 6 + (p % 3) * 2.6;
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(px - 1.5, y - bh, 3, bh),
+            const Radius.circular(1.3),
+          ),
+          Paint()..color = color,
+        );
+      }
+      canvas.drawLine(
+        Offset(left, y + 16),
+        Offset(right, y + 16),
+        rackEdge,
+      );
+    }
+
+    // ---- Allée centrale plus claire ----
+    final aisle = Paint()..color = Colors.white.withValues(alpha: 0.028);
+    canvas.drawRect(
+      Rect.fromLTWH(w * 0.43, h * 0.22, w * 0.14, h * 0.78),
+      aisle,
+    );
+
+    // ---- Comptoir premium (bois sombre + liseré or) + caisse verte ----
+    final counter = RRect.fromRectAndRadius(
+      Rect.fromLTWH(w * 0.44, h * 0.78, w * 0.12, h * 0.11),
+      const Radius.circular(5),
+    );
+    canvas.drawRRect(counter, Paint()..color = const Color(0xFF2A1C12));
+    canvas.drawRRect(
+      counter,
+      Paint()
+        ..color = AppColors.goldBorderStrong
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6,
+    );
+    canvas.drawLine(
+      Offset(w * 0.44, h * 0.845),
+      Offset(w * 0.56, h * 0.845),
+      Paint()
+        ..color = AppColors.pharmaGold
+        ..strokeWidth = 1.2,
+    );
+    // Caisse / terminal vert
+    final cash = RRect.fromRectAndRadius(
+      Rect.fromLTWH(w * 0.475, h * 0.805, w * 0.05, h * 0.055),
+      const Radius.circular(3),
+    );
+    canvas.drawRRect(cash, Paint()..color = AppColors.emeraldDark);
+    canvas.drawRRect(
+      cash,
+      Paint()
+        ..color = AppColors.emerald.withValues(alpha: 0.7)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
+
+    // ---- Zone de stockage (angle arrière droite) ----
+    final storage = Path()
+      ..moveTo(w * 0.72, h * 0.28)
+      ..lineTo(w * 0.86, h * 0.26)
+      ..lineTo(w * 0.86, h * 0.80)
+      ..lineTo(w * 0.72, h * 0.78)
+      ..close();
+    canvas.drawPath(storage, Paint()..color = const Color(0xFF1E141C));
+
+    // ---- Glints d'isométrie subtils ----
+    final glint = Paint()..color = Colors.white.withValues(alpha: 0.18);
+    canvas.drawLine(Offset(w * 0.12, h * 0.34), Offset(w * 0.28, h * 0.34), glint);
+    canvas.drawLine(
+        Offset(w * 0.60, h * 0.30), Offset(w * 0.78, h * 0.28), glint);
   }
 
   @override
