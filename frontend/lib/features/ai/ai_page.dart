@@ -258,7 +258,7 @@ class _AiPageState extends State<AiPage> {
   Color _priorityColor(String? priority) {
     switch (priority) {
       case 'rupture':
-        return Colors.red.shade400;
+        return AppColors.alertRed;
       case 'critique':
         return AppColors.warning;
       case 'haute':
@@ -409,7 +409,7 @@ class _AiPageState extends State<AiPage> {
                     ? null
                     : '${change is num && change >= 0 ? '+' : ''}$change % ${S.t('vsPrevPeriod', locale)}',
                 subtitleColor: change is num && change < 0
-                    ? Colors.red.shade300
+                    ? AppColors.alertRed
                     : AppColors.emerald,
               ),
             ),
