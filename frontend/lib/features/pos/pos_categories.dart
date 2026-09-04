@@ -53,7 +53,7 @@ class PosCategoriesGrid extends StatelessWidget {
     PosCategory(
       id: 'respiratoire',
       label: 'Respiratoire',
-      icon: Icons.lungs_outlined,
+      icon: Icons.air,
       color: AppColors.chart,
     ),
     PosCategory(

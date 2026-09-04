@@ -318,11 +318,15 @@ class _PosPageState extends State<PosPage> {
               child: PosCategoriesGrid(
                 onSelected: (cat) {
                   setState(() {
+                    final q = cat.id.toLowerCase();
                     _results = _results
                         .where((m) =>
-                            (m.category?.toLowerCase() ==
-                                cat.id.toLowerCase()) ||
-                            cat.id == 'autres')
+                            cat.id == 'autres' ||
+                            (m.categoryName
+                                    ?.toLowerCase()
+                                    .contains(q) ??
+                                false) ||
+                            (m.categoryId?.toLowerCase() == q))
                         .toList();
                   });
                 },
