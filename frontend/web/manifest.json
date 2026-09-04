@@ -3,10 +3,10 @@
     "short_name": "PHARMA+",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0B1210",
-    "theme_color": "#1B5E20",
+    "background_color": "#03100D",
+    "theme_color": "#03100D",
     "description": "PHARMA+ — Suite de gestion de pharmacie (caisse, stock, ordonnances, parapharmacie, IA).",
-    "orientation": "portrait-primary",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {
