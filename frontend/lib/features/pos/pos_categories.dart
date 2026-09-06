@@ -1,4 +1,4 @@
-import '../../core/models/medication.dart';
+/// Catégories du point de vente (référencées par pos_page.dart).
 import '../../core/theme/colors.dart';
 import 'package:flutter/material.dart';
 

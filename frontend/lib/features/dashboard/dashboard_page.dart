@@ -6,11 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/models/product.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/pharma_logo.dart';
+import '../../core/widgets/product_art.dart';
 import '../accounting/accounting_page.dart';
 import '../ai/ai_page.dart';
 import '../attendance/attendance_page.dart';
@@ -224,6 +226,11 @@ class _DashboardPageState extends State<DashboardPage> {
       backgroundColor: AppColors.backgroundDark,
       body: LayoutBuilder(builder: (context, constraints) {
         final posWidth = constraints.maxWidth >= 1500 ? 430.0 : 385.0;
+        // Écrans bas (1366×768, 1536×864...) : proportions compactes pour
+        // que TOUT le dashboard (KPI, alertes, plan 3D, barre basse) reste
+        // entièrement visible, sans carte ni cellule coupée.
+        final vh = MediaQuery.of(context).size.height;
+        final compact = vh < 900;
         return Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           SizedBox(
               width: 232,
@@ -243,12 +250,12 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+                  padding: EdgeInsets.fromLTRB(14, compact ? 10 : 14, 14, compact ? 8 : 10),
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _buildKpiGrid(),
-                        const SizedBox(height: 12),
+                        _buildKpiGrid(compact: compact),
+                        SizedBox(height: compact ? 10 : 12),
                         Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -259,23 +266,26 @@ class _DashboardPageState extends State<DashboardPage> {
                                   expiring: _expiring,
                                   onViewAll: () => _push(
                                       const StockPage(initialFilter: 'low')),
+                                  compact: compact,
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              SizedBox(width: compact ? 10 : 12),
                               Expanded(
                                 flex: 7,
                                 child: _Plan3DPanel(
                                     onOpen: () =>
-                                        _push(const PharmacyPlanPage())),
+                                        _push(const PharmacyPlanPage()),
+                                    compact: compact),
                               ),
                             ]),
-                        const SizedBox(height: 12),
+                        SizedBox(height: compact ? 10 : 12),
                         _BottomBar(
                           revenueToday: _revenueToday,
                           revenueMonth: _revenueMonth,
                           profitMonth: _profitMonth,
                           expiring: _expiring,
                           lowStock: _lowStock,
+                          compact: compact,
                         ),
                       ]),
                 ),
@@ -291,7 +301,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildKpiGrid() {
+  Widget _buildKpiGrid({required bool compact}) {
     const green = Color(0xFF43D97C);
     const amber = Color(0xFFFFA24A);
     final kpis = <_KpiDef>[
@@ -370,9 +380,9 @@ class _DashboardPageState extends State<DashboardPage> {
       crossAxisCount: 4,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 1.45,
+      crossAxisSpacing: compact ? 10 : 12,
+      mainAxisSpacing: compact ? 10 : 12,
+      childAspectRatio: compact ? 1.60 : 1.45,
       children: [
         for (var i = 0; i < kpis.length; i++)
           _KpiCard(
@@ -449,77 +459,117 @@ class _KpiCard extends StatelessWidget {
                   offset: const Offset(0, 5)),
             ],
           ),
-          child: Stack(children: [
-            // Illustration 3D grande, ancrée bas-droite (maquette).
-            Positioned(
-              right: 0,
-              bottom: 0,
-              child: SizedBox(
-                width: 118,
-                height: 86,
-                child: CustomPaint(painter: KpiArtPainter(def.art)),
-              ),
-            ),
-            // Badge d'option : chaque image a son icône (maquette).
-            Positioned(
-              right: 0,
-              top: 0,
-              child: Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0B1D13),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF2A4A38)),
+          // Layout responsive : le titre et la valeur ne peuvent JAMAIS
+          // être coupés (FittedBox sur une seule ligne) ; l'illustration
+          // 3D garde le coin bas-droit sans empiéter sur les textes.
+          child: LayoutBuilder(builder: (context, box) {
+            final w = box.maxWidth;
+            final h = box.maxHeight;
+            final artW = (w * 0.50).clamp(56.0, 86.0);
+            final artH = (h * 0.50).clamp(38.0, 58.0);
+            return Stack(children: [
+              // Illustration 3D ancrée bas-droite (maquette).
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: SizedBox(
+                  width: artW,
+                  height: artH,
+                  child: CustomPaint(painter: KpiArtPainter(def.art)),
                 ),
-                child: Icon(def.badge, size: 17, color: def.badgeColor),
               ),
-            ),
-            // Textes à gauche : titre vert numéroté + valeur + tendance.
-            Positioned.fill(
-              right: 106,
-              child: Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('$index. ${def.label}',
-                      style: const TextStyle(
-                          color: _titleGreen,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.8)),
-                  const SizedBox(height: 6),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(def.value,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900)),
+                  // Titre vert numéroté — une seule ligne, jamais coupé.
+                  Row(children: [
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text('$index. ${def.label}',
+                            maxLines: 1,
+                            style: const TextStyle(
+                                color: _titleGreen,
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.8)),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    // Badge d'option : chaque image a son icône (maquette).
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0B1D13),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFF2A4A38)),
+                      ),
+                      child: Icon(def.badge, size: 14, color: def.badgeColor),
+                    ),
+                  ]),
+                  const Spacer(),
+                  // Valeur + sous-titre + tendance, à gauche de l'image 3D.
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(children: [
+                              Expanded(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(def.value,
+                                      maxLines: 1,
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w900)),
+                                ),
+                              ),
+                            ]),
+                            if (def.sub.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(def.sub,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      color:
+                                          Colors.white.withValues(alpha: 0.55),
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w600)),
+                            ],
+                            const SizedBox(height: 4),
+                            Text(def.trendPct,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    color: _titleGreen,
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w800)),
+                            Text(def.trendVs,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.60),
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
+                      // Réserve l'espace de l'illustration (coin bas-droit).
+                      SizedBox(width: artW * 0.42),
+                    ],
                   ),
-                  if (def.sub.isNotEmpty) ...[
-                    const SizedBox(height: 3),
-                    Text(def.sub,
-                        style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.55),
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w600)),
-                  ],
-                  const SizedBox(height: 5),
-                  Text(def.trendPct,
-                      style: const TextStyle(
-                          color: _titleGreen,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800)),
-                  Text(def.trendVs,
-                      style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.60),
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w600)),
                 ],
               ),
-            ),
-          ]),
+            ]);
+          }),
         ),
       ),
     );
@@ -1209,10 +1259,12 @@ class _AlertsStockPanel extends StatelessWidget {
   final int lowStock;
   final int expiring;
   final VoidCallback onViewAll;
+  final bool compact;
   const _AlertsStockPanel(
       {required this.lowStock,
       required this.expiring,
-      required this.onViewAll});
+      required this.onViewAll,
+      this.compact = false});
 
   @override
   Widget build(BuildContext context) {
@@ -1236,13 +1288,15 @@ class _AlertsStockPanel extends StatelessWidget {
               name: rows[i].$1,
               detail: rows[i].$2,
               color: rows[i].$3,
-              icon: rows[i].$4),
-          if (i < rows.length - 1) const SizedBox(height: 7),
+              icon: rows[i].$4,
+              compact: compact),
+          if (i < rows.length - 1)
+            SizedBox(height: compact ? 5 : 7),
         ],
-        const SizedBox(height: 12),
+        SizedBox(height: compact ? 9 : 12),
         SizedBox(
           width: double.infinity,
-          height: 36,
+          height: compact ? 30 : 36,
           child: OutlinedButton(
             onPressed: onViewAll,
             style: OutlinedButton.styleFrom(
@@ -1267,15 +1321,18 @@ class _AlertRow extends StatelessWidget {
   final String detail;
   final Color color;
   final IconData icon;
+  final bool compact;
   const _AlertRow(
       {required this.name,
       required this.detail,
       required this.color,
-      required this.icon});
+      required this.icon,
+      this.compact = false});
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+      padding: EdgeInsets.symmetric(
+          horizontal: 11, vertical: compact ? 6 : 9),
       decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.035),
           borderRadius: BorderRadius.circular(10),
@@ -1315,7 +1372,8 @@ class _AlertRow extends StatelessWidget {
 /// ============================================================
 class _Plan3DPanel extends StatelessWidget {
   final VoidCallback onOpen;
-  const _Plan3DPanel({required this.onOpen});
+  final bool compact;
+  const _Plan3DPanel({required this.onOpen, this.compact = false});
   static const _legend = <(String, String)>[
     ('M', 'Médicaments'),
     ('O', 'Ordonnances'),
@@ -1330,7 +1388,9 @@ class _Plan3DPanel extends StatelessWidget {
       iconColor: AppColors.emerald,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         SizedBox(
-          height: 258,
+          // Hauteur adaptative : écrans bas => scène réduite mais complète
+          // (le bas du dashboard reste entièrement visible, rien n'est masqué).
+          height: compact ? 152.0 : 236.0,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: Container(
@@ -1738,12 +1798,14 @@ class _BottomBar extends StatelessWidget {
   final double profitMonth;
   final int expiring;
   final int lowStock;
+  final bool compact;
   const _BottomBar({
     required this.revenueToday,
     required this.revenueMonth,
     required this.profitMonth,
     required this.expiring,
     required this.lowStock,
+    this.compact = false,
   });
 
   @override
@@ -1755,21 +1817,24 @@ class _BottomBar extends StatelessWidget {
               label: "VENTES AUJOURD'HUI",
               value: Fmt.money(revenueToday),
               trend: '+12,5%',
-              curve: true)),
+              curve: true,
+              compact: compact)),
       const SizedBox(width: 8),
       Expanded(
           child: _BottomStat(
               label: 'VENTES MOIS',
               value: Fmt.money(revenueMonth),
               trend: '+8,3%',
-              curve: true)),
+              curve: true,
+              compact: compact)),
       const SizedBox(width: 8),
       Expanded(
           child: _BottomStat(
               label: 'BÉNÉFICE MOIS',
               value: Fmt.money(profitMonth),
               trend: '+8,3%',
-              curve: true)),
+              curve: true,
+              compact: compact)),
       const SizedBox(width: 8),
       Expanded(
           child: _BottomStat(
@@ -1778,7 +1843,8 @@ class _BottomBar extends StatelessWidget {
               subtitle: 'Produits',
               valueColor: const Color(0xFFF0A73B),
               icon: Icons.warning_amber_rounded,
-              iconColor: const Color(0xFFF0A73B))),
+              iconColor: const Color(0xFFF0A73B),
+              compact: compact)),
       const SizedBox(width: 8),
       Expanded(
           child: _BottomStat(
@@ -1786,7 +1852,8 @@ class _BottomBar extends StatelessWidget {
               value: '$lowStock',
               subtitle: 'Produits',
               icon: Icons.warning_amber_rounded,
-              iconColor: gold)),
+              iconColor: gold,
+              compact: compact)),
     ]);
   }
 }
@@ -1800,6 +1867,7 @@ class _BottomStat extends StatelessWidget {
   final bool curve;
   final IconData? icon;
   final Color? iconColor;
+  final bool compact;
   const _BottomStat({
     required this.label,
     required this.value,
@@ -1809,11 +1877,12 @@ class _BottomStat extends StatelessWidget {
     this.curve = false,
     this.icon,
     this.iconColor,
+    this.compact = false,
   });
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 64,
+      height: compact ? 52 : 64,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.035),
@@ -1907,36 +1976,90 @@ class _MiniCurvePainter extends CustomPainter {
 /// POINT DE VENTE (colonne droite, maquette) :
 /// 8 catégories illustrées · table produits · total · actions.
 /// ============================================================
-enum _CatKind { capsuleGreen, capsuleRed, heart, glucometer, vitamins, lungs, stomach, dots }
+/// 8 catégories POS (maquette) — chacune avec SA miniature 3D peinte.
+enum _CatKind { all, meds, vitamins, care, baby, firstAid, beauty, accessories }
 
 class _PosPanel extends StatelessWidget {
   final VoidCallback onCheckout;
   const _PosPanel({required this.onCheckout});
 
   static const _cats = <(String, _CatKind)>[
-    ('Antalgiques', _CatKind.capsuleGreen),
-    ('Antibiotiques', _CatKind.capsuleRed),
-    ('Cardiologie', _CatKind.heart),
-    ('Diabète', _CatKind.glucometer),
-    ('Vitamines', _CatKind.vitamins),
-    ('Respiratoire', _CatKind.lungs),
-    ('Digestif', _CatKind.stomach),
-    ('Autres', _CatKind.dots),
+    ('TOUT', _CatKind.all),
+    ('MÉDICAMENTS', _CatKind.meds),
+    ('VITAMINES', _CatKind.vitamins),
+    ('SANTÉ & SOINS', _CatKind.care),
+    ('BÉBÉ & MAMAN', _CatKind.baby),
+    ('PREMIERS SECOURS', _CatKind.firstAid),
+    ('BEAUTÉ', _CatKind.beauty),
+    ('ACCESSOIRES', _CatKind.accessories),
   ];
-  static const _products = <(String, String, int, double, Color)>[
-    ('Doliprane 1g', 'Paracétamol', 2, 18.0, Color(0xFF2FB563)),
-    ('Amoxicilline 500mg', 'Sandoz', 1, 15.0, Color(0xFF5B8FD9)),
-    ('Vitamine C 1g', 'Effervescent', 1, 25.0, Color(0xFFF0B429)),
-    ('Bisolvon Sirop', 'Toux sèche', 1, 32.0, Color(0xFFE0557C)),
-    ('Lactulose 10g/15ml', 'Sirop', 1, 20.0, Color(0xFF9B5FC0)),
+  /// Panier de démonstration — chaque produit possède sa propre
+  /// illustration (champ `image` si un visuel réel existe, sinon
+  /// miniature 3D peinte [ProductArt] en fallback propre).
+  static const _products = <Product>[
+    Product(
+        id: 'doliprane-1g',
+        name: 'Doliprane 1g',
+        subtitle: 'Paracétamol · Comprimé',
+        category: 'MÉDICAMENTS',
+        price: 18.00,
+        stock: 124,
+        qty: 2,
+        tint: Color(0xFF2FB563),
+        art: ProductArt.doliprane),
+    Product(
+        id: 'bio-3',
+        name: 'Bio 3',
+        subtitle: 'Complément alimentaire',
+        category: 'SANTÉ & SOINS',
+        price: 45.00,
+        stock: 32,
+        tint: Color(0xFF9B5FC0),
+        art: ProductArt.bio3),
+    Product(
+        id: 'eau-thermale',
+        name: 'Eau Thermale',
+        subtitle: 'Spray apaisant · 300ml',
+        category: 'SANTÉ & SOINS',
+        price: 39.00,
+        stock: 58,
+        tint: Color(0xFF5B8FD9),
+        art: ProductArt.eauThermale),
+    Product(
+        id: 'vitamine-c-1000',
+        name: 'Vitamine C 1000',
+        subtitle: 'Effervescent',
+        category: 'VITAMINES',
+        price: 25.00,
+        stock: 76,
+        tint: Color(0xFFF0B429),
+        art: ProductArt.vitamineC),
+    Product(
+        id: 'paracetamol-500',
+        name: 'Paracétamol 500mg',
+        subtitle: 'Antalgique · Boîte de 16',
+        category: 'MÉDICAMENTS',
+        price: 12.00,
+        stock: 210,
+        tint: Color(0xFF2FB563),
+        art: ProductArt.paracetamol),
+    Product(
+        id: 'mucosolvan',
+        name: 'Mucosolvan',
+        subtitle: 'Sirop expectorant · 100ml',
+        category: 'MÉDICAMENTS',
+        price: 32.00,
+        stock: 19,
+        tint: Color(0xFFE0557C),
+        art: ProductArt.mucosolvan),
   ];
 
   static String _m2(double v) => v.toStringAsFixed(2).replaceAll('.', ',');
 
   @override
   Widget build(BuildContext context) {
-    final totalQty = _products.fold<int>(0, (sum, p) => sum + p.$3);
-    final total = _products.fold<double>(0, (sum, p) => sum + p.$3 * p.$4);
+    final totalQty = _products.fold<int>(0, (sum, p) => sum + p.qty);
+    final total = _products.fold<double>(0, (sum, p) => sum + p.qty * p.price);
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -2021,8 +2144,7 @@ class _PosPanel extends StatelessWidget {
             separatorBuilder: (_, __) => const SizedBox(height: 6),
             itemBuilder: (context, i) {
               final p = _products[i];
-              return _ProductRow(
-                  name: p.$1, labo: p.$2, qty: p.$3, price: p.$4, tint: p.$5);
+              return _ProductRow(product: p);
             },
           ),
         ),
@@ -2112,22 +2234,15 @@ class _HeaderCell extends StatelessWidget {
           fontWeight: FontWeight.w600));
 }
 
-/// Ligne produit maquette : pack coloré · qté (−/+) · prix · total · corbeille.
+/// Ligne produit maquette : image 3D du produit · qté (−/+) · prix ·
+/// total · corbeille. L'image vient de `Product.image` (asset/URL)
+/// avec fallback automatique sur la miniature 3D peinte.
 class _ProductRow extends StatelessWidget {
-  final String name;
-  final String labo;
-  final int qty;
-  final double price;
-  final Color tint;
-  const _ProductRow({
-    required this.name,
-    required this.labo,
-    required this.qty,
-    required this.price,
-    required this.tint,
-  });
+  final Product product;
+  const _ProductRow({required this.product});
   @override
   Widget build(BuildContext context) {
+    final p = product;
     return Container(
       padding: const EdgeInsets.all(7),
       decoration: BoxDecoration(
@@ -2135,28 +2250,28 @@ class _ProductRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(9),
           border: Border.all(color: Colors.white.withValues(alpha: 0.06))),
       child: Row(children: [
-        Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-                color: tint.withValues(alpha: 0.16),
-                borderRadius: BorderRadius.circular(7),
-                border: Border.all(color: tint.withValues(alpha: 0.35))),
-            child: Icon(Icons.medication_rounded, size: 15, color: tint)),
+        ProductThumb(
+            art: p.art,
+            image: p.image,
+            tint: p.tint,
+            size: 26,
+            semanticLabel: 'Illustration ${p.name}'),
         const SizedBox(width: 8),
         Expanded(
             flex: 4,
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name,
+                  Text(p.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                           color: Colors.white,
                           fontSize: 11.5,
                           fontWeight: FontWeight.w700)),
-                  Text(labo,
+                  Text(p.subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                           color: AppColors.textTertiary, fontSize: 9.5)),
                 ])),
@@ -2166,7 +2281,7 @@ class _ProductRow extends StatelessWidget {
               const _QtyBtn(icon: Icons.remove, color: AppColors.danger),
               Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 5),
-                  child: Text('$qty',
+                  child: Text('${p.qty}',
                       style: const TextStyle(
                           color: Colors.white,
                           fontSize: 12.5,
@@ -2175,13 +2290,13 @@ class _ProductRow extends StatelessWidget {
             ])),
         Expanded(
             flex: 2,
-            child: Text(_PosPanel._m2(price),
+            child: Text(_PosPanel._m2(p.price),
                 textAlign: TextAlign.right,
                 style: const TextStyle(
                     color: AppColors.textSecondary, fontSize: 10.5))),
         Expanded(
             flex: 2,
-            child: Text(_PosPanel._m2(price * qty),
+            child: Text(_PosPanel._m2(p.price * p.qty),
                 textAlign: TextAlign.right,
                 style: const TextStyle(
                     color: Colors.white,
@@ -2281,26 +2396,32 @@ class _CatCell extends StatelessWidget {
       decoration: BoxDecoration(
           color: const Color(0xFF0C241A),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
-      padding: const EdgeInsets.symmetric(vertical: 6),
+          border: Border.all(
+              color: Colors.white.withValues(alpha: 0.10))),
+      padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 3),
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        // Miniature 3D de la catégorie (image propre à chaque option).
         SizedBox(
-            width: 30,
-            height: 26,
+            width: 36,
+            height: 30,
             child: CustomPaint(painter: _CatGlyphPainter(kind))),
         const SizedBox(height: 4),
         Text(name,
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
             style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.92), fontSize: 9.3)),
+                color: Colors.white.withValues(alpha: 0.92),
+                fontSize: 8.8,
+                fontWeight: FontWeight.w700,
+                height: 1.05)),
       ]),
     );
   }
 }
 
-/// Pictos de catégories dessinés (maquette : gélules, cœur, lecteur...).
+/// Miniatures 3D des catégories POS — chaque option a son image :
+///Tout, médicaments, vitamines, santé, bébé, secours, beauté, accessoires.
 class _CatGlyphPainter extends CustomPainter {
   final _CatKind kind;
   const _CatGlyphPainter(this.kind);
@@ -2336,82 +2457,149 @@ class _CatGlyphPainter extends CustomPainter {
     }
 
     switch (kind) {
-      case _CatKind.capsuleGreen:
-        capsule(15, 13, const Color(0xFF2FB563));
-      case _CatKind.capsuleRed:
-        capsule(15, 13, const Color(0xFFE0557C));
-      case _CatKind.heart:
-        final heart = Path()
-          ..moveTo(P(15, 22).dx, P(15, 22).dy)
-          ..cubicTo(P(4, 14).dx, P(4, 14).dy, P(6, 4).dx, P(6, 4).dy,
-              P(10, 3).dx, P(10, 3).dy)
-          ..cubicTo(P(10, 3).dx, P(10, 3).dy, P(15, 8).dx, P(15, 8).dy,
-              P(20, 3).dx, P(20, 3).dy)
-          ..cubicTo(P(20, 3).dx, P(20, 3).dy, P(24, 3).dx, P(24, 3).dy,
-              P(26, 4).dx, P(26, 4).dy)
-          ..cubicTo(P(26, 4).dx, P(26, 4).dy, P(26, 14).dx, P(26, 14).dy,
-              P(15, 22).dx, P(15, 22).dy)
+      // ---- TOUT : mosaïque de gélules et pastilles ----
+      case _CatKind.all:
+        capsule(10.5, 8, const Color(0xFF2FB563));
+        capsule(20, 18, const Color(0xFFF0B429));
+        canvas.drawCircle(P(24.5, 6), 2.3 * ux,
+            Paint()..color = const Color(0xFF5B8FD9));
+        canvas.drawCircle(P(6, 20), 2.3 * ux,
+            Paint()..color = const Color(0xFFE0557C));
+
+      // ---- MÉDICAMENTS : boîte verte à croix + gélule ----
+      case _CatKind.meds:
+        canvas.drawRRect(
+            RR(4, 4, 17, 17, 2),
+            Paint()
+              ..shader = ui.Gradient.linear(P(4, 4), P(21, 21),
+                  [const Color(0xFF35C97A), const Color(0xFF0E8C4F)]));
+        canvas.drawRRect(
+            RR(10.2, 8.2, 4.6, 8.6, 1), Paint()..color = Colors.white);
+        canvas.drawRRect(
+            RR(8.2, 10.2, 8.6, 4.6, 1), Paint()..color = Colors.white);
+        capsule(23.5, 20, const Color(0xFFF0B429));
+
+      // ---- VITAMINES : orange + feuille + gélule dorée ----
+      case _CatKind.vitamins:
+        canvas.drawCircle(
+            P(12, 15),
+            8 * ux,
+            Paint()
+              ..shader = ui.Gradient.linear(P(5, 8), P(19, 22),
+                  [const Color(0xFFFFB84D), const Color(0xFFE8821C)]));
+        canvas.drawCircle(P(9.5, 12.5), 2.4 * ux,
+            Paint()..color = Colors.white.withValues(alpha: 0.45));
+        final leaf = Path()
+          ..moveTo(P(12, 6).dx, P(12, 6).dy)
+          ..quadraticBezierTo(
+              P(17, 2).dx, P(17, 4).dy, P(15.5, 7.5).dx, P(15.5, 7.5).dy)
+          ..quadraticBezierTo(
+              P(12.5, 8.5).dx, P(13, 8).dy, P(12, 6).dx, P(12, 6).dy)
           ..close();
-        canvas.drawPath(heart, Paint()..color = const Color(0xFFE23B4E));
+        canvas.drawPath(leaf, Paint()..color = const Color(0xFF2FB563));
+        capsule(23, 20, const Color(0xFFF0B429));
+      // ---- SANTÉ & SOINS : cœur + badge croix verte ----
+      case _CatKind.care:
+        final heart = Path()
+          ..moveTo(P(13, 21).dx, P(13, 21).dy)
+          ..cubicTo(P(3, 14).dx, P(3, 14).dy, P(5, 4).dx, P(5, 4).dy,
+              P(9, 3.5).dx, P(9, 3.5).dy)
+          ..cubicTo(P(9, 3.5).dx, P(9, 3.5).dy, P(13, 8).dx, P(13, 8).dy,
+              P(17, 3.5).dx, P(17, 3.5).dy)
+          ..cubicTo(P(17, 3.5).dx, P(17, 3.5).dy, P(23, 4).dx, P(23, 4).dy,
+              P(21, 14).dx, P(21, 14).dy)
+          ..cubicTo(P(21, 14).dx, P(21, 14).dy, P(20, 18).dx, P(20, 18).dy,
+              P(13, 21).dx, P(13, 21).dy)
+          ..close();
+        canvas.drawPath(
+            heart,
+            Paint()
+              ..shader = ui.Gradient.linear(P(5, 4), P(21, 21),
+                  [const Color(0xFFFF6B7E), const Color(0xFFD92B3F)]));
         canvas.drawCircle(P(10, 9), 2 * ux,
             Paint()..color = Colors.white.withValues(alpha: 0.45));
-      case _CatKind.glucometer:
+        canvas.drawCircle(P(22, 19), 4.4 * ux,
+            Paint()..color = const Color(0xFF0E8C4F));
         canvas.drawRRect(
-            RR(8, 2, 14, 22, 4), Paint()..color = const Color(0xFF5B8FD9));
+            RR(20.9, 16.4, 2.2, 5.2, 0.8), Paint()..color = Colors.white);
         canvas.drawRRect(
-            RR(10.5, 5, 9, 7, 1.5), Paint()..color = const Color(0xFFDFF1FF));
-        canvas.drawRRect(RR(11, 14.5, 8, 2.2, 1),
-            Paint()..color = const Color(0xFF2E4A66));
-        canvas.drawRRect(RR(11, 18, 8, 2.2, 1),
-            Paint()..color = const Color(0xFF2E4A66));
-      case _CatKind.vitamins:
-        canvas.drawRRect(RR(10, 3, 10, 5, 1.5),
-            Paint()..color = const Color(0xFFC98A1B));
+            RR(19.4, 17.9, 5.2, 2.2, 0.8), Paint()..color = Colors.white);
+
+      // ---- BÉBÉ & MAMAN : biberon gradué ----
+      case _CatKind.baby:
+        canvas.drawRRect(RR(12, 2.5, 6, 4.5, 2),
+            Paint()..color = const Color(0xFFE9C873));
+        canvas.drawRRect(RR(11, 6.5, 8, 2, 1),
+            Paint()..color = const Color(0xFF9CC4F5));
         canvas.drawRRect(
-            RR(8, 8, 14, 15, 3), Paint()..color = const Color(0xFFF0B429));
-        canvas.drawRRect(RR(8, 12, 14, 6, 1),
-            Paint()..color = const Color(0xFFFDF4E0));
-        canvas.drawCircle(
-            P(15, 15), 2 * ux, Paint()..color = const Color(0xFFC98A1B));
-      case _CatKind.lungs:
-        canvas.drawRRect(RR(13.4, 2, 3.2, 8, 1.5),
-            Paint()..color = const Color(0xFFE8B4B4));
-        final left = Path()
-          ..moveTo(P(13, 10).dx, P(13, 10).dy)
-          ..cubicTo(P(4, 12).dx, P(4, 12).dy, P(4, 22).dx, P(4, 22).dy,
-              P(6, 24).dx, P(6, 24).dy)
-          ..quadraticBezierTo(
-              P(6, 24).dx, P(6, 24).dy, P(13, 23).dx, P(13, 23).dy)
-          ..close();
-        final right = Path()
-          ..moveTo(P(17, 10).dx, P(17, 10).dy)
-          ..cubicTo(P(26, 12).dx, P(26, 12).dy, P(26, 22).dx, P(26, 22).dy,
-              P(24, 24).dx, P(24, 24).dy)
-          ..quadraticBezierTo(
-              P(24, 24).dx, P(24, 24).dy, P(17, 23).dx, P(17, 23).dy)
-          ..close();
-        canvas.drawPath(left, Paint()..color = const Color(0xFFE88C9C));
-        canvas.drawPath(right, Paint()..color = const Color(0xFFE88C9C));
-      case _CatKind.stomach:
-        final stomach = Path()
-          ..moveTo(P(9, 3).dx, P(9, 3).dy)
-          ..cubicTo(P(9, 10).dx, P(9, 10).dy, P(12, 12).dx, P(17, 12).dy,
-              P(24, 12).dx, P(24, 12).dy)
-          ..cubicTo(P(24, 12).dx, P(24, 12).dy, P(25, 18).dx, P(22, 22).dy,
-              P(19, 25).dx, P(19, 25).dy)
-          ..cubicTo(P(19, 25).dx, P(19, 25).dy, P(11, 24).dx, P(9, 20).dy,
-              P(12, 20).dx, P(12, 20).dy)
-          ..cubicTo(P(12, 20).dx, P(12, 20).dy, P(16, 19).dx, P(16, 15).dy,
-              P(11, 13).dx, P(11, 13).dy)
-          ..cubicTo(P(11, 13).dx, P(11, 13).dy, P(6, 10).dx, P(9, 3).dy,
-              P(9, 3).dx, P(9, 3).dy)
-          ..close();
-        canvas.drawPath(stomach, Paint()..color = const Color(0xFFF08A4B));
-      case _CatKind.dots:
-        for (final x in const [8.0, 15.0, 22.0]) {
-          canvas.drawCircle(P(x, 13), 2.6 * ux,
-              Paint()..color = Colors.white.withValues(alpha: 0.85));
-        }
+            RR(8.5, 8.5, 13, 15, 4),
+            Paint()
+              ..shader = ui.Gradient.linear(P(8.5, 8.5), P(21.5, 23.5),
+                  [const Color(0xFFCFE4FA), const Color(0xFF9CC4F5)]));
+        canvas.drawRRect(RR(8.5, 12, 13, 2.4, 1),
+            Paint()..color = const Color(0xFFEAF2FC));
+        canvas.drawRRect(RR(8.5, 17.2, 13, 2.4, 1),
+            Paint()..color = const Color(0xFFEAF2FC));
+        canvas.drawRRect(RR(9.3, 9.3, 2.6, 13, 1.6),
+            Paint()..color = Colors.white.withValues(alpha: 0.5));
+
+      // ---- PREMIERS SECOURS : mallette blanche croix rouge ----
+      case _CatKind.firstAid:
+        canvas.drawRRect(RR(11, 4.5, 8, 4.5, 1.5),
+            Paint()..color = const Color(0xFFD8E4DD));
+        canvas.drawRRect(
+            RR(3.5, 7.5, 23, 15, 3),
+            Paint()
+              ..shader = ui.Gradient.linear(P(3.5, 7.5), P(26.5, 22.5),
+                  [const Color(0xFFFDFEFE), const Color(0xFFDCE6E0)]));
+        canvas.drawRRect(RR(3.5, 7.5, 23, 3, 1.5),
+            Paint()..color = const Color(0xFFC9D6CF));
+        canvas.drawRRect(RR(13.5, 10.5, 3.2, 9, 1),
+            Paint()..color = const Color(0xFFE23B4E));
+        canvas.drawRRect(RR(10.6, 13.4, 9, 3.2, 1),
+            Paint()..color = const Color(0xFFE23B4E));
+
+      // ---- BEAUTÉ : pot de crème + touche verte ----
+      case _CatKind.beauty:
+        canvas.drawRRect(RR(9, 3.5, 12, 5, 2),
+            Paint()..color = const Color(0xFFE88CA4));
+        canvas.drawRRect(
+            RR(7.5, 8.5, 15, 13.5, 3),
+            Paint()
+              ..shader = ui.Gradient.linear(P(7.5, 8.5), P(22.5, 22),
+                  [const Color(0xFFFDF0F4), const Color(0xFFF2C9D6)]));
+        canvas.drawRRect(RR(9.3, 10.5, 4, 9.5, 1.6),
+            Paint()..color = Colors.white.withValues(alpha: 0.5));
+        canvas.drawRRect(RR(11, 14, 8, 4.5, 1),
+            Paint()..color = const Color(0xFFC2557A));
+        canvas.drawCircle(P(24.5, 6.5), 2.1 * ux,
+            Paint()..color = const Color(0xFF2FB563));
+
+      // ---- ACCESSOIRES : stéthoscope + compte-gouttes ----
+      case _CatKind.accessories:
+        final tube = Path()
+          ..moveTo(P(10, 3).dx, P(10, 3).dy)
+          ..lineTo(P(10, 12.5).dx, P(10, 12.5).dy)
+          ..quadraticBezierTo(P(10, 17.5).dx, P(10, 17.5).dy, P(14.5, 17.5).dx,
+              P(14.5, 17.5).dy)
+          ..quadraticBezierTo(P(19, 17.5).dx, P(19, 17.5).dy, P(19, 12.5).dx,
+              P(19, 12.5).dy)
+          ..lineTo(P(19, 3).dx, P(19, 3).dy);
+        canvas.drawPath(
+            tube,
+            Paint()
+              ..color = const Color(0xFFB9C6BF)
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 2.2
+              ..strokeCap = StrokeCap.round);
+        canvas.drawCircle(P(14.5, 21.5), 3 * ux,
+            Paint()..color = const Color(0xFF5B8FD9));
+        canvas.drawCircle(P(14.5, 21.5), 1.2 * ux,
+            Paint()..color = Colors.white.withValues(alpha: 0.6));
+        canvas.drawRRect(RR(24, 6, 3, 10, 1.2),
+            Paint()..color = const Color(0xFF2FB563));
+        canvas.drawCircle(P(25.5, 18), 1.3 * ux,
+            Paint()..color = const Color(0xFF9CC4F5));
     }
   }
 
