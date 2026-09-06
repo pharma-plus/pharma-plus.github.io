@@ -23,6 +23,7 @@ import '../reports/reports_page.dart';
 import '../settings/settings_page.dart';
 import '../stock/stock_page.dart';
 import '../suppliers/suppliers_page.dart';
+import 'kpi_art.dart';
 
 /// ============================================================
 /// DASHBOARD PHARMA+ — reconstruction IDENTIQUE à la maquette :
@@ -266,18 +267,18 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildKpiGrid() {
-    final kpis = <(String, String, String, _KpiArt, bool)>[
+    final kpis = <(String, String, String, KpiArt, bool)>[
       ('VENTES DU JOUR', Fmt.money(_revenueToday), '+12,5% vs hier',
-          _KpiArt.register, true),
-      ('MÉDICAMENTS', Fmt.number(_medications), 'Références', _KpiArt.bottle,
+          KpiArt.register, true),
+      ('MÉDICAMENTS', Fmt.number(_medications), 'Références', KpiArt.bottle,
           false),
-      ('STOCK FAIBLE', '$_lowStock', 'Produits', _KpiArt.boxes, false),
-      ('COMMANDES', '$_pendingOrders', 'En attente', _KpiArt.clipboard, false),
-      ('FOURNISSEURS', Fmt.number(_suppliers), 'Actifs', _KpiArt.truck, false),
-      ('CLIENTS', Fmt.number(_customers), 'Total', _KpiArt.people, false),
-      ('EMPLOYÉS', '$_employees', 'Actifs', _KpiArt.pharmacist, false),
+      ('STOCK FAIBLE', '$_lowStock', 'Produits', KpiArt.boxes, false),
+      ('COMMANDES', '$_pendingOrders', 'En attente', KpiArt.clipboard, false),
+      ('FOURNISSEURS', Fmt.number(_suppliers), 'Actifs', KpiArt.truck, false),
+      ('CLIENTS', Fmt.number(_customers), 'Total', KpiArt.people, false),
+      ('EMPLOYÉS', '$_employees', 'Actifs', KpiArt.pharmacist, false),
       ('BÉNÉFICE MOIS', Fmt.money(_profitMonth), '+8,3% vs mois dernier',
-          _KpiArt.bars, true),
+          KpiArt.bars, true),
     ];
     return GridView.count(
       crossAxisCount: 4,
@@ -308,7 +309,7 @@ class _KpiCard extends StatelessWidget {
   final String label;
   final String value;
   final String subtitle;
-  final _KpiArt art;
+  final KpiArt art;
   final bool trend;
   final VoidCallback? onTap;
   const _KpiCard({
@@ -352,7 +353,7 @@ class _KpiCard extends StatelessWidget {
               child: SizedBox(
                 width: 84,
                 height: 62,
-                child: CustomPaint(painter: _KpiArtPainter(art)),
+                child: CustomPaint(painter: KpiArtPainter(art)),
               ),
             ),
             Column(
@@ -390,201 +391,6 @@ class _KpiCard extends StatelessWidget {
       ),
     );
   }
-}
-
-enum _KpiArt { register, bottle, boxes, clipboard, truck, people, pharmacist, bars }
-
-/// Illustrations 3D maquette : objet posé sur socle elliptique vert.
-class _KpiArtPainter extends CustomPainter {
-  final _KpiArt art;
-  const _KpiArtPainter(this.art);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width, h = size.height;
-    final ux = w / 100.0, uy = h / 80.0;
-    Offset P(double x, double y) => Offset(x * ux, y * uy);
-    Rect R(double x, double y, double w2, double h2) =>
-        Rect.fromLTWH(x * ux, y * uy, w2 * ux, h2 * uy);
-    RRect RR(double x, double y, double w2, double h2, double r) =>
-        RRect.fromRectAndRadius(R(x, y, w2, h2), Radius.circular(r * ux));
-    final shadow = Paint()
-      ..color = const Color(0xFF020E08).withValues(alpha: 0.5)
-      ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 4);
-
-    // ---- Socle elliptique (podium) ----
-    final podC = Offset(w * 0.44, h * 0.84);
-    final podRx = w * 0.44, podRy = h * 0.15;
-    canvas.drawOval(
-        Rect.fromCenter(
-            center: podC.translate(0, 2.4),
-            width: podRx * 2,
-            height: podRy * 2),
-        Paint()..color = const Color(0xFF06150E));
-    final podRect =
-        Rect.fromCenter(center: podC, width: podRx * 2, height: podRy * 2);
-    canvas.drawOval(podRect, Paint()..color = const Color(0xFF143524));
-    canvas.drawOval(
-        podRect.deflate(1.2),
-        Paint()
-          ..color = const Color(0xFF1D4A32)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.4);
-
-    switch (art) {
-      case _KpiArt.register:
-        // Caisse enregistreuse : corps sombre, écran vert clair, touches.
-        canvas.drawRRect(RR(18, 40, 64, 26, 5), shadow);
-        canvas.drawRRect(RR(18, 38, 64, 26, 5), Paint()..color = const Color(0xFF2A3B33));
-        canvas.drawRRect(RR(18, 38, 64, 26, 5),
-            Paint()..color = const Color(0xFF101B15)..style = PaintingStyle.stroke..strokeWidth = 1.4);
-        canvas.drawRRect(RR(24, 44, 24, 13, 2.5), Paint()..color = const Color(0xFFBFF0D6));
-        canvas.drawRRect(RR(27, 47, 12, 7, 1.5), Paint()..color = const Color(0xFF6FD9A2));
-        for (var r = 0; r < 3; r++) {
-          for (var c = 0; c < 4; c++) {
-            canvas.drawRRect(
-                RR(54 + c * 6.4, 44 + r * 6.0, 5, 4.4, 1.2),
-                Paint()..color = const Color(0xFF17251E));
-          }
-        }
-        canvas.drawRRect(RR(24, 60, 58, 4, 2), Paint()..color = const Color(0xFF20302A));
-      case _KpiArt.bottle:
-        // Flacon blanc + bouchon vert + croix + comprimés.
-        canvas.drawRRect(RR(36, 22, 28, 10, 3), Paint()..color = const Color(0xFF00A651));
-        canvas.drawRRect(RR(34, 30, 32, 32, 5), Paint()..color = const Color(0xFFF2F7F4));
-        canvas.drawRRect(RR(34, 42, 32, 13, 2), Paint()..color = const Color(0xFFDFEBE4));
-        final cross = Paint()..color = const Color(0xFF00A651);
-        canvas.drawRRect(RR(47, 44, 6, 9, 1.5), cross);
-        canvas.drawRRect(RR(45.5, 45.5, 9, 6, 1.5), cross);
-        canvas.drawCircle(P(26, 66), 5 * ux, Paint()..color = const Color(0xFFF2F7F4));
-        canvas.drawCircle(P(30, 69), 5 * ux, Paint()..color = const Color(0xFF2FB563));
-      case _KpiArt.boxes:
-        // Cartons empilés + triangle d'alerte or.
-        void box(double x, double y, double s, Color c) {
-          canvas.drawRRect(RR(x, y, s, s * 0.72, 2), Paint()..color = c);
-          canvas.drawLine(P(x, y + s * 0.36), P(x + s, y + s * 0.36),
-              Paint()..color = const Color(0xFF6E532F)..strokeWidth = 1.2);
-        }
-        box(14, 34, 24, const Color(0xFF97744A));
-        box(40, 34, 24, const Color(0xFFB08D57));
-        box(27, 20, 24, const Color(0xFFC9A26B));
-        box(14, 50, 24, const Color(0xFF8A6A42));
-        box(40, 50, 24, const Color(0xFFA07C4E));
-        final warn = Path()
-          ..moveTo(P(44, 48).dx, P(44, 48).dy)
-          ..lineTo(P(56, 68).dx, P(56, 68).dy)
-          ..lineTo(P(32, 68).dx, P(32, 68).dy)
-          ..close();
-        canvas.drawPath(warn, shadow);
-        canvas.drawPath(warn, Paint()..color = const Color(0xFFF0B429));
-        canvas.drawRRect(RR(43, 53, 2.6, 8, 1.2), Paint()..color = const Color(0xFF241A0F));
-        canvas.drawCircle(P(44.3, 64.5), 1.6 * ux, Paint()..color = const Color(0xFF241A0F));
-      case _KpiArt.clipboard:
-        // Presse-papiers : planche verte, feuille claire, cases cochées.
-        canvas.drawRRect(RR(32, 20, 36, 46, 5), Paint()..color = const Color(0xFF2F6B4F));
-        canvas.drawRRect(RR(43, 16, 14, 8, 2.5), Paint()..color = const Color(0xFFD8DEE2));
-        canvas.drawRRect(RR(36, 26, 28, 36, 2.5), Paint()..color = const Color(0xFFF4F1EA));
-        for (var i = 0; i < 3; i++) {
-          final y = 32.0 + i * 10;
-          canvas.drawRRect(RR(40, y, 4.0, 4.0, 1.0), Paint()..color = const Color(0xFF2F6B4F));
-          final tick = Path()
-            ..moveTo(P(41, y + 2).dx, P(41, y + 2).dy)
-            ..lineTo(P(42.2, y + 3.2).dx, P(42.2, y + 3.2).dy)
-            ..lineTo(P(44.5, y - 0.5).dx, P(44.5, y - 0.5).dy);
-          canvas.drawPath(
-              tick,
-              Paint()
-                ..color = const Color(0xFF00A651)
-                ..style = PaintingStyle.stroke
-                ..strokeWidth = 1.4);
-          canvas.drawRRect(RR(48, y + 0.6, 12, 2.6, 1.2),
-              Paint()..color = const Color(0xFFC9C2B4));
-        }
-      case _KpiArt.truck:
-        // Camion de livraison : cargo, cabine, roues.
-        canvas.drawRRect(RR(16, 34, 36, 20, 2.5), shadow);
-        canvas.drawRRect(RR(16, 32, 36, 20, 2.5), Paint()..color = const Color(0xFFE8ECEF));
-        canvas.drawLine(P(16, 38), P(52, 38), Paint()..color = const Color(0xFFB9C4CA)..strokeWidth = 1.2);
-        canvas.drawRRect(RR(20, 24, 16, 8, 1.5), Paint()..color = const Color(0xFFC7CFD4));
-        final cab = Path()
-          ..moveTo(P(52, 36).dx, P(52, 36).dy)
-          ..lineTo(P(68, 36).dx, P(68, 36).dy)
-          ..lineTo(P(74, 46).dx, P(74, 46).dy)
-          ..lineTo(P(74, 52).dx, P(74, 52).dy)
-          ..lineTo(P(52, 52).dx, P(52, 52).dy)
-          ..close();
-        canvas.drawPath(cab, Paint()..color = const Color(0xFFC7CFD4));
-        canvas.drawRRect(RR(56, 39, 9, 7, 1.5), Paint()..color = const Color(0xFF6C7A82));
-        void wheel(double x, double y) {
-          canvas.drawCircle(P(x, y), 6 * ux, Paint()..color = const Color(0xFF16201C));
-          canvas.drawCircle(P(x, y), 2.6 * ux, Paint()..color = const Color(0xFF55636B));
-        }
-        wheel(26, 54);
-        wheel(46, 54);
-        wheel(67, 54);
-      case _KpiArt.people:
-        // Clients : trio de silhouettes (or au centre, verts sur les côtés).
-        void person(double cx, double headR, double y, Color c) {
-          canvas.drawCircle(P(cx, y), headR * ux, Paint()..color = c);
-          canvas.drawRRect(
-              RR(cx - headR * 2.2, y + headR + 2, headR * 4.4, headR * 2.6, headR * 1.4),
-              Paint()..color = c);
-        }
-        canvas.drawCircle(P(28, 40), 7 * ux, shadow);
-        person(28, 7, 40, const Color(0xFF2FB563));
-        person(72, 7, 40, const Color(0xFF2FB563));
-        canvas.drawCircle(P(50, 33), 9.5 * ux, shadow);
-        person(50, 9.5, 33, const Color(0xFFE9C873));
-      case _KpiArt.pharmacist:
-        // Pharmacien : blouse blanche, croix verte.
-        canvas.drawCircle(P(50, 26), 10 * ux, shadow);
-        canvas.drawCircle(P(50, 26), 9 * ux, Paint()..color = const Color(0xFFF0C9A0));
-        final hair = Path()
-          ..moveTo(P(41, 24).dx, P(41, 24).dy)
-          ..quadraticBezierTo(P(50, 12).dx, P(50, 12).dy, P(59, 24).dx, P(59, 24).dy)
-          ..quadraticBezierTo(P(50, 18).dx, P(50, 18).dy, P(41, 24).dx, P(41, 24).dy)
-          ..close();
-        canvas.drawPath(hair, Paint()..color = const Color(0xFF3A2E26));
-        canvas.drawRRect(RR(32, 38, 36, 26, 10), Paint()..color = const Color(0xFFF5F8F6));
-        final collar = Path()
-          ..moveTo(P(44, 38).dx, P(44, 38).dy)
-          ..lineTo(P(50, 46).dx, P(50, 46).dy)
-          ..lineTo(P(56, 38).dx, P(56, 38).dy)
-          ..close();
-        canvas.drawPath(collar, Paint()..color = const Color(0xFFD9E4DE));
-        final crossGreen = Paint()..color = const Color(0xFF00A651);
-        canvas.drawRRect(RR(48.4, 50, 3.2, 9, 1), crossGreen);
-        canvas.drawRRect(RR(45.5, 52.9, 9, 3.2, 1), crossGreen);
-      case _KpiArt.bars:
-        // Bénéfice : barres vertes montantes + flèche or.
-        canvas.drawLine(P(22, 66), P(82, 66), Paint()..color = const Color(0xFF24473A)..strokeWidth = 1.6);
-        canvas.drawRRect(RR(26, 50, 10, 16, 2), Paint()..color = const Color(0xFF1F8A55));
-        canvas.drawRRect(RR(42, 40, 10, 26, 2), Paint()..color = const Color(0xFF2FB563));
-        canvas.drawRRect(RR(58, 28, 10, 38, 2), Paint()..color = const Color(0xFF6BE08C));
-        final arrow = Path()
-          ..moveTo(P(26, 46).dx, P(26, 46).dy)
-          ..lineTo(P(44, 34).dx, P(44, 34).dy)
-          ..lineTo(P(56, 38).dx, P(56, 38).dy)
-          ..lineTo(P(76, 20).dx, P(76, 20).dy);
-        canvas.drawPath(
-            arrow,
-            Paint()
-              ..color = const Color(0xFFE9C873)
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 2.4
-              ..strokeCap = StrokeCap.round
-              ..strokeJoin = StrokeJoin.round);
-        final head = Path()
-          ..moveTo(P(78, 14).dx, P(78, 14).dy)
-          ..lineTo(P(79, 23).dx, P(79, 23).dy)
-          ..lineTo(P(71, 21.5).dx, P(71, 21.5).dy)
-          ..close();
-        canvas.drawPath(head, Paint()..color = const Color(0xFFE9C873));
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _KpiArtPainter old) => old.art != art;
 }
 
 /// Or de marque utilisé par les accents dorés du dashboard.

@@ -187,10 +187,10 @@ class _LoginPageState extends State<LoginPage>
   }
 
   Widget _buildWideCard() {
-    // Carte centrée et compacte : tient dans une seule vue à l'ouverture.
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+    // Carte calée vers le haut : une seule vue à l'ouverture, sans défilement.
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
+      child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
           child: Container(
@@ -218,9 +218,10 @@ class _LoginPageState extends State<LoginPage>
   }
 
   Widget _buildMobileCard() {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(14),
+    // Calée vers le haut pour rester lisible sans défilement.
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(14, 20, 14, 14),
+      child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 440),
           child: Container(
@@ -269,8 +270,8 @@ class _LoginPageState extends State<LoginPage>
                 ),
               ),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 18),
-            alignment: Alignment.center,
+            padding: const EdgeInsets.fromLTRB(40, 30, 40, 18),
+            alignment: Alignment.topCenter,
             child: SingleChildScrollView(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 440),
@@ -554,26 +555,6 @@ class _LoginPageState extends State<LoginPage>
             ),
           ),
           const SizedBox(height: 12),
-          const Center(
-            child: Text(
-              'Votre santé, notre priorité',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Center(
-            child: Text(
-              'v2.0.0',
-              style: TextStyle(
-                color: Colors.white38,
-                fontSize: 11,
-              ),
-            ),
-          ),
         ],
       ),
     );
