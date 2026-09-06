@@ -8,5 +8,11 @@ frontend/.idea/
 frontend/__pycache__/
 *.log
 
+# Fichiers temporaires de travail / rapports locaux
+tmp_*.txt
+tmp_*.json
+analyze_out.txt
+build_web_out.txt
+
 # Depot git imbrique (pharma-plus-api) : ne pas ajouter comme gitlink
 backend/

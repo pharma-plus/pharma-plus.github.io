@@ -14,7 +14,9 @@ class ReceiptPdf {
   ReceiptPdf._();
 
   static Future<pw.MemoryImage> _loadLogo() async {
-    final data = await rootBundle.load('assets/logo/pharma_plus_mark.png');
+    // Logo officiel complet (symbole + PHARMA+ + signature) : les textes
+    // de marque sont deja dans l'asset, on ne les repete pas dans le ticket.
+    final data = await rootBundle.load('assets/branding/pharma-logo-full.png');
     return pw.MemoryImage(data.buffer.asUint8List());
   }
 
@@ -42,13 +44,7 @@ class ReceiptPdf {
         build: (context) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.center,
           children: [
-            pw.Image(logo, width: 46),
-            pw.SizedBox(height: 4),
-            pw.Text('PHARMA+',
-                style:
-                    pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-            pw.Text('LOGICIEL DE PHARMACIE',
-                style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey)),
+            pw.Image(logo, width: 96),
             pw.SizedBox(height: 6),
             pw.Text(pharmacyName,
                 style: const pw.TextStyle(fontSize: 9),

@@ -1,10 +1,12 @@
+// PMG-SPLASH-TUNING
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/l10n/strings.dart';
 import 'core/services/auth_store.dart';
 import 'core/theme/colors.dart';
-import 'core/widgets/pharma_logo_medallion.dart';
+import 'core/widgets/pharma_logo.dart';
 import 'core/widgets/pharma_background.dart';
 import 'features/auth/login_page.dart';
 import 'features/shell/home_shell.dart';
@@ -102,48 +104,69 @@ class _SplashScreenState extends State<_SplashScreen>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const PharmaLogoMedallion(size: 138),
+                      // Logo officiel complet : le nom PHARMA+ et la
+                      // signature sont deja dans l'asset — aucun texte
+                      // de marque répété en dessous.
+                      PharmaFullLogo(
+                        width: (MediaQuery.of(context).size.width * 0.56)
+                            .clamp(230.0, 330.0),
+                      ),
                       const SizedBox(height: 22),
-                      const Text(
-                        'PHARMA+',
-                        style: TextStyle(
-                          color: PharmaLogoMedallion.titleGold,
-                          fontSize: 42,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -2,
+                      // Ornement feuille : trait or — feuille — trait or.
+                      Row(mainAxisSize: MainAxisSize.min, children: [
+                        Container(
+                          width: 56,
+                          height: 1.2,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(colors: [
+                              Colors.transparent,
+                              AppColors.pharmaGold.withValues(alpha: 0.85),
+                            ]),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Gestion intelligente de votre pharmacie',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: PharmaLogoMedallion.subtitleMint,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.4,
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 10),
+                          child: Icon(Icons.eco_outlined,
+                              color: Color(0xFF2FB563), size: 19),
                         ),
-                      ),
-                      const SizedBox(height: 36),
+                        Container(
+                          width: 56,
+                          height: 1.2,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(colors: [
+                              AppColors.pharmaGold.withValues(alpha: 0.85),
+                              Colors.transparent,
+                            ]),
+                          ),
+                        ),
+                      ]),
+                      const SizedBox(height: 16),
                       const Text(
                         'Bienvenue',
                         style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFE9C873),
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 5),
                       Text(
                         'dans votre pharmacie',
                         style: TextStyle(
-                          color: AppColors.textPrimary
-                              .withValues(alpha: 0.65),
-                          fontSize: 13,
+                          color: Colors.white.withValues(alpha: 0.82),
+                          fontSize: 14.5,
                         ),
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 30),
                       const _SplashProgressBar(),
+                      const SizedBox(height: 14),
+                      Text(
+                        'Chargement en cours...',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.42),
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -232,7 +255,7 @@ class _InitErrorScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const PharmaLogoMedallion(size: 110),
+              const PharmaFullLogo(width: 230),
               const SizedBox(height: 28),
               const Icon(Icons.error_outline,
                   size: 56, color: AppColors.danger),
@@ -255,7 +278,7 @@ class _InitErrorScreen extends StatelessWidget {
               const SizedBox(height: 24),
               FilledButton.icon(
                 style: FilledButton.styleFrom(
-                  backgroundColor: PharmaLogoMedallion.goldBorder,
+                  backgroundColor: AppColors.brandGold,
                   foregroundColor: const Color(0xFF07201B),
                   minimumSize: const Size(220, 52),
                 ),

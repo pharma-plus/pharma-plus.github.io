@@ -1,3 +1,6 @@
+// PMG-LAYOUT-TUNING
+
+// Page de connexion PHARMA+ — conforme à la maquette « connexion photo 4 ».
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -9,7 +12,6 @@ import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/pharma_background.dart';
 import '../../core/widgets/pharma_logo.dart';
-import '../../core/widgets/pharma_logo_medallion.dart';
 import 'two_factor_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -185,27 +187,31 @@ class _LoginPageState extends State<LoginPage>
   }
 
   Widget _buildWideCard() {
+    // Carte centrée et compacte : tient dans une seule vue à l'ouverture.
     return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(32, 28, 32, 24),
-          decoration: BoxDecoration(
-            color: const Color(0xFF041C18).withValues(alpha: 0.96),
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(
-              color: const Color(0xFFD7AE4F),
-              width: 1.4,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.45),
-                blurRadius: 30,
-                offset: const Offset(0, 18),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(26, 20, 26, 18),
+            decoration: BoxDecoration(
+              color: const Color(0xFF041C18).withValues(alpha: 0.96),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: const Color(0xFFD7AE4F),
+                width: 1.4,
               ),
-            ],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.45),
+                  blurRadius: 30,
+                  offset: const Offset(0, 18),
+                ),
+              ],
+            ),
+            child: _buildForm(),
           ),
-          child: _buildForm(),
         ),
       ),
     );
@@ -214,11 +220,11 @@ class _LoginPageState extends State<LoginPage>
   Widget _buildMobileCard() {
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(22),
+        padding: const EdgeInsets.all(14),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 440),
           child: Container(
-            padding: const EdgeInsets.fromLTRB(22, 20, 22, 18),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
             decoration: BoxDecoration(
               color: const Color(0xFF041C18).withValues(alpha: 0.96),
               borderRadius: BorderRadius.circular(30),
@@ -263,7 +269,7 @@ class _LoginPageState extends State<LoginPage>
                 ),
               ),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 44, vertical: 28),
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 18),
             alignment: Alignment.center,
             child: SingleChildScrollView(
               child: ConstrainedBox(
@@ -314,35 +320,17 @@ class _LoginPageState extends State<LoginPage>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const PharmaLogoMedallion(size: 120),
-                const SizedBox(height: 20),
+                // Logo officiel complet : le nom PHARMA+ et la signature
+                // sont deja dans l'asset — aucun texte répété en dessous.
+                const PharmaFullLogo(width: 360),
+                const SizedBox(height: 16),
                 const Text(
-                  'PHARMA+',
-                  style: TextStyle(
-                    color: PharmaLogoMedallion.titleGold,
-                    fontSize: 38,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -2,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
                   'PHARMACIE PREMIUM',
                   style: TextStyle(
                     color: AppColors.pharmaGold,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 3.4,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                const Text(
-                  'Gestion intelligente de votre pharmacie',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: PharmaLogoMedallion.subtitleMint,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -360,91 +348,39 @@ class _LoginPageState extends State<LoginPage>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (splitLayout) ...[
-            const SizedBox(height: 4),
-            const Center(child: PharmaLogoMedallion(size: 76)),
-            const SizedBox(height: 20),
-            const Center(
-              child: Text(
-                'Bienvenue sur PHARMA+',
-                style: TextStyle(
-                  color: Color(0xFFF0D89E),
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Center(
-              child: Text(
-                'Connectez-vous à votre espace',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70, fontSize: 14),
-              ),
-            ),
-            const SizedBox(height: 28),
-          ] else ...[
-            const SizedBox(height: 6),
-            Center(
-              child: Container(
-                width: 170,
-                height: 170,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      const Color(0xFF0B3A2A).withValues(alpha: 0.95),
-                      const Color(0xFF06251D),
-                    ],
-                  ),
-                  border: Border.all(
-                    color: const Color(0xFFD7AE4F),
-                    width: 2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.emerald.withValues(alpha: 0.38),
-                      blurRadius: 28,
-                    ),
-                  ],
-                ),
-                child: const PharmaPlusLogo(size: 110),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Center(
-              child: Text(
-                'PHARMA+',
-                style: TextStyle(
-                  color: Color(0xFFF0D89E),
-                  fontSize: 42,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -2,
-                ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Center(
-              child: Text(
-                'Gestion intelligente de votre pharmacie',
-                style: TextStyle(
-                  color: Color(0xFFB9E5D1),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.4,
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 2),
+            const Center(child: PharmaFullLogo(width: 185)),
+            const SizedBox(height: 14),
             const Center(
               child: Text(
                 'Bienvenue',
                 style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
+                  color: Color(0xFFE9C873),
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Center(
+              child: Text(
+                'Connectez-vous à votre espace',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white70, fontSize: 13.5),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ] else ...[
+            const SizedBox(height: 2),
+            const Center(child: PharmaFullLogo(width: 205)),
+            const SizedBox(height: 12),
+            const Center(
+              child: Text(
+                'Bienvenue',
+                style: TextStyle(
+                  color: Color(0xFFE9C873),
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ),
@@ -455,11 +391,11 @@ class _LoginPageState extends State<LoginPage>
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white70,
-                  fontSize: 14,
+                  fontSize: 13.5,
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
           ],
           TextFormField(
             controller: _emailController,
@@ -556,13 +492,13 @@ class _LoginPageState extends State<LoginPage>
             const SizedBox(height: 8),
             _ErrorBanner(message: _error!),
           ],
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
           FilledButton.icon(
             onPressed: _loading ? null : _submit,
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFFD7AE4F),
               foregroundColor: const Color(0xFF07201B),
-              minimumSize: const Size.fromHeight(54),
+              minimumSize: const Size.fromHeight(50),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -586,7 +522,7 @@ class _LoginPageState extends State<LoginPage>
               ),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
           const Center(
             child: Text(
               'ou',
@@ -597,13 +533,13 @@ class _LoginPageState extends State<LoginPage>
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: _loading ? null : _submit,
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.white,
               side: BorderSide(color: Colors.white.withValues(alpha: 0.28)),
-              minimumSize: const Size.fromHeight(52),
+              minimumSize: const Size.fromHeight(46),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
               ),
@@ -617,29 +553,18 @@ class _LoginPageState extends State<LoginPage>
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           const Center(
             child: Text(
               'Votre santé, notre priorité',
               style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
+                color: Colors.white70,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
-          const SizedBox(height: 6),
-          const Center(
-            child: Text(
-              'PHARMA+ – Gestion intelligente, pharmacie performante.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white60,
-                fontSize: 12,
-              ),
-            ),
-          ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 4),
           const Center(
             child: Text(
               'v2.0.0',
@@ -666,7 +591,7 @@ class _LoginPageState extends State<LoginPage>
       hintStyle: const TextStyle(color: Colors.white38),
       prefixIcon: Icon(icon, color: AppColors.emeraldLight),
       suffixIcon: suffix,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),

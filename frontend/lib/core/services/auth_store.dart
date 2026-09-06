@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -30,7 +31,20 @@ class AuthStore extends ChangeNotifier {
   bool _initError = false;
   bool _forcedLogin = false;
 
-  String _baseUrl = 'https://lwepnnecnrqdzadesyqo.supabase.co/functions/v1/pharma-api/api/v1';
+  /// URL par défaut : si l'app web est servie depuis localhost / 127.0.0.1
+  /// (développement local), on cible le backend local (port 4000) ;
+  /// sinon on utilise l'API distante (Supabase / Bonto).
+  static String get _defaultBaseUrl {
+    if (kIsWeb) {
+      final host = Uri.base.host.toLowerCase();
+      final isLocal =
+          host.isEmpty || host == 'localhost' || host == '127.0.0.1' || host == '::1';
+      if (isLocal) return 'http://127.0.0.1:4000/api/v1';
+    }
+    return 'https://lwepnnecnrqdzadesyqo.supabase.co/functions/v1/pharma-api/api/v1';
+  }
+
+  String _baseUrl = _defaultBaseUrl;
   ThemeMode _themeMode = ThemeMode.system;
   String _locale = 'fr';
 
@@ -71,11 +85,9 @@ class AuthStore extends ChangeNotifier {
     _locale = prefs.getString(_kLocale) ?? 'fr';
     final storedUrl = prefs.getString(_kBaseUrl);
     if (storedUrl != null && storedUrl.isNotEmpty) {
-      final lower = storedUrl.toLowerCase();
-      final isLocal = lower.contains('localhost') ||
-          lower.contains('127.0.0.1') ||
-          lower.contains('::1');
-      if (!isLocal) _baseUrl = storedUrl;
+      // L'URL choisie dans les paramètres (⚙) est respectée, y compris
+      // une URL locale (http://127.0.0.1:4000/api/v1) en développement.
+      _baseUrl = storedUrl;
     }
 
     _accessToken = await _storage.read(key: _kAccess);

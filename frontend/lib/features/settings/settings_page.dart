@@ -6,6 +6,7 @@ import '../../core/services/auth_store.dart';
 import '../../core/services/sync_engine.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/glass_card.dart';
+import '../../core/widgets/pharma_logo.dart';
 
 /// Paramètres : profil pharmacie, compte/sécurité, utilisateurs, journal
 /// d'activité, langue, thème, synchronisation et serveur.
@@ -135,6 +136,23 @@ class _SettingsPageState extends State<SettingsPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // ---- Carte de marque : logo officiel complet PHARMA+ ----
+          GlassCard(
+            child: Row(
+              children: [
+                const PharmaFullLogo(width: 190),
+                const Spacer(),
+                Text('v1.0.0',
+                    style: TextStyle(
+                        fontSize: 11.5,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.45))),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
           GlassCard(
             child: Row(
               children: [
