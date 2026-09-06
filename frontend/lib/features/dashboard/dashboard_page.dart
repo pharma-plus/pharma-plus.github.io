@@ -349,6 +349,7 @@ class _DashboardPageState extends State<DashboardPage> {
           trendPct: '+2,6%',
           trendVs: 'vs mois dernier',
           art: KpiArt.truck,
+          image: 'assets/images/kpi_fournisseurs.jpg',
           badge: Icons.local_shipping_rounded,
           badgeColor: green),
       _KpiDef(
@@ -358,6 +359,7 @@ class _DashboardPageState extends State<DashboardPage> {
           trendPct: '+15,3%',
           trendVs: 'vs mois dernier',
           art: KpiArt.people,
+          image: 'assets/images/kpi_clients.jpg',
           badge: Icons.groups_rounded,
           badgeColor: green),
       _KpiDef(
@@ -367,6 +369,7 @@ class _DashboardPageState extends State<DashboardPage> {
           trendPct: '+2',
           trendVs: 'vs mois dernier',
           art: KpiArt.pharmacist,
+          image: 'assets/images/kpi_employes.jpg',
           badge: Icons.person_rounded,
           badgeColor: green),
       _KpiDef(
