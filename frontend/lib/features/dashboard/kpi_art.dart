@@ -168,6 +168,21 @@ class KpiArtPainter extends CustomPainter {
           canvas.drawCircle(P(7 + i * 9.6, 11), 3.1 * ux, Paint()..color = const Color(0xFFE9E2D2));
         }
         canvas.restore();
+        // Gélule blanche/verte devant la plaquette (maquette).
+        canvas.save();
+        canvas.translate(P(10, 69).dx, P(10, 69).dy);
+        canvas.rotate(-0.35);
+        canvas.drawRRect(
+            RRect.fromRectAndRadius(
+                Rect.fromLTWH(-14 * ux, -5 * uy, 28 * ux, 10 * uy),
+                Radius.circular(5 * ux)),
+            Paint()..color = const Color(0xFF2FA367));
+        canvas.drawRRect(
+            RRect.fromRectAndRadius(
+                Rect.fromLTWH(-14 * ux, -5 * uy, 14 * ux, 10 * uy),
+                Radius.circular(5 * ux)),
+            Paint()..color = const Color(0xFFF4F7F3));
+        canvas.restore();
       // ==============================================
       // 3. CARTONS + ALERTE STOCK (triangle orange)
       // ==============================================
@@ -282,8 +297,26 @@ class KpiArtPainter extends CustomPainter {
         wheel(24);
         wheel(45);
         wheel(72);
-        // Petits cartons dans le dos du cargo.
-        canvas.drawRRect(RR(14, 30, 9, 8, 1), Paint()..color = const Color(0xFFD2A56E).withValues(alpha: 0.0));
+        // Cartons livrés à côté du camion (maquette).
+        void carton2(double x, double y, double w2, double h2) {
+          final rc = R(x, y, w2, h2);
+          canvas.drawRRect(RR(x, y, w2, h2, 1.5), shadow);
+          canvas.drawRRect(
+              RR(x, y, w2, h2, 1.5),
+              vgrad(rc, const Color(0xFFD2A56E), const Color(0xFF9C7243)));
+          canvas.drawRRect(
+              RR(x, y, w2, h2, 1.5),
+              Paint()
+                ..color = const Color(0xFF7A562F)
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = 0.7);
+          canvas.drawRect(
+              R(x + w2 / 2 - 1.8, y, 3.6, h2),
+              Paint()
+                ..color = const Color(0xFFB98F58).withValues(alpha: 0.9));
+        }
+        carton2(84, 50, 14, 12);
+        carton2(86.5, 40, 11, 10);
 
       // ==============================================
       // 6. CLIENTS — trio + bouclier santé
@@ -403,12 +436,12 @@ class KpiArtPainter extends CustomPainter {
         bar(25, 50, const Color(0xFF35B473), const Color(0xFF0E5C38));
         bar(42, 40, const Color(0xFF52D68C), const Color(0xFF127246));
         bar(59, 28, const Color(0xFF7BEBA4), const Color(0xFF1F8A55));
-        // Halo + flèche or montante.
+        // Halo + flèche verte montante (maquette).
         canvas.drawCircle(
             P(76, 21),
             9 * ux,
             Paint()
-              ..color = const Color(0xFFE9C873).withValues(alpha: 0.22)
+              ..color = const Color(0xFF7BEBA4).withValues(alpha: 0.20)
               ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 6));
         final arrow = Path()
           ..moveTo(P(26, 46).dx, P(26, 46).dy)
@@ -419,7 +452,7 @@ class KpiArtPainter extends CustomPainter {
             arrow,
             Paint()
               ..shader = ui.Gradient.linear(P(26, 46), P(76, 21),
-                  [const Color(0xFFD6A84F), const Color(0xFFF3D98B)])
+                  [const Color(0xFF8FEBAE), const Color(0xFF0E7A44)])
               ..style = PaintingStyle.stroke
               ..strokeWidth = 2.6
               ..strokeCap = StrokeCap.round
@@ -429,11 +462,19 @@ class KpiArtPainter extends CustomPainter {
           ..lineTo(P(79.2, 24).dx, P(79.2, 24).dy)
           ..lineTo(P(70.5, 22).dx, P(70.5, 22).dy)
           ..close();
-        canvas.drawPath(head, Paint()..color = const Color(0xFFE9C873));
-        // Pièce d'or.
-        canvas.drawCircle(P(20, 24), 5.5 * ux, Paint()..color = const Color(0xFFB8860B));
-        canvas.drawCircle(P(20, 23), 5 * ux, Paint()..color = const Color(0xFFE9C873));
-        text('MAD', P(20, 23), 3, const Color(0xFF8A6508), fw: FontWeight.w900);
+        canvas.drawPath(head, Paint()..color = const Color(0xFF8FEBAE));
+        // Pile de pièces d'or (maquette).
+        for (var i = 0; i < 3; i++) {
+          final cy = 62.5 - i * 2.8;
+          canvas.drawOval(
+              Rect.fromCenter(
+                  center: P(79, cy), width: 13 * ux, height: 5 * uy),
+              Paint()..color = const Color(0xFFB8860B));
+          canvas.drawOval(
+              Rect.fromCenter(
+                  center: P(79, cy - 0.8), width: 13 * ux, height: 5 * uy),
+              Paint()..color = const Color(0xFFE9C873));
+        }
     }
   }
 

@@ -292,18 +292,79 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildKpiGrid() {
-    final kpis = <(String, String, String, KpiArt, bool)>[
-      ('VENTES DU JOUR', Fmt.money(_revenueToday), '+12,5% vs hier',
-          KpiArt.register, true),
-      ('MÉDICAMENTS', Fmt.number(_medications), 'Références', KpiArt.bottle,
-          false),
-      ('STOCK FAIBLE', '$_lowStock', 'Produits', KpiArt.boxes, false),
-      ('COMMANDES', '$_pendingOrders', 'En attente', KpiArt.clipboard, false),
-      ('FOURNISSEURS', Fmt.number(_suppliers), 'Actifs', KpiArt.truck, false),
-      ('CLIENTS', Fmt.number(_customers), 'Total', KpiArt.people, false),
-      ('EMPLOYÉS', '$_employees', 'Actifs', KpiArt.pharmacist, false),
-      ('BÉNÉFICE MOIS', Fmt.money(_profitMonth), '+8,3% vs mois dernier',
-          KpiArt.bars, true),
+    const green = Color(0xFF43D97C);
+    const amber = Color(0xFFFFA24A);
+    final kpis = <_KpiDef>[
+      _KpiDef(
+          label: 'VENTES DU JOUR',
+          value: Fmt.money(_revenueToday),
+          trendPct: '+12,5%',
+          trendVs: 'vs hier',
+          art: KpiArt.register,
+          badge: Icons.point_of_sale_rounded,
+          badgeColor: green),
+      _KpiDef(
+          label: 'MÉDICAMENTS',
+          value: Fmt.number(_medications),
+          sub: 'Total',
+          trendPct: '+8,3%',
+          trendVs: 'vs mois dernier',
+          art: KpiArt.bottle,
+          badge: Icons.medication_rounded,
+          badgeColor: green),
+      _KpiDef(
+          label: 'STOCK FAIBLE',
+          value: '$_lowStock',
+          sub: 'Produits',
+          trendPct: '-5,2%',
+          trendVs: 'vs hier',
+          art: KpiArt.boxes,
+          badge: Icons.warning_amber_rounded,
+          badgeColor: amber),
+      _KpiDef(
+          label: 'COMMANDES',
+          value: '$_pendingOrders',
+          sub: 'En cours',
+          trendPct: '+4,7%',
+          trendVs: 'vs hier',
+          art: KpiArt.clipboard,
+          badge: Icons.fact_check_rounded,
+          badgeColor: green),
+      _KpiDef(
+          label: 'FOURNISSEURS',
+          value: Fmt.number(_suppliers),
+          sub: 'Fournisseurs',
+          trendPct: '+2,6%',
+          trendVs: 'vs mois dernier',
+          art: KpiArt.truck,
+          badge: Icons.local_shipping_rounded,
+          badgeColor: green),
+      _KpiDef(
+          label: 'CLIENTS',
+          value: Fmt.number(_customers),
+          sub: 'Clients',
+          trendPct: '+15,3%',
+          trendVs: 'vs mois dernier',
+          art: KpiArt.people,
+          badge: Icons.groups_rounded,
+          badgeColor: green),
+      _KpiDef(
+          label: 'EMPLOYÉS',
+          value: '$_employees',
+          sub: 'Employés',
+          trendPct: '+2',
+          trendVs: 'vs mois dernier',
+          art: KpiArt.pharmacist,
+          badge: Icons.person_rounded,
+          badgeColor: green),
+      _KpiDef(
+          label: 'BÉNÉFICE MOIS',
+          value: Fmt.money(_profitMonth),
+          trendPct: '+18,6%',
+          trendVs: 'vs mois dernier',
+          art: KpiArt.bars,
+          badge: Icons.bar_chart_rounded,
+          badgeColor: green),
     ];
     return GridView.count(
       crossAxisCount: 4,
@@ -316,11 +377,8 @@ class _DashboardPageState extends State<DashboardPage> {
         for (var i = 0; i < kpis.length; i++)
           _KpiCard(
             key: ValueKey('kpi-$i'),
-            label: kpis[i].$1,
-            value: kpis[i].$2,
-            subtitle: kpis[i].$3,
-            art: kpis[i].$4,
-            trend: kpis[i].$5,
+            index: i + 1,
+            def: kpis[i],
             onTap: _kpiTap(i),
           ),
       ],
@@ -328,24 +386,44 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 }
 
-/// Carte KPI maquette : label · grande valeur · sous-titre ·
-/// illustration 3D sur socle vert en bas à droite.
-class _KpiCard extends StatelessWidget {
+/// Définition d'une carte KPI maquette : badge d'option, sous-titre,
+/// tendance verte vs période.
+class _KpiDef {
   final String label;
   final String value;
-  final String subtitle;
+  final String sub;
+  final String trendPct;
+  final String trendVs;
   final KpiArt art;
-  final bool trend;
+  final IconData badge;
+  final Color badgeColor;
+  const _KpiDef({
+    required this.label,
+    required this.value,
+    this.sub = '',
+    required this.trendPct,
+    required this.trendVs,
+    required this.art,
+    required this.badge,
+    required this.badgeColor,
+  });
+}
+
+/// Carte KPI maquette : titre vert numéroté · badge d'option en haut à
+/// droite (chaque image a son icône) · grande valeur · sous-titre ·
+/// tendance verte · illustration 3D sur socle en bas à droite.
+class _KpiCard extends StatelessWidget {
+  final int index;
+  final _KpiDef def;
   final VoidCallback? onTap;
   const _KpiCard({
     super.key,
-    required this.label,
-    required this.value,
-    required this.subtitle,
-    required this.art,
-    required this.trend,
+    required this.index,
+    required this.def,
     this.onTap,
   });
+
+  static const _titleGreen = Color(0xFF43D97C);
 
   @override
   Widget build(BuildContext context) {
@@ -356,7 +434,7 @@ class _KpiCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: Container(
-          padding: const EdgeInsets.all(13),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
                 begin: Alignment.topLeft,
@@ -372,45 +450,75 @@ class _KpiCard extends StatelessWidget {
             ],
           ),
           child: Stack(children: [
+            // Illustration 3D grande, ancrée bas-droite (maquette).
             Positioned(
-              right: 2,
+              right: 0,
               bottom: 0,
               child: SizedBox(
-                width: 84,
-                height: 62,
-                child: CustomPaint(painter: KpiArtPainter(art)),
+                width: 118,
+                height: 86,
+                child: CustomPaint(painter: KpiArtPainter(def.art)),
               ),
             ),
-            Column(
+            // Badge d'option : chaque image a son icône (maquette).
+            Positioned(
+              right: 0,
+              top: 0,
+              child: Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0B1D13),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF2A4A38)),
+                ),
+                child: Icon(def.badge, size: 17, color: def.badgeColor),
+              ),
+            ),
+            // Textes à gauche : titre vert numéroté + valeur + tendance.
+            Positioned.fill(
+              right: 106,
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(label,
-                      style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.92),
+                  Text('$index. ${def.label}',
+                      style: const TextStyle(
+                          color: _titleGreen,
                           fontSize: 10.5,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.8)),
-                  const SizedBox(height: 7),
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(value,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900)),
-                    ),
+                  const SizedBox(height: 6),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(def.value,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900)),
                   ),
-                  const SizedBox(height: 4),
-                  Text(subtitle,
+                  if (def.sub.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(def.sub,
+                        style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.55),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600)),
+                  ],
+                  const SizedBox(height: 5),
+                  Text(def.trendPct,
+                      style: const TextStyle(
+                          color: _titleGreen,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800)),
+                  Text(def.trendVs,
                       style: TextStyle(
-                          color: trend
-                              ? AppColors.emeraldLight
-                              : AppColors.textSecondary,
-                          fontSize: 10.5,
+                          color: Colors.white.withValues(alpha: 0.60),
+                          fontSize: 9.5,
                           fontWeight: FontWeight.w600)),
-                ]),
+                ],
+              ),
+            ),
           ]),
         ),
       ),
@@ -1209,11 +1317,10 @@ class _Plan3DPanel extends StatelessWidget {
   final VoidCallback onOpen;
   const _Plan3DPanel({required this.onOpen});
   static const _legend = <(String, String)>[
-    ('A', 'Antalgiques'),
-    ('B', 'Antibiotiques'),
-    ('C', 'Cardiologie'),
-    ('D', 'Digestif'),
-    ('E', 'Soins'),
+    ('M', 'Médicaments'),
+    ('O', 'Ordonnances'),
+    ('S', 'Stock'),
+    ('C', 'Caisse'),
   ];
   @override
   Widget build(BuildContext context) {
@@ -1584,11 +1691,38 @@ class _IsoPainter extends CustomPainter {
       tp.paint(canvas, Offset(rect.left + 20, c.dy - tp.height / 2));
     }
 
-    chip(P(6.0, 5.25, 2.55), 'A', 'Antalgiques');
-    chip(P(0.9, 8.8, 3.05), 'B', 'Antibiotiques');
-    chip(P(10.6, 0.9, 3.05), 'C', 'Cardiologie');
-    chip(P(8.4, 7.75, 2.55), 'D', 'Digestif');
-    chip(P(7.0, 10.4, 1.95), 'C', 'Caisse');
+    // Étiquette de prix verte sur tête de gondole (maquette).
+    void priceTag(Offset c, String s) {
+      final tp = TextPainter(
+        text: TextSpan(
+            text: s,
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 7.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.2)),
+        textDirection: ui.TextDirection.ltr,
+      )..layout();
+      final rect = Rect.fromCenter(center: c, width: tp.width + 14, height: 15);
+      final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(7));
+      canvas.drawRRect(rrect, Paint()..color = const Color(0xE60E7A44));
+      canvas.drawRRect(
+          rrect,
+          Paint()
+            ..color = const Color(0xFF7BEBA4).withValues(alpha: 0.8)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1);
+      tp.paint(canvas, Offset(rect.left + 7, c.dy - tp.height / 2));
+    }
+
+    // Zones nommées de la maquette.
+    chip(P(5.5, 0.75, 3.15), 'M', 'MÉDICAMENTS');
+    chip(P(0.9, 8.8, 3.05), 'O', 'ORDONNANCES');
+    chip(P(10.6, 0.9, 3.05), 'S', 'STOCK');
+    chip(P(7.0, 10.4, 1.95), 'C', 'CAISSE');
+    // Étiquettes de prix vertes sur les têtes de gondoles (maquette).
+    priceTag(P(10.15, 5.25, 1.75), 'PARACÉTAMOL 23,50 DHS');
+    priceTag(P(10.15, 7.75, 1.75), 'DOLIPRANE 15,80 DHS');
   }
 
   @override
