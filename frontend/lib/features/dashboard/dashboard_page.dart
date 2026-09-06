@@ -11,18 +11,25 @@ import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/pharma_logo.dart';
+import '../accounting/accounting_page.dart';
+import '../ai/ai_page.dart';
+import '../attendance/attendance_page.dart';
 import '../cameras/cameras_page.dart';
 import '../catalog/catalog_page.dart';
 import '../customers/customers_page.dart';
 import '../employees/employees_page.dart';
 import '../floor_plan/pharmacy_plan_page.dart';
+import '../modules/modules_page.dart';
 import '../notifications/notifications_page.dart';
 import '../pos/pos_page.dart';
+import '../prescriptions/prescriptions_page.dart';
 import '../purchases/purchases_page.dart';
+import '../reference/reference_page.dart';
 import '../reports/reports_page.dart';
 import '../settings/settings_page.dart';
 import '../stock/stock_page.dart';
 import '../suppliers/suppliers_page.dart';
+import '../website/website_page.dart';
 import 'kpi_art.dart';
 
 /// ============================================================
@@ -146,6 +153,21 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
+  /// Menu « Autres modules » : s'ouvre à la demande depuis la sidebar et
+  /// se referme au choix d'une option ou au clic en dehors (barrière).
+  void _showModulesMenu() {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.55),
+      builder: (dialogContext) => _ModulesMenuDialog(
+        onOpen: (page) {
+          Navigator.of(dialogContext).pop();
+          _push(page);
+        },
+      ),
+    );
+  }
+
   VoidCallback? _kpiTap(int index) {
     switch (index) {
       case 0:
@@ -205,7 +227,10 @@ class _DashboardPageState extends State<DashboardPage> {
         return Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           SizedBox(
               width: 232,
-              child: _Sidebar(onSelect: _onMenuSelect, onLogout: _onLogout)),
+              child: _Sidebar(
+                  onSelect: _onMenuSelect,
+                  onLogout: _onLogout,
+                  onMoreModules: _showModulesMenu)),
           Container(width: 1, color: AppColors.dividerDark),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -403,7 +428,12 @@ const Color _gold = Color(0xFFD9B45C);
 class _Sidebar extends StatefulWidget {
   final ValueChanged<int> onSelect;
   final VoidCallback onLogout;
-  const _Sidebar({required this.onSelect, required this.onLogout});
+  final VoidCallback onMoreModules;
+  const _Sidebar({
+    required this.onSelect,
+    required this.onLogout,
+    required this.onMoreModules,
+  });
   @override
   State<_Sidebar> createState() => _SidebarState();
 }
@@ -509,6 +539,34 @@ class _SidebarState extends State<_Sidebar> {
                 ),
               );
             },
+          ),
+        ),
+        // ---- Autres modules (menu à la demande) ----
+        InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: widget.onMoreModules,
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+                color: const Color(0xFF07271C),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                    color: const Color(0xFFC9A24B).withValues(alpha: 0.55))),
+            child: Row(children: [
+              const Icon(Icons.apps_rounded, color: _gold, size: 19),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text('Autres modules',
+                    style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700)),
+              ),
+              const Icon(Icons.keyboard_arrow_right_rounded,
+                  color: _gold, size: 18),
+            ]),
           ),
         ),
         // ---- Carte Admin ----
@@ -638,6 +696,199 @@ class _SidebarState extends State<_Sidebar> {
     );
   }
 }
+
+/// ============================================================
+/// MENU « AUTRES MODULES » — panneau ouvert à la demande depuis
+/// la sidebar. Se referme au choix d'une option ou au clic en
+/// dehors (barrière du dialog). Regroupe les modules absents du
+/// menu latéral : ordonnances, pointage, comptabilité, IA...
+/// ============================================================
+class _ModulesMenuDialog extends StatelessWidget {
+  final ValueChanged<Widget> onOpen;
+  const _ModulesMenuDialog({required this.onOpen});
+
+  static const _entries = <(IconData, String, String, Widget)>[
+    (Icons.receipt_long_outlined, 'Ordonnances', 'Saisie et délivrance',
+        PrescriptionsPage()),
+    (Icons.fact_check_outlined, 'Pointage', 'Présences équipe',
+        AttendancePage()),
+    (Icons.account_balance_wallet_outlined, 'Comptabilité',
+        'Caisse et écritures', AccountingPage()),
+    (Icons.auto_awesome_outlined, 'Assistant IA', 'Prévisions et conseils',
+        AiPage()),
+    (Icons.menu_book_outlined, 'Référentiel', 'Données de référence',
+        ReferencePage()),
+    (Icons.notifications_outlined, 'Notifications', 'Alertes et messages',
+        NotificationsPage()),
+    (Icons.widgets_outlined, 'Modules', 'Gestionnaire de modules',
+        ModulesPage()),
+    (Icons.language_rounded, 'Site web', 'Blog et contenu public',
+        WebsitePage()),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 470),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF10291B), Color(0xFF0A1D13)]),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.goldBorder),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  blurRadius: 34,
+                  offset: const Offset(0, 20)),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: const Color(0xFF123327),
+                      border: Border.all(
+                          color: const Color(0xFFC9A24B)
+                              .withValues(alpha: 0.5))),
+                  child:
+                      const Icon(Icons.apps_rounded, color: _gold, size: 21),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Autres modules',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16.5,
+                                fontWeight: FontWeight.w900)),
+                        SizedBox(height: 2),
+                        Text('Modules absents du menu latéral',
+                            style: TextStyle(
+                                color: AppColors.textSecondary, fontSize: 11)),
+                      ]),
+                ),
+                InkWell(
+                  onTap: () => Navigator.of(context).pop(),
+                  borderRadius: BorderRadius.circular(9),
+                  child: Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(9),
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.10))),
+                    child: const Icon(Icons.close_rounded,
+                        size: 17, color: AppColors.textSecondary),
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 14),
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+                childAspectRatio: 2.5,
+                children: [
+                  for (final (icon, label, subtitle, page) in _entries)
+                    _ModuleMenuTile(
+                        icon: icon,
+                        label: label,
+                        subtitle: subtitle,
+                        onTap: () => onOpen(page)),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tuile du menu modules : icône encadrée or + titre + sous-titre.
+class _ModuleMenuTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final VoidCallback onTap;
+  const _ModuleMenuTile({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(13),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 11),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.035),
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(
+                color: const Color(0xFFC9A24B).withValues(alpha: 0.45)),
+          ),
+          child: Row(children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: const Color(0xFF123327),
+                  border: Border.all(
+                      color: const Color(0xFFC9A24B).withValues(alpha: 0.45))),
+              child: Icon(icon, size: 18, color: const Color(0xFFC9A24B)),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 1),
+                    Text(subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.42),
+                            fontSize: 10)),
+                  ]),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
 /// ============================================================
 /// TOP BAR — recherche pleine largeur + scan or + sélecteur
 /// pharmacie + notifications (badge 3) + réglages + sortie.
