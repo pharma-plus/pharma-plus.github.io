@@ -311,6 +311,7 @@ class _DashboardPageState extends State<DashboardPage> {
           trendPct: '+12,5%',
           trendVs: 'vs hier',
           art: KpiArt.register,
+          image: 'assets/images/kpi_ventes_du_jour.jpg',
           badge: Icons.point_of_sale_rounded,
           badgeColor: green),
       _KpiDef(
@@ -320,6 +321,7 @@ class _DashboardPageState extends State<DashboardPage> {
           trendPct: '+8,3%',
           trendVs: 'vs mois dernier',
           art: KpiArt.bottle,
+          image: 'assets/images/kpi_medicaments.jpg',
           badge: Icons.medication_rounded,
           badgeColor: green),
       _KpiDef(
@@ -407,6 +409,10 @@ class _KpiDef {
   final KpiArt art;
   final IconData badge;
   final Color badgeColor;
+
+  /// Image 3D réelle (asset) affichée à la place de l'illustration peinte.
+  /// Si null ou si le chargement échoue → fallback [KpiArtPainter].
+  final String? image;
   const _KpiDef({
     required this.label,
     required this.value,
@@ -416,6 +422,7 @@ class _KpiDef {
     required this.art,
     required this.badge,
     required this.badgeColor,
+    this.image,
   });
 }
 
@@ -465,17 +472,42 @@ class _KpiCard extends StatelessWidget {
           child: LayoutBuilder(builder: (context, box) {
             final w = box.maxWidth;
             final h = box.maxHeight;
-            final artW = (w * 0.50).clamp(56.0, 86.0);
-            final artH = (h * 0.50).clamp(38.0, 58.0);
+            final hasImg = def.image != null;
+            final artW =
+                hasImg ? (w * 0.56).clamp(70.0, 122.0) : (w * 0.50).clamp(56.0, 86.0);
+            final artH =
+                hasImg ? (h * 0.62).clamp(48.0, 76.0) : (h * 0.50).clamp(38.0, 58.0);
             return Stack(children: [
-              // Illustration 3D ancrée bas-droite (maquette).
+              // Illustration 3D ancrée bas-droite (maquette). Pour les cartes
+              // équipées d'une image 3D réelle : cadre arrondi noir assorti,
+              // sinon illustration peinte. Fallback automatique si l'image
+              // ne charge pas.
               Positioned(
                 right: 0,
                 bottom: 0,
                 child: SizedBox(
                   width: artW,
                   height: artH,
-                  child: CustomPaint(painter: KpiArtPainter(def.art)),
+                  child: hasImg
+                      ? Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFF2A4A38)),
+                          ),
+                          padding: const EdgeInsets.all(2),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.asset(
+                              def.image!,
+                              fit: BoxFit.contain,
+                              filterQuality: FilterQuality.medium,
+                              errorBuilder: (_, __, ___) => CustomPaint(
+                                  painter: KpiArtPainter(def.art)),
+                            ),
+                          ),
+                        )
+                      : CustomPaint(painter: KpiArtPainter(def.art)),
                 ),
               ),
               Column(
