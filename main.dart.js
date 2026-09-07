@@ -133005,20 +133005,20 @@ if(r.e)return B.bk9
 s=r.f
 if(s!=null)return A.em(q,B.fE,A.bC(new A.ab(B.e2,A.ai(A.b([B.acR,B.ag,A.m(s,q,q,q,q,B.Zr,B.cO,q,q),B.bm,A.ry(B.dy,B.bt4,r.gao7(),q)],t.p),B.G,B.x,B.ax),q),q,q),q,q)
 return A.em(q,B.fE,A.B1(new A.aQ7(r)),q,q)},
-alU(a){var s,r,q,p,o,n,m,l=this,k=null,j="vs hier",i="counts",h="total",g="fr_MA",f="vs mois dernier",e=A.cx(A.o_(l.d,"revenue","revenue_today",4280)),d=A.b9M(l.d,i,"medications",h,2145)
-d=A.h5(0,g).de(d)
+alU(a){var s,r,q,p,o,n,m,l=this,k="vs hier",j="counts",i="total",h="fr_MA",g="vs mois dernier",f=A.cx(A.o_(l.d,"revenue","revenue_today",4280)),e=A.b9M(l.d,j,"medications",i,2145)
+e=A.h5(0,h).de(e)
 s=B.n.D(A.o_(l.d,"alerts","low_stock",28))
 r=B.n.D(A.o_(l.d,"alerts","pending_orders",12))
-q=A.b9M(l.d,i,"suppliers",h,56)
-q=A.h5(0,g).de(q)
-p=A.b9M(l.d,i,"customers",h,1328)
-o=[new A.o2("VENTES DU JOUR",e,"","+12,5%",j,B.aeE,B.acd,B.f6,"assets/images/kpi_ventes_du_jour.jpg"),new A.o2("M\xc9DICAMENTS",d,"Total","+8,3%",f,B.aeF,B.ac8,B.f6,"assets/images/kpi_medicaments.jpg"),new A.o2("STOCK FAIBLE",""+s,"Produits","-5,2%",j,B.aeG,B.np,B.a5M,k),new A.o2("COMMANDES",""+r,"En cours","+4,7%",j,B.aeH,B.abZ,B.f6,k),new A.o2("FOURNISSEURS",q,"Fournisseurs","+2,6%",f,B.aeI,B.ac5,B.f6,k),new A.o2("CLIENTS",A.h5(0,g).de(p),"Clients","+15,3%",f,B.aeJ,B.ac0,B.f6,k),new A.o2("EMPLOY\xc9S",""+A.bxM(l.d,"employees_present",15),"Employ\xe9s","+2",f,B.aeK,B.acc,B.f6,k),new A.o2("B\xc9N\xc9FICE MOIS",A.cx(A.o_(l.d,"revenue","profit_month",28650)),"","+18,6%",f,B.aeL,B.abW,B.f6,k)]
+q=A.b9M(l.d,j,"suppliers",i,56)
+q=A.h5(0,h).de(q)
+p=A.b9M(l.d,j,"customers",i,1328)
+o=[new A.o2("VENTES DU JOUR",f,"","+12,5%",k,B.aeE,B.acd,B.f6,"assets/images/kpi_ventes_du_jour.jpg"),new A.o2("M\xc9DICAMENTS",e,"Total","+8,3%",g,B.aeF,B.ac8,B.f6,"assets/images/kpi_medicaments.jpg"),new A.o2("STOCK FAIBLE",""+s,"Produits","-5,2%",k,B.aeG,B.np,B.a5M,null),new A.o2("COMMANDES",""+r,"En cours","+4,7%",k,B.aeH,B.abZ,B.f6,null),new A.o2("FOURNISSEURS",q,"Fournisseurs","+2,6%",g,B.aeI,B.ac5,B.f6,"assets/images/kpi_fournisseurs.jpg"),new A.o2("CLIENTS",A.h5(0,h).de(p),"Clients","+15,3%",g,B.aeJ,B.ac0,B.f6,"assets/images/kpi_clients.jpg"),new A.o2("EMPLOY\xc9S",""+A.bxM(l.d,"employees_present",15),"Employ\xe9s","+2",g,B.aeK,B.acc,B.f6,"assets/images/kpi_employes.jpg"),new A.o2("B\xc9N\xc9FICE MOIS",A.cx(A.o_(l.d,"revenue","profit_month",28650)),"","+18,6%",g,B.aeL,B.abW,B.f6,null)]
+f=a?10:12
 e=a?10:12
-d=a?10:12
 s=a?1.6:1.45
 r=A.b([],t.p)
 for(q=t.kK,n=0;n<8;n=m){m=n+1
-r.push(new A.acT(m,o[n],l.awy(n),new A.dT("kpi-"+n,q)))}return A.b81(s,r,4,e,d,B.q3,!0)}}
+r.push(new A.acT(m,o[n],l.awy(n),new A.dT("kpi-"+n,q)))}return A.b81(s,r,4,f,e,B.q3,!0)}}
 A.aPV.prototype={
 $0(){var s=this.a
 s.e=!0
