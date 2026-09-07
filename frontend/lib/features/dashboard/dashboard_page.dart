@@ -3,13 +3,16 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/models/medication.dart';
 import '../../core/models/product.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
+import '../../core/utils/calculations.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/pharma_logo.dart';
 import '../../core/widgets/product_art.dart';
@@ -28,11 +31,13 @@ import '../prescriptions/prescriptions_page.dart';
 import '../purchases/purchases_page.dart';
 import '../reference/reference_page.dart';
 import '../reports/reports_page.dart';
+import '../scanner/scanner_page.dart';
 import '../settings/settings_page.dart';
 import '../stock/stock_page.dart';
 import '../suppliers/suppliers_page.dart';
 import '../website/website_page.dart';
 import 'kpi_art.dart';
+import 'pos_panel.dart';
 
 /// ============================================================
 /// DASHBOARD PHARMA+ — reconstruction IDENTIQUE à la maquette :
@@ -77,48 +82,74 @@ class _DashboardPageState extends State<DashboardPage> {
       _data = result.data;
       _loading = false;
     });
+    _loadNotificationCount();
   }
 
-  double get _revenueToday => _flat(_data, 'revenue', 'revenue_today', 4280);
-  double get _revenueMonth => _flat(_data, 'revenue', 'revenue_month', 128650);
-  double get _profitMonth => _flat(_data, 'revenue', 'profit_month', 28650);
-  int get _medications =>
-      _nested(_data, 'counts', 'medications', 'total', 2145);
-  int get _lowStock => _flat(_data, 'alerts', 'low_stock', 28).toInt();
-  int get _expiring => _flat(_data, 'alerts', 'expiring', 7).toInt();
-  int get _pendingOrders =>
-      _flat(_data, 'alerts', 'pending_orders', 12).toInt();
-  int get _suppliers => _nested(_data, 'counts', 'suppliers', 'total', 56);
-  int get _customers => _nested(_data, 'counts', 'customers', 'total', 1328);
-  int get _employees => _top(_data, 'employees_present', 15);
-
-  static double _flat(
-      Map<String, dynamic>? data, String section, String key, num fallback) {
-    final m = data?[section];
-    if (m is Map) {
-      final v = m[key];
-      if (v is num) return v.toDouble();
-    }
-    return fallback.toDouble();
+  /// Badge de notifications : valeur réelle depuis l'API (aucun chiffre
+  /// codé en dur). Silencieux en cas d'échec (badge = 0).
+  Future<void> _loadNotificationCount() async {
+    final r =
+        await ApiClient.instance.get<Map<String, dynamic>>('/notifications');
+    if (!mounted || !r.success) return;
+    final unread = r.data?['unread_count'] ?? r.data?['unread'];
+    setState(() => _notificationCount = _int(unread));
   }
 
-  static int _nested(Map<String, dynamic>? data, String a, String b, String key,
-      int fallback) {
-    final m1 = data?[a];
-    if (m1 is Map) {
-      final m2 = m1[b];
-      if (m2 is Map) {
-        final v = m2[key];
-        if (v is num) return v.toInt();
-      }
-    }
-    return fallback;
-  }
+  // ============================================================
+  // DONNÉES 100 % RÉELLES — aucune valeur de repli : si la base
+  // est vide, l'indicateur vaut 0. Les pourcentages de tendance
+  // sont calculés depuis les comparatifs renvoyés par l'API.
+  // ============================================================
+  double _num(dynamic v) => v == null ? 0 : (num.tryParse('$v') ?? 0).toDouble();
+  int _int(dynamic v) => v == null ? 0 : (int.tryParse('$v') ?? num.tryParse('$v')?.round() ?? 0);
 
-  static int _top(Map<String, dynamic>? data, String key, int fallback) {
-    final v = data?[key];
-    if (v is num) return v.toInt();
-    return fallback;
+  double get _revenueToday => _num(_flat0(_data, 'revenue', 'revenue_today'));
+  double get _revenueYesterday =>
+      _num(_flat0(_data, 'revenue', 'revenue_yesterday'));
+  double get _revenueMonth => _num(_flat0(_data, 'revenue', 'revenue_month'));
+  double get _profitMonth => _num(_flat0(_data, 'revenue', 'profit_month'));
+  double get _profitLastMonth =>
+      _num(_flat0(_data, 'revenue', 'profit_last_month'));
+  int get _medications => _int(_nested(_data, 'counts', 'medications', 'total'));
+  int get _lowStock => _int(_flat0(_data, 'alerts', 'low_stock'));
+  int get _expiring => _int(_flat0(_data, 'alerts', 'expiring'));
+  int get _expired => _int(_flat0(_data, 'alerts', 'expired'));
+  int get _pendingOrders => _int(_flat0(_data, 'alerts', 'pending_orders'));
+  int get _suppliers => _int(_nested(_data, 'counts', 'suppliers', 'total'));
+  int get _customers => _int(_nested(_data, 'counts', 'customers', 'total'));
+  int get _employees => _int(_top0(_data, 'employees_present'));
+
+  /// Tendances réelles (% de variation vs période précédente) —
+  /// null = pas de comparaison possible → aucune invention affichée.
+  double? get _trendRevenueToday =>
+      periodVariation(_revenueToday, _revenueYesterday);
+  double? get _trendProfitMonth =>
+      periodVariation(_profitMonth, _profitLastMonth);
+
+  int _notificationCount = 0;
+
+  static dynamic _flat0(
+    Map<String, dynamic>? map,
+    String section,
+    String key,
+  ) =>
+      _nested(map, section, key);
+
+  static dynamic _top0(Map<String, dynamic>? map, String key) =>
+      map == null ? null : map[key];
+
+  static dynamic _nested(
+    Map<String, dynamic>? map,
+    String a,
+    String b,
+    [String? c,
+  ]) {
+    if (map == null) return null;
+    final section = map[a];
+    if (section is! Map) return null;
+    if (c == null) return section[b];
+    final inner = section[b];
+    return inner is Map ? inner[c] : null;
   }
 
   void _push(Widget page) =>
@@ -149,10 +180,53 @@ class _DashboardPageState extends State<DashboardPage> {
       case 10:
         _push(const CamerasPage());
       case 11:
-        _push(const PosPage());
+        _push(const ScannerPage());
       case 12:
         _push(const SettingsPage());
     }
+  }
+
+  /// Menu latéral rétractable (tablettes / mobiles) : overlay plein écran,
+  /// fermeture par ESC, par clic extérieur et à chaque navigation.
+  void _openMenuDrawer() {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black54,
+      barrierDismissible: true, // clic HORS du menu → fermeture
+      builder: (ctx) {
+        return KeyboardListener(
+          focusNode: FocusNode()..requestFocus(),
+          onKeyEvent: (event) {
+            if (event.logicalKey == LogicalKeyboardKey.escape) {
+              Navigator.of(ctx).pop(); // ESC → fermeture
+            }
+          },
+          child: Dialog(
+            alignment: Alignment.centerLeft,
+            insetPadding: EdgeInsets.zero,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: SizedBox(
+              width: 250,
+              child: _Sidebar(
+                onSelect: (index) {
+                  Navigator.of(ctx).pop(); // navigation → referme le menu
+                  _onMenuSelect(index);
+                },
+                onLogout: () {
+                  Navigator.of(ctx).pop();
+                  _onLogout();
+                },
+                onMoreModules: () {
+                  Navigator.of(ctx).pop();
+                  _showModulesMenu();
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   /// Menu « Autres modules » : s'ouvre à la demande depuis la sidebar et
@@ -173,7 +247,7 @@ class _DashboardPageState extends State<DashboardPage> {
   VoidCallback? _kpiTap(int index) {
     switch (index) {
       case 0:
-        return () => _push(const ReportsPage());
+        return () => _push(const PosPage()); // ventes du jour → POS
       case 1:
         return () => _push(const CatalogPage());
       case 2:
@@ -225,77 +299,97 @@ class _DashboardPageState extends State<DashboardPage> {
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       body: LayoutBuilder(builder: (context, constraints) {
-        final posWidth = constraints.maxWidth >= 1500 ? 430.0 : 385.0;
+        final w = constraints.maxWidth;
+        // Large POS latéral uniquement sur les grands écrans ; en dessous,
+        // le POS complet reste accessible via le panneau réduit et les menus.
+        final showPosPanel = w >= 1300;
+        final posWidth = w >= 1560 ? 430.0 : 385.0;
+        // Sidebar fixe sur desktop ; hamburger + overlay sur écrans réduits.
+        final showSidebar = w >= 1150;
         // Écrans bas (1366×768, 1536×864...) : proportions compactes pour
         // que TOUT le dashboard (KPI, alertes, plan 3D, barre basse) reste
         // entièrement visible, sans carte ni cellule coupée.
         final vh = MediaQuery.of(context).size.height;
         final compact = vh < 900;
-        return Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          SizedBox(
-              width: 232,
-              child: _Sidebar(
-                  onSelect: _onMenuSelect,
+        return Stack(children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            if (showSidebar) ...[
+              SizedBox(
+                  width: 232,
+                  child: _Sidebar(
+                      onSelect: _onMenuSelect,
+                      onLogout: _onLogout,
+                      onMoreModules: _showModulesMenu)),
+              Container(width: 1, color: AppColors.dividerDark),
+            ],
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                _TopBar(
+                  onMenu: showSidebar ? null : _openMenuDrawer,
+                  onSearch: () => _push(const CatalogPage()),
+                  onScan: () => _push(const ScannerPage()),
+                  onNotifications: () => _push(const NotificationsPage()),
+                  onSettings: () => _push(const SettingsPage()),
                   onLogout: _onLogout,
-                  onMoreModules: _showModulesMenu)),
-          Container(width: 1, color: AppColors.dividerDark),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              _TopBar(
-                onSearch: () => _push(const CatalogPage()),
-                onScan: () => _push(const PosPage()),
-                onNotifications: () => _push(const NotificationsPage()),
-                onSettings: () => _push(const SettingsPage()),
-                onLogout: _onLogout,
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(14, compact ? 10 : 14, 14, compact ? 8 : 10),
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildKpiGrid(compact: compact),
-                        SizedBox(height: compact ? 10 : 12),
-                        Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                flex: 5,
-                                child: _AlertsStockPanel(
-                                  lowStock: _lowStock,
-                                  expiring: _expiring,
-                                  onViewAll: () => _push(
-                                      const StockPage(initialFilter: 'low')),
-                                  compact: compact,
-                                ),
-                              ),
-                              SizedBox(width: compact ? 10 : 12),
-                              Expanded(
-                                flex: 7,
-                                child: _Plan3DPanel(
-                                    onOpen: () =>
-                                        _push(const PharmacyPlanPage()),
-                                    compact: compact),
-                              ),
-                            ]),
-                        SizedBox(height: compact ? 10 : 12),
-                        _BottomBar(
-                          revenueToday: _revenueToday,
-                          revenueMonth: _revenueMonth,
-                          profitMonth: _profitMonth,
-                          expiring: _expiring,
-                          lowStock: _lowStock,
-                          compact: compact,
-                        ),
-                      ]),
+                  notificationCount: _notificationCount,
                 ),
-              ),
-            ]),
-          ),
-          Container(width: 1, color: AppColors.dividerDark),
-          SizedBox(
-              width: posWidth,
-              child: _PosPanel(onCheckout: () => _push(const PosPage()))),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(14, compact ? 10 : 14, 14, compact ? 8 : 10),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildKpiGrid(compact: compact),
+                          SizedBox(height: compact ? 10 : 12),
+                          Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  flex: 5,
+                                  child: _AlertsStockPanel(
+                                    lowStock: _lowStock,
+                                    expiring: _expiring,
+                                    onViewAll: () => _push(
+                                        const StockPage(initialFilter: 'low')),
+                                    compact: compact,
+                                  ),
+                                ),
+                                SizedBox(width: compact ? 10 : 12),
+                                Expanded(
+                                  flex: 7,
+                                  child: _Plan3DPanel(
+                                      onOpen: () =>
+                                          _push(const PharmacyPlanPage()),
+                                      compact: compact),
+                                ),
+                              ]),
+                          SizedBox(height: compact ? 10 : 12),
+                          _BottomBar(
+                            revenueToday: _revenueToday,
+                            revenueMonth: _revenueMonth,
+                            profitMonth: _profitMonth,
+                            expiring: _expiring,
+                            lowStock: _lowStock,
+                            compact: compact,
+                          ),
+                        ]),
+                  ),
+                ),
+              ]),
+            ),
+            if (showPosPanel) ...[
+              Container(width: 1, color: AppColors.dividerDark),
+              SizedBox(
+                  width: posWidth,
+                  child: _PosPanel(
+                      onCheckout: () => _push(const PosPage()),
+                      onPrefilled: (items, discount, isPercent) => _push(
+                          PosPage(initialItems: items,
+                              initialDiscount: discount,
+                              initialDiscountIsPercent: isPercent)),
+                      compact: compact)),
+            ],
+          ]),
         ]);
       }),
     );
@@ -304,41 +398,36 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _buildKpiGrid({required bool compact}) {
     const green = Color(0xFF43D97C);
     const amber = Color(0xFFFFA24A);
+    // Tendance affichée UNIQUEMENT si un comparatif réel existe.
+    String? pct(double? v) =>
+        v == null ? null : '${v >= 0 ? '+' : ''}${v.toStringAsFixed(1)}%';
     final kpis = <_KpiDef>[
       _KpiDef(
           label: 'VENTES DU JOUR',
           value: Fmt.money(_revenueToday),
-          trendPct: '+12,5%',
+          trendPct: pct(_trendRevenueToday),
           trendVs: 'vs hier',
           art: KpiArt.register,
-          image: 'assets/images/kpi_ventes_du_jour.jpg',
           badge: Icons.point_of_sale_rounded,
           badgeColor: green),
       _KpiDef(
           label: 'MÉDICAMENTS',
           value: Fmt.number(_medications),
-          sub: 'Total',
-          trendPct: '+8,3%',
-          trendVs: 'vs mois dernier',
+          sub: 'Références actives',
           art: KpiArt.bottle,
-          image: 'assets/images/kpi_medicaments.jpg',
           badge: Icons.medication_rounded,
           badgeColor: green),
       _KpiDef(
           label: 'STOCK FAIBLE',
           value: '$_lowStock',
           sub: 'Produits',
-          trendPct: '-5,2%',
-          trendVs: 'vs hier',
           art: KpiArt.boxes,
           badge: Icons.warning_amber_rounded,
           badgeColor: amber),
       _KpiDef(
           label: 'COMMANDES',
           value: '$_pendingOrders',
-          sub: 'En cours',
-          trendPct: '+4,7%',
-          trendVs: 'vs hier',
+          sub: 'En attente',
           art: KpiArt.clipboard,
           badge: Icons.fact_check_rounded,
           badgeColor: green),
@@ -346,43 +435,36 @@ class _DashboardPageState extends State<DashboardPage> {
           label: 'FOURNISSEURS',
           value: Fmt.number(_suppliers),
           sub: 'Fournisseurs',
-          trendPct: '+2,6%',
-          trendVs: 'vs mois dernier',
           art: KpiArt.truck,
-          image: 'assets/images/kpi_fournisseurs.jpg',
           badge: Icons.local_shipping_rounded,
           badgeColor: green),
       _KpiDef(
           label: 'CLIENTS',
           value: Fmt.number(_customers),
           sub: 'Clients',
-          trendPct: '+15,3%',
-          trendVs: 'vs mois dernier',
           art: KpiArt.people,
-          image: 'assets/images/kpi_clients.jpg',
           badge: Icons.groups_rounded,
           badgeColor: green),
       _KpiDef(
           label: 'EMPLOYÉS',
           value: '$_employees',
           sub: 'Employés',
-          trendPct: '+2',
-          trendVs: 'vs mois dernier',
           art: KpiArt.pharmacist,
-          image: 'assets/images/kpi_employes.jpg',
           badge: Icons.person_rounded,
           badgeColor: green),
       _KpiDef(
           label: 'BÉNÉFICE MOIS',
           value: Fmt.money(_profitMonth),
-          trendPct: '+18,6%',
+          trendPct: pct(_trendProfitMonth),
           trendVs: 'vs mois dernier',
           art: KpiArt.bars,
           badge: Icons.bar_chart_rounded,
           badgeColor: green),
     ];
+    // 4 colonnes sur desktop ; 2 sur les écrans étroits (lisible partout).
+    final cols = MediaQuery.of(context).size.width >= 980 ? 4 : 2;
     return GridView.count(
-      crossAxisCount: 4,
+      crossAxisCount: cols,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: compact ? 10 : 12,
@@ -401,31 +483,26 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 }
 
-/// Définition d'une carte KPI maquette : badge d'option, sous-titre,
-/// tendance verte vs période.
+/// Définition d'une carte KPI : badge, sous-titre et tendance RÉELLE
+/// (null = pas de comparaison disponible → rien n'est inventé).
 class _KpiDef {
   final String label;
   final String value;
   final String sub;
-  final String trendPct;
+  final String? trendPct;
   final String trendVs;
   final KpiArt art;
   final IconData badge;
   final Color badgeColor;
-
-  /// Image 3D réelle (asset) affichée à la place de l'illustration peinte.
-  /// Si null ou si le chargement échoue → fallback [KpiArtPainter].
-  final String? image;
   const _KpiDef({
     required this.label,
     required this.value,
     this.sub = '',
-    required this.trendPct,
-    required this.trendVs,
+    this.trendPct,
+    this.trendVs = '',
     required this.art,
     required this.badge,
     required this.badgeColor,
-    this.image,
   });
 }
 
@@ -470,112 +547,101 @@ class _KpiCard extends StatelessWidget {
             ],
           ),
           child: LayoutBuilder(builder: (context, box) {
-            final hasImg = def.image != null;
+            // ENCART VISUEL : l'illustration (transparence totale, aucun
+            // arrière-plan) vit dans sa propre zone en bas à droite.
+            // Elle ne passe JAMAIS derrière le titre, la valeur ou les
+            // textes : la colonne de texte est réservée à gauche.
+            final artW = (box.maxWidth * 0.42).clamp(84.0, 180.0);
+            final artH = artW * 80.0 / 100.0;
             return Stack(
               clipBehavior: Clip.hardEdge,
               children: [
-                // IMAGE DE FOND PLEINE COUVERTURE
-                if (hasImg)
-                  Positioned.fill(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(13),
-                      child: Image.asset(
-                        def.image!,
-                        fit: BoxFit.cover,
-                        alignment: Alignment.center,
-                        filterQuality: FilterQuality.medium,
-                        errorBuilder: (_, __, ___) =>
-                            CustomPaint(painter: KpiArtPainter(def.art)),
-                      ),
-                    ),
-                  ),
-                // Overlay dégradé sombre : texte lisible, image visible
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          const Color(0xFF0A1D13).withValues(alpha: 0.92),
-                          const Color(0xFF0A1D13).withValues(alpha: 0.70),
-                          const Color(0xFF10291B).withValues(alpha: 0.55),
-                        ],
-                        stops: const [0.0, 0.5, 1.0],
-                      ),
-                      borderRadius: BorderRadius.circular(13),
-                    ),
+                // Illustration transparente — encart dédié, indépendant
+                // du fond de la carte (pas d'image de fond, pas d'overlay).
+                Positioned(
+                  bottom: 6,
+                  right: 8,
+                  width: artW,
+                  height: artH,
+                  child: RepaintBoundary(
+                    child: CustomPaint(painter: KpiArtPainter(def.art)),
                   ),
                 ),
-                // CONTENU TEXTE PAR-DESSUS
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Titre vert numéroté + badge
-                    Row(children: [
-                      Expanded(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text('$index. ${def.label}',
-                              maxLines: 1,
-                              style: const TextStyle(
-                                  color: _titleGreen,
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.8)),
+                // CONTENU TEXTE — zone protégée, jamais recouverte.
+                Padding(
+                  padding: EdgeInsets.only(right: artW * 0.42),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Titre vert numéroté + badge
+                      Row(children: [
+                        Expanded(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text('$index. ${def.label}',
+                                maxLines: 1,
+                                style: const TextStyle(
+                                    color: _titleGreen,
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.8)),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0B1D13),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFF2A4A38)),
+                        const SizedBox(width: 6),
+                        Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0B1D13),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFF2A4A38)),
+                          ),
+                          child: Icon(def.badge, size: 14, color: def.badgeColor),
                         ),
-                        child: Icon(def.badge, size: 14, color: def.badgeColor),
+                      ]),
+                      const Spacer(),
+                      // Valeur
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(def.value,
+                            maxLines: 1,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900)),
                       ),
-                    ]),
-                    const Spacer(),
-                    // Valeur
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(def.value,
-                          maxLines: 1,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900)),
-                    ),
-                    if (def.sub.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(def.sub,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.75),
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w600)),
+                      if (def.sub.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(def.sub,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.75),
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w600)),
+                      ],
+                      const SizedBox(height: 4),
+                      // Tendance réelle uniquement (sinon rien d'inventé).
+                      if (def.trendPct != null) ...[
+                        Text(def.trendPct!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                color: _titleGreen,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w800)),
+                        Text(def.trendVs,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.70),
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w600)),
+                      ],
                     ],
-                    const SizedBox(height: 4),
-                    Text(def.trendPct,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: _titleGreen,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w800)),
-                    Text(def.trendVs,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.70),
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w600)),
-                  ],
+                  ),
                 ),
               ],
             );
@@ -773,24 +839,44 @@ class _SidebarState extends State<_Sidebar> {
               ),
             ]),
             const SizedBox(width: 10),
-            const Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Admin',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800)),
-                    Text('Administrateur',
-                        style: TextStyle(
-                            color: AppColors.textSecondary, fontSize: 10.5)),
-                    Text('Pharmacie Dar Al Shifa',
-                        style: TextStyle(
-                            color: AppColors.emeraldLight,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600)),
-                  ]),
+            Expanded(
+              child: Builder(builder: (context) {
+                // Identité RÉELLE de la session (aucun nom inventé) :
+                // nom affiché = prénom + nom, rôle et pharmacie renvoyés
+                // par l'API de connexion.
+                final user = context.watch<AuthStore>().user;
+                final role = user?.roleName;
+                final pharmacy = user?.pharmacyName;
+                return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                          (user?.fullName.trim().isNotEmpty ?? false)
+                              ? user!.fullName
+                              : 'Admin',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800)),
+                      if (role != null && role.isNotEmpty)
+                        Text(role,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 10.5)),
+                      if (pharmacy != null && pharmacy.isNotEmpty)
+                        Text(pharmacy,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                color: AppColors.emeraldLight,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600)),
+                    ]);
+              }),
             ),
           ]),
         ),
@@ -1058,25 +1144,34 @@ class _ModuleMenuTile extends StatelessWidget {
 }
 
 /// ============================================================
-/// TOP BAR — recherche pleine largeur + scan or + sélecteur
-/// pharmacie + notifications (badge 3) + réglages + sortie.
+/// TOP BAR — hamburger (écrans réduits) + recherche pleine
+/// largeur + scan or + identité RÉELLE (pharmacie/utilisateur)
+/// + notifications (badge réel) + réglages + sortie.
 /// ============================================================
 class _TopBar extends StatelessWidget {
+  final VoidCallback? onMenu;
   final VoidCallback onSearch;
   final VoidCallback onScan;
   final VoidCallback onNotifications;
   final VoidCallback onSettings;
   final VoidCallback onLogout;
+  final int notificationCount;
   const _TopBar({
+    this.onMenu,
     required this.onSearch,
     required this.onScan,
     required this.onNotifications,
     required this.onSettings,
     required this.onLogout,
+    this.notificationCount = 0,
   });
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthStore>().user;
+    final pharmacyName =
+        (user?.pharmacyName?.trim().isNotEmpty ?? false) ? user!.pharmacyName! : 'PHARMA+';
+    final roleLabel = user?.roleName ?? 'Admin';
     return Container(
       height: 62,
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1086,6 +1181,18 @@ class _TopBar extends StatelessWidget {
               bottom:
                   BorderSide(color: AppColors.dividerDark.withValues(alpha: 0.7)))),
       child: Row(children: [
+        // ☰ — menu rétractable sur tablette/mobile (masqué sur desktop).
+        if (onMenu != null) ...[
+          InkWell(
+            onTap: onMenu,
+            borderRadius: BorderRadius.circular(10),
+            child: const Padding(
+              padding: EdgeInsets.all(8),
+              child: Icon(Icons.menu, size: 26, color: _gold),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
         // Identité PHARMA+ (logo officiel) à gauche du header.
         const PharmaPlusLogo(size: 34),
         const SizedBox(width: 12),
@@ -1149,24 +1256,32 @@ class _TopBar extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Text('Pharmacie Dar Al Shifa',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800)),
+                  Flexible(
+                    child: Text(pharmacyName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800)),
+                  ),
                   const SizedBox(width: 4),
                   const Icon(Icons.keyboard_arrow_down,
                       size: 18, color: AppColors.textSecondary),
                 ]),
-                const Text('Admin',
-                    style: TextStyle(
+                Text(roleLabel,
+                    style: const TextStyle(
                         color: AppColors.emeraldLight,
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700)),
               ]),
         ),
         const SizedBox(width: 14),
-        _TopIcon(icon: Icons.notifications_outlined, badge: '3', onTap: onNotifications),
+        // Badge notifications : compteur RÉEL depuis l'API (0 = pas de badge).
+        _TopIcon(
+            icon: Icons.notifications_outlined,
+            badge: notificationCount > 0 ? '$notificationCount' : null,
+            onTap: onNotifications),
         const SizedBox(width: 8),
         _TopIcon(icon: Icons.settings_outlined, onTap: onSettings),
         const SizedBox(width: 8),
@@ -1379,11 +1494,20 @@ class _AlertRow extends StatelessWidget {
 /// PLAN 3D DE LA PHARMACIE — scène isométrique (maquette) :
 /// murs sombres, rayonnages bois, gondoles, caisse liseré or,
 /// plantes, étiquettes de rayons, contrôles et légende A-E.
+/// Boutons RÉELS : rotation et zoom s'appliquent à la scène
+/// affichée ; « Vue 3D » / plein écran ouvrent la page complète.
 /// ============================================================
-class _Plan3DPanel extends StatelessWidget {
+class _Plan3DPanel extends StatefulWidget {
   final VoidCallback onOpen;
   final bool compact;
   const _Plan3DPanel({required this.onOpen, this.compact = false});
+  @override
+  State<_Plan3DPanel> createState() => _Plan3DPanelState();
+}
+
+class _Plan3DPanelState extends State<_Plan3DPanel> {
+  double _rot = 0.0;
+  double _zoom = 1.0;
   static const _legend = <(String, String)>[
     ('M', 'Médicaments'),
     ('O', 'Ordonnances'),
@@ -1400,7 +1524,7 @@ class _Plan3DPanel extends StatelessWidget {
         SizedBox(
           // Hauteur adaptative : écrans bas => scène réduite mais complète
           // (le bas du dashboard reste entièrement visible, rien n'est masqué).
-          height: compact ? 152.0 : 236.0,
+          height: widget.compact ? 152.0 : 236.0,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: Container(
@@ -1412,9 +1536,13 @@ class _Plan3DPanel extends StatelessWidget {
                   border: Border.all(
                       color: AppColors.dividerDark.withValues(alpha: 0.9))),
               child: Stack(children: [
+                // Glisser pour faire tourner la scène (interaction réelle).
                 Positioned.fill(
-                    child: CustomPaint(
-                        painter: _IsoPainter())),
+                    child: GestureDetector(
+                  onPanUpdate: (d) =>
+                      setState(() => _rot += d.delta.dx * 0.008),
+                  child: CustomPaint(painter: _IsoPainter(rot: _rot, zoom: _zoom)),
+                )),
                 Positioned(
                   right: 8,
                   top: 8,
@@ -1422,18 +1550,25 @@ class _Plan3DPanel extends StatelessWidget {
                     _PlanBtn(
                         icon: Icons.view_in_ar_rounded,
                         label: 'Vue 3D',
-                        onTap: onOpen),
+                        onTap: widget.onOpen),
                     const SizedBox(height: 6),
                     _PlanBtn(
                         icon: Icons.rotate_right_rounded,
                         label: 'Tourner',
-                        onTap: onOpen),
+                        onTap: () => setState(() => _rot += 0.25)),
                     const SizedBox(height: 6),
-                    _PlanBtn(icon: Icons.add_rounded, onTap: onOpen),
+                    _PlanBtn(
+                        icon: Icons.add_rounded,
+                        onTap: () => setState(
+                            () => _zoom = math.min(1.8, _zoom * 1.15))),
                     const SizedBox(height: 6),
-                    _PlanBtn(icon: Icons.remove_rounded, onTap: onOpen),
+                    _PlanBtn(
+                        icon: Icons.remove_rounded,
+                        onTap: () =>
+                            setState(() => _zoom = math.max(0.6, _zoom / 1.15))),
                     const SizedBox(height: 6),
-                    _PlanBtn(icon: Icons.fullscreen_rounded, onTap: onOpen),
+                    _PlanBtn(
+                        icon: Icons.fullscreen_rounded, onTap: widget.onOpen),
                   ]),
                 ),
               ]),
@@ -1509,12 +1644,23 @@ class _LegendItem extends StatelessWidget {
       ]);
 }
 /// Peintre de la scène isométrique 2.5D (projection axonométrique).
+/// Supporte une rotation [rot] (radians) et un zoom [zoom] pilotés
+/// par les boutons du panneau du dashboard.
 class _IsoPainter extends CustomPainter {
+  final double rot;
+  final double zoom;
+  const _IsoPainter({this.rot = 0.0, this.zoom = 1.0});
   late double ux, uy, uz, ox, oy;
   static const room = 12.0, wallH = 3.6;
 
-  Offset P(double x, double y, double z) =>
-      Offset(ox + (x - y) * ux, oy + (x + y) * uy - z * uz);
+  Offset P(double x, double y, double z) {
+    // Rotation horizontale du plan avant projection isométrique.
+    final cr = math.cos(rot), sr = math.sin(rot);
+    final rx = x * cr - y * sr;
+    final ry = x * sr + y * cr;
+    return Offset(ox + (rx - ry) * ux * zoom,
+        oy + (rx + ry) * uy * zoom - z * uz * zoom);
+  }
 
   void quad(Canvas canvas, List<Offset> pts, Color c) {
     final path = Path()..moveTo(pts[0].dx, pts[0].dy);
@@ -1553,7 +1699,7 @@ class _IsoPainter extends CustomPainter {
     uy = u * 0.5;
     uz = u * 0.62;
     ox = w * 0.5;
-    oy = h / 2 - room * uy + wallH * uz / 2 + u * 0.4;
+    oy = h / 2 - room * uy * zoom + wallH * uz * zoom / 2 + u * 0.4;
 
     // ---- Sol : dalle sombre + grille de tuiles ----
     quad(canvas, [
@@ -1989,354 +2135,25 @@ class _MiniCurvePainter extends CustomPainter {
 /// 8 catégories POS (maquette) — chacune avec SA miniature 3D peinte.
 enum _CatKind { all, meds, vitamins, care, baby, firstAid, beauty, accessories }
 
+/// ============================================================
+/// POINT DE VENTE (colonne droite) — délègue au VRAI mini-POS
+/// (`pos_panel.dart`) : recherche API réelle, panier, remise,
+/// totaux centralisés, suspendre/reprendre, paiement → POS.
+/// ============================================================
 class _PosPanel extends StatelessWidget {
   final VoidCallback onCheckout;
-  const _PosPanel({required this.onCheckout});
-
-  static const _cats = <(String, _CatKind)>[
-    ('TOUT', _CatKind.all),
-    ('MÉDICAMENTS', _CatKind.meds),
-    ('VITAMINES', _CatKind.vitamins),
-    ('SANTÉ & SOINS', _CatKind.care),
-    ('BÉBÉ & MAMAN', _CatKind.baby),
-    ('PREMIERS SECOURS', _CatKind.firstAid),
-    ('BEAUTÉ', _CatKind.beauty),
-    ('ACCESSOIRES', _CatKind.accessories),
-  ];
-  /// Panier de démonstration — chaque produit possède sa propre
-  /// illustration (champ `image` si un visuel réel existe, sinon
-  /// miniature 3D peinte [ProductArt] en fallback propre).
-  static const _products = <Product>[
-    Product(
-        id: 'doliprane-1g',
-        name: 'Doliprane 1g',
-        subtitle: 'Paracétamol · Comprimé',
-        category: 'MÉDICAMENTS',
-        price: 18.00,
-        stock: 124,
-        qty: 2,
-        tint: Color(0xFF2FB563),
-        art: ProductArt.doliprane),
-    Product(
-        id: 'bio-3',
-        name: 'Bio 3',
-        subtitle: 'Complément alimentaire',
-        category: 'SANTÉ & SOINS',
-        price: 45.00,
-        stock: 32,
-        tint: Color(0xFF9B5FC0),
-        art: ProductArt.bio3),
-    Product(
-        id: 'eau-thermale',
-        name: 'Eau Thermale',
-        subtitle: 'Spray apaisant · 300ml',
-        category: 'SANTÉ & SOINS',
-        price: 39.00,
-        stock: 58,
-        tint: Color(0xFF5B8FD9),
-        art: ProductArt.eauThermale),
-    Product(
-        id: 'vitamine-c-1000',
-        name: 'Vitamine C 1000',
-        subtitle: 'Effervescent',
-        category: 'VITAMINES',
-        price: 25.00,
-        stock: 76,
-        tint: Color(0xFFF0B429),
-        art: ProductArt.vitamineC),
-    Product(
-        id: 'paracetamol-500',
-        name: 'Paracétamol 500mg',
-        subtitle: 'Antalgique · Boîte de 16',
-        category: 'MÉDICAMENTS',
-        price: 12.00,
-        stock: 210,
-        tint: Color(0xFF2FB563),
-        art: ProductArt.paracetamol),
-    Product(
-        id: 'mucosolvan',
-        name: 'Mucosolvan',
-        subtitle: 'Sirop expectorant · 100ml',
-        category: 'MÉDICAMENTS',
-        price: 32.00,
-        stock: 19,
-        tint: Color(0xFFE0557C),
-        art: ProductArt.mucosolvan),
-  ];
-
-  static String _m2(double v) => v.toStringAsFixed(2).replaceAll('.', ',');
+  final void Function(List<Medication> items, double discount, bool isPercent)?
+      onPrefilled;
+  final bool compact;
+  const _PosPanel(
+      {required this.onCheckout, this.onPrefilled, this.compact = false});
 
   @override
-  Widget build(BuildContext context) {
-    final totalQty = _products.fold<int>(0, (sum, p) => sum + p.qty);
-    final total = _products.fold<double>(0, (sum, p) => sum + p.qty * p.price);
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF081812), Color(0xFF050E0B)]),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        // ---- Titre ----
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
-          child: Row(children: [
-            const Icon(Icons.shopping_cart_outlined, color: _gold, size: 20),
-            const SizedBox(width: 9),
-            Text('POINT DE VENTE',
-                style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.95),
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.6)),
-          ]),
-        ),
-        // ---- Recherche ----
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Container(
-            height: 38,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-                color: const Color(0xFF0A201A),
-                borderRadius: BorderRadius.circular(10),
-                border:
-                    Border.all(color: Colors.white.withValues(alpha: 0.09))),
-            child: Row(children: [
-              Expanded(
-                child: Text('Rechercher un médicament (nom, code, labo...)',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.35),
-                        fontSize: 12)),
-              ),
-              const Icon(Icons.search,
-                  size: 18, color: AppColors.textSecondary),
-            ]),
-          ),
-        ),
-        const SizedBox(height: 10),
-        // ---- Catégories 4 x 2 ----
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: GridView.count(
-            crossAxisCount: 4,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            childAspectRatio: 1.04,
-            crossAxisSpacing: 7,
-            mainAxisSpacing: 7,
-            children: [
-              for (final (name, kind) in _cats)
-                _CatCell(name: name, kind: kind),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        // ---- En-tête table ----
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 2, 16, 4),
-          child: Row(children: [
-            const Expanded(flex: 4, child: _HeaderCell('Produit')),
-            const Expanded(flex: 2, child: _HeaderCell('Qté')),
-            const Expanded(flex: 2, child: _HeaderCell('Prix')),
-            const Expanded(flex: 2, child: _HeaderCell('Total')),
-            const SizedBox(width: 22),
-          ]),
-        ),
-        // ---- Produits ----
-        Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
-            itemCount: _products.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 6),
-            itemBuilder: (context, i) {
-              final p = _products[i];
-              return _ProductRow(product: p);
-            },
-          ),
-        ),
-        // ---- Total ----
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                    colors: [Color(0xFF00A24C), Color(0xFF007A3D)]),
-                borderRadius: BorderRadius.circular(12)),
-            child: Row(children: [
-              Text('Total ($totalQty produits)',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700)),
-              const Spacer(),
-              Text('${_m2(total)} MAD',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 19,
-                      fontWeight: FontWeight.w900)),
-            ]),
-          ),
-        ),
-        const SizedBox(height: 10),
-        // ---- Vider / Suspendre / Paiement ----
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Row(children: [
-            Expanded(
-                child: _PosButton(
-                    label: 'Vider',
-                    icon: Icons.delete_outline_rounded,
-                    color: const Color(0xFFB3372F),
-                    onTap: onCheckout)),
-            const SizedBox(width: 8),
-            Expanded(
-                child: _PosButton(
-                    label: 'Suspendre',
-                    icon: Icons.pause_circle_outline_rounded,
-                    color: const Color(0xFFB98A1F),
-                    onTap: onCheckout)),
-            const SizedBox(width: 8),
-            Expanded(
-                child: _PosButton(
-                    label: 'Paiement',
-                    icon: Icons.payments_outlined,
-                    color: const Color(0xFF0E8C4F),
-                    onTap: onCheckout)),
-          ]),
-        ),
-        const SizedBox(height: 8),
-        // ---- Actions rapides ----
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-          child: Row(children: [
-            for (final (icon, label) in const [
-              (Icons.qr_code_scanner_rounded, 'Scanner'),
-              (Icons.percent_rounded, 'Remise'),
-              (Icons.person_outline_rounded, 'Client'),
-              (Icons.sticky_note_2_outlined, 'Note'),
-            ])
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
-                  child: _PosAction(icon: icon, label: label),
-                ),
-              ),
-          ]),
-        ),
-      ]),
-    );
-  }
-}
-
-class _HeaderCell extends StatelessWidget {
-  final String text;
-  const _HeaderCell(this.text);
-  @override
-  Widget build(BuildContext context) => Text(text,
-      style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.4),
-          fontSize: 10.5,
-          fontWeight: FontWeight.w600));
-}
-
-/// Ligne produit maquette : image 3D du produit · qté (−/+) · prix ·
-/// total · corbeille. L'image vient de `Product.image` (asset/URL)
-/// avec fallback automatique sur la miniature 3D peinte.
-class _ProductRow extends StatelessWidget {
-  final Product product;
-  const _ProductRow({required this.product});
-  @override
-  Widget build(BuildContext context) {
-    final p = product;
-    return Container(
-      padding: const EdgeInsets.all(7),
-      decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.03),
-          borderRadius: BorderRadius.circular(9),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.06))),
-      child: Row(children: [
-        ProductThumb(
-            art: p.art,
-            image: p.image,
-            tint: p.tint,
-            size: 26,
-            semanticLabel: 'Illustration ${p.name}'),
-        const SizedBox(width: 8),
-        Expanded(
-            flex: 4,
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(p.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700)),
-                  Text(p.subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: AppColors.textTertiary, fontSize: 9.5)),
-                ])),
-        Expanded(
-            flex: 2,
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const _QtyBtn(icon: Icons.remove, color: AppColors.danger),
-              Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 5),
-                  child: Text('${p.qty}',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w800))),
-              const _QtyBtn(icon: Icons.add, color: AppColors.emerald),
-            ])),
-        Expanded(
-            flex: 2,
-            child: Text(_PosPanel._m2(p.price),
-                textAlign: TextAlign.right,
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 10.5))),
-        Expanded(
-            flex: 2,
-            child: Text(_PosPanel._m2(p.price * p.qty),
-                textAlign: TextAlign.right,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w800))),
-        GestureDetector(
-          child: Padding(
-            padding: const EdgeInsets.only(left: 6),
-            child: Icon(Icons.delete_outline_rounded,
-                size: 16, color: AppColors.danger.withValues(alpha: 0.9)),
-          ),
-        ),
-      ]),
-    );
-  }
-}
-
-class _QtyBtn extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  const _QtyBtn({required this.icon, required this.color});
-  @override
-  Widget build(BuildContext context) => Container(
-      width: 19,
-      height: 19,
-      decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.16),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: color.withValues(alpha: 0.4))),
-      child: Icon(icon, size: 12, color: color));
+  Widget build(BuildContext context) => PosPanel(
+        onCheckout: onCheckout,
+        onPrefilled: onPrefilled,
+        compact: compact,
+      );
 }
 class _PosButton extends StatelessWidget {
   final String label;
