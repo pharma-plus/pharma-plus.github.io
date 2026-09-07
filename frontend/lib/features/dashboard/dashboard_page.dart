@@ -469,141 +469,116 @@ class _KpiCard extends StatelessWidget {
                   offset: const Offset(0, 5)),
             ],
           ),
-          // Layout responsive : le titre et la valeur ne peuvent JAMAIS
-          // être coupés (FittedBox sur une seule ligne) ; l'illustration
-          // 3D garde le coin bas-droit sans empiéter sur les textes.
           child: LayoutBuilder(builder: (context, box) {
-            final w = box.maxWidth;
-            final h = box.maxHeight;
             final hasImg = def.image != null;
-            final artW =
-                hasImg ? (w * 0.56).clamp(70.0, 122.0) : (w * 0.50).clamp(56.0, 86.0);
-            final artH =
-                hasImg ? (h * 0.62).clamp(48.0, 76.0) : (h * 0.50).clamp(38.0, 58.0);
-            return Stack(children: [
-              // Illustration 3D ancrée bas-droite (maquette). Pour les cartes
-              // équipées d'une image 3D réelle : cadre arrondi noir assorti,
-              // sinon illustration peinte. Fallback automatique si l'image
-              // ne charge pas.
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: SizedBox(
-                  width: artW,
-                  height: artH,
-                  child: hasImg
-                      ? Container(
-                          decoration: BoxDecoration(
-                            color: Colors.black,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFF2A4A38)),
-                          ),
-                          padding: const EdgeInsets.all(2),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.asset(
-                              def.image!,
-                              fit: BoxFit.contain,
-                              filterQuality: FilterQuality.medium,
-                              errorBuilder: (_, __, ___) => CustomPaint(
-                                  painter: KpiArtPainter(def.art)),
-                            ),
-                          ),
-                        )
-                      : CustomPaint(painter: KpiArtPainter(def.art)),
+            return Stack(
+              clipBehavior: Clip.hardEdge,
+              children: [
+                // IMAGE DE FOND PLEINE COUVERTURE
+                if (hasImg)
+                  Positioned.fill(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(13),
+                      child: Image.asset(
+                        def.image!,
+                        fit: BoxFit.cover,
+                        alignment: Alignment.center,
+                        filterQuality: FilterQuality.medium,
+                        errorBuilder: (_, __, ___) =>
+                            CustomPaint(painter: KpiArtPainter(def.art)),
+                      ),
+                    ),
+                  ),
+                // Overlay dégradé sombre : texte lisible, image visible
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          const Color(0xFF0A1D13).withValues(alpha: 0.92),
+                          const Color(0xFF0A1D13).withValues(alpha: 0.70),
+                          const Color(0xFF10291B).withValues(alpha: 0.55),
+                        ],
+                        stops: const [0.0, 0.5, 1.0],
+                      ),
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                  ),
                 ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Titre vert numéroté — une seule ligne, jamais coupé.
-                  Row(children: [
-                    Expanded(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text('$index. ${def.label}',
-                            maxLines: 1,
-                            style: const TextStyle(
-                                color: _titleGreen,
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.8)),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    // Badge d'option : chaque image a son icône (maquette).
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0B1D13),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFF2A4A38)),
-                      ),
-                      child: Icon(def.badge, size: 14, color: def.badgeColor),
-                    ),
-                  ]),
-                  const Spacer(),
-                  // Valeur + sous-titre + tendance, à gauche de l'image 3D.
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
+                // CONTENU TEXTE PAR-DESSUS
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Titre vert numéroté + badge
+                    Row(children: [
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Row(children: [
-                              Expanded(
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  alignment: Alignment.centerLeft,
-                                  child: Text(def.value,
-                                      maxLines: 1,
-                                      style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.w900)),
-                                ),
-                              ),
-                            ]),
-                            if (def.sub.isNotEmpty) ...[
-                              const SizedBox(height: 2),
-                              Text(def.sub,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                      color:
-                                          Colors.white.withValues(alpha: 0.55),
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w600)),
-                            ],
-                            const SizedBox(height: 4),
-                            Text(def.trendPct,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    color: _titleGreen,
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w800)),
-                            Text(def.trendVs,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.60),
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w600)),
-                          ],
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text('$index. ${def.label}',
+                              maxLines: 1,
+                              style: const TextStyle(
+                                  color: _titleGreen,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.8)),
                         ),
                       ),
-                      // Réserve l'espace de l'illustration (coin bas-droit).
-                      SizedBox(width: artW * 0.42),
+                      const SizedBox(width: 6),
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0B1D13),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFF2A4A38)),
+                        ),
+                        child: Icon(def.badge, size: 14, color: def.badgeColor),
+                      ),
+                    ]),
+                    const Spacer(),
+                    // Valeur
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(def.value,
+                          maxLines: 1,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900)),
+                    ),
+                    if (def.sub.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(def.sub,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.75),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w600)),
                     ],
-                  ),
-                ],
-              ),
-            ]);
+                    const SizedBox(height: 4),
+                    Text(def.trendPct,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: _titleGreen,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800)),
+                    Text(def.trendVs,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.70),
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ],
+            );
           }),
         ),
       ),
