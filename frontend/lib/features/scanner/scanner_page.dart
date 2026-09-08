@@ -41,6 +41,13 @@ class _ScannerPageState extends State<ScannerPage> {
       final c = MobileScannerController(
         detectionSpeed: DetectionSpeed.normal,
         facing: CameraFacing.back,
+        // Formats métier (§15) : EAN-13, EAN-8, Code128, QR.
+        formats: const [
+          BarcodeFormat.ean13,
+          BarcodeFormat.ean8,
+          BarcodeFormat.code128,
+          BarcodeFormat.qrCode,
+        ],
       );
       await c.start();
       if (!mounted) {

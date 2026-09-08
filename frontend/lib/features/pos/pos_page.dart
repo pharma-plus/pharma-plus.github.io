@@ -223,6 +223,8 @@ class _PosPageState extends State<PosPage> {
             pharmacyName: pharmacyName,
             locale: auth.locale,
             globalDiscountPercent: gdp,
+            amountReceived: paid,
+            change: change,
           );
         }
       } else if (result.error?.code == 'NETWORK_ERROR') {
@@ -691,22 +693,131 @@ class _EmptyProducts extends StatelessWidget {
   }
 }
 
-/// Écran de scan de code-barres.
-class _ScannerScreen extends StatelessWidget {
+/// Écran de scan du POS — caméra (formats EAN-13 / EAN-8 / Code128 / QR)
+/// avec REPLI PROPRE si la caméra est indisponible (permission refusée,
+/// navigateur sans caméra) : message clair + réessayer + champ de saisie
+/// pour lecteur HID USB/Bluetooth (la douchette « tape » le code + Entrée).
+/// Aucun plantage dans tous les cas.
+class _ScannerScreen extends StatefulWidget {
   const _ScannerScreen();
+
+  @override
+  State<_ScannerScreen> createState() => _ScannerScreenState();
+}
+
+class _ScannerScreenState extends State<_ScannerScreen> {
+  MobileScannerController? _controller;
+  bool _error = false;
+  final _manual = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _start();
+  }
+
+  Future<void> _start() async {
+    try {
+      final c = MobileScannerController(
+        detectionSpeed: DetectionSpeed.normal,
+        formats: const [
+          BarcodeFormat.ean13,
+          BarcodeFormat.ean8,
+          BarcodeFormat.code128,
+          BarcodeFormat.qrCode,
+        ],
+      );
+      await c.start();
+      if (!mounted) {
+        await c.dispose();
+        return;
+      }
+      setState(() => _controller = c);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = true;
+        _controller = null;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    _manual.dispose();
+    super.dispose();
+  }
+
+  void _submit(String v) {
+    final code = v.trim();
+    if (code.isNotEmpty) Navigator.of(context).pop(code);
+  }
 
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
     return Scaffold(
       appBar: AppBar(title: Text(S.t('scanTitle', locale))),
-      body: MobileScanner(
-        onDetect: (capture) {
-          final code = capture.barcodes.firstOrNull?.rawValue;
-          if (code == null || code.isEmpty) return;
-          Navigator.of(context).pop(code);
-        },
-      ),
+      body: Column(children: [
+        Expanded(
+          child: _error || _controller == null
+              ? Center(
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.no_photography_outlined,
+                      size: 44, color: Colors.grey),
+                  const SizedBox(height: 10),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      'Caméra indisponible sur cet appareil/navigateur.\n'
+                      'Utilisez un lecteur USB/Bluetooth ci-dessous.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      setState(() => _error = false);
+                      _start();
+                    },
+                    child: const Text('Réessayer la caméra'),
+                  ),
+                ]))
+              : MobileScanner(
+                  controller: _controller!,
+                  onDetect: (capture) {
+                    final code = capture.barcodes.firstOrNull?.rawValue;
+                    if (code == null || code.isEmpty) return;
+                    Navigator.of(context).pop(code);
+                  },
+                ),
+        ),
+        // Repli HID : lecteur USB/Bluetooth (mode clavier) ou saisie manuelle.
+        SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(children: [
+              Expanded(
+                child: TextField(
+                  controller: _manual,
+                  autofocus: _error,
+                  onSubmitted: _submit,
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    hintText:
+                        'Lecteur USB/Bluetooth : scannez ici (ou code + Entrée)',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: () => _submit(_manual.text),
+                child: const Text('OK'),
+              ),
+            ]),
+          ),
+        ),
+      ]),
     );
   }
 }

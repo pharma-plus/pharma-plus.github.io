@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/auth_store.dart';
+import '../../core/services/receipt_pdf.dart';
 import '../../core/services/sync_engine.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/glass_card.dart';
@@ -274,6 +275,8 @@ class _SettingsPageState extends State<SettingsPage> {
               ],
             ),
           ),
+          const SizedBox(height: 16),
+          _PrintingSection(pharmacyName: auth.user?.pharmacyName ?? 'PHARMA+'),
           const SizedBox(height: 16),
           GlassCard(
             child: Column(
@@ -772,6 +775,124 @@ class _RadioTheme extends StatelessWidget {
         color: current == mode ? AppColors.primary : null,
       ),
       onTap: () => context.read<AuthStore>().setThemeMode(mode),
+    );
+  }
+}
+
+/// ============================================================
+/// IMPRESSION (§16-18) — carte de réglages des tickets :
+/// · largeur de rouleau 58 / 80 mm (préférence persistée)
+/// · TICKET DE TEST : vérifie alignement et découpe sur
+///   l'imprimante réelle via la boîte d'impression système
+/// · RÉIMPRESSION du dernier ticket sans relancer la vente
+/// Toute imprimante installée (thermique, USB, réseau, pilote
+/// Windows) est proposée par la boîte d'impression du système.
+/// ============================================================
+class _PrintingSection extends StatefulWidget {
+  final String pharmacyName;
+  const _PrintingSection({required this.pharmacyName});
+  @override
+  State<_PrintingSection> createState() => _PrintingSectionState();
+}
+
+class _PrintingSectionState extends State<_PrintingSection> {
+  ReceiptWidth _width = ReceiptWidth.mm80;
+  bool _loading = true;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    ReceiptPrefs.load().then((w) {
+      if (!mounted) return;
+      setState(() {
+        _width = w;
+        _loading = false;
+      });
+    });
+  }
+
+  Future<void> _setWidth(ReceiptWidth w) async {
+    setState(() => _width = w);
+    await ReceiptPrefs.save(w);
+  }
+
+  Future<void> _run(Future<void> Function() action, String doneLabel) async {
+    setState(() => _busy = true);
+    try {
+      await action();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$doneLabel — boîte d\'impression ouverte')));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Impression impossible sur cet appareil')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    return _Section(
+      title: 'Impression des tickets',
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // ---- Format du rouleau : 58 mm / 80 mm ----
+        Wrap(spacing: 8, children: [
+          ChoiceChip(
+            label: const Text('Rouleau 58 mm'),
+            selected: _width == ReceiptWidth.mm58,
+            onSelected: (_) => _setWidth(ReceiptWidth.mm58),
+          ),
+          ChoiceChip(
+            label: const Text('Rouleau 80 mm'),
+            selected: _width == ReceiptWidth.mm80,
+            onSelected: (_) => _setWidth(ReceiptWidth.mm80),
+          ),
+        ]),
+        const SizedBox(height: 4),
+        ListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.print_outlined, color: AppColors.primary),
+          title: const Text('Ticket de test'),
+          subtitle: const Text(
+              'Vérifier l\'alignement et la découpe sur l\'imprimante'),
+          trailing: _busy
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.chevron_right),
+          onTap:
+              _busy ? null : () => _run(() => ReceiptPdf.printTestTicket(widget.pharmacyName), 'Ticket de test envoyé'),
+        ),
+        ListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          leading:
+              const Icon(Icons.replay_outlined, color: AppColors.primary),
+          title: const Text('Réimprimer le dernier ticket'),
+          subtitle: const Text(
+              'Même contenu, même format — sans relancer la vente'),
+          enabled: ReceiptPdf.hasLastReceipt && !_busy,
+          trailing: const Icon(Icons.chevron_right),
+          onTap: (ReceiptPdf.hasLastReceipt && !_busy)
+              ? () => _run(ReceiptPdf.reprintLast, 'Réimpression envoyée')
+              : null,
+        ),
+        Text(
+          'L\'impression passe par la boîte système : toutes les imprimantes '
+          'installées (USB, réseau, Bluetooth via pilote, thermiques '
+          '58/80 mm) sont utilisables. L\'ESC/POS brut n\'est pas '
+          'disponible depuis le navigateur.',
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+        ),
+      ]),
     );
   }
 }
