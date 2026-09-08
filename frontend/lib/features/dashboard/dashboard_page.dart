@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/models/medication.dart';
 import '../../core/services/api_client.dart';
@@ -55,10 +56,30 @@ class _DashboardPageState extends State<DashboardPage> {
   bool _loading = true;
   String? _error;
 
+  // ---- Sidebar rétractable (desktop) ------------------------------------
+  // Préférence persistée : la sidebar réduite n'affiche que les icônes
+  // (tooltip au survol) et le contenu central récupère l'espace libéré.
+  static const _kSidebarPref = 'pmg_dashboard_sidebar_collapsed';
+  bool _sidebarCollapsed = false;
+
   @override
   void initState() {
     super.initState();
     _load();
+    _loadSidebarPref();
+  }
+
+  Future<void> _loadSidebarPref() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() => _sidebarCollapsed = prefs.getBool(_kSidebarPref) ?? false);
+  }
+
+  Future<void> _toggleSidebar() async {
+    final next = !_sidebarCollapsed;
+    setState(() => _sidebarCollapsed = next);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kSidebarPref, next);
   }
 
   Future<void> _load() async {
@@ -338,9 +359,16 @@ class _DashboardPageState extends State<DashboardPage> {
         return Stack(children: [
           Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             if (showSidebar) ...[
-              SizedBox(
-                  width: 232,
+              // Sidebar RÉTRACTABLE : 232px ouverte · 64px réduite (icônes
+              // seules + tooltips) · animation fluide · préférence persistée.
+              // Le contenu central (dashboard + POS) récupère l'espace libéré.
+              AnimatedContainer(
+                  duration: const Duration(milliseconds: 240),
+                  curve: Curves.easeOutCubic,
+                  width: _sidebarCollapsed ? 64 : 232,
                   child: _Sidebar(
+                      collapsed: _sidebarCollapsed,
+                      onToggleCollapse: _toggleSidebar,
                       onSelect: _onMenuSelect,
                       onLogout: _onLogout,
                       onMoreModules: _showModulesMenu)),
@@ -350,6 +378,8 @@ class _DashboardPageState extends State<DashboardPage> {
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 _TopBar(
                   onMenu: showSidebar ? null : _openMenuDrawer,
+                  collapsed: _sidebarCollapsed,
+                  onToggleSidebar: _toggleSidebar,
                   onSearch: () => _push(const CatalogPage()),
                   onScan: () => _push(const ScannerPage()),
                   onNotifications: () => _push(const NotificationsPage()),
@@ -700,10 +730,17 @@ class _Sidebar extends StatefulWidget {
   final ValueChanged<int> onSelect;
   final VoidCallback onLogout;
   final VoidCallback onMoreModules;
+
+  /// true = rail réduit (icônes seules + tooltips) ; le bouton de la
+  /// TopBar (chevron) et ce mode sont pilotés par l'état du dashboard.
+  final bool collapsed;
+  final VoidCallback? onToggleCollapse;
   const _Sidebar({
     required this.onSelect,
     required this.onLogout,
     required this.onMoreModules,
+    this.collapsed = false,
+    this.onToggleCollapse,
   });
   @override
   State<_Sidebar> createState() => _SidebarState();
@@ -751,6 +788,116 @@ class _SidebarState extends State<_Sidebar> {
 
   @override
   Widget build(BuildContext context) {
+    // Mode RÉDUIT : rail d'icônes (64px) avec tooltips au survol.
+    if (widget.collapsed) return _buildCollapsed(context);
+    return _buildExpanded(context);
+  }
+
+  /// Rail réduit : logo compact, icônes seules (tooltip au survol),
+  /// accès déconnexion conservé — aucun grand espace vide.
+  Widget _buildCollapsed(BuildContext context) {
+    return Container(
+      color: AppColors.surfaceSidebar,
+      child: Column(children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(0, 14, 0, 10),
+          decoration: BoxDecoration(
+              border: Border(
+                  bottom: BorderSide(
+                      color: AppColors.dividerDark.withValues(alpha: 0.7)))),
+          child: const Center(child: PharmaPlusLogo(size: 30)),
+        ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            itemCount: _items.length,
+            itemBuilder: (context, i) {
+              final active = i == 0;
+              final (icon, label) = _items[i];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Center(
+                  child: Tooltip(
+                    message: label,
+                    waitDuration: const Duration(milliseconds: 300),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: () => widget.onSelect(i),
+                      child: Container(
+                        width: 44,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: active ? const Color(0xFF07271C) : null,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                              color: active
+                                  ? const Color(0xFFC9A24B)
+                                      .withValues(alpha: 0.55)
+                                  : Colors.transparent),
+                        ),
+                        child: Icon(icon,
+                            size: 20,
+                            color: active
+                                ? Colors.white
+                                : const Color(0xFFC9A24B)),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        // Autres modules (rail) — même action qu'en mode étendu.
+        Center(
+          child: Tooltip(
+            message: 'Autres modules',
+            waitDuration: const Duration(milliseconds: 300),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: widget.onMoreModules,
+              child: Container(
+                width: 44,
+                height: 40,
+                decoration: BoxDecoration(
+                    color: const Color(0xFF07271C),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color:
+                            const Color(0xFFC9A24B).withValues(alpha: 0.55))),
+                child: const Icon(Icons.apps_rounded, color: _gold, size: 20),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        // Déconnexion (rail).
+        Center(
+          child: Tooltip(
+            message: 'Se déconnecter',
+            waitDuration: const Duration(milliseconds: 300),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: widget.onLogout,
+              child: Container(
+                width: 44,
+                height: 40,
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.08))),
+                child: const Icon(Icons.logout, color: _gold, size: 18),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+      ]),
+    );
+  }
+
+  Widget _buildExpanded(BuildContext context) {
     return Container(
       color: AppColors.surfaceSidebar,
       child: Column(children: [
@@ -1187,6 +1334,11 @@ class _ModuleMenuTile extends StatelessWidget {
 /// ============================================================
 class _TopBar extends StatelessWidget {
   final VoidCallback? onMenu;
+
+  /// Bouton « réduire/ouvrir la sidebar » (desktop) : icône dynamique
+  /// chevron_left / chevron_right selon l'état actuel.
+  final bool collapsed;
+  final VoidCallback? onToggleSidebar;
   final VoidCallback onSearch;
   final VoidCallback onScan;
   final VoidCallback onNotifications;
@@ -1195,6 +1347,8 @@ class _TopBar extends StatelessWidget {
   final int notificationCount;
   const _TopBar({
     this.onMenu,
+    this.collapsed = false,
+    this.onToggleSidebar,
     required this.onSearch,
     required this.onScan,
     required this.onNotifications,
@@ -1226,6 +1380,28 @@ class _TopBar extends StatelessWidget {
             child: const Padding(
               padding: EdgeInsets.all(8),
               child: Icon(Icons.menu, size: 26, color: _gold),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+        // ← / → — réduire ou rouvrir la sidebar (desktop) : le dashboard
+        // et le POS récupèrent l'espace libéré en temps réel.
+        if (onToggleSidebar != null) ...[
+          Tooltip(
+            message: collapsed ? 'Ouvrir le menu' : 'Réduire le menu',
+            waitDuration: const Duration(milliseconds: 350),
+            child: InkWell(
+              onTap: onToggleSidebar,
+              borderRadius: BorderRadius.circular(10),
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Icon(
+                    collapsed
+                        ? Icons.chevron_right_rounded
+                        : Icons.chevron_left_rounded,
+                    size: 26,
+                    color: _gold),
+              ),
             ),
           ),
           const SizedBox(width: 8),
@@ -1512,7 +1688,7 @@ class _AlertsStockPanel extends StatelessWidget {
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.white,
               backgroundColor: const Color(0xFF0E2A1C),
-              side: BorderSide(color: AppColors.goldBorderStrong),
+              side: const BorderSide(color: AppColors.goldBorderStrong),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
             ),
