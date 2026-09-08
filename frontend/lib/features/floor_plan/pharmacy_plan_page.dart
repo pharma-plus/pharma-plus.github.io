@@ -59,6 +59,23 @@ class _PharmacyPlanPageState extends State<PharmacyPlanPage> {
     });
   }
 
+  /// Plein écran : la scène occupe tout l'écran avec les mêmes
+  /// interactions (rotation, zoom, sélection). Bouton de fermeture +
+  /// navigation retour toujours disponibles.
+  void _openFullscreen() {
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      fullscreenDialog: true,
+      builder: (_) => _FullScreenPlan(
+        zones: _zones,
+        rot: _rot,
+        zoom: _zoom,
+        locale: locale,
+      ),
+    ));
+  }
+
+  String get locale => context.read<AuthStore>().locale;
+
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
@@ -94,6 +111,7 @@ class _PharmacyPlanPageState extends State<PharmacyPlanPage> {
                 onZoomOut: () =>
                     setState(() => _zoom = math.max(0.5, _zoom / 1.15)),
                 onReset: _reset,
+                onFullscreen: _openFullscreen,
               ),
               Expanded(
                 child: LayoutBuilder(
@@ -202,6 +220,14 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
       child: Row(
         children: [
+          // ← Retour : toujours visible, sortie garantie de la page
+          // (navigation interne + bouton retour navigateur fonctionnels).
+          IconButton(
+            tooltip: 'Retour',
+            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+          const SizedBox(width: 2),
           Container(
             width: 44,
             height: 44,
@@ -247,6 +273,7 @@ class _Controls extends StatelessWidget {
   final VoidCallback onZoomIn;
   final VoidCallback onZoomOut;
   final VoidCallback onReset;
+  final VoidCallback onFullscreen;
 
   const _Controls({
     required this.locale,
@@ -257,6 +284,7 @@ class _Controls extends StatelessWidget {
     required this.onZoomIn,
     required this.onZoomOut,
     required this.onReset,
+    required this.onFullscreen,
   });
 
   @override
@@ -275,7 +303,9 @@ class _Controls extends StatelessWidget {
               auto ? 'Pause' : S.t('rotateLeft', locale), fg, onAuto),
           _btn(Icons.remove, S.t('zoomOut', locale), fg, onZoomOut),
           _btn(Icons.add, S.t('zoomIn', locale), fg, onZoomIn),
+          // Zoom initial = vue réinitialisée (rotation + zoom d'origine).
           _btn(Icons.restart_alt, S.t('resetView', locale), fg, onReset),
+          _btn(Icons.fullscreen, 'Plein écran', fg, onFullscreen),
         ],
       ),
     );
@@ -789,4 +819,138 @@ class _PlanPainter extends CustomPainter {
       old.zoom != zoom ||
       old.selectedId != selectedId ||
       old.locale != locale;
+}
+
+/// ============================================================
+/// PLEIN ÉCRAN — scène isométrique sur tout l'écran :
+/// glisser = tourner, boutons = zoom +/− / zoom initial,
+/// sélection de zone au clic, fermeture always-available (✕,
+/// ESC via route plein écran, bouton retour navigateur).
+/// ============================================================
+class _FullScreenPlan extends StatefulWidget {
+  final List<_Zone> zones;
+  final double rot;
+  final double zoom;
+  final String locale;
+  const _FullScreenPlan({
+    required this.zones,
+    required this.rot,
+    required this.zoom,
+    required this.locale,
+  });
+
+  @override
+  State<_FullScreenPlan> createState() => _FullScreenPlanState();
+}
+
+class _FullScreenPlanState extends State<_FullScreenPlan> {
+  late double _rot = widget.rot;
+  late double _zoom = widget.zoom;
+  String? _selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0B1210),
+      body: SafeArea(
+        child: Stack(children: [
+          Positioned.fill(
+            child: LayoutBuilder(
+              builder: (ctx, constraints) {
+                final size =
+                    Size(constraints.maxWidth, constraints.maxHeight);
+                final proj = _Projector(rot: _rot, zoom: _zoom, size: size);
+                return Stack(children: [
+                  GestureDetector(
+                    onPanUpdate: (d) =>
+                        setState(() => _rot += d.delta.dx * 0.01),
+                    child: CustomPaint(
+                      size: size,
+                      painter: _PlanPainter(
+                        zones: widget.zones,
+                        rot: _rot,
+                        zoom: _zoom,
+                        locale: widget.locale,
+                        size: size,
+                        selectedId: _selected,
+                      ),
+                    ),
+                  ),
+                  for (final z in widget.zones)
+                    Positioned(
+                      left: _hitRect(proj, z).left,
+                      top: _hitRect(proj, z).top,
+                      width: _hitRect(proj, z).width,
+                      height: _hitRect(proj, z).height,
+                      child: GestureDetector(
+                        onTap: () => setState(() => _selected = z.id),
+                      ),
+                    ),
+                ]);
+              },
+            ),
+          ),
+          // Contrôles flottants + sortie garantie.
+          Positioned(
+            top: 12,
+            left: 12,
+            child: Row(children: [
+              _fsBtn(Icons.arrow_back_rounded, 'Retour',
+                  () => Navigator.of(context).maybePop()),
+              const SizedBox(width: 8),
+              _fsBtn(Icons.remove, 'Zoom -',
+                  () => setState(() => _zoom = math.max(0.5, _zoom / 1.15))),
+              const SizedBox(width: 8),
+              _fsBtn(Icons.add, 'Zoom +',
+                  () => setState(() => _zoom = math.min(3.0, _zoom * 1.15))),
+              const SizedBox(width: 8),
+              _fsBtn(
+                  Icons.restart_alt,
+                  'Zoom initial',
+                  () => setState(() {
+                        _rot = 0.6;
+                        _zoom = 1.0;
+                      })),
+              const SizedBox(width: 8),
+              _fsBtn(Icons.close_rounded, 'Quitter le plein écran',
+                  () => Navigator.of(context).maybePop()),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Rect _hitRect(_Projector proj, _Zone z) {
+    final corners = [
+      proj.project(z.x0, z.y0, 0),
+      proj.project(z.x1, z.y0, 0),
+      proj.project(z.x1, z.y1, 0),
+      proj.project(z.x0, z.y1, 0),
+    ];
+    double minX = double.infinity, minY = double.infinity;
+    double maxX = -double.infinity, maxY = -double.infinity;
+    for (final o in corners) {
+      minX = math.min(minX, o.dx);
+      minY = math.min(minY, o.dy);
+      maxX = math.max(maxX, o.dx);
+      maxY = math.max(maxY, o.dy);
+    }
+    return Rect.fromLTRB(minX, minY, maxX, maxY);
+  }
+
+  Widget _fsBtn(IconData icon, String tip, VoidCallback onTap) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+      ),
+      child: IconButton(
+        icon: Icon(icon, color: Colors.white, size: 20),
+        tooltip: tip,
+        onPressed: onTap,
+      ),
+    );
+  }
 }

@@ -15,7 +15,17 @@ import 'pos_categories.dart';
 import 'pos_models.dart';
 
 class PosPage extends StatefulWidget {
-  const PosPage({super.key});
+  /// Panier pré-rempli (mini-POS du dashboard → POS complet),
+  /// avec la remise déjà saisie par le vendeur.
+  final List<Medication>? initialItems;
+  final double initialDiscount;
+  final bool initialDiscountIsPercent;
+  const PosPage({
+    super.key,
+    this.initialItems,
+    this.initialDiscount = 0,
+    this.initialDiscountIsPercent = true,
+  });
 
   @override
   State<PosPage> createState() => _PosPageState();
@@ -34,6 +44,21 @@ class _PosPageState extends State<PosPage> {
   void initState() {
     super.initState();
     _loadBranches();
+    // Pré-remplissage depuis le mini-POS du dashboard : mêmes lignes,
+    // même remise (convertie en % si saisie en montant fixe).
+    final items = widget.initialItems;
+    if (items != null && items.isNotEmpty) {
+      for (final m in items) {
+        _cart.add(m);
+      }
+      if (widget.initialDiscount > 0) {
+        _cart.globalDiscountPercent = widget.initialDiscountIsPercent
+            ? widget.initialDiscount
+            : _cart.subtotal > 0
+                ? (widget.initialDiscount / _cart.subtotal) * 100
+                : 0;
+      }
+    }
   }
 
   Future<void> _loadBranches() async {

@@ -9,6 +9,8 @@ class User {
   final String email;
   final bool isSuperAdmin;
   final Set<String> permissions;
+  final String? pharmacyName;
+  final String? roleName;
 
   const User({
     required this.id,
@@ -20,6 +22,8 @@ class User {
     required this.email,
     this.isSuperAdmin = false,
     this.permissions = const {},
+    this.pharmacyName,
+    this.roleName,
   });
 
   String get fullName => '$firstName $lastName';
@@ -29,6 +33,18 @@ class User {
 
   bool hasPermission(String permission) =>
       isSuperAdmin || permissions.contains(permission);
+
+  /// Construit l'utilisateur à partir de la réponse de connexion /
+  /// rafraîchissement : fusionne `user` + `pharmacy` + `role` renvoyés
+  /// par l'API afin d'afficher de vraies identités dans l'interface.
+  static User fromSession(Map<String, dynamic> data) {
+    final userJson = Map<String, dynamic>.from(data['user'] as Map? ?? {});
+    final pharmacy = data['pharmacy'] as Map?;
+    final role = data['role'] as Map?;
+    userJson['pharmacy_name'] ??= pharmacy?['name'];
+    userJson['role_name'] ??= role?['name'];
+    return User.fromJson(userJson);
+  }
 
   factory User.fromJson(Map<String, dynamic> json) => User(
         id: json['id'] as String,
@@ -47,6 +63,10 @@ class User {
         permissions: (json['permissions'] as List? ?? const [])
             .whereType<String>()
             .toSet(),
+        pharmacyName: json['pharmacy_name'] as String? ??
+            json['pharmacyName'] as String?,
+        roleName:
+            json['role_name'] as String? ?? json['roleName'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -59,5 +79,7 @@ class User {
         'email': email,
         'is_super_admin': isSuperAdmin,
         'permissions': permissions.toList(),
+        if (pharmacyName != null) 'pharmacy_name': pharmacyName,
+        if (roleName != null) 'role_name': roleName,
       };
 }

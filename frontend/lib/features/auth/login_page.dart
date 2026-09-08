@@ -138,7 +138,7 @@ class _LoginPageState extends State<LoginPage>
     await context.read<AuthStore>().saveSession(
       accessToken: data['accessToken'] as String,
       refreshToken: data['refreshToken'] as String,
-      user: User.fromJson(data['user'] as Map<String, dynamic>),
+      user: User.fromSession(data),
     );
   }
 

@@ -8,14 +8,12 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/models/medication.dart';
-import '../../core/models/product.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/calculations.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/pharma_logo.dart';
-import '../../core/widgets/product_art.dart';
 import '../accounting/accounting_page.dart';
 import '../ai/ai_page.dart';
 import '../attendance/attendance_page.dart';
@@ -83,6 +81,22 @@ class _DashboardPageState extends State<DashboardPage> {
       _loading = false;
     });
     _loadNotificationCount();
+    _loadStockAlerts();
+  }
+
+  /// Alertes stock : produits réellement en stock faible / expirant /
+  /// expirés (API /stock/alerts). Aucun produit fictif affiché.
+  Future<void> _loadStockAlerts() async {
+    final r =
+        await ApiClient.instance.get<Map<String, dynamic>>('/stock/alerts');
+    if (!mounted || !r.success || r.data == null) return;
+    List<Map<String, dynamic>> listOf(dynamic v) =>
+        (v as List? ?? const []).whereType<Map<String, dynamic>>().toList();
+    setState(() {
+      _lowStockRows = listOf(r.data!['low_stock']);
+      _expiringRows = listOf(r.data!['expiring']);
+      _expiredRows = listOf(r.data!['expired']);
+    });
   }
 
   /// Badge de notifications : valeur réelle depuis l'API (aucun chiffre
@@ -91,8 +105,9 @@ class _DashboardPageState extends State<DashboardPage> {
     final r =
         await ApiClient.instance.get<Map<String, dynamic>>('/notifications');
     if (!mounted || !r.success) return;
-    final unread = r.data?['unread_count'] ?? r.data?['unread'];
-    setState(() => _notificationCount = _int(unread));
+    final meta = r.data?['meta'];
+    final unread = meta is Map ? meta['unread'] : null;
+    setState(() => _notificationCount = _int(unread ?? 0));
   }
 
   // ============================================================
@@ -107,6 +122,8 @@ class _DashboardPageState extends State<DashboardPage> {
   double get _revenueYesterday =>
       _num(_flat0(_data, 'revenue', 'revenue_yesterday'));
   double get _revenueMonth => _num(_flat0(_data, 'revenue', 'revenue_month'));
+  double get _revenueLastMonth =>
+      _num(_flat0(_data, 'revenue', 'revenue_last_month'));
   double get _profitMonth => _num(_flat0(_data, 'revenue', 'profit_month'));
   double get _profitLastMonth =>
       _num(_flat0(_data, 'revenue', 'profit_last_month'));
@@ -123,10 +140,17 @@ class _DashboardPageState extends State<DashboardPage> {
   /// null = pas de comparaison possible → aucune invention affichée.
   double? get _trendRevenueToday =>
       periodVariation(_revenueToday, _revenueYesterday);
+  double? get _trendRevenueMonth =>
+      periodVariation(_revenueMonth, _revenueLastMonth);
   double? get _trendProfitMonth =>
       periodVariation(_profitMonth, _profitLastMonth);
 
   int _notificationCount = 0;
+
+  /// Alertes stock RÉELLES (listes renvoyées par /stock/alerts).
+  List<Map<String, dynamic>> _lowStockRows = [];
+  List<Map<String, dynamic>> _expiringRows = [];
+  List<Map<String, dynamic>> _expiredRows = [];
 
   static dynamic _flat0(
     Map<String, dynamic>? map,
@@ -349,6 +373,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                   child: _AlertsStockPanel(
                                     lowStock: _lowStock,
                                     expiring: _expiring,
+                                    lowStockRows: _lowStockRows,
+                                    expiringRows: _expiringRows,
+                                    expiredRows: _expiredRows,
                                     onViewAll: () => _push(
                                         const StockPage(initialFilter: 'low')),
                                     compact: compact,
@@ -369,7 +396,17 @@ class _DashboardPageState extends State<DashboardPage> {
                             revenueMonth: _revenueMonth,
                             profitMonth: _profitMonth,
                             expiring: _expiring,
+                            expired: _expired,
                             lowStock: _lowStock,
+                            trendToday: _trendRevenueToday == null
+                                ? null
+                                : '${_trendRevenueToday! >= 0 ? '+' : ''}${_trendRevenueToday!.toStringAsFixed(1)}%',
+                            trendMonth: _trendRevenueMonth == null
+                                ? null
+                                : '${_trendRevenueMonth! >= 0 ? '+' : ''}${_trendRevenueMonth!.toStringAsFixed(1)}%',
+                            trendProfit: _trendProfitMonth == null
+                                ? null
+                                : '${_trendProfitMonth! >= 0 ? '+' : ''}${_trendProfitMonth!.toStringAsFixed(1)}%',
                             compact: compact,
                           ),
                         ]),
@@ -1383,41 +1420,89 @@ class _DarkPanel extends StatelessWidget {
 class _AlertsStockPanel extends StatelessWidget {
   final int lowStock;
   final int expiring;
+  final List<Map<String, dynamic>> lowStockRows;
+  final List<Map<String, dynamic>> expiringRows;
+  final List<Map<String, dynamic>> expiredRows;
   final VoidCallback onViewAll;
   final bool compact;
   const _AlertsStockPanel(
       {required this.lowStock,
       required this.expiring,
+      required this.lowStockRows,
+      required this.expiringRows,
+      required this.expiredRows,
       required this.onViewAll,
       this.compact = false});
 
+  /// Construit les lignes RÉELLES à partir de /stock/alerts :
+  /// produits en stock faible, péremptions proches, produits expirés.
+  List<(String, String, Color, IconData)> _buildRows() {
+    String d(dynamic v) => '$v';
+    final rows = <(String, String, Color, IconData)>[
+      for (final m in lowStockRows.take(3))
+        (
+          d(m['name']),
+          'Stock faible (${_fmtQty(m['available'])} / seuil ${_fmtQty(m['reorder_level'])})',
+          const Color(0xFFF0A73B),
+          Icons.priority_high_rounded
+        ),
+      for (final m in expiringRows.take(2))
+        (
+          d(m['name']),
+          'Expire le ${_fmtDate(m['expiry_date'])}',
+          const Color(0xFFF0A73B),
+          Icons.hourglass_bottom_rounded
+        ),
+      for (final m in expiredRows.take(2))
+        (d(m['name']), 'Produit expiré', AppColors.danger, Icons.close_rounded),
+    ];
+    return rows.take(5).toList();
+  }
+
+  static String _fmtQty(dynamic v) {
+    final n = num.tryParse('$v') ?? 0;
+    return n == n.roundToDouble() ? '${n.round()}' : n.toStringAsFixed(1);
+  }
+
+  static String _fmtDate(dynamic v) {
+    final dt = DateTime.tryParse('$v');
+    if (dt == null) return '?';
+    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
-    const rows = <(String, String, Color, IconData)>[
-      ('Amoxicilline 500mg', 'Stock faible (8)', Color(0xFFF0A73B),
-          Icons.priority_high_rounded),
-      ('Doliprane 1g', 'Stock faible (12)', Color(0xFFF0A73B),
-          Icons.priority_high_rounded),
-      ('Vitamine D3', 'Rupture de stock', AppColors.danger,
-          Icons.close_rounded),
-      ('Fer B9', 'Expire dans 15 j', Color(0xFFF0A73B),
-          Icons.hourglass_bottom_rounded),
-    ];
+    final rows = _buildRows();
     return _DarkPanel(
       title: 'ALERTES STOCK',
       icon: Icons.notifications_active_outlined,
       iconColor: const Color(0xFFF0A73B),
       child: Column(children: [
-        for (var i = 0; i < rows.length; i++) ...[
-          _AlertRow(
-              name: rows[i].$1,
-              detail: rows[i].$2,
-              color: rows[i].$3,
-              icon: rows[i].$4,
-              compact: compact),
-          if (i < rows.length - 1)
-            SizedBox(height: compact ? 5 : 7),
-        ],
+        if (rows.isEmpty)
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: compact ? 14 : 22),
+            child: Column(children: [
+              const Icon(Icons.verified_rounded,
+                  size: 26, color: AppColors.emeraldLight),
+              const SizedBox(height: 6),
+              Text('Aucune alerte — stock et péremptions sains',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.45),
+                      fontSize: 11)),
+            ]),
+          )
+        else
+          for (var i = 0; i < rows.length; i++) ...[
+            _AlertRow(
+                name: rows[i].$1,
+                detail: rows[i].$2,
+                color: rows[i].$3,
+                icon: rows[i].$4,
+                compact: compact),
+            if (i < rows.length - 1)
+              SizedBox(height: compact ? 5 : 7),
+          ],
         SizedBox(height: compact ? 9 : 12),
         SizedBox(
           width: double.infinity,
@@ -1649,7 +1734,8 @@ class _LegendItem extends StatelessWidget {
 class _IsoPainter extends CustomPainter {
   final double rot;
   final double zoom;
-  const _IsoPainter({this.rot = 0.0, this.zoom = 1.0});
+  // Pas de constructeur const : les champs de projection sont mutables.
+  _IsoPainter({this.rot = 0.0, this.zoom = 1.0});
   late double ux, uy, uz, ox, oy;
   static const room = 12.0, wallH = 3.6;
 
@@ -1953,14 +2039,22 @@ class _BottomBar extends StatelessWidget {
   final double revenueMonth;
   final double profitMonth;
   final int expiring;
+  final int expired;
   final int lowStock;
+  final String? trendToday;
+  final String? trendMonth;
+  final String? trendProfit;
   final bool compact;
   const _BottomBar({
     required this.revenueToday,
     required this.revenueMonth,
     required this.profitMonth,
     required this.expiring,
+    required this.expired,
     required this.lowStock,
+    this.trendToday,
+    this.trendMonth,
+    this.trendProfit,
     this.compact = false,
   });
 
@@ -1972,30 +2066,30 @@ class _BottomBar extends StatelessWidget {
           child: _BottomStat(
               label: "VENTES AUJOURD'HUI",
               value: Fmt.money(revenueToday),
-              trend: '+12,5%',
-              curve: true,
+              trend: trendToday,
+              curve: trendToday != null,
               compact: compact)),
       const SizedBox(width: 8),
       Expanded(
           child: _BottomStat(
               label: 'VENTES MOIS',
               value: Fmt.money(revenueMonth),
-              trend: '+8,3%',
-              curve: true,
+              trend: trendMonth,
+              curve: trendMonth != null,
               compact: compact)),
       const SizedBox(width: 8),
       Expanded(
           child: _BottomStat(
               label: 'BÉNÉFICE MOIS',
               value: Fmt.money(profitMonth),
-              trend: '+8,3%',
-              curve: true,
+              trend: trendProfit,
+              curve: trendProfit != null,
               compact: compact)),
       const SizedBox(width: 8),
       Expanded(
           child: _BottomStat(
               label: 'PRODUITS EXPIRÉS',
-              value: '$expiring',
+              value: '$expired',
               subtitle: 'Produits',
               valueColor: const Color(0xFFF0A73B),
               icon: Icons.warning_amber_rounded,
@@ -2129,13 +2223,6 @@ class _MiniCurvePainter extends CustomPainter {
   bool shouldRepaint(covariant _MiniCurvePainter old) => false;
 }
 /// ============================================================
-/// POINT DE VENTE (colonne droite, maquette) :
-/// 8 catégories illustrées · table produits · total · actions.
-/// ============================================================
-/// 8 catégories POS (maquette) — chacune avec SA miniature 3D peinte.
-enum _CatKind { all, meds, vitamins, care, baby, firstAid, beauty, accessories }
-
-/// ============================================================
 /// POINT DE VENTE (colonne droite) — délègue au VRAI mini-POS
 /// (`pos_panel.dart`) : recherche API réelle, panier, remise,
 /// totaux centralisés, suspendre/reprendre, paiement → POS.
@@ -2155,296 +2242,3 @@ class _PosPanel extends StatelessWidget {
         compact: compact,
       );
 }
-class _PosButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-  const _PosButton(
-      {required this.label,
-      required this.icon,
-      required this.color,
-      required this.onTap});
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: color,
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: SizedBox(
-          height: 42,
-          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(icon, size: 16, color: Colors.white),
-            const SizedBox(width: 6),
-            Text(label.toUpperCase(),
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.3)),
-          ]),
-        ),
-      ),
-    );
-  }
-}
-
-class _PosAction extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  const _PosAction({required this.icon, required this.label});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 50,
-      decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(icon, size: 17, color: _gold),
-        const SizedBox(height: 3),
-        Text(label,
-            style: const TextStyle(
-                color: AppColors.textSecondary, fontSize: 9.5)),
-      ]),
-    );
-  }
-}
-class _CatCell extends StatelessWidget {
-  final String name;
-  final _CatKind kind;
-  const _CatCell({required this.name, required this.kind});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-          color: const Color(0xFF0C241A),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-              color: Colors.white.withValues(alpha: 0.10))),
-      padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 3),
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        // Miniature 3D de la catégorie (image propre à chaque option).
-        SizedBox(
-            width: 36,
-            height: 30,
-            child: CustomPaint(painter: _CatGlyphPainter(kind))),
-        const SizedBox(height: 4),
-        Text(name,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.92),
-                fontSize: 8.8,
-                fontWeight: FontWeight.w700,
-                height: 1.05)),
-      ]),
-    );
-  }
-}
-
-/// Miniatures 3D des catégories POS — chaque option a son image :
-///Tout, médicaments, vitamines, santé, bébé, secours, beauté, accessoires.
-class _CatGlyphPainter extends CustomPainter {
-  final _CatKind kind;
-  const _CatGlyphPainter(this.kind);
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width, h = size.height;
-    final ux = w / 30.0, uy = h / 26.0;
-    Offset P(double x, double y) => Offset(x * ux, y * uy);
-    RRect RR(double x, double y, double w2, double h2, double r) =>
-        RRect.fromRectAndRadius(
-            Rect.fromLTWH(x * ux, y * uy, w2 * ux, h2 * uy),
-            Radius.circular(r * ux));
-    void capsule(double cx, double cy, Color half) {
-      canvas.save();
-      canvas.translate(P(cx, cy).dx, P(cx, cy).dy);
-      canvas.rotate(-0.6);
-      final body = RRect.fromRectAndRadius(
-          Rect.fromCenter(center: Offset.zero, width: 20 * ux, height: 9 * uy),
-          Radius.circular(4.5 * ux));
-      canvas.drawRRect(body, Paint()..color = const Color(0xFFF2F7F4));
-      canvas.save();
-      canvas.clipRect(Rect.fromCenter(
-          center: Offset(-5 * ux, 0), width: 10 * ux, height: 20 * uy));
-      canvas.drawRRect(body, Paint()..color = half);
-      canvas.restore();
-      canvas.drawRRect(
-          body,
-          Paint()
-            ..color = const Color(0xFF0B2418).withValues(alpha: 0.4)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1);
-      canvas.restore();
-    }
-
-    switch (kind) {
-      // ---- TOUT : mosaïque de gélules et pastilles ----
-      case _CatKind.all:
-        capsule(10.5, 8, const Color(0xFF2FB563));
-        capsule(20, 18, const Color(0xFFF0B429));
-        canvas.drawCircle(P(24.5, 6), 2.3 * ux,
-            Paint()..color = const Color(0xFF5B8FD9));
-        canvas.drawCircle(P(6, 20), 2.3 * ux,
-            Paint()..color = const Color(0xFFE0557C));
-
-      // ---- MÉDICAMENTS : boîte verte à croix + gélule ----
-      case _CatKind.meds:
-        canvas.drawRRect(
-            RR(4, 4, 17, 17, 2),
-            Paint()
-              ..shader = ui.Gradient.linear(P(4, 4), P(21, 21),
-                  [const Color(0xFF35C97A), const Color(0xFF0E8C4F)]));
-        canvas.drawRRect(
-            RR(10.2, 8.2, 4.6, 8.6, 1), Paint()..color = Colors.white);
-        canvas.drawRRect(
-            RR(8.2, 10.2, 8.6, 4.6, 1), Paint()..color = Colors.white);
-        capsule(23.5, 20, const Color(0xFFF0B429));
-
-      // ---- VITAMINES : orange + feuille + gélule dorée ----
-      case _CatKind.vitamins:
-        canvas.drawCircle(
-            P(12, 15),
-            8 * ux,
-            Paint()
-              ..shader = ui.Gradient.linear(P(5, 8), P(19, 22),
-                  [const Color(0xFFFFB84D), const Color(0xFFE8821C)]));
-        canvas.drawCircle(P(9.5, 12.5), 2.4 * ux,
-            Paint()..color = Colors.white.withValues(alpha: 0.45));
-        final leaf = Path()
-          ..moveTo(P(12, 6).dx, P(12, 6).dy)
-          ..quadraticBezierTo(
-              P(17, 2).dx, P(17, 4).dy, P(15.5, 7.5).dx, P(15.5, 7.5).dy)
-          ..quadraticBezierTo(
-              P(12.5, 8.5).dx, P(13, 8).dy, P(12, 6).dx, P(12, 6).dy)
-          ..close();
-        canvas.drawPath(leaf, Paint()..color = const Color(0xFF2FB563));
-        capsule(23, 20, const Color(0xFFF0B429));
-      // ---- SANTÉ & SOINS : cœur + badge croix verte ----
-      case _CatKind.care:
-        final heart = Path()
-          ..moveTo(P(13, 21).dx, P(13, 21).dy)
-          ..cubicTo(P(3, 14).dx, P(3, 14).dy, P(5, 4).dx, P(5, 4).dy,
-              P(9, 3.5).dx, P(9, 3.5).dy)
-          ..cubicTo(P(9, 3.5).dx, P(9, 3.5).dy, P(13, 8).dx, P(13, 8).dy,
-              P(17, 3.5).dx, P(17, 3.5).dy)
-          ..cubicTo(P(17, 3.5).dx, P(17, 3.5).dy, P(23, 4).dx, P(23, 4).dy,
-              P(21, 14).dx, P(21, 14).dy)
-          ..cubicTo(P(21, 14).dx, P(21, 14).dy, P(20, 18).dx, P(20, 18).dy,
-              P(13, 21).dx, P(13, 21).dy)
-          ..close();
-        canvas.drawPath(
-            heart,
-            Paint()
-              ..shader = ui.Gradient.linear(P(5, 4), P(21, 21),
-                  [const Color(0xFFFF6B7E), const Color(0xFFD92B3F)]));
-        canvas.drawCircle(P(10, 9), 2 * ux,
-            Paint()..color = Colors.white.withValues(alpha: 0.45));
-        canvas.drawCircle(P(22, 19), 4.4 * ux,
-            Paint()..color = const Color(0xFF0E8C4F));
-        canvas.drawRRect(
-            RR(20.9, 16.4, 2.2, 5.2, 0.8), Paint()..color = Colors.white);
-        canvas.drawRRect(
-            RR(19.4, 17.9, 5.2, 2.2, 0.8), Paint()..color = Colors.white);
-
-      // ---- BÉBÉ & MAMAN : biberon gradué ----
-      case _CatKind.baby:
-        canvas.drawRRect(RR(12, 2.5, 6, 4.5, 2),
-            Paint()..color = const Color(0xFFE9C873));
-        canvas.drawRRect(RR(11, 6.5, 8, 2, 1),
-            Paint()..color = const Color(0xFF9CC4F5));
-        canvas.drawRRect(
-            RR(8.5, 8.5, 13, 15, 4),
-            Paint()
-              ..shader = ui.Gradient.linear(P(8.5, 8.5), P(21.5, 23.5),
-                  [const Color(0xFFCFE4FA), const Color(0xFF9CC4F5)]));
-        canvas.drawRRect(RR(8.5, 12, 13, 2.4, 1),
-            Paint()..color = const Color(0xFFEAF2FC));
-        canvas.drawRRect(RR(8.5, 17.2, 13, 2.4, 1),
-            Paint()..color = const Color(0xFFEAF2FC));
-        canvas.drawRRect(RR(9.3, 9.3, 2.6, 13, 1.6),
-            Paint()..color = Colors.white.withValues(alpha: 0.5));
-
-      // ---- PREMIERS SECOURS : mallette blanche croix rouge ----
-      case _CatKind.firstAid:
-        canvas.drawRRect(RR(11, 4.5, 8, 4.5, 1.5),
-            Paint()..color = const Color(0xFFD8E4DD));
-        canvas.drawRRect(
-            RR(3.5, 7.5, 23, 15, 3),
-            Paint()
-              ..shader = ui.Gradient.linear(P(3.5, 7.5), P(26.5, 22.5),
-                  [const Color(0xFFFDFEFE), const Color(0xFFDCE6E0)]));
-        canvas.drawRRect(RR(3.5, 7.5, 23, 3, 1.5),
-            Paint()..color = const Color(0xFFC9D6CF));
-        canvas.drawRRect(RR(13.5, 10.5, 3.2, 9, 1),
-            Paint()..color = const Color(0xFFE23B4E));
-        canvas.drawRRect(RR(10.6, 13.4, 9, 3.2, 1),
-            Paint()..color = const Color(0xFFE23B4E));
-
-      // ---- BEAUTÉ : pot de crème + touche verte ----
-      case _CatKind.beauty:
-        canvas.drawRRect(RR(9, 3.5, 12, 5, 2),
-            Paint()..color = const Color(0xFFE88CA4));
-        canvas.drawRRect(
-            RR(7.5, 8.5, 15, 13.5, 3),
-            Paint()
-              ..shader = ui.Gradient.linear(P(7.5, 8.5), P(22.5, 22),
-                  [const Color(0xFFFDF0F4), const Color(0xFFF2C9D6)]));
-        canvas.drawRRect(RR(9.3, 10.5, 4, 9.5, 1.6),
-            Paint()..color = Colors.white.withValues(alpha: 0.5));
-        canvas.drawRRect(RR(11, 14, 8, 4.5, 1),
-            Paint()..color = const Color(0xFFC2557A));
-        canvas.drawCircle(P(24.5, 6.5), 2.1 * ux,
-            Paint()..color = const Color(0xFF2FB563));
-
-      // ---- ACCESSOIRES : stéthoscope + compte-gouttes ----
-      case _CatKind.accessories:
-        final tube = Path()
-          ..moveTo(P(10, 3).dx, P(10, 3).dy)
-          ..lineTo(P(10, 12.5).dx, P(10, 12.5).dy)
-          ..quadraticBezierTo(P(10, 17.5).dx, P(10, 17.5).dy, P(14.5, 17.5).dx,
-              P(14.5, 17.5).dy)
-          ..quadraticBezierTo(P(19, 17.5).dx, P(19, 17.5).dy, P(19, 12.5).dx,
-              P(19, 12.5).dy)
-          ..lineTo(P(19, 3).dx, P(19, 3).dy);
-        canvas.drawPath(
-            tube,
-            Paint()
-              ..color = const Color(0xFFB9C6BF)
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 2.2
-              ..strokeCap = StrokeCap.round);
-        canvas.drawCircle(P(14.5, 21.5), 3 * ux,
-            Paint()..color = const Color(0xFF5B8FD9));
-        canvas.drawCircle(P(14.5, 21.5), 1.2 * ux,
-            Paint()..color = Colors.white.withValues(alpha: 0.6));
-        canvas.drawRRect(RR(24, 6, 3, 10, 1.2),
-            Paint()..color = const Color(0xFF2FB563));
-        canvas.drawCircle(P(25.5, 18), 1.3 * ux,
-            Paint()..color = const Color(0xFF9CC4F5));
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _CatGlyphPainter old) => old.kind != kind;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

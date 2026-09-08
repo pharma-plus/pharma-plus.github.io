@@ -46,36 +46,18 @@ class KpiArtPainter extends CustomPainter {
       tp.paint(canvas, c - Offset(tp.width / 2, tp.height / 2));
     }
 
-    // ---- Socle elliptique (podium lumineux) ----
+    // Socle discret : simple halo lumineux sous l'objet (aucun fond plein,
+    // les illustrations restent TRANSPARENTES pour être composées dans
+    // l'encart des cartes KPI sans arrière-plan propre).
     final podC = Offset(w * 0.46, h * 0.86);
-    final podRx = w * 0.46, podRy = h * 0.14;
     canvas.drawOval(
         Rect.fromCenter(
-            center: podC.translate(0, 2.6),
-            width: podRx * 2,
-            height: podRy * 2),
-        Paint()..color = const Color(0xFF06150E));
-    canvas.drawOval(
-        Rect.fromCenter(
-            center: podC, width: podRx * 2.2, height: podRy * 2.6),
+            center: podC,
+            width: w * 0.78,
+            height: h * 0.20),
         Paint()
-          ..color = const Color(0xFF00C96B).withValues(alpha: 0.14)
-          ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 6));
-    final podRect =
-        Rect.fromCenter(center: podC, width: podRx * 2, height: podRy * 2);
-    canvas.drawOval(
-        podRect,
-        Paint()
-          ..shader = ui.Gradient.linear(
-              podRect.topCenter,
-              podRect.bottomCenter,
-              [const Color(0xFF1D5238), const Color(0xFF0E2C1D)]));
-    canvas.drawOval(
-        podRect.deflate(1.2),
-        Paint()
-          ..color = const Color(0xFF2E7A50)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.3);
+          ..color = const Color(0xFF00C96B).withValues(alpha: 0.16)
+          ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 9));
 
     switch (art) {
       // ==============================================
@@ -102,7 +84,10 @@ class KpiArtPainter extends CustomPainter {
         canvas.drawRRect(RR(20, 35, 30, 13, 2.5), Paint()..color = const Color(0xFF0C241A));
         final scr = R(21.5, 36.5, 27, 10);
         canvas.drawRRect(RR(21.5, 36.5, 27, 10, 2), Paint()..shader = ui.Gradient.linear(scr.topLeft, scr.bottomRight, [const Color(0xFF9FEFC4), const Color(0xFF3ED489)]));
-        text('12 540', P(35, 41.5), 5, const Color(0xFF06341E), fw: FontWeight.w800);
+        // Écran du terminal : lignes neutres (aucun montant fictif affiché).
+        canvas.drawRRect(RR(24.5, 38.6, 21, 1.7, 0.8), Paint()..color = const Color(0xFF06341E).withValues(alpha: 0.85));
+        canvas.drawRRect(RR(24.5, 41.6, 15, 1.7, 0.8), Paint()..color = const Color(0xFF06341E).withValues(alpha: 0.6));
+        canvas.drawRRect(RR(24.5, 44.6, 18.5, 1.7, 0.8), Paint()..color = const Color(0xFF06341E).withValues(alpha: 0.6));
         canvas.drawRRect(RR(22, 51, 12, 3, 1.4), Paint()..color = const Color(0xFF0B0F12));
         for (var r = 0; r < 3; r++) {
           for (var c = 0; c < 4; c++) {
@@ -408,7 +393,7 @@ class KpiArtPainter extends CustomPainter {
         canvas.drawPath(collar, Paint()..color = const Color(0xFFC9D6CF));
         canvas.drawRRect(RR(60, 52, 6.5, 7, 1.2), Paint()..color = const Color(0xFFE4ECE7));
         canvas.drawRect(R(62.2, 48.5, 1.4, 5), Paint()..color = const Color(0xFFD6A84F));
-        // Croix verte lumineuse.
+        // Croix verte lumineuse (logo PHARMA+ sur la blouse).
         final crossGlow = Paint()
           ..color = const Color(0xFF00C96B).withValues(alpha: 0.35)
           ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 3);
@@ -417,6 +402,9 @@ class KpiArtPainter extends CustomPainter {
         final crossGreen = Paint()..color = const Color(0xFF00A651);
         canvas.drawRRect(RR(48.4, 50, 3.2, 9, 1), crossGreen);
         canvas.drawRRect(RR(45.5, 52.9, 9, 3.2, 1), crossGreen);
+        // Badge « PHARMA+ » brodé sur la poche de la blouse.
+        text('PHARMA+', P(63.2, 57.2), 4.2, const Color(0xFF00A651),
+            fw: FontWeight.w900, ls: 0.2);
 
       // ==============================================
       // 8. BÉNÉFICE — barres montantes + flèche or

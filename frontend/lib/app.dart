@@ -157,6 +157,16 @@ class _SplashScreenState extends State<_SplashScreen>
                           fontSize: 14.5,
                         ),
                       ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Gestion intelligente de votre pharmacie',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.55),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
                       const SizedBox(height: 30),
                       const _SplashProgressBar(),
                       const SizedBox(height: 14),
