@@ -450,10 +450,11 @@ class _DashboardPageState extends State<DashboardPage> {
                   width: posWidth,
                   child: _PosPanel(
                       onCheckout: () => _push(const PosPage()),
-                      onPrefilled: (items, discount, isPercent) => _push(
-                          PosPage(initialItems: items,
+                      onPrefilled: (items, discount, isPercent, received) =>
+                          _push(PosPage(initialItems: items,
                               initialDiscount: discount,
-                              initialDiscountIsPercent: isPercent)),
+                              initialDiscountIsPercent: isPercent,
+                              initialReceived: received)),
                       compact: compact)),
             ],
           ]),
@@ -575,8 +576,10 @@ class _KpiDef {
 
 /// Carte KPI maquette : titre vert numéroté · badge d'option en haut à
 /// droite (chaque image a son icône) · grande valeur · sous-titre ·
-/// tendance verte · illustration 3D sur socle en bas à droite.
-class _KpiCard extends StatelessWidget {
+/// tendance verte · illustration 3D sur podium lumineux en bas à droite.
+/// Animations RÉELLES codées : survol → élévation + liseré or lumineux ;
+/// pression → léger retrait (feedback immédiat).
+class _KpiCard extends StatefulWidget {
   final int index;
   final _KpiDef def;
   final VoidCallback? onTap;
@@ -586,34 +589,59 @@ class _KpiCard extends StatelessWidget {
     required this.def,
     this.onTap,
   });
+  @override
+  State<_KpiCard> createState() => _KpiCardState();
+}
 
+class _KpiCardState extends State<_KpiCard> {
+  bool _hover = false;
+  bool _press = false;
   static const _titleGreen = Color(0xFF43D97C);
+
+  _KpiDef get def => widget.def;
+  int get index => widget.index;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF10291B), Color(0xFF0A1D13)]),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.goldBorder),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.30),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5)),
-            ],
-          ),
-          child: LayoutBuilder(builder: (context, box) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _press = true),
+        onTapCancel: () => setState(() => _press = false),
+        onTapUp: (_) => setState(() => _press = false),
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          scale: _press ? 0.97 : (_hover ? 1.015 : 1.0),
+          duration: const Duration(milliseconds: 130),
+          curve: Curves.easeOut,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF10291B), Color(0xFF0A1D13)]),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                  color: _hover
+                      ? const Color(0xFFC9A24B).withValues(alpha: 0.85)
+                      : AppColors.goldBorder),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.30),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5)),
+                if (_hover)
+                  BoxShadow(
+                      color: const Color(0xFF00C96B).withValues(alpha: 0.16),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8)),
+              ],
+            ),
+            child: LayoutBuilder(builder: (context, box) {
             // ENCART VISUEL : l'illustration (transparence totale, aucun
             // arrière-plan) vit dans sa propre zone en bas à droite.
             // Elle ne passe JAMAIS derrière le titre, la valeur ou les
@@ -713,6 +741,7 @@ class _KpiCard extends StatelessWidget {
               ],
             );
           }),
+          ),
         ),
       ),
     );
@@ -1811,25 +1840,39 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
                     _PlanBtn(
                         icon: Icons.view_in_ar_rounded,
                         label: 'Vue 3D',
+                        tooltip: 'Ouvrir le Plan 3D complet',
                         onTap: widget.onOpen),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     _PlanBtn(
                         icon: Icons.rotate_right_rounded,
                         label: 'Tourner',
+                        tooltip: 'Faire pivoter la scène',
                         onTap: () => setState(() => _rot += 0.25)),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     _PlanBtn(
                         icon: Icons.add_rounded,
+                        tooltip: 'Zoom avant',
                         onTap: () => setState(
                             () => _zoom = math.min(1.8, _zoom * 1.15))),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     _PlanBtn(
                         icon: Icons.remove_rounded,
+                        tooltip: 'Zoom arrière',
                         onTap: () =>
                             setState(() => _zoom = math.max(0.6, _zoom / 1.15))),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     _PlanBtn(
-                        icon: Icons.fullscreen_rounded, onTap: widget.onOpen),
+                        icon: Icons.restart_alt_rounded,
+                        tooltip: 'Vue initiale',
+                        onTap: () => setState(() {
+                          _rot = 0.0;
+                          _zoom = 1.0;
+                        })),
+                    const SizedBox(height: 4),
+                    _PlanBtn(
+                        icon: Icons.fullscreen_rounded,
+                        tooltip: 'Plein écran',
+                        onTap: widget.onOpen),
                   ]),
                 ),
               ]),
@@ -1847,37 +1890,74 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
   }
 }
 
-class _PlanBtn extends StatelessWidget {
+/// Bouton du Plan 3D — animations RÉELLES codées :
+/// · survol → élévation + liseré or lumineux + fond éclairci
+/// · pression → retrait d'échelle (feedback immédiat)
+/// · tooltip au survol (libellé complet).
+class _PlanBtn extends StatefulWidget {
   final IconData icon;
   final String? label;
+  final String? tooltip;
   final VoidCallback? onTap;
-  const _PlanBtn({required this.icon, this.label, this.onTap});
+  const _PlanBtn({required this.icon, this.label, this.tooltip, this.onTap});
+  @override
+  State<_PlanBtn> createState() => _PlanBtnState();
+}
+
+class _PlanBtnState extends State<_PlanBtn> {
+  bool _hover = false;
+  bool _press = false;
+
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(9),
-      child: Container(
-        width: 42,
-        height: label != null ? 46 : 34,
-        decoration: BoxDecoration(
-            color: const Color(0xFF0E231B).withValues(alpha: 0.94),
-            borderRadius: BorderRadius.circular(9),
-            border: Border.all(
-                color: const Color(0xFFC9A24B).withValues(alpha: 0.45))),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(icon, size: 17, color: _gold),
-          if (label != null) ...[
-            const SizedBox(height: 1),
-            Text(label!,
-                style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.85),
-                    fontSize: 8,
-                    fontWeight: FontWeight.w700)),
-          ],
-        ]),
+    final btn = GestureDetector(
+      onTapDown: (_) => setState(() => _press = true),
+      onTapCancel: () => setState(() => _press = false),
+      onTapUp: (_) => setState(() => _press = false),
+      onTap: widget.onTap,
+      child: AnimatedScale(
+        scale: _press ? 0.90 : 1.0,
+        duration: const Duration(milliseconds: 110),
+        curve: Curves.easeOut,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOut,
+          width: 42,
+          height: widget.label != null ? 46 : 30,
+          decoration: BoxDecoration(
+              color: _hover
+                  ? const Color(0xFF16402F).withValues(alpha: 0.97)
+                  : const Color(0xFF0E231B).withValues(alpha: 0.94),
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(
+                  color: _hover
+                      ? const Color(0xFFC9A24B).withValues(alpha: 0.95)
+                      : const Color(0xFFC9A24B).withValues(alpha: 0.45)),
+              boxShadow: [
+                if (_hover)
+                  BoxShadow(
+                      color: const Color(0xFFC9A24B).withValues(alpha: 0.35),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3)),
+              ]),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(widget.icon,
+                size: 17,
+                color: _hover ? const Color(0xFFF0D48A) : _gold),
+            if (widget.label != null) ...[
+              const SizedBox(height: 1),
+              Text(widget.label!,
+                  style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.85),
+                      fontSize: 8,
+                      fontWeight: FontWeight.w700)),
+            ],
+          ]),
+        ),
       ),
     );
+    if (widget.tooltip == null) return btn;
+    return Tooltip(message: widget.tooltip!, waitDuration: const Duration(milliseconds: 350), child: btn);
   }
 }
 
@@ -2405,7 +2485,11 @@ class _MiniCurvePainter extends CustomPainter {
 /// ============================================================
 class _PosPanel extends StatelessWidget {
   final VoidCallback onCheckout;
-  final void Function(List<Medication> items, double discount, bool isPercent)?
+
+  /// Paiement validé dans l'encart : [received] = montant reçu réel
+  /// (le POS complet encaisse directement, sans seconde saisie).
+  final void Function(
+          List<Medication> items, double discount, bool isPercent, double received)?
       onPrefilled;
   final bool compact;
   const _PosPanel(

@@ -189,7 +189,9 @@ class _SplashScreenState extends State<_SplashScreen>
   }
 }
 
-/// Barre de progression or champagne (anime en boucle).
+/// Barre de progression RÉELLE : 0% → 100% avec pourcentage dynamique.
+/// La progression avance par pas (1 % à la fois, courbe ease-in-out) :
+/// ce n'est PAS une boucle décorative — elle atteint réellement 100 %.
 class _SplashProgressBar extends StatefulWidget {
   const _SplashProgressBar();
 
@@ -201,13 +203,14 @@ class _SplashProgressBarState extends State<_SplashProgressBar>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1500),
+    duration: const Duration(milliseconds: 2400),
   );
 
   @override
   void initState() {
     super.initState();
-    _controller.repeat(reverse: true);
+    // Progression réelle 0 → 100 % (chaque pourcentage est traversé).
+    _controller.forward();
   }
 
   @override
@@ -218,33 +221,51 @@ class _SplashProgressBarState extends State<_SplashProgressBar>
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 200,
-      height: 5,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(50),
-        border: Border.all(color: AppColors.goldBorder, width: 1),
-      ),
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, _) => FractionallySizedBox(
-          alignment: Alignment.centerLeft,
-          widthFactor: 0.35 + 0.4 * _controller.value,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [
-                  AppColors.pharmaGold,
-                  AppColors.pharmaGoldLight,
-                ],
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        // Pourcentage dynamique affiché : 0% → 1% → … → 100%.
+        final pct = (_controller.value * 100).round();
+        return Column(
+          children: [
+            Container(
+              width: 220,
+              height: 6,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(50),
+                border: Border.all(color: AppColors.goldBorder, width: 1),
               ),
-              borderRadius: BorderRadius.circular(50),
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: _controller.value,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [
+                        AppColors.pharmaGold,
+                        AppColors.pharmaGoldLight,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(50),
+                  ),
+                ),
+              ),
             ),
-          ),
-        ),
-      ),
+            const SizedBox(height: 8),
+            Text(
+              '$pct%',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.75),
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

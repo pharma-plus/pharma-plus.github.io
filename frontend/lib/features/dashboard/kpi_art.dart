@@ -46,18 +46,38 @@ class KpiArtPainter extends CustomPainter {
       tp.paint(canvas, c - Offset(tp.width / 2, tp.height / 2));
     }
 
-    // Socle discret : simple halo lumineux sous l'objet (aucun fond plein,
-    // les illustrations restent TRANSPARENTES pour être composées dans
-    // l'encart des cartes KPI sans arrière-plan propre).
+    // ---- Socle elliptique (podium lumineux du design validé) ----
+    // Podium peint (CustomPainter) : ombre portée, halo vert diffus,
+    // dégradé vert forêt + liseré émeraude — profondeur 3D de la maquette.
     final podC = Offset(w * 0.46, h * 0.86);
+    final podRx = w * 0.42, podRy = h * 0.12;
     canvas.drawOval(
         Rect.fromCenter(
-            center: podC,
-            width: w * 0.78,
-            height: h * 0.20),
+            center: podC.translate(0, 2.6),
+            width: podRx * 2,
+            height: podRy * 2),
+        Paint()..color = const Color(0xFF06150E));
+    canvas.drawOval(
+        Rect.fromCenter(
+            center: podC, width: podRx * 2.2, height: podRy * 2.6),
         Paint()
-          ..color = const Color(0xFF00C96B).withValues(alpha: 0.16)
-          ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 9));
+          ..color = const Color(0xFF00C96B).withValues(alpha: 0.14)
+          ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 6));
+    final podRect =
+        Rect.fromCenter(center: podC, width: podRx * 2, height: podRy * 2);
+    canvas.drawOval(
+        podRect,
+        Paint()
+          ..shader = ui.Gradient.linear(
+              podRect.topCenter,
+              podRect.bottomCenter,
+              [const Color(0xFF1D5238), const Color(0xFF0E2C1D)]));
+    canvas.drawOval(
+        podRect.deflate(1.2),
+        Paint()
+          ..color = const Color(0xFF2E7A50)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.3);
 
     switch (art) {
       // ==============================================

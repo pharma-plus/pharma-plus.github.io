@@ -8,7 +8,9 @@ import '../../core/services/auth_store.dart';
 import '../../core/services/receipt_pdf.dart';
 import '../../core/services/offline_store.dart';
 import '../../core/theme/colors.dart';
+import '../../core/utils/calculations.dart';
 import '../../core/utils/format.dart';
+import '../dashboard/payment_sheet.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import 'pos_categories.dart';
@@ -20,11 +22,17 @@ class PosPage extends StatefulWidget {
   final List<Medication>? initialItems;
   final double initialDiscount;
   final bool initialDiscountIsPercent;
+
+  /// Montant déjà validé dans la feuille de paiement du mini-POS :
+  /// l'encaissement se fait automatiquement avec CE montant réel
+  /// (pas de double saisie), la monnaie est calculée puis affichée.
+  final double? initialReceived;
   const PosPage({
     super.key,
     this.initialItems,
     this.initialDiscount = 0,
     this.initialDiscountIsPercent = true,
+    this.initialReceived,
   });
 
   @override
@@ -74,6 +82,18 @@ class _PosPageState extends State<PosPage> {
         _branchId = auth.user?.branchId ??
             (list.isNotEmpty ? '${list[0]['id']}' : null);
       });
+      // Paiement déjà validé dans l'encart POS du dashboard : on encaisse
+      // directement avec le montant reçu (aucune seconde saisie).
+      if (widget.initialReceived != null &&
+          _cart.lines.isNotEmpty &&
+          _branchId != null &&
+          !_checkout) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && !_checkout) {
+            _checkoutFlow(widget.initialReceived);
+          }
+        });
+      }
     }
   }
 
@@ -140,7 +160,17 @@ class _PosPageState extends State<PosPage> {
     }
   }
 
-  Future<void> _checkoutFlow() async {
+  /// Ouvre la feuille de paiement (montant reçu → monnaie calculée),
+  /// puis encaisse avec le montant réellement reçu.
+  Future<void> _openPayment() async {
+    if (_cart.isEmpty || _checkout) return;
+    final received = await PaymentSheet.show(context, _cart.total);
+    if (received == null) return; // paiement annulé
+    if (!mounted) return;
+    await _checkoutFlow(received);
+  }
+
+  Future<void> _checkoutFlow([double? receivedAmount]) async {
     if (_cart.isEmpty || _checkout) return;
     final auth = context.read<AuthStore>();
     if (_branchId == null) {
@@ -151,6 +181,8 @@ class _PosPageState extends State<PosPage> {
     }
     setState(() => _checkout = true);
     try {
+      final paid =
+          double.parse((receivedAmount ?? _cart.total).toStringAsFixed(2));
       final result = await ApiClient.instance.post<Map<String, dynamic>>(
         '/sales',
         body: {
@@ -160,13 +192,14 @@ class _PosPageState extends State<PosPage> {
           'payments': [
             {
               'method': 'cash',
-              'amount': double.parse(_cart.total.toStringAsFixed(2)),
+              'amount': paid,
               'generateInvoice': true,
             }
           ],
         },
       );
       if (result.success) {
+        final change = calculateChange(received: paid, total: _cart.total);
         final lines = _cart.lines
             .map((l) => CartLineLike(
                   name: l.medication.name,
@@ -180,7 +213,10 @@ class _PosPageState extends State<PosPage> {
         _cart.clear();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(S.t('saleSuccess', auth.locale))),
+            SnackBar(
+                content: Text(change > 0
+                    ? '${S.t('saleSuccess', auth.locale)} · Monnaie : ${Fmt.money(change)} MAD'
+                    : S.t('saleSuccess', auth.locale))),
           );
           ReceiptPdf.printSaleReceipt(
             lines: lines,
@@ -198,7 +234,7 @@ class _PosPageState extends State<PosPage> {
             'payments': [
               {
                 'method': 'cash',
-                'amount': double.parse(_cart.total.toStringAsFixed(2)),
+                'amount': paid,
               }
             ],
           },
@@ -435,7 +471,7 @@ class _PosPageState extends State<PosPage> {
             label: '${S.t('checkout', locale)}  ${Fmt.money(_cart.total)}',
             icon: Icons.payments_outlined,
             loading: _checkout,
-            onPressed: _checkoutFlow,
+            onPressed: _openPayment,
           ),
         ],
       ),

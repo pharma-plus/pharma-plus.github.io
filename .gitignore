@@ -16,3 +16,7 @@ build_web_out.txt
 
 # Depot git imbrique (pharma-plus-api) : ne pas ajouter comme gitlink
 backend/
+
+main.dart.js.locked
+build_exit_code.txt
+build_web_out.txt

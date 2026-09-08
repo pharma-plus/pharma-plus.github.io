@@ -10,6 +10,7 @@ import '../../core/services/api_client.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/calculations.dart';
 import '../../core/utils/format.dart';
+import 'payment_sheet.dart';
 
 /// ============================================================
 /// POINT DE VENTE (encart dashboard) — VRAI mini-POS :
@@ -24,9 +25,11 @@ import '../../core/utils/format.dart';
 class PosPanel extends StatefulWidget {
   final VoidCallback onCheckout;
 
-  /// Ouvre le POS complet avec le panier courant pré-rempli : le
-  /// paiement et l'enregistrement de la vente se font dans le vrai POS.
-  final void Function(List<Medication> items, double discount, bool isPercent)?
+  /// Ouvre le POS complet avec le panier courant pré-rempli et le montant
+  /// reçu validé dans la feuille de paiement : l'encaissement se fait
+  /// automatiquement avec CE montant réel (pas de seconde saisie).
+  final void Function(
+          List<Medication> items, double discount, bool isPercent, double received)?
       onPrefilled;
   final bool compact;
   const PosPanel(
@@ -261,6 +264,21 @@ class _PosPanelState extends State<PosPanel> {
   }
 
   String _fmt(double v) => Fmt.money(v);
+
+  /// Paiement ESPÈCES RÉEL : ouvre la feuille de paiement (montant reçu →
+  /// monnaie calculée via calculateChange()). Si validé, le panier est
+  /// transmis au POS complet pré-rempli qui enregistre la vente avec le
+  /// montant reçu (paid_amount) — le backend calcule change_amount.
+  Future<void> _pay() async {
+    if (_cart.isEmpty) {
+      widget.onCheckout();
+      return;
+    }
+    final received = await PaymentSheet.show(context, _totals.total);
+    if (received == null || !mounted) return;
+    widget.onPrefilled?.call(
+        _cart.values.toList(), _discount, _discountPercent, received);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -533,12 +551,7 @@ class _PosPanelState extends State<PosPanel> {
                     label: 'Paiement',
                     icon: Icons.payments_outlined,
                     color: const Color(0xFF0E8C4F),
-                    onTap: _cart.isEmpty
-                        ? widget.onCheckout
-                        : () => widget.onPrefilled?.call(
-                            _cart.values.toList(),
-                            _discount,
-                            _discountPercent))),
+                    onTap: _pay)),
           ]),
         ),
       ]),

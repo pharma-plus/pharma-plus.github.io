@@ -183,3 +183,27 @@ double? periodVariation(double current, double previous) {
   if (previous == 0) return null;
   return ((current - previous) / previous) * 100;
 }
+
+/// ============================================================
+/// PAIEMENT ESPÈCES (POS) — monnaie et couverture du total.
+/// Source unique : ni le POS ni la feuille de paiement ne
+/// recalculent ces valeurs localement.
+/// ============================================================
+
+/// Monnaie à rendre = montant reçu − total (0 si reçu ≤ total).
+/// Ex. reçu 1200 · total 140 → 1060 MAD.
+/// Arrondie au centime pour éviter les résidus flottants.
+double calculateChange({required double received, required double total}) {
+  if (received <= total) return 0;
+  return ((received - total) * 100).roundToDouble() / 100;
+}
+
+/// Montant encore dû par le client (0 dès que reçu ≥ total).
+double remainingDue({required double received, required double total}) {
+  if (received >= total) return 0;
+  return ((total - received) * 100).roundToDouble() / 100;
+}
+
+/// Le montant reçu couvre-t-il le total ? (tolérance 1 centime)
+bool isPaymentSufficient({required double received, required double total}) =>
+    received + 0.009 >= total;
