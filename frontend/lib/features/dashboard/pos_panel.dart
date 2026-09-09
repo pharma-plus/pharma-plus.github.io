@@ -11,6 +11,7 @@ import '../../core/theme/colors.dart';
 import '../../core/utils/calculations.dart';
 import '../../core/utils/format.dart';
 import 'payment_sheet.dart';
+import 'pos_category_grid.dart';
 
 /// ============================================================
 /// POINT DE VENTE (encart dashboard) — VRAI mini-POS :
@@ -59,24 +60,25 @@ class _PosPanelState extends State<PosPanel> {
   /// Mots-clés de recherche réels par catégorie (filtre API du catalogue).
   static const Map<String, String> _catQueries = {
     'all': '',
-    'meds': '',
-    'vitamins': 'vitamine',
-    'care': 'sirop',
-    'baby': 'bébé',
-    'firstAid': 'antiseptique',
-    'beauty': 'crème',
-    'accessories': 'compresses',
+    'antalgiques': 'ibuprof',
+    'antibiotiques': 'amoxicill',
+    'cardiologie': 'bisoprolol',
+    'diabete': 'metformin',
+    'vitamines': 'vitamine',
+    'respiratoire': 'salbutamol',
+    'digestif': 'omeprazole',
+    'autres': '',
   };
 
   static const _cats = <(String, String)>[
-    ('Tout', 'all'),
-    ('Médica.', 'meds'),
-    ('Vitami.', 'vitamins'),
-    ('Santé', 'care'),
-    ('Bébé', 'baby'),
-    ('Secours', 'firstAid'),
-    ('Beauté', 'beauty'),
-    ('Divers', 'accessories'),
+    ('Antalgiques', 'antalgiques'),
+    ('Antibiotiques', 'antibiotiques'),
+    ('Cardiologie', 'cardiologie'),
+    ('Diabète', 'diabete'),
+    ('Vitamines', 'vitamines'),
+    ('Respiratoire', 'respiratoire'),
+    ('Digestif', 'digestif'),
+    ('Autres', 'autres'),
   ];
 
   @override
@@ -138,6 +140,13 @@ class _PosPanelState extends State<PosPanel> {
 
   void _searchCategory(String kind) {
     final q = _catQueries[kind] ?? '';
+    if (q.isNotEmpty &&
+        _search.text.trim().toLowerCase() == q.trim().toLowerCase()) {
+      // Re-tap sur la classe active -> revenir a TOUT le catalogue.
+      _search.text = '';
+      _doSearch('');
+      return;
+    }
     _search.text = q;
     _doSearch(q);
   }
@@ -393,14 +402,34 @@ class _PosPanelState extends State<PosPanel> {
             ),
           ),
         const SizedBox(height: 8),
-        // ---- Catégories : filtres de recherche RÉELS ----
-        Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-          for (final (name, kind) in _cats)
-            _CatChip(
-                name: name,
-                icon: _catIcon(kind),
-                onTap: () => _searchCategory(kind)),
-        ]),
+        // ---- Catégories : GRILLE 2×4 STRICTE (design validé) ----
+        LayoutBuilder(builder: (context, cons) {
+          const gap = 10.0;
+          const tileH = 86.0;
+          final cellW = (cons.maxWidth - 3 * gap) / 4;
+          final active = _search.text.trim().toLowerCase();
+          return SizedBox(
+            height: tileH * 2 + gap,
+            child: GridView.count(
+              crossAxisCount: 4,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: EdgeInsets.zero,
+              mainAxisSpacing: gap,
+              crossAxisSpacing: gap,
+              childAspectRatio: cellW / tileH,
+              children: [
+                for (final (name, kind) in _cats)
+                  _CatChip(
+                      name: name,
+                      selected: active.isNotEmpty &&
+                          active ==
+                              (_catQueries[kind] ?? '').trim().toLowerCase(),
+                      onTap: () => _searchCategory(kind)),
+              ],
+            ),
+          );
+        }),
         const SizedBox(height: 8),
         // ---- En-tête table ----
         const _RowHeader(),
@@ -557,17 +586,6 @@ class _PosPanelState extends State<PosPanel> {
       ]),
     );
   }
-
-  IconData _catIcon(String kind) => switch (kind) {
-        'all' => Icons.apps_rounded,
-        'meds' => Icons.medication_rounded,
-        'vitamins' => Icons.eco_rounded,
-        'care' => Icons.healing_rounded,
-        'baby' => Icons.child_care_rounded,
-        'firstAid' => Icons.local_hospital_rounded,
-        'beauty' => Icons.face_retouching_natural_rounded,
-        _ => Icons.medical_services_rounded,
-      };
 }
 
 /// Coquille des panneaux latéraux (identique au style du dashboard).
@@ -652,41 +670,18 @@ class _RowHeader extends StatelessWidget {
   }
 }
 
-/// Puce de catégorie (filtre de recherche réel).
+/// Tuile de catégorie illustrée (grille 2×4 — délègue à [PosCategoryTile]).
 class _CatChip extends StatelessWidget {
   final String name;
-  final IconData icon;
+  final bool selected;
   final VoidCallback onTap;
-  const _CatChip({required this.name, required this.icon, required this.onTap});
+
+  const _CatChip(
+      {required this.name, this.selected = false, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(9),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
-        child: Column(children: [
-          Container(
-            width: 34,
-            height: 30,
-            decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.045),
-                borderRadius: BorderRadius.circular(9),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.07))),
-            child: Icon(icon, size: 17, color: AppColors.emeraldLight),
-          ),
-          const SizedBox(height: 3),
-          Text(name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.92),
-                  fontSize: 8.4,
-                  fontWeight: FontWeight.w700)),
-        ]),
-      ),
-    );
+    return PosCategoryTile(label: name, selected: selected, onTap: onTap);
   }
 }
 
