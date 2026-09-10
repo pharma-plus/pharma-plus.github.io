@@ -8,6 +8,7 @@ import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/status_chip.dart';
+import '../shell/shell_nav.dart';
 
 /// Employés : effectif, fiches, contrats, primes et évaluations.
 class EmployeesPage extends StatefulWidget {
@@ -99,6 +100,7 @@ class _EmployeesPageState extends State<EmployeesPage> {
     final s = _summary;
     return Scaffold(
       appBar: AppBar(
+        leading: const ShellBackButton(),
         title: Text(S.t('employees', locale)),
         actions: [
           IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),

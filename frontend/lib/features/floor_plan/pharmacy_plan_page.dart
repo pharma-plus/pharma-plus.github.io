@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
+import '../shell/shell_nav.dart';
 
 /// Représentation isométrique 2.5D interactive de la pharmacie :
 /// sol, rayons (étagères en volume), zones colorées et interaction au toucher.
@@ -118,8 +119,7 @@ class _PharmacyPlanPageState extends State<PharmacyPlanPage> {
                   builder: (ctx, constraints) {
                     final size =
                         Size(constraints.maxWidth, constraints.maxHeight);
-                    final proj =
-                        _Projector(rot: _rot, zoom: _zoom, size: size);
+                    final proj = _Projector(rot: _rot, zoom: _zoom, size: size);
                     return Stack(
                       children: [
                         GestureDetector(
@@ -148,8 +148,7 @@ class _PharmacyPlanPageState extends State<PharmacyPlanPage> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 14, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color:
-                                      Colors.black.withValues(alpha: 0.45),
+                                  color: Colors.black.withValues(alpha: 0.45),
                                   borderRadius: BorderRadius.circular(30),
                                 ),
                                 child: Text(
@@ -225,7 +224,13 @@ class _Header extends StatelessWidget {
           IconButton(
             tooltip: 'Retour',
             icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-            onPressed: () => Navigator.of(context).maybePop(),
+            onPressed: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).maybePop();
+              } else {
+                ShellNav.goHome();
+              }
+            },
           ),
           const SizedBox(width: 2),
           Container(
@@ -390,7 +395,8 @@ class _DetailPanel extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('${S.t('occupancy', locale)} · ${zone.occupancy}%',
+                          Text(
+                              '${S.t('occupancy', locale)} · ${zone.occupancy}%',
                               style: const TextStyle(
                                   color: Colors.white70, fontSize: 12)),
                           const SizedBox(height: 6),
@@ -458,8 +464,7 @@ class _Projector {
   final double originX;
   final double originY;
 
-  _Projector(
-      {required this.rot, required this.zoom, required Size size})
+  _Projector({required this.rot, required this.zoom, required Size size})
       : scale = (math.min(size.width, size.height) / 13) * zoom,
         originX = size.width / 2,
         originY = size.height * 0.56;
@@ -484,8 +489,7 @@ class _Face {
   final Color color;
   final double depth;
   _Face(this.pts, this.color)
-      : depth = pts.fold(
-                0.0, (double s, _P p) => s + (p.x + p.y) - p.z * 0.5) /
+      : depth = pts.fold(0.0, (double s, _P p) => s + (p.x + p.y) - p.z * 0.5) /
             pts.length;
 }
 
@@ -617,12 +621,7 @@ List<_Zone> _buildZones() => [
         shelfHeight: 1.35,
         shelfCount: 12,
         occupancy: 58,
-        products: [
-          'Rouge à lèvres',
-          'Fond de teint',
-          'Mascara',
-          'Crème jour'
-        ],
+        products: ['Rouge à lèvres', 'Fond de teint', 'Mascara', 'Crème jour'],
       ),
     ];
 
@@ -679,8 +678,7 @@ class _PlanPainter extends CustomPainter {
       ..lineTo(c2.dx, c2.dy)
       ..lineTo(c3.dx, c3.dy)
       ..close();
-    canvas.drawPath(
-        path, Paint()..color = const Color(0xFF0E1A14));
+    canvas.drawPath(path, Paint()..color = const Color(0xFF0E1A14));
     final g = Paint()
       ..color = Colors.white.withValues(alpha: 0.06)
       ..strokeWidth = 1;
@@ -784,7 +782,8 @@ class _PlanPainter extends CustomPainter {
         text: TextSpan(
           text: S.t(z.labelKey, locale),
           style: TextStyle(
-              color: active ? Colors.white : Colors.white.withValues(alpha: 0.88),
+              color:
+                  active ? Colors.white : Colors.white.withValues(alpha: 0.88),
               fontSize: active ? 12.5 : 11.5,
               fontWeight: FontWeight.w800,
               letterSpacing: active ? 0.5 : 0.2),
@@ -857,8 +856,7 @@ class _FullScreenPlanState extends State<_FullScreenPlan> {
           Positioned.fill(
             child: LayoutBuilder(
               builder: (ctx, constraints) {
-                final size =
-                    Size(constraints.maxWidth, constraints.maxHeight);
+                final size = Size(constraints.maxWidth, constraints.maxHeight);
                 final proj = _Projector(rot: _rot, zoom: _zoom, size: size);
                 return Stack(children: [
                   GestureDetector(
@@ -895,8 +893,13 @@ class _FullScreenPlanState extends State<_FullScreenPlan> {
             top: 12,
             left: 12,
             child: Row(children: [
-              _fsBtn(Icons.arrow_back_rounded, 'Retour',
-                  () => Navigator.of(context).maybePop()),
+              _fsBtn(Icons.arrow_back_rounded, 'Retour', () {
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context).maybePop();
+                } else {
+                  ShellNav.goHome();
+                }
+              }),
               const SizedBox(width: 8),
               _fsBtn(Icons.remove, 'Zoom -',
                   () => setState(() => _zoom = math.max(0.5, _zoom / 1.15))),
@@ -912,8 +915,13 @@ class _FullScreenPlanState extends State<_FullScreenPlan> {
                         _zoom = 1.0;
                       })),
               const SizedBox(width: 8),
-              _fsBtn(Icons.close_rounded, 'Quitter le plein écran',
-                  () => Navigator.of(context).maybePop()),
+              _fsBtn(Icons.close_rounded, 'Quitter le plein écran', () {
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context).maybePop();
+                } else {
+                  ShellNav.goHome();
+                }
+              }),
             ]),
           ),
         ]),

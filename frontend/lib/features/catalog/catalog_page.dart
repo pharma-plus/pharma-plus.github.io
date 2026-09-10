@@ -9,6 +9,7 @@ import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
+import '../shell/shell_nav.dart';
 
 class CatalogPage extends StatefulWidget {
   const CatalogPage({super.key, this.parapharmacy = false});
@@ -107,8 +108,7 @@ class _CatalogPageState extends State<CatalogPage> {
                   decoration: const InputDecoration(labelText: 'EAN-13')),
               DropdownButtonFormField<String>(
                 initialValue: selectedZone,
-                decoration:
-                    InputDecoration(labelText: S.t('zone', locale)),
+                decoration: InputDecoration(labelText: S.t('zone', locale)),
                 items: kPlanZones
                     .map((z) => DropdownMenuItem(
                           value: z.id,
@@ -188,6 +188,7 @@ class _CatalogPageState extends State<CatalogPage> {
     final locale = context.watch<AuthStore>().locale;
     return Scaffold(
       appBar: AppBar(
+        leading: const ShellBackButton(),
         title: Text(
             _paraMode ? S.t('parapharmacy', locale) : S.t('catalog', locale)),
         actions: [

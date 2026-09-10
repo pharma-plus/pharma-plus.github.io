@@ -8,6 +8,7 @@ import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/status_chip.dart';
+import '../shell/shell_nav.dart';
 
 /// Achats : commandes fournisseurs et réceptions de stock.
 class PurchasesPage extends StatefulWidget {
@@ -100,6 +101,7 @@ class _PurchasesPageState extends State<PurchasesPage>
     final locale = context.watch<AuthStore>().locale;
     return Scaffold(
       appBar: AppBar(
+        leading: const ShellBackButton(),
         title: Text(S.t('purchases', locale)),
         bottom: TabBar(
           controller: _tabs,

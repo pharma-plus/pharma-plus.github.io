@@ -7,6 +7,7 @@ import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/stats_tile.dart';
+import '../shell/shell_nav.dart';
 
 /// Rapports : vue financière, ventes, produits, stock et employés.
 class ReportsPage extends StatefulWidget {
@@ -100,6 +101,7 @@ class _ReportsPageState extends State<ReportsPage> {
     final locale = context.watch<AuthStore>().locale;
     return Scaffold(
       appBar: AppBar(
+        leading: const ShellBackButton(),
         title: Text(S.t('reports', locale)),
         actions: [
           IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),

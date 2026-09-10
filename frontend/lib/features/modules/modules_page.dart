@@ -21,6 +21,7 @@ import '../settings/settings_page.dart';
 import '../stock/stock_page.dart';
 import '../suppliers/suppliers_page.dart';
 import '../website/website_page.dart';
+import '../shell/shell_nav.dart';
 
 /// Grille des modules : point d'entrée vers toutes les sections.
 class ModulesPage extends StatelessWidget {
@@ -101,7 +102,9 @@ class ModulesPage extends StatelessWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: Text(S.t('modules', locale))),
+      appBar: AppBar(
+          leading: const ShellBackButton(),
+          title: Text(S.t('modules', locale))),
       body: GridView.builder(
         padding: const EdgeInsets.all(14),
         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(

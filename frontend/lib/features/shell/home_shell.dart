@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/auth_store.dart';
@@ -6,6 +6,7 @@ import '../../core/services/sync_engine.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/responsive.dart';
 import '../../core/widgets/pharma_background.dart';
+import '../shell/shell_nav.dart';
 import '../dashboard/dashboard_page.dart';
 import '../modules/modules_page.dart';
 import '../pos/pos_page.dart';
@@ -28,7 +29,6 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> {
-  int _index = 0;
   bool _syncing = false;
 
   static const _pages = [
@@ -62,7 +62,8 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
-    final deviceType = ResponsiveHelper.getDeviceType(MediaQuery.of(context).size.width);
+    final deviceType =
+        ResponsiveHelper.getDeviceType(MediaQuery.of(context).size.width);
     final showBottomNav = deviceType == DeviceType.mobile;
 
     // Navigation items
@@ -85,35 +86,38 @@ class _HomeShellState extends State<HomeShell> {
         ),
     ];
 
-    return Scaffold(
-      body: PharmaBackground(
-        child: SafeArea(
-          child: Theme(
-            data: Theme.of(context).copyWith(
-              scaffoldBackgroundColor: Colors.transparent,
-              canvasColor: Colors.transparent,
-            ),
-            child: Stack(
-              children: [
-                IndexedStack(index: _index, children: _pages),
-                if (_syncing) _SyncBanner(label: S.t('syncing', locale)),
-              ],
+    return ValueListenableBuilder<int>(
+      valueListenable: ShellNav.index,
+      builder: (context, shellIndex, _) => Scaffold(
+        body: PharmaBackground(
+          child: SafeArea(
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                scaffoldBackgroundColor: Colors.transparent,
+                canvasColor: Colors.transparent,
+              ),
+              child: Stack(
+                children: [
+                  IndexedStack(index: shellIndex, children: _pages),
+                  if (_syncing) _SyncBanner(label: S.t('syncing', locale)),
+                ],
+              ),
             ),
           ),
         ),
+        bottomNavigationBar: showBottomNav
+            ? NavigationBar(
+                selectedIndex:
+                    mobileItems.map((m) => m.$4).toList().indexOf(shellIndex),
+                onDestinationSelected: (i) =>
+                    ShellNav.index.value = mobileItems[i].$4,
+                destinations: mobileDestinations,
+                // Optimisation tactile : hauteur augmentÃ©e pour doigts
+                height: 80,
+                labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+              )
+            : null,
       ),
-      bottomNavigationBar: showBottomNav
-          ? NavigationBar(
-              selectedIndex:
-                  mobileItems.map((m) => m.$4).toList().indexOf(_index),
-              onDestinationSelected: (i) =>
-                  setState(() => _index = mobileItems[i].$4),
-              destinations: mobileDestinations,
-              // Optimisation tactile : hauteur augmentée pour doigts
-              height: 80,
-              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-            )
-          : null,
     );
   }
 }

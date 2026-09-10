@@ -6,6 +6,7 @@ import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
+import '../shell/shell_nav.dart';
 
 class StockPage extends StatefulWidget {
   /// Filtre initial : null | low | expiring | expired.
@@ -231,7 +232,8 @@ class _StockPageState extends State<StockPage> {
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
     return Scaffold(
-             appBar: AppBar(
+      appBar: AppBar(
+        leading: const ShellBackButton(),
         backgroundColor: AppColors.pharmaSurface,
         foregroundColor: AppColors.pharmaText,
         elevation: 0,

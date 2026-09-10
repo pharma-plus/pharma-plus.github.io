@@ -13,6 +13,7 @@ import '../../core/utils/format.dart';
 import '../dashboard/payment_sheet.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
+import '../shell/shell_nav.dart';
 import 'pos_categories.dart';
 import 'pos_models.dart';
 
@@ -272,6 +273,7 @@ class _PosPageState extends State<PosPage> {
     final locale = context.watch<AuthStore>().locale;
     return Scaffold(
       appBar: AppBar(
+        leading: const ShellBackButton(),
         title: Text(S.t('pos', locale)),
         actions: [
           if (_branches.isNotEmpty)
@@ -343,7 +345,7 @@ class _PosPageState extends State<PosPage> {
             onChanged: _searchMedications,
             decoration: InputDecoration(
               hintText: S.t('search', locale),
-              prefixIcon:          const Icon(Icons.search),
+              prefixIcon: const Icon(Icons.search),
               suffixIcon: _searching
                   ? const Padding(
                       padding: EdgeInsets.all(12),
@@ -385,9 +387,7 @@ class _PosPageState extends State<PosPage> {
                     _results = _results
                         .where((m) =>
                             cat.id == 'autres' ||
-                            (m.categoryName
-                                    ?.toLowerCase()
-                                    .contains(q) ??
+                            (m.categoryName?.toLowerCase().contains(q) ??
                                 false) ||
                             (m.categoryId?.toLowerCase() == q))
                         .toList();
@@ -403,8 +403,8 @@ class _PosPageState extends State<PosPage> {
               : GridView.builder(
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: _gridColumns(
-                        MediaQuery.of(context).size.width),
+                    crossAxisCount:
+                        _gridColumns(MediaQuery.of(context).size.width),
                     childAspectRatio: 0.95,
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
@@ -566,8 +566,7 @@ class _CartLineTile extends StatelessWidget {
             child: Text(
               Fmt.money(line.total),
               textAlign: TextAlign.end,
-              style: const TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w900),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
             ),
           ),
           _TouchIconButton(
@@ -622,16 +621,14 @@ class _TouchStepper extends StatelessWidget {
         _TouchIconButton(
           icon: Icons.remove,
           color: AppColors.primary,
-          onPressed: () =>
-              onChanged((quantity - 1).clamp(1, 999).toDouble()),
+          onPressed: () => onChanged((quantity - 1).clamp(1, 999).toDouble()),
         ),
         SizedBox(
           width: 56,
           child: Text(
             Fmt.number(quantity),
             textAlign: TextAlign.center,
-            style: const TextStyle(
-                fontSize: 18, fontWeight: FontWeight.w900),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
           ),
         ),
         _TouchIconButton(

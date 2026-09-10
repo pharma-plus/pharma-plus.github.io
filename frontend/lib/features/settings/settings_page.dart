@@ -8,6 +8,7 @@ import '../../core/services/sync_engine.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/pharma_logo.dart';
+import '../shell/shell_nav.dart';
 
 /// Paramètres : profil pharmacie, compte/sécurité, utilisateurs, journal
 /// d'activité, langue, thème, synchronisation et serveur.
@@ -40,7 +41,8 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _loadPharmacy() async {
-    final r = await ApiClient.instance.get<Map<String, dynamic>>('/pharmacies/me');
+    final r =
+        await ApiClient.instance.get<Map<String, dynamic>>('/pharmacies/me');
     if (!mounted) return;
     setState(() {
       _pharmacy = r.success ? r.data : null;
@@ -49,7 +51,8 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _loadUsers() async {
-    final r = await ApiClient.instance.get<Map<String, dynamic>>('/users?limit=100');
+    final r =
+        await ApiClient.instance.get<Map<String, dynamic>>('/users?limit=100');
     if (!mounted) return;
     if (r.success) {
       _users = (r.data as List? ?? const [])
@@ -73,7 +76,8 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _loadAudit() async {
-    final r = await ApiClient.instance.get<Map<String, dynamic>>('/audit?limit=50');
+    final r =
+        await ApiClient.instance.get<Map<String, dynamic>>('/audit?limit=50');
     if (!mounted) return;
     if (r.success) {
       _audit = (r.data as List? ?? const [])
@@ -92,7 +96,8 @@ class _SettingsPageState extends State<SettingsPage> {
     if (mounted) {
       setState(() => _syncing = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(S.t('synced', context.read<AuthStore>().locale))),
+        SnackBar(
+            content: Text(S.t('synced', context.read<AuthStore>().locale))),
       );
     }
   }
@@ -108,7 +113,8 @@ class _SettingsPageState extends State<SettingsPage> {
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.url,
-          decoration: const InputDecoration(hintText: 'https://api.exemple.com/api/v1'),
+          decoration:
+              const InputDecoration(hintText: 'https://api.exemple.com/api/v1'),
         ),
         actions: [
           TextButton(
@@ -133,7 +139,9 @@ class _SettingsPageState extends State<SettingsPage> {
     final user = auth.user;
 
     return Scaffold(
-      appBar: AppBar(title: Text(S.t('settings', locale))),
+      appBar: AppBar(
+          leading: const ShellBackButton(),
+          title: Text(S.t('settings', locale))),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -269,9 +277,18 @@ class _SettingsPageState extends State<SettingsPage> {
             title: S.t('theme', locale),
             child: Column(
               children: [
-                _RadioTheme(label: S.t('system', locale), mode: ThemeMode.system, current: auth.themeMode),
-                _RadioTheme(label: S.t('light', locale), mode: ThemeMode.light, current: auth.themeMode),
-                _RadioTheme(label: S.t('dark', locale), mode: ThemeMode.dark, current: auth.themeMode),
+                _RadioTheme(
+                    label: S.t('system', locale),
+                    mode: ThemeMode.system,
+                    current: auth.themeMode),
+                _RadioTheme(
+                    label: S.t('light', locale),
+                    mode: ThemeMode.light,
+                    current: auth.themeMode),
+                _RadioTheme(
+                    label: S.t('dark', locale),
+                    mode: ThemeMode.dark,
+                    current: auth.themeMode),
               ],
             ),
           ),
@@ -282,17 +299,22 @@ class _SettingsPageState extends State<SettingsPage> {
             child: Column(
               children: [
                 ListTile(
-                  leading: const Icon(Icons.cloud_sync_outlined, color: AppColors.primary),
+                  leading: const Icon(Icons.cloud_sync_outlined,
+                      color: AppColors.primary),
                   title: Text(S.t('sync', locale)),
                   subtitle: Text(auth.baseUrl),
                   trailing: _syncing
-                      ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(Icons.sync),
                   onTap: _syncNow,
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.dns_outlined, color: AppColors.primary),
+                  leading:
+                      const Icon(Icons.dns_outlined, color: AppColors.primary),
                   title: Text(S.t('server', locale)),
                   subtitle: Text(auth.baseUrl),
                   trailing: const Icon(Icons.edit_outlined),
@@ -305,7 +327,8 @@ class _SettingsPageState extends State<SettingsPage> {
           OutlinedButton.icon(
             onPressed: () => auth.signOut(),
             icon: const Icon(Icons.logout, color: AppColors.danger),
-            label: Text(S.t('logout', locale), style: const TextStyle(color: AppColors.danger)),
+            label: Text(S.t('logout', locale),
+                style: const TextStyle(color: AppColors.danger)),
           ),
           const SizedBox(height: 24),
           const Center(
@@ -324,8 +347,8 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (_) => _ChangePasswordDialog(locale: locale),
     );
     if (result == true && mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(S.t('passwordChanged', locale))));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(S.t('passwordChanged', locale))));
     }
   }
 }
@@ -349,11 +372,14 @@ class _PharmacyProfileTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('${p['name'] ?? ''}',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 4),
                 Text('${p['city'] ?? ''} · ${p['phone'] ?? ''}',
                     style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                if (p['email'] != null) Text('${p['email']}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                if (p['email'] != null)
+                  Text('${p['email']}',
+                      style: const TextStyle(color: Colors.grey, fontSize: 12)),
               ],
             ),
           ),
@@ -400,27 +426,33 @@ class _UsersTile extends StatelessWidget {
         if (error != null)
           Padding(
             padding: const EdgeInsets.all(12),
-            child: Text(error!, style: const TextStyle(color: AppColors.danger)),
+            child:
+                Text(error!, style: const TextStyle(color: AppColors.danger)),
           ),
         if (loading)
           const Center(child: CircularProgressIndicator())
         else
           ...users.map((u) => ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: AppColors.primaryLight.withValues(alpha: 0.2),
-                  child: Text('${(u['first_name'] ?? '?')[0]}${(u['last_name'] ?? '')[0]}'.toUpperCase()),
+                  backgroundColor:
+                      AppColors.primaryLight.withValues(alpha: 0.2),
+                  child: Text(
+                      '${(u['first_name'] ?? '?')[0]}${(u['last_name'] ?? '')[0]}'
+                          .toUpperCase()),
                 ),
                 title: Text('${u['first_name'] ?? ''} ${u['last_name'] ?? ''}'),
                 subtitle: Text('${u['email'] ?? ''}'),
                 trailing: IconButton(
-                  icon: const Icon(Icons.restart_alt_outlined, color: AppColors.warning),
+                  icon: const Icon(Icons.restart_alt_outlined,
+                      color: AppColors.warning),
                   tooltip: S.t('resetPassword', locale),
                   onPressed: () => _resetPassword(context, locale, u),
                 ),
               )),
         const Divider(height: 1),
         ListTile(
-          leading: const Icon(Icons.person_add_alt_1_outlined, color: AppColors.primary),
+          leading: const Icon(Icons.person_add_alt_1_outlined,
+              color: AppColors.primary),
           title: Text(S.t('addUser', locale)),
           trailing: const Icon(Icons.chevron_right),
           onTap: () async {
@@ -439,7 +471,8 @@ class _UsersTile extends StatelessWidget {
     );
   }
 
-  Future<void> _resetPassword(BuildContext context, String locale, Map<String, dynamic> u) async {
+  Future<void> _resetPassword(
+      BuildContext context, String locale, Map<String, dynamic> u) async {
     final ctl = TextEditingController();
     final nv = await showDialog<String>(
       context: context,
@@ -451,8 +484,12 @@ class _UsersTile extends StatelessWidget {
           decoration: InputDecoration(labelText: S.t('newPassword', locale)),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(S.t('cancel', locale))),
-          FilledButton(onPressed: () => Navigator.pop(ctx, ctl.text), child: Text(S.t('save', locale))),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(S.t('cancel', locale))),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, ctl.text),
+              child: Text(S.t('save', locale))),
         ],
       ),
     );
@@ -461,7 +498,10 @@ class _UsersTile extends StatelessWidget {
         .post('/users/${u['id']}/reset-password', body: {'newPassword': nv});
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(res.success ? S.t('passwordChanged', locale) : (res.error?.readableMessage ?? 'Erreur'))),
+      SnackBar(
+          content: Text(res.success
+              ? S.t('passwordChanged', locale)
+              : (res.error?.readableMessage ?? 'Erreur'))),
     );
   }
 }
@@ -476,21 +516,28 @@ class _AuditTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
     if (error != null) {
-      return Padding(padding: const EdgeInsets.all(12), child: Text(error!, style: const TextStyle(color: AppColors.danger)));
+      return Padding(
+          padding: const EdgeInsets.all(12),
+          child: Text(error!, style: const TextStyle(color: AppColors.danger)));
     }
     if (loading) return const Center(child: CircularProgressIndicator());
     if (entries.isEmpty) {
-      return Padding(padding: const EdgeInsets.all(14), child: Text(S.t('noActivity', locale)));
+      return Padding(
+          padding: const EdgeInsets.all(14),
+          child: Text(S.t('noActivity', locale)));
     }
     return Column(
       children: entries.take(20).map((a) {
         final who = '${a['first_name'] ?? ''} ${a['last_name'] ?? ''}'.trim();
         return ListTile(
           dense: true,
-          leading: const Icon(Icons.history_outlined, size: 18, color: AppColors.info),
+          leading: const Icon(Icons.history_outlined,
+              size: 18, color: AppColors.info),
           title: Text('${a['action']} · ${a['module'] ?? ''}',
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-          subtitle: Text('${who.isNotEmpty ? who : a['email'] ?? ''} · ${a['created_at'] ?? ''}',
+              style:
+                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          subtitle: Text(
+              '${who.isNotEmpty ? who : a['email'] ?? ''} · ${a['created_at'] ?? ''}',
               style: const TextStyle(fontSize: 11, color: Colors.grey)),
         );
       }).toList(),
@@ -543,20 +590,35 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          TextField(controller: _cur, obscureText: true, decoration: InputDecoration(labelText: S.t('currentPassword', l))),
+          TextField(
+              controller: _cur,
+              obscureText: true,
+              decoration:
+                  InputDecoration(labelText: S.t('currentPassword', l))),
           const SizedBox(height: 10),
-          TextField(controller: _nv, obscureText: true, decoration: InputDecoration(labelText: S.t('newPassword', l))),
+          TextField(
+              controller: _nv,
+              obscureText: true,
+              decoration: InputDecoration(labelText: S.t('newPassword', l))),
           const SizedBox(height: 10),
-          TextField(controller: _conf, obscureText: true, decoration: InputDecoration(labelText: S.t('confirmPassword', l))),
+          TextField(
+              controller: _conf,
+              obscureText: true,
+              decoration:
+                  InputDecoration(labelText: S.t('confirmPassword', l))),
           if (_err != null) ...[
             const SizedBox(height: 8),
-            Text(_err!, style: const TextStyle(color: AppColors.danger, fontSize: 12)),
+            Text(_err!,
+                style: const TextStyle(color: AppColors.danger, fontSize: 12)),
           ],
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text(S.t('cancel', l))),
-        FilledButton(onPressed: _saving ? null : _submit, child: Text(S.t('save', l))),
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(S.t('cancel', l))),
+        FilledButton(
+            onPressed: _saving ? null : _submit, child: Text(S.t('save', l))),
       ],
     );
   }
@@ -620,25 +682,42 @@ class _PharmacyEditDialogState extends State<_PharmacyEditDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: _name, decoration: InputDecoration(labelText: S.t('name', l))),
+            TextField(
+                controller: _name,
+                decoration: InputDecoration(labelText: S.t('name', l))),
             const SizedBox(height: 10),
-            TextField(controller: _address, decoration: InputDecoration(labelText: S.t('address', l))),
+            TextField(
+                controller: _address,
+                decoration: InputDecoration(labelText: S.t('address', l))),
             const SizedBox(height: 10),
-            TextField(controller: _city, decoration: InputDecoration(labelText: S.t('city', l))),
+            TextField(
+                controller: _city,
+                decoration: InputDecoration(labelText: S.t('city', l))),
             const SizedBox(height: 10),
-            TextField(controller: _phone, decoration: InputDecoration(labelText: S.t('phone', l))),
+            TextField(
+                controller: _phone,
+                decoration: InputDecoration(labelText: S.t('phone', l))),
             const SizedBox(height: 10),
-            TextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: InputDecoration(labelText: S.t('email', l))),
+            TextField(
+                controller: _email,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(labelText: S.t('email', l))),
             if (_err != null) ...[
               const SizedBox(height: 8),
-              Text(_err!, style: const TextStyle(color: AppColors.danger, fontSize: 12)),
+              Text(_err!,
+                  style:
+                      const TextStyle(color: AppColors.danger, fontSize: 12)),
             ],
           ],
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text(S.t('cancel', l))),
-        FilledButton(onPressed: _saving ? null : _submit, child: Text(S.t('saveProfile', l))),
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(S.t('cancel', l))),
+        FilledButton(
+            onPressed: _saving ? null : _submit,
+            child: Text(S.t('saveProfile', l))),
       ],
     );
   }
@@ -648,7 +727,8 @@ class _AddUserDialog extends StatefulWidget {
   final String locale;
   final List<Map<String, dynamic>> roles;
   final String? pharmacyId;
-  const _AddUserDialog({required this.locale, required this.roles, this.pharmacyId});
+  const _AddUserDialog(
+      {required this.locale, required this.roles, this.pharmacyId});
   @override
   State<_AddUserDialog> createState() => _AddUserDialogState();
 }
@@ -664,7 +744,10 @@ class _AddUserDialogState extends State<_AddUserDialog> {
   bool _saving = false;
 
   Future<void> _submit() async {
-    if (_first.text.trim().isEmpty || _last.text.trim().isEmpty || _email.text.trim().isEmpty || _roleId == null) {
+    if (_first.text.trim().isEmpty ||
+        _last.text.trim().isEmpty ||
+        _email.text.trim().isEmpty ||
+        _roleId == null) {
       setState(() => _err = S.t('loadError', widget.locale));
       return;
     }
@@ -697,15 +780,27 @@ class _AddUserDialogState extends State<_AddUserDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: _first, decoration: InputDecoration(labelText: S.t('firstName', l))),
+            TextField(
+                controller: _first,
+                decoration: InputDecoration(labelText: S.t('firstName', l))),
             const SizedBox(height: 10),
-            TextField(controller: _last, decoration: InputDecoration(labelText: S.t('lastName', l))),
+            TextField(
+                controller: _last,
+                decoration: InputDecoration(labelText: S.t('lastName', l))),
             const SizedBox(height: 10),
-            TextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: InputDecoration(labelText: S.t('email', l))),
+            TextField(
+                controller: _email,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(labelText: S.t('email', l))),
             const SizedBox(height: 10),
-            TextField(controller: _phone, decoration: InputDecoration(labelText: S.t('phone', l))),
+            TextField(
+                controller: _phone,
+                decoration: InputDecoration(labelText: S.t('phone', l))),
             const SizedBox(height: 10),
-            TextField(controller: _pass, obscureText: true, decoration: InputDecoration(labelText: S.t('newPassword', l))),
+            TextField(
+                controller: _pass,
+                obscureText: true,
+                decoration: InputDecoration(labelText: S.t('newPassword', l))),
             const SizedBox(height: 10),
             DropdownButtonFormField<String>(
               initialValue: _roleId,
@@ -714,25 +809,33 @@ class _AddUserDialogState extends State<_AddUserDialog> {
                 final filtered = widget.pharmacyId == null
                     ? widget.roles
                     : widget.roles
-                        .where((r) => r['pharmacy_id'] == null || r['pharmacy_id'] == widget.pharmacyId)
+                        .where((r) =>
+                            r['pharmacy_id'] == null ||
+                            r['pharmacy_id'] == widget.pharmacyId)
                         .toList();
                 final list = filtered.isEmpty ? widget.roles : filtered;
                 return list
-                    .map((r) => DropdownMenuItem(value: '${r['id']}', child: Text('${r['name']}')))
+                    .map((r) => DropdownMenuItem(
+                        value: '${r['id']}', child: Text('${r['name']}')))
                     .toList();
               })(),
               onChanged: (v) => setState(() => _roleId = v),
             ),
             if (_err != null) ...[
               const SizedBox(height: 8),
-              Text(_err!, style: const TextStyle(color: AppColors.danger, fontSize: 12)),
+              Text(_err!,
+                  style:
+                      const TextStyle(color: AppColors.danger, fontSize: 12)),
             ],
           ],
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text(S.t('cancel', l))),
-        FilledButton(onPressed: _saving ? null : _submit, child: Text(S.t('create', l))),
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(S.t('cancel', l))),
+        FilledButton(
+            onPressed: _saving ? null : _submit, child: Text(S.t('create', l))),
       ],
     );
   }
@@ -750,7 +853,9 @@ class _Section extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
-          child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+          child: Text(title,
+              style:
+                  const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
         ),
         GlassCard(child: child),
       ],
@@ -762,7 +867,8 @@ class _RadioTheme extends StatelessWidget {
   final String label;
   final ThemeMode mode;
   final ThemeMode current;
-  const _RadioTheme({required this.label, required this.mode, required this.current});
+  const _RadioTheme(
+      {required this.label, required this.mode, required this.current});
 
   @override
   Widget build(BuildContext context) {
@@ -822,8 +928,8 @@ class _PrintingSectionState extends State<_PrintingSection> {
     try {
       await action();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('$doneLabel — boîte d\'impression ouverte')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('$doneLabel — boîte d\'impression ouverte')));
       }
     } catch (_) {
       if (mounted) {
@@ -868,17 +974,19 @@ class _PrintingSectionState extends State<_PrintingSection> {
                   height: 20,
                   child: CircularProgressIndicator(strokeWidth: 2))
               : const Icon(Icons.chevron_right),
-          onTap:
-              _busy ? null : () => _run(() => ReceiptPdf.printTestTicket(widget.pharmacyName), 'Ticket de test envoyé'),
+          onTap: _busy
+              ? null
+              : () => _run(
+                  () => ReceiptPdf.printTestTicket(widget.pharmacyName),
+                  'Ticket de test envoyé'),
         ),
         ListTile(
           dense: true,
           contentPadding: EdgeInsets.zero,
-          leading:
-              const Icon(Icons.replay_outlined, color: AppColors.primary),
+          leading: const Icon(Icons.replay_outlined, color: AppColors.primary),
           title: const Text('Réimprimer le dernier ticket'),
-          subtitle: const Text(
-              'Même contenu, même format — sans relancer la vente'),
+          subtitle:
+              const Text('Même contenu, même format — sans relancer la vente'),
           enabled: ReceiptPdf.hasLastReceipt && !_busy,
           trailing: const Icon(Icons.chevron_right),
           onTap: (ReceiptPdf.hasLastReceipt && !_busy)
