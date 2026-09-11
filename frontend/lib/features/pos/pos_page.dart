@@ -362,38 +362,34 @@ class _PosPageState extends State<PosPage> {
           ),
         ),
         // Catégories 4×2 premium
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: Text(
-              S.t('categories', locale),
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.pharmaMuted,
-              ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          child: Text(
+            S.t('categories', locale),
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.pharmaMuted,
             ),
           ),
         ),
-        SliverToBoxAdapter(
-          child: SizedBox(
-            height: 340,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: PosCategoriesGrid(
-                onSelected: (cat) {
-                  setState(() {
-                    final q = cat.id.toLowerCase();
-                    _results = _results
-                        .where((m) =>
-                            cat.id == 'autres' ||
-                            (m.categoryName?.toLowerCase().contains(q) ??
-                                false) ||
-                            (m.categoryId?.toLowerCase() == q))
-                        .toList();
-                  });
-                },
-              ),
+        SizedBox(
+          height: 340,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: PosCategoriesGrid(
+              onSelected: (cat) {
+                setState(() {
+                  final q = cat.id.toLowerCase();
+                  _results = _results
+                      .where((m) =>
+                          cat.id == 'autres' ||
+                          (m.categoryName?.toLowerCase().contains(q) ??
+                              false) ||
+                          (m.categoryId?.toLowerCase() == q))
+                      .toList();
+                });
+              },
             ),
           ),
         ),
