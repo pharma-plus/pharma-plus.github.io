@@ -14,6 +14,7 @@ import '../dashboard/payment_sheet.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../shell/shell_nav.dart';
+import '../../core/widgets/product_art.dart';
 import 'pos_categories.dart';
 import 'pos_models.dart';
 
@@ -53,6 +54,9 @@ class _PosPageState extends State<PosPage> {
   void initState() {
     super.initState();
     _loadBranches();
+    // CHARGEMENT INITIAL du catalogue : la page Ventes affiche ses
+    // produits dès l'ouverture (plus jamais vide avant la recherche).
+    _searchMedications('');
     // Pré-remplissage depuis le mini-POS du dashboard : mêmes lignes,
     // même remise (convertie en % si saisie en montant fixe).
     final items = widget.initialItems;
@@ -110,31 +114,51 @@ class _PosPageState extends State<PosPage> {
     return (name != null && '$name'.trim().isNotEmpty) ? '$name' : 'PHARMA+';
   }
 
+  /// Dernier chargement serveur (liste complète) — la sélection de
+  /// catégorie filtre CETTE liste côté client (les re-taps toggling).
+  List<Medication> _catalog = [];
+  String? _activeCategoryId;
+
   Future<void> _searchMedications(String query) async {
-    if (query.trim().isEmpty) {
-      setState(() {
-        _results = [];
-        _searching = false;
-      });
-      return;
-    }
     setState(() => _searching = true);
+    // Requête serveur : texte optionnel ; SANS texte, la première page
+    // complète du catalogue est chargée (page de ventes JAMAIS vide).
+    final q = query.trim();
+    final Map<String, dynamic> params = {'limit': 60};
+    if (q.isNotEmpty) params['q'] = q;
     final result = await ApiClient.instance.get<Map<String, dynamic>>(
       '/catalog/medications',
-      query: {'q': query.trim(), 'limit': 25},
+      query: params,
     );
     if (!mounted) return;
     final rows = result.success
         ? (result.data?['items'] as List? ?? const [])
         : const [];
-    setState(() {
-      _results = rows
-          .whereType<Map<String, dynamic>>()
-          .map(Medication.fromJson)
-          .where((m) => m.stockQuantity == null || m.stockQuantity! > 0)
-          .toList();
-      _searching = false;
-    });
+    _catalog = rows
+        .whereType<Map<String, dynamic>>()
+        .map(Medication.fromJson)
+        .where((m) => m.stockQuantity == null || m.stockQuantity! > 0)
+        .toList();
+    _applyFilter();
+    setState(() => _searching = false);
+  }
+
+  /// Applique la catégorie active sur la liste chargée
+  /// (aucune catégorie → catalogue complet affiché).
+  void _applyFilter() {
+    final cat = _activeCategoryId;
+    if (cat == null || cat == 'autres') {
+      setState(() => _results = List.of(_catalog));
+    } else {
+      final q = cat.toLowerCase();
+      setState(() {
+        _results = _catalog
+            .where((m) =>
+                (m.categoryName?.toLowerCase().contains(q) ?? false) ||
+                (m.categoryId?.toLowerCase() == q))
+            .toList();
+      });
+    }
   }
 
   Future<void> _scan() async {
@@ -379,16 +403,12 @@ class _PosPageState extends State<PosPage> {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: PosCategoriesGrid(
               onSelected: (cat) {
+                // Toggle : re-tap sur la catégorie active → tout réafficher.
                 setState(() {
-                  final q = cat.id.toLowerCase();
-                  _results = _results
-                      .where((m) =>
-                          cat.id == 'autres' ||
-                          (m.categoryName?.toLowerCase().contains(q) ??
-                              false) ||
-                          (m.categoryId?.toLowerCase() == q))
-                      .toList();
+                  _activeCategoryId =
+                      _activeCategoryId == cat.id ? null : cat.id;
                 });
+                _applyFilter();
               },
             ),
           ),
@@ -482,6 +502,37 @@ class _ProductCard extends StatelessWidget {
   final VoidCallback onTap;
   const _ProductCard({required this.medication, required this.onTap});
 
+  /// Miniature 3D dédiée selon le produit (Doliprane, Bion3, eau
+  /// thermale, vitamine C, paracétamol, mucosolvan) — style maquette ;
+  /// l'image réelle [Medication.photoUrl] reste prioritaire.
+  ProductArt get art {
+    final n = '${medication.name} ${medication.dci ?? ''}'.toLowerCase();
+    if (n.contains('doliprane')) return ProductArt.doliprane;
+    if (n.contains('paracétamol') || n.contains('paracetamol')) {
+      return ProductArt.paracetamol;
+    }
+    if (n.contains('bion') || n.contains('bio3')) return ProductArt.bio3;
+    if (n.contains('thermale') ||
+        n.contains('la roche') ||
+        n.contains('avène') ||
+        n.contains('avene') ||
+        n.contains('biafine') ||
+        n.contains('thermale') ||
+        n.contains('eau ')) {
+      return ProductArt.eauThermale;
+    }
+    if (n.contains('vitamine') ||
+        n.contains('vitamin') ||
+        n.contains('acérola') ||
+        n.contains('acerola')) {
+      return ProductArt.vitamineC;
+    }
+    if (n.contains('mucosolvan') || n.contains('ambroxol')) {
+      return ProductArt.mucosolvan;
+    }
+    return ProductArt.generic;
+  }
+
   @override
   Widget build(BuildContext context) {
     return GlassCard(
@@ -494,12 +545,20 @@ class _ProductCard extends StatelessWidget {
           Expanded(
             child: Container(
               width: double.infinity,
+              alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.medication,
-                  size: 40, color: AppColors.primary),
+              // Miniature 3D du produit (illustration peinte ou photo
+              // réelle si disponible) — comme la maquette du panier.
+              child: ProductThumb(
+                art: art,
+                image: medication.photoUrl,
+                tint: AppColors.primary,
+                size: 62,
+                semanticLabel: medication.name,
+              ),
             ),
           ),
           const SizedBox(height: 8),

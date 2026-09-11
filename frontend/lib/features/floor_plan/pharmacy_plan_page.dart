@@ -219,11 +219,11 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
       child: Row(
         children: [
-          // ← Retour : toujours visible, sortie garantie de la page
+          // ← HOME : retour toujours visible, sortie garantie de la page
           // (navigation interne + bouton retour navigateur fonctionnels).
           IconButton(
-            tooltip: 'Retour',
-            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+            tooltip: 'Tableau de bord',
+            icon: const Icon(Icons.home_rounded, color: Colors.white),
             onPressed: () {
               if (Navigator.of(context).canPop()) {
                 Navigator.of(context).maybePop();
@@ -650,6 +650,10 @@ class _PlanPainter extends CustomPainter {
     _drawZoneTints(canvas);
     final faces = _buildFaces();
     final paint = Paint()..style = PaintingStyle.fill;
+    final stroke = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8
+      ..color = Colors.black.withValues(alpha: 0.28);
     for (final f in faces) {
       final path = Path();
       for (int k = 0; k < f.pts.length; k++) {
@@ -663,24 +667,33 @@ class _PlanPainter extends CustomPainter {
       path.close();
       paint.color = f.color;
       canvas.drawPath(path, paint);
+      canvas.drawPath(path, stroke);
     }
+    _drawSigns(canvas);
     _drawLabels(canvas);
   }
 
+  /// Sol : damier 1×1 (deux tons verts discrets) + joints clairs —
+  /// carrelage pharmacie comme sur la maquette.
   void _drawFloor(Canvas canvas) {
-    final c0 = _proj.project(-5, -4, 0);
-    final c1 = _proj.project(5, -4, 0);
-    final c2 = _proj.project(5, 4, 0);
-    final c3 = _proj.project(-5, 4, 0);
-    final path = Path()
-      ..moveTo(c0.dx, c0.dy)
-      ..lineTo(c1.dx, c1.dy)
-      ..lineTo(c2.dx, c2.dy)
-      ..lineTo(c3.dx, c3.dy)
-      ..close();
-    canvas.drawPath(path, Paint()..color = const Color(0xFF0E1A14));
+    for (int i = -5; i < 5; i++) {
+      for (int j = -4; j < 4; j++) {
+        final path = _quadPath([
+          _P(i.toDouble(), j.toDouble(), 0),
+          _P(i + 1.0, j.toDouble(), 0),
+          _P(i + 1.0, j + 1.0, 0),
+          _P(i.toDouble(), j + 1.0, 0),
+        ]);
+        canvas.drawPath(
+            path,
+            Paint()
+              ..color = ((i + j).isEven
+                  ? const Color(0xFF15251C)
+                  : const Color(0xFF101B15)));
+      }
+    }
     final g = Paint()
-      ..color = Colors.white.withValues(alpha: 0.06)
+      ..color = Colors.white.withValues(alpha: 0.05)
       ..strokeWidth = 1;
     for (int i = -5; i <= 5; i++) {
       final a = _proj.project(i.toDouble(), -4, 0);
@@ -692,6 +705,32 @@ class _PlanPainter extends CustomPainter {
       final b = _proj.project(5, j.toDouble(), 0);
       canvas.drawLine(a, b, g);
     }
+    // Liseré du périmètre (plinth) : trait clair autour du sol.
+    final perim = Path()
+      ..moveTo(_proj.project(-5, -4, 0).dx, _proj.project(-5, -4, 0).dy)
+      ..lineTo(_proj.project(5, -4, 0).dx, _proj.project(5, -4, 0).dy)
+      ..lineTo(_proj.project(5, 4, 0).dx, _proj.project(5, 4, 0).dy)
+      ..lineTo(_proj.project(-5, 4, 0).dx, _proj.project(-5, 4, 0).dy)
+      ..close();
+    canvas.drawPath(
+        perim,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.4
+          ..color = const Color(0xFF2E5241).withValues(alpha: 0.9));
+  }
+
+  Path _quadPath(List<_P> pts) {
+    final path = Path();
+    for (int k = 0; k < pts.length; k++) {
+      final o = _proj.project(pts[k].x, pts[k].y, pts[k].z);
+      if (k == 0) {
+        path.moveTo(o.dx, o.dy);
+      } else {
+        path.lineTo(o.dx, o.dy);
+      }
+    }
+    return path..close();
   }
 
   void _drawZoneTints(Canvas canvas) {
@@ -725,12 +764,12 @@ class _PlanPainter extends CustomPainter {
     }
   }
 
+  /// Boîte 3D complète entre z0 et z1 (5 faces : dessus + 4 côtés).
   void _addBox(List<_Face> faces, double x0, double y0, double x1, double y1,
-      double z1, Color base) {
-    const z0 = 0.0;
+      double z0, double z1, Color base) {
     faces.add(_Face(
         [_P(x0, y0, z1), _P(x1, y0, z1), _P(x1, y1, z1), _P(x0, y1, z1)],
-        _lighten(base, 0.14)));
+        _lighten(base, 0.16)));
     faces.add(_Face(
         [_P(x1, y0, z0), _P(x1, y1, z0), _P(x1, y1, z1), _P(x1, y0, z1)],
         _darken(base, 0.30)));
@@ -745,33 +784,240 @@ class _PlanPainter extends CustomPainter {
         _darken(base, 0.38)));
   }
 
+  /// Face unique quad (vitrine, écran, enseigne...).
+  void _addQuad(List<_Face> faces, _P a, _P b, _P c, _P d, Color color) {
+    faces.add(_Face([a, b, c, d], color));
+  }
+
+  /// Ombre portée au sol sous un meuble (rectangle fondu, alpha faible).
+  void _addShadow(List<_Face> faces, double x0, double y0, double x1,
+      double y1) {
+    const grow = 0.14;
+    faces.add(_Face([
+      _P(x0 - grow, y0 - grow, 0.002),
+      _P(x1 + grow, y0 - grow, 0.002),
+      _P(x1 + grow, y1 + grow, 0.002),
+      _P(x0 - grow, y1 + grow, 0.002),
+    ], Colors.black.withValues(alpha: 0.34)));
+  }
+
+  /// PETITS PRODUITS sur une tablette : boîtes colorées de hauteurs
+  /// variées (déterministe — aucune valeur aléatoire instable).
+  void _addProductRow(List<_Face> faces, double x0, double y0, double x1,
+      double y1, double zBoard, int seed) {
+    const palette = <Color>[
+      Color(0xFF3FA96C), // vert
+      Color(0xFFE8E2D4), // blanc cassé
+      Color(0xFFF0C75E), // or
+      Color(0xFF8ED0F0), // bleu clair
+      Color(0xFFE77C8E), // rose
+      Color(0xFFB79CD8), // violet doux
+    ];
+    final count = 3 + (seed % 2);
+    final w = (x1 - x0) / count;
+    for (int k = 0; k < count; k++) {
+      final s = seed * 7 + k * 13;
+      final ph = 0.14 + ((s % 5) * 0.035);
+      final gap = 0.03 + ((s % 3) * 0.012);
+      final px0 = x0 + k * w + gap;
+      final px1 = x0 + (k + 1) * w - gap;
+      const py0 = 0.05;
+      final color = palette[(s + k) % palette.length];
+      // 2 faces seulement (dessus + façade sud) : perf maîtrisée.
+      faces.add(_Face([
+        _P(px0, y0 + py0, zBoard + ph),
+        _P(px1, y0 + py0, zBoard + ph),
+        _P(px1, y1 - py0, zBoard + ph),
+        _P(px0, y1 - py0, zBoard + ph),
+      ], _lighten(color, 0.10)));
+      faces.add(_Face([
+        _P(px0, y1 - py0, zBoard),
+        _P(px1, y1 - py0, zBoard),
+        _P(px1, y1 - py0, zBoard + ph),
+        _P(px0, y1 - py0, zBoard + ph),
+      ], _darken(color, 0.12)));
+    }
+  }
+
+  /// GONDOLE COMPLÈTE pour une cellule de zone : montants latéraux +
+  /// tablettes en bois clair + rangées de produits colorés.
+  void _addShelfUnit(List<_Face> faces, double bx0, double by0, double bx1,
+      double by1, double height, Color base, int seed) {
+    final frame = _darken(base, 0.42);
+    // Montants latéraux.
+    _addBox(faces, bx0, by0, bx0 + 0.07, by1, 0, height, frame);
+    _addBox(faces, bx1 - 0.07, by0, bx1, by1, 0, height, frame);
+    // Tablettes + produits dessus (la dernière près du sommet).
+    final levels = <double>[0.10, height * 0.38, height * 0.66, height * 0.92];
+    for (int l = 0; l < levels.length; l++) {
+      final zl = levels[l];
+      _addBox(faces, bx0 + 0.07, by0 + 0.03, bx1 - 0.07, by1 - 0.03, zl,
+          zl + 0.05, const Color(0xFFB99B6B)); // tablette bois clair
+      if (l < levels.length - 1) {
+        _addProductRow(faces, bx0 + 0.09, by0 + 0.04, bx1 - 0.09, by1 - 0.04,
+            zl + 0.05, seed + l);
+      }
+    }
+  }
+
+  /// COMPTOIR 3D (zone 'counter') : meuble vert PHARMA+, plateau bois,
+  /// TPE à écran vert, imprimante + rouleau de reçu, écran de caisse.
+  void _addCounter(List<_Face> faces, _Zone z) {
+    _addShadow(faces, z.x0, z.y0 + 0.22, z.x1, z.y1 - 0.06);
+    const body = Color(0xFF16402F);
+    final w = z.x1 - z.x0;
+    // Corps du comptoir.
+    _addBox(faces, z.x0, z.y0 + 0.28, z.x1, z.y1 - 0.08, 0, 0.92, body);
+    // Plateau bois clair en porte-à-faux.
+    _addBox(faces, z.x0 - 0.05, z.y0 + 0.20, z.x1 + 0.05, z.y1 - 0.02, 0.92,
+        1.02, const Color(0xFFD9BC8C));
+    // TPE (terminal de paiement) — écran vert orienté entrée.
+    final tpeX0 = z.x0 + w * 0.30, tpeX1 = z.x0 + w * 0.44;
+    _addBox(faces, tpeX0, z.y0 + 0.36, tpeX1, z.y0 + 0.56, 1.02, 1.22,
+        const Color(0xFF0B1712));
+    _addQuad(
+        faces,
+        _P(tpeX0 + 0.02, z.y0 + 0.565, 1.195),
+        _P(tpeX1 - 0.02, z.y0 + 0.565, 1.195),
+        _P(tpeX1 - 0.02, z.y0 + 0.565, 1.115),
+        _P(tpeX0 + 0.02, z.y0 + 0.565, 1.115),
+        const Color(0xFF00C96B)); // écran vert lumineux
+    // Imprimante de reçus + rouleau.
+    _addBox(faces, z.x0 + w * 0.52, z.y0 + 0.36, z.x0 + w * 0.70, z.y0 + 0.54,
+        1.02, 1.13, const Color(0xFFE8E2D4));
+    _addBox(faces, z.x0 + w * 0.575, z.y0 + 0.385, z.x0 + w * 0.645,
+        z.y0 + 0.515, 1.13, 1.25, const Color(0xFFF4EFE3));
+    // Écran de caisse orienté vendeur.
+    _addBox(faces, z.x0 + w * 0.76, z.y0 + 0.40, z.x0 + w * 0.88, z.y0 + 0.46,
+        1.02, 1.36, const Color(0xFF101D16));
+    _addQuad(
+        faces,
+        _P(z.x0 + w * 0.765, z.y0 + 0.462, 1.345),
+        _P(z.x0 + w * 0.875, z.y0 + 0.462, 1.345),
+        _P(z.x0 + w * 0.875, z.y0 + 0.462, 1.175),
+        _P(z.x0 + w * 0.765, z.y0 + 0.462, 1.175),
+        const Color(0xFF1F7A4D)); // dalle caisse
+  }
+
+  /// VITRINE D'ENTRÉE : portes vitrées translucides + enseigne PHARMA+
+  /// lumineuse au-dessus de l'entrée.
+  void _addEntranceGlass(List<_Face> faces, _Zone z) {
+    final y = z.y1 - 0.04; // bord sud (façade)
+    // Montants de porte + linteau.
+    _addBox(faces, z.x0 - 0.04, y - 0.06, z.x0 + 0.05, y + 0.06, 0, 2.15,
+        const Color(0xFF24483A));
+    _addBox(faces, z.x1 - 0.05, y - 0.06, z.x1 + 0.04, y + 0.06, 0, 2.15,
+        const Color(0xFF24483A));
+    _addBox(faces, -0.05, y - 0.05, 0.05, y + 0.05, 0, 2.15,
+        const Color(0xFF24483A));
+    _addBox(faces, z.x0, y - 0.06, z.x1, y + 0.06, 2.05, 2.15,
+        const Color(0xFF24483A));
+    // Vitrage translucide (2 vantaux).
+    final glass = const Color(0xFF9FD8C8).withValues(alpha: 0.16);
+    _addQuad(faces, _P(z.x0 + 0.05, y, 1.98), _P(-0.05, y, 1.98),
+        _P(-0.05, y, 0.04), _P(z.x0 + 0.05, y, 0.04), glass);
+    _addQuad(faces, _P(0.05, y, 1.98), _P(z.x1 - 0.05, y, 1.98),
+        _P(z.x1 - 0.05, y, 0.04), _P(0.05, y, 0.04), glass);
+    // Enseigne lumineuse PHARMA+ au-dessus de la porte.
+    _addQuad(
+        faces,
+        _P(z.x0 + 0.02, y + 0.02, 2.42),
+        _P(z.x1 - 0.02, y + 0.02, 2.42),
+        _P(z.x1 - 0.02, y + 0.02, 2.06),
+        _P(z.x0 + 0.02, y + 0.02, 2.06),
+        const Color(0xFF00C96B));
+  }
+
+  /// MURS du fond (coupe 3D « maquette » : nord + ouest visibles,
+  /// sud et est ouverts pour ne jamais masquer la vue intérieure).
+  void _addWalls(List<_Face> faces) {
+    const h = 2.7;
+    // Mur nord (plan y = -4) + frise claire.
+    _addQuad(faces, _P(-5, -4, h), _P(5, -4, h), _P(5, -4, 0), _P(-5, -4, 0),
+        const Color(0xFF1A2C22));
+    _addQuad(faces, _P(-5, -4, h), _P(5, -4, h), _P(5, -4, h - 0.14),
+        _P(-5, -4, h - 0.14), const Color(0xFF2E5241));
+    // Mur ouest (plan x = -5) + frise claire.
+    _addQuad(faces, _P(-5, -4, h), _P(-5, 4, h), _P(-5, 4, 0), _P(-5, -4, 0),
+        const Color(0xFF16241C));
+    _addQuad(faces, _P(-5, -4, h), _P(-5, 4, h), _P(-5, 4, h - 0.14),
+        _P(-5, -4, h - 0.14), const Color(0xFF284638));
+  }
+
   List<_Face> _buildFaces() {
     final faces = <_Face>[];
+    _addWalls(faces);
     for (final z in zones) {
+      if (z.id == 'entrance') {
+        _addEntranceGlass(faces, z);
+        continue;
+      }
+      if (z.id == 'counter') {
+        _addCounter(faces, z);
+        continue;
+      }
       if (!z.hasShelves) continue;
-      const mx = 0.18;
+      _addShadow(faces, z.x0 + 0.05, z.y0 + 0.05, z.x1 - 0.05, z.y1 - 0.05);
+      const mx = 0.15;
       final ix0 = z.x0 + mx, iy0 = z.y0 + mx;
       final ix1 = z.x1 - mx, iy1 = z.y1 - mx;
       if (ix1 - ix0 < 0.2 || iy1 - iy0 < 0.2) continue;
-      int cols = ((ix1 - ix0) / 1.0).floor();
+      int cols = ((ix1 - ix0) / 1.15).floor();
       if (cols < 1) cols = 1;
-      if (cols > 6) cols = 6;
-      int rows = ((iy1 - iy0) / 1.0).floor();
+      if (cols > 5) cols = 5;
+      int rows = ((iy1 - iy0) / 1.15).floor();
       if (rows < 1) rows = 1;
-      if (rows > 6) rows = 6;
+      if (rows > 5) rows = 5;
       final cw = (ix1 - ix0) / cols, rh = (iy1 - iy0) / rows;
       for (int i = 0; i < cols; i++) {
         for (int j = 0; j < rows; j++) {
-          final bx0 = ix0 + i * cw + 0.07;
-          final by0 = iy0 + j * rh + 0.07;
-          final bx1 = ix0 + (i + 1) * cw - 0.07;
-          final by1 = iy0 + (j + 1) * rh - 0.07;
-          _addBox(faces, bx0, by0, bx1, by1, z.shelfHeight, z.color);
+          final bx0 = ix0 + i * cw + 0.06;
+          final by0 = iy0 + j * rh + 0.06;
+          final bx1 = ix0 + (i + 1) * cw - 0.06;
+          final by1 = iy0 + (j + 1) * rh - 0.06;
+          _addShelfUnit(faces, bx0, by0, bx1, by1, z.shelfHeight, z.color,
+              i * 11 + j * 5 + (z.x0 * 3).toInt() + (z.y0 * 7).toInt());
         }
       }
     }
     faces.sort((a, b) => a.depth.compareTo(b.depth));
     return faces;
+  }
+
+  /// ENSEIGNES texte projetées dans la scène (PHARMA+ entrée + comptoir).
+  void _drawSigns(Canvas canvas) {
+    // 1) Enseigne blanche sur la barre émeraude de l'entrée.
+    final p1 = _proj.project(0, 4.16, 2.24);
+    _drawSignText(canvas, 'PHARMA+', p1, const Color(0xFF062E1E),
+        const Color(0xFFEAFFF4), 11.5, 30, 16);
+    // 2) Nom sur la face avant du comptoir (or, sans fond).
+    final p2 = _proj.project(0, 3.165, 0.58);
+    _drawSignText(canvas, 'PHARMA+', p2, Colors.transparent,
+        const Color(0xFFE9C873), 9, 0, 0);
+  }
+
+  void _drawSignText(Canvas canvas, String text, Offset c, Color bg,
+      Color fg, double fontSize, double padX, double padY) {
+    final tp = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+            color: fg,
+            fontSize: fontSize,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.2),
+      ),
+      textDirection: ui.TextDirection.ltr,
+    )..layout();
+    if (bg.a != 0) {
+      final r = Rect.fromCenter(
+          center: c, width: tp.width + padX * 2, height: tp.height + padY * 2);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(r, const Radius.circular(6)),
+        Paint()..color = bg,
+      );
+    }
+    tp.paint(canvas, Offset(c.dx - tp.width / 2, c.dy - tp.height / 2));
   }
 
   void _drawLabels(Canvas canvas) {
@@ -893,7 +1139,7 @@ class _FullScreenPlanState extends State<_FullScreenPlan> {
             top: 12,
             left: 12,
             child: Row(children: [
-              _fsBtn(Icons.arrow_back_rounded, 'Retour', () {
+              _fsBtn(Icons.home_rounded, 'Tableau de bord', () {
                 if (Navigator.of(context).canPop()) {
                   Navigator.of(context).maybePop();
                 } else {

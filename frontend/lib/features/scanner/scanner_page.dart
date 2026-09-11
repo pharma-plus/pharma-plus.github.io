@@ -6,6 +6,7 @@ import '../../core/models/medication.dart';
 import '../../core/services/api_client.dart';
 import '../../core/theme/colors.dart';
 import '../pos/pos_page.dart';
+import '../shell/shell_nav.dart';
 
 /// ============================================================
 /// SCANNER CODES-BARRES — opérationnel de bout en bout :
@@ -104,11 +105,9 @@ class _ScannerPageState extends State<ScannerPage> {
     return Scaffold(
       backgroundColor: AppColors.menu,
       appBar: AppBar(
-        // ← Retour toujours disponible : on quitte la page à tout moment.
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.of(context).maybePop(),
-        ),
+        // ← HOME : retour toujours disponible (sous-page → pop ;
+        // racine du shell → retour au Tableau de bord).
+        leading: const ShellBackButton(),
         title: const Text('Scanner',
             style: TextStyle(
                 color: Colors.white,
