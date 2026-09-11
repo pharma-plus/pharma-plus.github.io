@@ -6,6 +6,7 @@ import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
+import '../shell/shell_nav.dart';
 
 /// Boîte de réception des alertes et messages attribués à l'utilisateur.
 class NotificationsPage extends StatefulWidget {
@@ -98,6 +99,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final locale = context.watch<AuthStore>().locale;
     return Scaffold(
       appBar: AppBar(
+        leading: const ShellBackButton(),
         title: Text(S.t('notifications', locale)),
         actions: [
           if (_unreadCount > 0)

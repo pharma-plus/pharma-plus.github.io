@@ -5,6 +5,7 @@ import '../../core/services/api_client.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/glass_card.dart';
+import '../shell/shell_nav.dart';
 
 class CamerasPage extends StatefulWidget {
   const CamerasPage({super.key});
@@ -30,8 +31,7 @@ class _CamerasPageState extends State<CamerasPage> {
       _loading = true;
       _error = null;
     });
-    final result =
-        await ApiClient.instance.get<List<dynamic>>('/cameras');
+    final result = await ApiClient.instance.get<List<dynamic>>('/cameras');
     if (!mounted) return;
     if (!result.success) {
       setState(() {
@@ -110,9 +110,8 @@ class _CamerasPageState extends State<CamerasPage> {
     final body = <String, dynamic>{
       'name': name.text.trim(),
       'location': location.text.trim(),
-      'stream_url': streamUrl.text.trim().isEmpty
-          ? null
-          : streamUrl.text.trim(),
+      'stream_url':
+          streamUrl.text.trim().isEmpty ? null : streamUrl.text.trim(),
     };
     if (body['name'] == null || (body['name'] as String).isEmpty) return;
     final result = await ApiClient.instance
@@ -146,9 +145,8 @@ class _CamerasPageState extends State<CamerasPage> {
       ),
     );
     if (confirm != true) return;
-    final result =
-        await ApiClient.instance.delete<Map<String, dynamic>>(
-            '/cameras/${camera['id']}');
+    final result = await ApiClient.instance
+        .delete<Map<String, dynamic>>('/cameras/${camera['id']}');
     if (!mounted) return;
     if (result.success) {
       await _load();
@@ -161,6 +159,7 @@ class _CamerasPageState extends State<CamerasPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const ShellBackButton(),
         title: Text(S.t('cameras', locale)),
         actions: [
           IconButton(

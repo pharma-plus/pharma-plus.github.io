@@ -7,6 +7,7 @@ import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/status_chip.dart';
+import '../shell/shell_nav.dart';
 
 /// Comptabilité : caisse, journal et dépenses.
 class AccountingPage extends StatefulWidget {
@@ -272,6 +273,7 @@ class _AccountingPageState extends State<AccountingPage>
     final locale = context.watch<AuthStore>().locale;
     return Scaffold(
       appBar: AppBar(
+        leading: const ShellBackButton(),
         title: Text(S.t('accounting', locale)),
         bottom: TabBar(
           controller: _tabs,

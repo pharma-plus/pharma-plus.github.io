@@ -6,6 +6,7 @@ import '../../core/services/auth_store.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/status_chip.dart';
+import '../shell/shell_nav.dart';
 
 /// Site web & blog : paramètres publics et articles.
 class WebsitePage extends StatefulWidget {
@@ -142,6 +143,7 @@ class _WebsitePageState extends State<WebsitePage> {
     final locale = context.watch<AuthStore>().locale;
     return Scaffold(
       appBar: AppBar(
+        leading: const ShellBackButton(),
         title: Text(S.t('website', locale)),
         actions: [
           IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),

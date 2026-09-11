@@ -7,6 +7,7 @@ import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/status_chip.dart';
+import '../shell/shell_nav.dart';
 
 /// Présences : pointage, congés et synthèse mensuelle.
 class AttendancePage extends StatefulWidget {
@@ -265,6 +266,7 @@ class _AttendancePageState extends State<AttendancePage>
     final locale = context.watch<AuthStore>().locale;
     return Scaffold(
       appBar: AppBar(
+        leading: const ShellBackButton(),
         title: Text(S.t('attendance', locale)),
         bottom: TabBar(
           controller: _tabs,

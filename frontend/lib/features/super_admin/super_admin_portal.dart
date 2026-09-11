@@ -7,6 +7,7 @@ import '../../core/theme/colors.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/status_chip.dart';
+import '../shell/shell_nav.dart';
 
 /// Portail réservé au Super Administrateur PHARMA+ :
 /// statistiques globales, gestion des pharmacies, création, suspension.
@@ -73,13 +74,13 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
     final locale = context.read<AuthStore>().locale;
     final results = await Future.wait([
       if (reset)
-        ApiClient.instance.get<Map<String, dynamic>>('/pharmacies/global-stats'),
-      ApiClient.instance.get<Map<String, dynamic>>('/pharmacies',
-          query: {
-            'page': _page,
-            'limit': _limit,
-            if (_q != null && _q!.isNotEmpty) 'q': _q!,
-          }),
+        ApiClient.instance
+            .get<Map<String, dynamic>>('/pharmacies/global-stats'),
+      ApiClient.instance.get<Map<String, dynamic>>('/pharmacies', query: {
+        'page': _page,
+        'limit': _limit,
+        if (_q != null && _q!.isNotEmpty) 'q': _q!,
+      }),
     ]);
 
     if (!mounted) return;
@@ -118,8 +119,8 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
     );
     if (created == true) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(S.t('pharmacyCreated', locale))));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(S.t('pharmacyCreated', locale))));
         _load(reset: true);
       }
     }
@@ -129,7 +130,8 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => _PharmacyDetail(pharmacy: p, onChanged: () => _load(reset: true)),
+      builder: (_) =>
+          _PharmacyDetail(pharmacy: p, onChanged: () => _load(reset: true)),
     );
   }
 
@@ -138,6 +140,7 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
     final locale = context.watch<AuthStore>().locale;
     return Scaffold(
       appBar: AppBar(
+        leading: const ShellBackButton(),
         title: Row(
           children: [
             const Icon(Icons.shield_outlined, color: AppColors.accent),
@@ -178,7 +181,9 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
                 : _error != null
-                    ? Center(child: Text(_error!, style: const TextStyle(color: AppColors.danger)))
+                    ? Center(
+                        child: Text(_error!,
+                            style: const TextStyle(color: AppColors.danger)))
                     : _pharmacies.isEmpty
                         ? Center(child: Text(S.t('noPharmacies', locale)))
                         : ListView.builder(
@@ -209,7 +214,8 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
                                         height: 46,
                                         decoration: BoxDecoration(
                                           gradient: AppColors.goldGradient,
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
                                         ),
                                         child: const Icon(Icons.local_pharmacy,
                                             color: Color(0xFF3E2A00)),
@@ -217,29 +223,38 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
                                       const SizedBox(width: 12),
                                       Expanded(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text('${p['name']}',
                                                 style: const TextStyle(
-                                                    fontWeight: FontWeight.w800, fontSize: 15)),
+                                                    fontWeight: FontWeight.w800,
+                                                    fontSize: 15)),
                                             const SizedBox(height: 2),
-                                            Text('@${p['slug']} · ${p['city'] ?? ''}',
+                                            Text(
+                                                '@${p['slug']} · ${p['city'] ?? ''}',
                                                 style: const TextStyle(
-                                                    fontSize: 12, color: Colors.grey)),
+                                                    fontSize: 12,
+                                                    color: Colors.grey)),
                                             const SizedBox(height: 4),
                                             Wrap(
                                               spacing: 8,
                                               children: [
                                                 StatusChip(
                                                     label: status == 'active'
-                                                        ? S.t('pharmacyActive', locale)
+                                                        ? S.t('pharmacyActive',
+                                                            locale)
                                                         : status == 'suspended'
-                                                            ? S.t('suspended', locale)
-                                                            : S.t('deleted', locale),
-                                                    color: _statusColor(status)),
+                                                            ? S.t('suspended',
+                                                                locale)
+                                                            : S.t('deleted',
+                                                                locale),
+                                                    color:
+                                                        _statusColor(status)),
                                                 StatusChip(
                                                     label: _licenseLabel(
-                                                        p['license_type'], locale),
+                                                        p['license_type'],
+                                                        locale),
                                                     color: AppColors.info),
                                               ],
                                             ),
@@ -247,12 +262,17 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
                                         ),
                                       ),
                                       Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
                                         children: [
-                                          Text('${p['nb_users'] ?? 0} ${S.t('nbUsers', locale)}',
-                                              style: const TextStyle(fontSize: 12)),
-                                          Text('${p['nb_branches'] ?? 0} ${S.t('nbBranches', locale)}',
-                                              style: const TextStyle(fontSize: 12)),
+                                          Text(
+                                              '${p['nb_users'] ?? 0} ${S.t('nbUsers', locale)}',
+                                              style: const TextStyle(
+                                                  fontSize: 12)),
+                                          Text(
+                                              '${p['nb_branches'] ?? 0} ${S.t('nbBranches', locale)}',
+                                              style: const TextStyle(
+                                                  fontSize: 12)),
                                           TextButton(
                                             onPressed: () => _openDetail(p),
                                             child: Text(S.t('manage', locale)),
@@ -285,8 +305,10 @@ class _GlobalStats extends StatelessWidget {
       (S.t('active', locale), '${ph['active'] ?? 0}'),
       (S.t('totalUsers', locale), '${global['users'] ?? 0}'),
       (S.t('totalSales', locale), '${global['sales'] ?? 0}'),
-      (S.t('totalRevenue', locale),
-          '${(global['revenue'] ?? 0).toString()} MAD'),
+      (
+        S.t('totalRevenue', locale),
+        '${(global['revenue'] ?? 0).toString()} MAD'
+      ),
       (S.t('licenseType', locale), '${global['activeLicenses'] ?? 0}'),
     ];
     return Padding(
@@ -351,7 +373,8 @@ class _PharmacyFormState extends State<_PharmacyForm> {
       'city': _city.text.trim().isEmpty ? null : _city.text.trim(),
       'phone': _phone.text.trim().isEmpty ? null : _phone.text.trim(),
       'admin_email': _email.text.trim(),
-      'admin_password': _password.text.isNotEmpty ? _password.text : 'Admin123!',
+      'admin_password':
+          _password.text.isNotEmpty ? _password.text : 'Admin123!',
       'license_type': _license,
     });
     if (!mounted) return;
@@ -360,7 +383,9 @@ class _PharmacyFormState extends State<_PharmacyForm> {
     } else {
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.error?.readableMessage ?? S.t('loadError', locale))),
+        SnackBar(
+            content: Text(
+                result.error?.readableMessage ?? S.t('loadError', locale))),
       );
     }
   }
@@ -369,7 +394,8 @@ class _PharmacyFormState extends State<_PharmacyForm> {
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
@@ -378,7 +404,8 @@ class _PharmacyFormState extends State<_PharmacyForm> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(S.t('newPharmacy', locale),
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.w800)),
               const SizedBox(height: 16),
               TextField(
                 controller: _name,
@@ -403,18 +430,21 @@ class _PharmacyFormState extends State<_PharmacyForm> {
               TextField(
                 controller: _email,
                 keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(labelText: S.t('adminEmail', locale)),
+                decoration:
+                    InputDecoration(labelText: S.t('adminEmail', locale)),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _password,
                 obscureText: true,
-                decoration: InputDecoration(labelText: S.t('adminPassword', locale)),
+                decoration:
+                    InputDecoration(labelText: S.t('adminPassword', locale)),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 initialValue: _license,
-                decoration: InputDecoration(labelText: S.t('licenseType', locale)),
+                decoration:
+                    InputDecoration(labelText: S.t('licenseType', locale)),
                 items: ['trial', 'standard', 'professional', 'enterprise']
                     .map((l) => DropdownMenuItem(
                         value: l, child: Text(_licenseText(l, locale))))
@@ -470,8 +500,8 @@ class _PharmacyDetailState extends State<_PharmacyDetail> {
   }
 
   Future<void> _load() async {
-    final result = await ApiClient.instance
-        .get<Map<String, dynamic>>('/pharmacies/${widget.pharmacy['id']}/stats');
+    final result = await ApiClient.instance.get<Map<String, dynamic>>(
+        '/pharmacies/${widget.pharmacy['id']}/stats');
     if (!mounted) return;
     if (result.success) {
       setState(() => _stats = result.data);
@@ -498,8 +528,9 @@ class _PharmacyDetailState extends State<_PharmacyDetail> {
 
   Future<void> _toggleStatus(String status) async {
     final locale = context.read<AuthStore>().locale;
-    final result = await ApiClient.instance
-        .post('/pharmacies/${widget.pharmacy['id']}/status', body: {'status': status});
+    final result = await ApiClient.instance.post(
+        '/pharmacies/${widget.pharmacy['id']}/status',
+        body: {'status': status});
     if (!mounted) return;
     if (result.success) {
       widget.onChanged();
@@ -508,7 +539,9 @@ class _PharmacyDetailState extends State<_PharmacyDetail> {
           .showSnackBar(SnackBar(content: Text(S.t('statusUpdated', locale))));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.error?.readableMessage ?? S.t('loadError', locale))),
+        SnackBar(
+            content: Text(
+                result.error?.readableMessage ?? S.t('loadError', locale))),
       );
     }
   }
@@ -528,7 +561,8 @@ class _PharmacyDetailState extends State<_PharmacyDetail> {
               children: [
                 Expanded(
                   child: Text('${p['name']}',
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                      style: const TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.w800)),
                 ),
                 StatusChip(
                     label: status == 'active'
@@ -551,10 +585,14 @@ class _PharmacyDetailState extends State<_PharmacyDetail> {
               Expanded(
                 child: ListView(
                   children: [
-                    _StatRow(S.t('nbUsers', locale), '${_stats!['users'] ?? 0}'),
-                    _StatRow(S.t('nbBranches', locale), '${_stats!['branches'] ?? 0}'),
-                    _StatRow(S.t('medications', locale), '${_stats!['medications'] ?? 0}'),
-                    _StatRow(S.t('sales', locale), '${_stats!['sales']?['total'] ?? 0}'),
+                    _StatRow(
+                        S.t('nbUsers', locale), '${_stats!['users'] ?? 0}'),
+                    _StatRow(S.t('nbBranches', locale),
+                        '${_stats!['branches'] ?? 0}'),
+                    _StatRow(S.t('medications', locale),
+                        '${_stats!['medications'] ?? 0}'),
+                    _StatRow(S.t('sales', locale),
+                        '${_stats!['sales']?['total'] ?? 0}'),
                     _StatRow(S.t('totalRevenue', locale),
                         '${(_stats!['revenue']?['total'] ?? 0)} MAD'),
                     _StatRow(S.t('licenseExpiry', locale),

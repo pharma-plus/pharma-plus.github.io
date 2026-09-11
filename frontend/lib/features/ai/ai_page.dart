@@ -6,6 +6,7 @@ import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
+import '../shell/shell_nav.dart';
 
 class AiPage extends StatefulWidget {
   const AiPage({super.key});
@@ -98,7 +99,9 @@ class _AiPageState extends State<AiPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(S.t('pharmaAi', locale))),
+      appBar: AppBar(
+          leading: const ShellBackButton(),
+          title: Text(S.t('pharmaAi', locale))),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -148,8 +151,8 @@ class _AiPageState extends State<AiPage> {
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 child: ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                      maxWidth: 340),
+                                  constraints:
+                                      const BoxConstraints(maxWidth: 340),
                                   child: Text('${m['text']}'),
                                 ),
                               ),
@@ -288,8 +291,10 @@ class _AiPageState extends State<AiPage> {
     if (items.isEmpty) {
       return GlassCard(child: Text(S.t('noData', locale)));
     }
-    final totalCost = double.tryParse('${_plan?['total_estimated_cost'] ?? 0}') ?? 0;
-    final totalQty = double.tryParse('${_plan?['total_suggested_qty'] ?? 0}') ?? 0;
+    final totalCost =
+        double.tryParse('${_plan?['total_estimated_cost'] ?? 0}') ?? 0;
+    final totalQty =
+        double.tryParse('${_plan?['total_suggested_qty'] ?? 0}') ?? 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -380,11 +385,13 @@ class _AiPageState extends State<AiPage> {
     final series = (analysis['series'] as List? ?? const [])
         .whereType<Map<String, dynamic>>()
         .toList();
-    final recent = series.length > 14 ? series.sublist(series.length - 14) : series;
+    final recent =
+        series.length > 14 ? series.sublist(series.length - 14) : series;
     final maxRevenue = recent.fold<double>(
         0, (m, r) => m + (double.tryParse('${r['revenue'] ?? 0}') ?? 0));
-    final forecastTotal =
-        double.tryParse('${(analysis['forecast_7d'] as Map?)?['total'] ?? 0}') ?? 0;
+    final forecastTotal = double.tryParse(
+            '${(analysis['forecast_7d'] as Map?)?['total'] ?? 0}') ??
+        0;
     final change = summary['revenue_change_pct'];
     final margin = summary['margin_pct'];
     final peakHours = (analysis['peak_hours'] as List? ?? const [])
@@ -417,7 +424,8 @@ class _AiPageState extends State<AiPage> {
             Expanded(
               child: _kpiCard(
                 S.t('averageBasket', locale),
-                Fmt.money(double.tryParse('${summary['avg_basket'] ?? 0}') ?? 0),
+                Fmt.money(
+                    double.tryParse('${summary['avg_basket'] ?? 0}') ?? 0),
               ),
             ),
             const SizedBox(width: 10),
@@ -435,7 +443,8 @@ class _AiPageState extends State<AiPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(S.t('revenueChart', locale),
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w800, fontSize: 13)),
               const SizedBox(height: 10),
               SizedBox(
                 height: 64,
@@ -449,7 +458,9 @@ class _AiPageState extends State<AiPage> {
                           height: maxRevenue > 0
                               ? 8 +
                                   56 *
-                                      ((double.tryParse('${r['revenue'] ?? 0}') ?? 0) /
+                                      ((double.tryParse(
+                                                  '${r['revenue'] ?? 0}') ??
+                                              0) /
                                           maxRevenue)
                               : 8,
                           decoration: BoxDecoration(
@@ -473,7 +484,8 @@ class _AiPageState extends State<AiPage> {
               Expanded(
                 child: Text(
                   '${S.t('forecast7d', locale)} : ${Fmt.money(forecastTotal)}',
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w800, fontSize: 13),
                 ),
               ),
             ],
@@ -486,7 +498,8 @@ class _AiPageState extends State<AiPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(S.t('peakHours', locale),
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 13)),
                 const SizedBox(height: 6),
                 for (final h in peakHours)
                   Padding(
@@ -498,7 +511,8 @@ class _AiPageState extends State<AiPage> {
                                 fontWeight: FontWeight.w700, fontSize: 12)),
                         const Spacer(),
                         Text(
-                          Fmt.money(double.tryParse('${h['revenue'] ?? 0}') ?? 0),
+                          Fmt.money(
+                              double.tryParse('${h['revenue'] ?? 0}') ?? 0),
                           style: const TextStyle(
                               fontSize: 12, color: AppColors.textSecondary),
                         ),
@@ -516,21 +530,24 @@ class _AiPageState extends State<AiPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(S.t('topCategories', locale),
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 13)),
                 const SizedBox(height: 6),
                 for (final c in categories)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 2),
                     child: Row(
                       children: [
-                        const Icon(Icons.circle, size: 7, color: AppColors.turquoise),
+                        const Icon(Icons.circle,
+                            size: 7, color: AppColors.turquoise),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text('${c['name'] ?? '—'}',
                               style: const TextStyle(fontSize: 12)),
                         ),
                         Text(
-                          Fmt.money(double.tryParse('${c['revenue'] ?? 0}') ?? 0),
+                          Fmt.money(
+                              double.tryParse('${c['revenue'] ?? 0}') ?? 0),
                           style: const TextStyle(
                               fontSize: 12, fontWeight: FontWeight.w700),
                         ),
@@ -553,8 +570,8 @@ class _AiPageState extends State<AiPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label,
-              style:
-                  const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+              style: const TextStyle(
+                  fontSize: 11, color: AppColors.textSecondary)),
           const SizedBox(height: 4),
           FittedBox(
             child: Text(value,

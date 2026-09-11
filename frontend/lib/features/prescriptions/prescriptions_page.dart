@@ -8,6 +8,7 @@ import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/status_chip.dart';
+import '../shell/shell_nav.dart';
 
 /// Ordonnances : saisie, suivi et délivrance.
 class PrescriptionsPage extends StatefulWidget {
@@ -94,6 +95,7 @@ class _PrescriptionsPageState extends State<PrescriptionsPage> {
     ];
     return Scaffold(
       appBar: AppBar(
+        leading: const ShellBackButton(),
         title: Text(S.t('prescriptions', locale)),
         actions: [
           IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),

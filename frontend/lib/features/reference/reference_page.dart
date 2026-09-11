@@ -6,6 +6,7 @@ import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
+import '../shell/shell_nav.dart';
 
 class ReferencePage extends StatefulWidget {
   const ReferencePage({super.key});
@@ -86,8 +87,8 @@ class _ReferencePageState extends State<ReferencePage> {
 
   Future<void> _runSync() async {
     setState(() => _syncing = true);
-    final result = await ApiClient.instance
-        .post<Map<String, dynamic>>('/reference/sync');
+    final result =
+        await ApiClient.instance.post<Map<String, dynamic>>('/reference/sync');
     if (!mounted) return;
     if (result.success) {
       setState(() => _syncStatus = result.data);
@@ -126,6 +127,7 @@ class _ReferencePageState extends State<ReferencePage> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const ShellBackButton(),
         title: Text(S.t('baseMaroc', locale)),
         actions: [
           IconButton(
@@ -167,10 +169,10 @@ class _ReferencePageState extends State<ReferencePage> {
                           '${_syncStatus?['total'] ?? 0}',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Theme.of(context).brightness ==
-                                    Brightness.dark
-                                ? Colors.white60
-                                : Colors.black54,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white60
+                                    : Colors.black54,
                           ),
                         ),
                       ],
@@ -306,8 +308,7 @@ class _ProductTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final locale = context.watch<AuthStore>().locale;
-    final commercialised =
-        product['commercial_status'] == 'commercialise';
+    final commercialised = product['commercial_status'] == 'commercialise';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -345,9 +346,7 @@ class _ProductTile extends StatelessWidget {
                           '${product['dci']}',
                           style: TextStyle(
                             fontSize: 12,
-                            color: isDark
-                                ? Colors.white60
-                                : Colors.black54,
+                            color: isDark ? Colors.white60 : Colors.black54,
                           ),
                         ),
                     ],
@@ -357,8 +356,9 @@ class _ProductTile extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: (commercialised ? AppColors.success : AppColors.warning)
-                        .withValues(alpha: 0.12),
+                    color:
+                        (commercialised ? AppColors.success : AppColors.warning)
+                            .withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -381,11 +381,10 @@ class _ProductTile extends StatelessWidget {
               spacing: 16,
               runSpacing: 4,
               children: [
-                _mini('${S.t('ppv', locale)}:',
-                    _money(product['ppv']), isDark),
+                _mini('${S.t('ppv', locale)}:', _money(product['ppv']), isDark),
                 _mini('${S.t('ph', locale)}:', _money(product['ph']), isDark),
-                _mini('${S.t('pfht', locale)}:',
-                    _money(product['pfht']), isDark),
+                _mini(
+                    '${S.t('pfht', locale)}:', _money(product['pfht']), isDark),
                 if (product['presentation'] != null)
                   _mini(S.t('productPresentation', locale),
                       '${product['presentation']}', isDark),
