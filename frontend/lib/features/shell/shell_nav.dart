@@ -28,11 +28,12 @@ class ShellBackButton extends StatelessWidget {
       icon: const Icon(Icons.home_rounded),
       tooltip: 'Tableau de bord',
       onPressed: () {
-        if (Navigator.of(context).canPop()) {
-          Navigator.of(context).maybePop();
-        } else {
-          ShellNav.goHome();
-        }
+        // Retour GARANTI au Tableau de bord depuis n'importe quelle page :
+        // on ferme d'abord toute sous-page poussée au-dessus du shell
+        // (POS, scanner, catalogue...), puis on force l'index 0 du shell.
+        // Un seul clic suffit, quel que soit l'état de la pile.
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        ShellNav.goHome();
       },
     );
   }

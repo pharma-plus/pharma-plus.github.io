@@ -221,17 +221,7 @@ class _Header extends StatelessWidget {
         children: [
           // ← HOME : retour toujours visible, sortie garantie de la page
           // (navigation interne + bouton retour navigateur fonctionnels).
-          IconButton(
-            tooltip: 'Tableau de bord',
-            icon: const Icon(Icons.home_rounded, color: Colors.white),
-            onPressed: () {
-              if (Navigator.of(context).canPop()) {
-                Navigator.of(context).maybePop();
-              } else {
-                ShellNav.goHome();
-              }
-            },
-          ),
+          const ShellBackButton(),
           const SizedBox(width: 2),
           Container(
             width: 44,
@@ -790,8 +780,8 @@ class _PlanPainter extends CustomPainter {
   }
 
   /// Ombre portée au sol sous un meuble (rectangle fondu, alpha faible).
-  void _addShadow(List<_Face> faces, double x0, double y0, double x1,
-      double y1) {
+  void _addShadow(
+      List<_Face> faces, double x0, double y0, double x1, double y1) {
     const grow = 0.14;
     faces.add(_Face([
       _P(x0 - grow, y0 - grow, 0.002),
@@ -996,8 +986,8 @@ class _PlanPainter extends CustomPainter {
         const Color(0xFFE9C873), 9, 0, 0);
   }
 
-  void _drawSignText(Canvas canvas, String text, Offset c, Color bg,
-      Color fg, double fontSize, double padX, double padY) {
+  void _drawSignText(Canvas canvas, String text, Offset c, Color bg, Color fg,
+      double fontSize, double padX, double padY) {
     final tp = TextPainter(
       text: TextSpan(
         text: text,
@@ -1140,11 +1130,8 @@ class _FullScreenPlanState extends State<_FullScreenPlan> {
             left: 12,
             child: Row(children: [
               _fsBtn(Icons.home_rounded, 'Tableau de bord', () {
-                if (Navigator.of(context).canPop()) {
-                  Navigator.of(context).maybePop();
-                } else {
-                  ShellNav.goHome();
-                }
+                Navigator.of(context).popUntil((route) => route.isFirst);
+                ShellNav.goHome();
               }),
               const SizedBox(width: 8),
               _fsBtn(Icons.remove, 'Zoom -',
@@ -1162,11 +1149,8 @@ class _FullScreenPlanState extends State<_FullScreenPlan> {
                       })),
               const SizedBox(width: 8),
               _fsBtn(Icons.close_rounded, 'Quitter le plein écran', () {
-                if (Navigator.of(context).canPop()) {
-                  Navigator.of(context).maybePop();
-                } else {
-                  ShellNav.goHome();
-                }
+                Navigator.of(context).popUntil((route) => route.isFirst);
+                ShellNav.goHome();
               }),
             ]),
           ),
