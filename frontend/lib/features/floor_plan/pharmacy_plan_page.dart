@@ -923,15 +923,15 @@ class _PlanPainter extends CustomPainter {
   void _addWalls(List<_Face> faces) {
     const h = 2.7;
     // Mur nord (plan y = -4) + frise claire.
-    _addQuad(faces, _P(-5, -4, h), _P(5, -4, h), _P(5, -4, 0), _P(-5, -4, 0),
+    _addQuad(faces, const _P(-5, -4, h), const _P(5, -4, h), const _P(5, -4, 0), const _P(-5, -4, 0),
         const Color(0xFF1A2C22));
-    _addQuad(faces, _P(-5, -4, h), _P(5, -4, h), _P(5, -4, h - 0.14),
-        _P(-5, -4, h - 0.14), const Color(0xFF2E5241));
+    _addQuad(faces, const _P(-5, -4, h), const _P(5, -4, h), const _P(5, -4, h - 0.14),
+        const _P(-5, -4, h - 0.14), const Color(0xFF2E5241));
     // Mur ouest (plan x = -5) + frise claire.
-    _addQuad(faces, _P(-5, -4, h), _P(-5, 4, h), _P(-5, 4, 0), _P(-5, -4, 0),
+    _addQuad(faces, const _P(-5, -4, h), const _P(-5, 4, h), const _P(-5, 4, 0), const _P(-5, -4, 0),
         const Color(0xFF16241C));
-    _addQuad(faces, _P(-5, -4, h), _P(-5, 4, h), _P(-5, 4, h - 0.14),
-        _P(-5, -4, h - 0.14), const Color(0xFF284638));
+    _addQuad(faces, const _P(-5, -4, h), const _P(-5, 4, h), const _P(-5, 4, h - 0.14),
+        const _P(-5, -4, h - 0.14), const Color(0xFF284638));
   }
 
   List<_Face> _buildFaces() {

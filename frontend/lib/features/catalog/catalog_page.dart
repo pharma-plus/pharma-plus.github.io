@@ -4,6 +4,7 @@ import '../../core/l10n/strings.dart';
 import '../../core/models/medication.dart';
 import '../../core/models/zone.dart';
 import '../../core/services/api_client.dart';
+import '../../core/services/api_list.dart';
 import '../floor_plan/pharmacy_plan_page.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
@@ -40,7 +41,7 @@ class _CatalogPageState extends State<CatalogPage> {
       _loading = true;
       _error = null;
     });
-    final result = await ApiClient.instance.get<Map<String, dynamic>>(
+    var result = await ApiClient.instance.get<Map<String, dynamic>>(
       '/catalog/medications',
       query: {
         if (query != null && query.isNotEmpty) 'q': query,
@@ -49,6 +50,15 @@ class _CatalogPageState extends State<CatalogPage> {
         'limit': 40,
       },
     );
+    // Backend edge function incomplet : si la route /catalog/medications
+    // n'est pas déployée (PGRST125), on retombe sur la table brute
+    // /medications pour au moins afficher le catalogue existant.
+    if (!result.success && result.error?.code == 'PGRST125') {
+      result = await ApiClient.instance.get<Map<String, dynamic>>(
+        '/medications',
+        query: {'limit': 500, 'is_parapharmacie': _paraMode},
+      );
+    }
     if (!mounted) return;
     if (!result.success) {
       setState(() {
@@ -58,11 +68,8 @@ class _CatalogPageState extends State<CatalogPage> {
       return;
     }
     setState(() {
-      _items = (result.data?['items'] as List? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .map(Medication.fromJson)
-          .toList();
-      _total = result.meta?['total'] as int? ?? 0;
+      _items = ApiList.of(result.data).map(Medication.fromJson).toList();
+      _total = ApiList.total(result.data, result.meta);
       _page = page;
       _loading = false;
     });

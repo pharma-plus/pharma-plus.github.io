@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
+import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
@@ -61,12 +62,8 @@ class _PurchasesPageState extends State<PurchasesPage>
       return;
     }
     setState(() {
-      _orders = (orders.data?['items'] as List? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
-      _receptions = (receptions.data?['items'] as List? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
+      _orders = ApiList.of(orders.data);
+      _receptions = ApiList.of(receptions.data);
       _loading = false;
     });
   }
@@ -295,16 +292,8 @@ class _OrderFormState extends State<_OrderForm> {
       _branches = (results[0].data as List<dynamic>? ?? const [])
           .whereType<Map<String, dynamic>>()
           .toList();
-      _suppliers =
-          ((results[1].data as Map<String, dynamic>?)?['items'] as List? ??
-                  const [])
-              .whereType<Map<String, dynamic>>()
-              .toList();
-      _medications =
-          ((results[2].data as Map<String, dynamic>?)?['items'] as List? ??
-                  const [])
-              .whereType<Map<String, dynamic>>()
-              .toList();
+      _suppliers = ApiList.of(results[1].data);
+      _medications = ApiList.of(results[2].data);
       _loading = false;
     });
   }

@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/models/medication.dart';
 import '../../core/services/api_client.dart';
+import '../../core/services/api_list.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/calculations.dart';
 import '../../core/utils/format.dart';
@@ -128,10 +129,11 @@ class _PosPanelState extends State<PosPanel> {
         '/catalog/medications',
         query: {'q': query.trim(), 'limit': 8});
     if (!mounted) return;
-    final items = r.success ? (r.data?['items'] as List? ?? const []) : const [];
+    final items =
+        r.success ? ApiList.of(r.data) : <Map<String, dynamic>>[];
     setState(() {
       _results.clear();
-      for (final it in items.whereType<Map<String, dynamic>>()) {
+      for (final it in items) {
         if (it['id'] != null) _results['${it['id']}'] = Medication.fromJson(it);
       }
       _searching = false;

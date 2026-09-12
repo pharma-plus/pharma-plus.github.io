@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
+import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
@@ -51,9 +52,7 @@ class _SuppliersPageState extends State<SuppliersPage> {
       return;
     }
     setState(() {
-      _items = (result.data?['items'] as List? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
+      _items = ApiList.of(result.data);
       _loading = false;
     });
   }

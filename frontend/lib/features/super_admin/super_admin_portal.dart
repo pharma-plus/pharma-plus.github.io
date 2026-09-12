@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
+import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/glass_card.dart';
@@ -94,9 +95,7 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
       });
       return;
     }
-    final items = (listRes.data?['items'] as List? ?? const [])
-        .whereType<Map<String, dynamic>>()
-        .toList();
+    final items = ApiList.of(listRes.data);
     _page++;
     if (items.length < _limit) _hasMore = false;
     setState(() {

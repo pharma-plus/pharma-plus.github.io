@@ -35,7 +35,7 @@ void main() {
 
         // Remise en % : 10 % sur 200 (TTC 240 avec 20% TVA) → remise 24, total 216.
     final pct = calculateSaleTotalExcl(
-      [SaleLine(unitPrice: 200, quantity: 1, tvaRate: 0.20)],
+      [const SaleLine(unitPrice: 200, quantity: 1, tvaRate: 0.20)],
       discountValue: 10,
       discountIsPercent: true,
     );
@@ -46,7 +46,7 @@ void main() {
 
     // Remise plafonnée au sous-total (jamais négatif / jamais supérieur).
     final capped = calculateSaleTotalExcl(
-      [SaleLine(unitPrice: 50, quantity: 2, tvaRate: 0)],
+      [const SaleLine(unitPrice: 50, quantity: 2, tvaRate: 0)],
       discountValue: 999,
       discountIsPercent: false,
     );

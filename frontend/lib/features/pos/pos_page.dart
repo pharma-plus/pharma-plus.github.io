@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/models/medication.dart';
 import '../../core/services/api_client.dart';
+import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/services/receipt_pdf.dart';
 import '../../core/services/offline_store.dart';
@@ -132,10 +133,9 @@ class _PosPageState extends State<PosPage> {
     );
     if (!mounted) return;
     final rows = result.success
-        ? (result.data?['items'] as List? ?? const [])
-        : const [];
+        ? ApiList.of(result.data)
+        : <Map<String, dynamic>>[];
     _catalog = rows
-        .whereType<Map<String, dynamic>>()
         .map(Medication.fromJson)
         .where((m) => m.stockQuantity == null || m.stockQuantity! > 0)
         .toList();

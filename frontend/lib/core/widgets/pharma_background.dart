@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
 class PharmaBackground extends StatelessWidget {
@@ -11,21 +11,27 @@ class PharmaBackground extends StatelessWidget {
     this.overlayOpacity = 0.52,
   });
 
-  @override
+    @override
   Widget build(BuildContext context) {
     return Stack(
       fit: StackFit.expand,
       children: [
         kIsWeb
             ? Image.network(
-                'images/pharma_login_background.jpg',
+                'images/pharma_background.png',
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFF07130F)),
+                errorBuilder: (_, __, ___) => Image.network(
+                  'images/pharma_login_background.jpg',
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      const ColoredBox(color: Color(0xFF07130F)),
+                ),
               )
             : Image.asset(
-                'assets/images/pharma_login_background.webp',
+                'assets/images/pharma_background.png',
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFF07130F)),
+                errorBuilder: (_, __, ___) =>
+                    const ColoredBox(color: Color(0xFF07130F)),
               ),
         ColoredBox(color: const Color(0xFF00110A).withValues(alpha: overlayOpacity)),
         child,

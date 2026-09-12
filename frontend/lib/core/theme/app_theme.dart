@@ -42,7 +42,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
           side: isDark
-              ? BorderSide(color: AppColors.goldBorder) // liseré or maquette
+              ? const BorderSide(color: AppColors.goldBorder) // liseré or maquette
               : BorderSide.none,
         ),
         color: isDark ? AppColors.surfaceDark : Colors.white,
@@ -75,7 +75,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: AppColors.gold, width: 1.6),
+          borderSide: const BorderSide(color: AppColors.gold, width: 1.6),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),

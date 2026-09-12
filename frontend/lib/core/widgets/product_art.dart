@@ -85,7 +85,7 @@ class ProductArtPainter extends CustomPainter {
     Offset P(double x, double y) => Offset(x * ux, y * uy);
     Rect R(double x, double y, double w2, double h2) =>
         Rect.fromLTWH(x * ux, y * uy, w2 * ux, h2 * uy);
-    RRect RR(double x, double y, double w2, double h2, double r) =>
+    RRect rr(double x, double y, double w2, double h2, double r) =>
         RRect.fromRectAndRadius(R(x, y, w2, h2), Radius.circular(r * ux));
 
     // ---- Socle lumineux commun ----
@@ -122,7 +122,7 @@ class ProductArtPainter extends CustomPainter {
     /// Boîte 3D : face avant + dessus + tranche droite.
     void box3d(double x, double y, double bw, double bh, double depth,
         Color face, Color top, Color side) {
-      final faceR = RR(x, y, bw, bh, 2);
+      final faceR = rr(x, y, bw, bh, 2);
       canvas.drawRRect(faceR.shift(const Offset(1.6, 1.6)), shadow);
       canvas.drawRRect(faceR, Paint()..color = face);
       // Tranche droite (perspective).
@@ -164,24 +164,24 @@ class ProductArtPainter extends CustomPainter {
           Paint()..color = body);
       // Reflet.
       canvas.drawRRect(
-          RR(cx - bw / 2 + 1.4, cy - bh / 2 + 2, bw * 0.22, bh - 5, 2),
+          rr(cx - bw / 2 + 1.4, cy - bh / 2 + 2, bw * 0.22, bh - 5, 2),
           Paint()..color = Colors.white.withValues(alpha: 0.35));
       // Bouchon.
       canvas.drawRRect(
-          RR(cx - bw * 0.30, cy - bh / 2 - capH, bw * 0.60, capH + 1.5, 1.5),
+          rr(cx - bw * 0.30, cy - bh / 2 - capH, bw * 0.60, capH + 1.5, 1.5),
           Paint()
             ..shader = ui.Gradient.linear(P(cx - bw * 0.3, cy),
                 P(cx + bw * 0.3, cy), [cap, cap.withValues(alpha: 0.75)]));
       // Étiquette.
       canvas.drawRRect(
-          RR(cx - bw / 2 + 1, cy - bh * 0.16, bw - 2, bh * 0.42, 1.5),
+          rr(cx - bw / 2 + 1, cy - bh * 0.16, bw - 2, bh * 0.42, 1.5),
           Paint()..color = labelBand);
     }
 
     /// Plaquette de comprimés (blister).
     void blister(double x, double y, double bw, double bh, Color pill) {
       canvas.drawRRect(
-          RR(x, y, bw, bh, 2.5), Paint()..color = const Color(0xFFE9F1EC));
+          rr(x, y, bw, bh, 2.5), Paint()..color = const Color(0xFFE9F1EC));
       for (var i = 0; i < 4; i++) {
         canvas.drawCircle(P(x + 5 + i * 7, y + bh / 2), 2.6 * ux,
             Paint()..color = pill);
@@ -191,7 +191,7 @@ class ProductArtPainter extends CustomPainter {
             Paint()..color = Colors.white.withValues(alpha: 0.6));
       }
       canvas.drawRRect(
-          RR(x, y, bw, bh, 2.5),
+          rr(x, y, bw, bh, 2.5),
           Paint()
             ..color = const Color(0xFF0B2418).withValues(alpha: 0.35)
             ..style = PaintingStyle.stroke
@@ -204,7 +204,7 @@ class ProductArtPainter extends CustomPainter {
         box3d(26, 20, 34, 42, 6, const Color(0xFFF4F8F5),
             const Color(0xFFDDE8E1), const Color(0xFFC3D2C9));
         canvas.drawRRect(
-            RR(26, 28, 34, 9, 1.2), Paint()..color = const Color(0xFF00A651));
+            rr(26, 28, 34, 9, 1.2), Paint()..color = const Color(0xFF00A651));
         text('DOLIPRANE', P(43, 32.6), 4.6, Colors.white, maxW: 32);
         text('1g', P(43, 46), 10, const Color(0xFF0B3B23));
         blister(52, 50, 30, 14, const Color(0xFF2FB563));
@@ -221,7 +221,7 @@ class ProductArtPainter extends CustomPainter {
             const Color(0xFFF3E9D8),
             5);
         // Compte-gouttes.
-        canvas.drawRRect(RR(44.4, 4, 3.2, 10, 1.2),
+        canvas.drawRRect(rr(44.4, 4, 3.2, 10, 1.2),
             Paint()..color = const Color(0xFFB9C6BF));
         canvas.drawCircle(
             P(46, 17), 2.4 * ux, Paint()..color = const Color(0xFFDCE8E2));
@@ -308,8 +308,8 @@ class ProductArtPainter extends CustomPainter {
         box3d(32, 22, 30, 38, 5.5, const Color(0xFF0E8C4F),
             const Color(0xFF0B7440), const Color(0xFF096035));
         final cross = Paint()..color = Colors.white;
-        canvas.drawRRect(RR(44, 32, 6, 16, 1.2), cross);
-        canvas.drawRRect(RR(39, 37, 16, 6, 1.2), cross);
+        canvas.drawRRect(rr(44, 32, 6, 16, 1.2), cross);
+        canvas.drawRRect(rr(39, 37, 16, 6, 1.2), cross);
     }
   }
 

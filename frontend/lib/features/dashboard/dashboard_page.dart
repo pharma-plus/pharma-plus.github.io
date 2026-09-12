@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/models/medication.dart';
+import '../../core/widgets/pharmacy_plan_3d.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
@@ -1796,8 +1795,8 @@ class _Plan3DPanel extends StatefulWidget {
 }
 
 class _Plan3DPanelState extends State<_Plan3DPanel> {
-  double _rot = 0.0;
-  double _zoom = 1.0;
+  final double _rot = 0.0;
+  final double _zoom = 1.0;
   static const _legend = <(String, String)>[
     ('M', 'Médicaments'),
     ('O', 'Ordonnances'),
@@ -1825,57 +1824,14 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
                       colors: [Color(0xFF0D1713), Color(0xFF080E0C)]),
                   border: Border.all(
                       color: AppColors.dividerDark.withValues(alpha: 0.9))),
-              child: Stack(children: [
-                // Glisser pour faire tourner la scène (interaction réelle).
-                Positioned.fill(
-                    child: GestureDetector(
-                  onPanUpdate: (d) =>
-                      setState(() => _rot += d.delta.dx * 0.008),
-                  child: CustomPaint(painter: _IsoPainter(rot: _rot, zoom: _zoom)),
-                )),
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Column(children: [
-                    _PlanBtn(
-                        icon: Icons.view_in_ar_rounded,
-                        label: 'Vue 3D',
-                        tooltip: 'Ouvrir le Plan 3D complet',
-                        onTap: widget.onOpen),
-                    const SizedBox(height: 4),
-                    _PlanBtn(
-                        icon: Icons.rotate_right_rounded,
-                        label: 'Tourner',
-                        tooltip: 'Faire pivoter la scène',
-                        onTap: () => setState(() => _rot += 0.25)),
-                    const SizedBox(height: 4),
-                    _PlanBtn(
-                        icon: Icons.add_rounded,
-                        tooltip: 'Zoom avant',
-                        onTap: () => setState(
-                            () => _zoom = math.min(1.8, _zoom * 1.15))),
-                    const SizedBox(height: 4),
-                    _PlanBtn(
-                        icon: Icons.remove_rounded,
-                        tooltip: 'Zoom arrière',
-                        onTap: () =>
-                            setState(() => _zoom = math.max(0.6, _zoom / 1.15))),
-                    const SizedBox(height: 4),
-                    _PlanBtn(
-                        icon: Icons.restart_alt_rounded,
-                        tooltip: 'Vue initiale',
-                        onTap: () => setState(() {
-                          _rot = 0.0;
-                          _zoom = 1.0;
-                        })),
-                    const SizedBox(height: 4),
-                    _PlanBtn(
-                        icon: Icons.fullscreen_rounded,
-                        tooltip: 'Plein écran',
-                        onTap: widget.onOpen),
-                  ]),
-                ),
-              ]),
+              child: PharmacyPlan3D(
+                initialRot: _rot,
+                initialZoom: _zoom,
+                showControls: false,
+                showLegend: false,
+                interactive: true,
+                onZoneTap: (_) => widget.onOpen(),
+              ),
             ),
           ),
         ),
@@ -1890,76 +1846,6 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
   }
 }
 
-/// Bouton du Plan 3D — animations RÉELLES codées :
-/// · survol → élévation + liseré or lumineux + fond éclairci
-/// · pression → retrait d'échelle (feedback immédiat)
-/// · tooltip au survol (libellé complet).
-class _PlanBtn extends StatefulWidget {
-  final IconData icon;
-  final String? label;
-  final String? tooltip;
-  final VoidCallback? onTap;
-  const _PlanBtn({required this.icon, this.label, this.tooltip, this.onTap});
-  @override
-  State<_PlanBtn> createState() => _PlanBtnState();
-}
-
-class _PlanBtnState extends State<_PlanBtn> {
-  bool _hover = false;
-  bool _press = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final btn = GestureDetector(
-      onTapDown: (_) => setState(() => _press = true),
-      onTapCancel: () => setState(() => _press = false),
-      onTapUp: (_) => setState(() => _press = false),
-      onTap: widget.onTap,
-      child: AnimatedScale(
-        scale: _press ? 0.90 : 1.0,
-        duration: const Duration(milliseconds: 110),
-        curve: Curves.easeOut,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          curve: Curves.easeOut,
-          width: 42,
-          height: widget.label != null ? 46 : 30,
-          decoration: BoxDecoration(
-              color: _hover
-                  ? const Color(0xFF16402F).withValues(alpha: 0.97)
-                  : const Color(0xFF0E231B).withValues(alpha: 0.94),
-              borderRadius: BorderRadius.circular(9),
-              border: Border.all(
-                  color: _hover
-                      ? const Color(0xFFC9A24B).withValues(alpha: 0.95)
-                      : const Color(0xFFC9A24B).withValues(alpha: 0.45)),
-              boxShadow: [
-                if (_hover)
-                  BoxShadow(
-                      color: const Color(0xFFC9A24B).withValues(alpha: 0.35),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3)),
-              ]),
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(widget.icon,
-                size: 17,
-                color: _hover ? const Color(0xFFF0D48A) : _gold),
-            if (widget.label != null) ...[
-              const SizedBox(height: 1),
-              Text(widget.label!,
-                  style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.85),
-                      fontSize: 8,
-                      fontWeight: FontWeight.w700)),
-            ],
-          ]),
-        ),
-      ),
-    );
-    if (widget.tooltip == null) return btn;
-    return Tooltip(message: widget.tooltip!, waitDuration: const Duration(milliseconds: 350), child: btn);
-  }
-}
 
 class _LegendItem extends StatelessWidget {
   final String letter;
@@ -1983,308 +1869,6 @@ class _LegendItem extends StatelessWidget {
             style: const TextStyle(
                 color: AppColors.textSecondary, fontSize: 10)),
       ]);
-}
-/// Peintre de la scène isométrique 2.5D (projection axonométrique).
-/// Supporte une rotation [rot] (radians) et un zoom [zoom] pilotés
-/// par les boutons du panneau du dashboard.
-class _IsoPainter extends CustomPainter {
-  final double rot;
-  final double zoom;
-  // Pas de constructeur const : les champs de projection sont mutables.
-  _IsoPainter({this.rot = 0.0, this.zoom = 1.0});
-  late double ux, uy, uz, ox, oy;
-  static const room = 12.0, wallH = 3.6;
-
-  Offset P(double x, double y, double z) {
-    // Rotation horizontale du plan avant projection isométrique.
-    final cr = math.cos(rot), sr = math.sin(rot);
-    final rx = x * cr - y * sr;
-    final ry = x * sr + y * cr;
-    return Offset(ox + (rx - ry) * ux * zoom,
-        oy + (rx + ry) * uy * zoom - z * uz * zoom);
-  }
-
-  void quad(Canvas canvas, List<Offset> pts, Color c) {
-    final path = Path()..moveTo(pts[0].dx, pts[0].dy);
-    for (var i = 1; i < pts.length; i++) {
-      path.lineTo(pts[i].dx, pts[i].dy);
-    }
-    path.close();
-    canvas.drawPath(path, Paint()..color = c);
-  }
-
-  void stroke(Canvas canvas, Offset a, Offset b, Color c, double w) {
-    canvas.drawLine(a, b, Paint()..color = c..strokeWidth = w);
-  }
-
-  /// Boîte isométrique : face dessus + face droite + face gauche.
-  void box(Canvas canvas, double x0, double y0, double x1, double y1,
-      double z0, double z1, Color base) {
-    Color l(Color c, double a) => Color.lerp(c, Colors.white, a)!;
-    Color d(Color c, double a) => Color.lerp(c, Colors.black, a)!;
-    quad(canvas, [
-      P(x0, y0, z1), P(x1, y0, z1), P(x1, y1, z1), P(x0, y1, z1)
-    ], l(base, 0.16));
-    quad(canvas, [
-      P(x1, y0, z0), P(x1, y1, z0), P(x1, y1, z1), P(x1, y0, z1)
-    ], d(base, 0.30));
-    quad(canvas, [
-      P(x0, y1, z0), P(x1, y1, z0), P(x1, y1, z1), P(x0, y1, z1)
-    ], d(base, 0.06));
-  }
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width, h = size.height;
-    final u = math.min(w / 25.5, h / 15.4);
-    ux = u;
-    uy = u * 0.5;
-    uz = u * 0.62;
-    ox = w * 0.5;
-    oy = h / 2 - room * uy * zoom + wallH * uz * zoom / 2 + u * 0.4;
-
-    // ---- Sol : dalle sombre + grille de tuiles ----
-    quad(canvas, [
-      P(0, 0, 0), P(room, 0, 0), P(room, room, 0), P(0, room, 0)
-    ], const Color(0xFF161510));
-    final grid = Paint()
-      ..color = Colors.white.withValues(alpha: 0.05)
-      ..strokeWidth = 1;
-    for (var i = 0; i <= 12; i++) {
-      canvas.drawLine(P(i.toDouble(), 0, 0), P(i.toDouble(), room, 0), grid);
-      canvas.drawLine(P(0, i.toDouble(), 0), P(room, i.toDouble(), 0), grid);
-    }
-
-    // ---- Mur arrière gauche (x = 0) ----
-    quad(canvas, [
-      P(0, 0, wallH), P(0, room, wallH), P(0, room, 0), P(0, 0, 0)
-    ], const Color(0xFF232E27));
-    final panel = Paint()
-      ..color = Colors.white.withValues(alpha: 0.045)
-      ..strokeWidth = 1;
-    for (var i = 0; i <= 12; i += 2) {
-      canvas.drawLine(P(0, i.toDouble(), 0), P(0, i.toDouble(), wallH), panel);
-    }
-    // ---- Mur arrière droit (y = 0) ----
-    quad(canvas, [
-      P(0, 0, wallH), P(room, 0, wallH), P(room, 0, 0), P(0, 0, 0)
-    ], const Color(0xFF1B241F));
-    for (var i = 0; i <= 12; i += 2) {
-      canvas.drawLine(P(i.toDouble(), 0, 0), P(i.toDouble(), 0, wallH), panel);
-    }
-    // Plinthes.
-    stroke(canvas, P(0, 0, 0.18), P(0, room, 0.18), const Color(0xFF31413A), 2);
-    stroke(canvas, P(0, 0, 0.18), P(room, 0, 0.18), const Color(0xFF31413A), 2);
-
-    // ---- Porte d'entrée (mur droit) ----
-    quad(canvas, [
-      P(5.6, 0, 2.5), P(6.8, 0, 2.5), P(6.8, 0, 0), P(5.6, 0, 0)
-    ], const Color(0xFF0F1A15));
-    stroke(canvas, P(5.6, 0, 2.5), P(6.8, 0, 2.5), const Color(0xFF31413A), 1.4);
-
-    // ---- Rayonnages muraux : 2 segments x 3 niveaux, bois + produits ----
-    const prodColors = [
-      Color(0xFF2FB563), Color(0xFFE0557C), Color(0xFF5B8FD9),
-      Color(0xFFF0B429), Color(0xFFF2F7F4), Color(0xFF9B5FC0),
-      Color(0xFF2BD4C4), Color(0xFFE9C873),
-    ];
-    var ci = 0;
-    void wallShelfLeft(double y0, double y1) {
-      for (final z in const [1.05, 1.95, 2.85]) {
-        quad(canvas, [
-          P(0, y0, z), P(0.55, y0, z), P(0.55, y1, z), P(0, y1, z)
-        ], const Color(0xFF8A6238));
-        quad(canvas, [
-          P(0.55, y0, z), P(0.55, y1, z), P(0.55, y1, z - 0.09),
-          P(0.55, y0, z - 0.09)
-        ], const Color(0xFF5E4123));
-        var py = y0 + 0.22;
-        while (py < y1 - 0.3) {
-          final c = prodColors[ci++ % prodColors.length];
-          box(canvas, 0.08, py, 0.48, py + 0.34, z, z + 0.26, c);
-          py += 0.52;
-        }
-      }
-    }
-
-    void wallShelfRight(double x0, double x1) {
-      for (final z in const [1.05, 1.95, 2.85]) {
-        quad(canvas, [
-          P(x0, 0, z), P(x0, 0.55, z), P(x1, 0.55, z), P(x1, 0, z)
-        ], const Color(0xFF7E5A32));
-        quad(canvas, [
-          P(x0, 0.55, z), P(x0, 0.55, z - 0.09), P(x1, 0.55, z - 0.09),
-          P(x1, 0.55, z)
-        ], const Color(0xFF563B20));
-        var px = x0 + 0.22;
-        while (px < x1 - 0.3) {
-          final c = prodColors[ci++ % prodColors.length];
-          box(canvas, px, 0.08, px + 0.34, 0.48, z, z + 0.26, c);
-          px += 0.52;
-        }
-      }
-    }
-
-    wallShelfLeft(1.2, 5.2);
-    wallShelfLeft(6.8, 10.8);
-    wallShelfRight(1.2, 4.4);
-    wallShelfRight(8.0, 10.8);
-
-    // ---- Plante d'angle (fond droite) ----
-    void plant(double x, double y) {
-      box(canvas, x - 0.35, y - 0.35, x + 0.35, y + 0.35, 0, 0.55,
-          const Color(0xFF7A4A2E));
-      final leaves = [
-        (x, y, 1.05, const Color(0xFF2E7D4F)),
-        (x - 0.3, y + 0.15, 1.2, const Color(0xFF3C9A63)),
-        (x + 0.3, y - 0.1, 1.18, const Color(0xFF57B878)),
-      ];
-      for (final (lx, ly, lz, lc) in leaves) {
-        final c = P(lx, ly, lz);
-        canvas.drawCircle(c, u * 0.42, Paint()..color = lc);
-      }
-    }
-
-    plant(11.1, 1.1);
-
-    // ---- Gondoles centrales double-face ----
-    void gondola(double y0, double y1) {
-      box(canvas, 2.4, y0, 9.6, y1, 0, 1.7, const Color(0xFF6E4E2E));
-      for (final z in const [0.62, 1.18]) {
-        stroke(canvas, P(2.4, y1, z), P(9.6, y1, z),
-            const Color(0xFF4A3520), 1.4);
-        stroke(canvas, P(9.6, y0, z), P(9.6, y1, z),
-            const Color(0xFF3B2A18), 1.2);
-        var px = 2.7;
-        var k = 0;
-        while (px < 9.2) {
-          final c = prodColors[(k++ + y0.toInt()) % prodColors.length];
-          quad(canvas, [
-            P(px, y1, z + 0.06), P(px + 0.42, y1, z + 0.06),
-            P(px + 0.42, y1, z + 0.36), P(px, y1, z + 0.36)
-          ], c);
-          px += 0.58;
-        }
-        var pxr = 9.3;
-        k = 0;
-        while (pxr > 2.8) {
-          final c = prodColors[(k++ + 3) % prodColors.length];
-          final yA = y0 + (pxr - 2.4) / 7.2 * (y1 - y0);
-          final yB = y0 + (pxr - 2.4 + 0.42) / 7.2 * (y1 - y0);
-          quad(canvas, [
-            P(9.6, yA, z + 0.05), P(9.6, yB, z + 0.05),
-            P(9.6, yB, z + 0.35), P(9.6, yA, z + 0.35)
-          ], c);
-          pxr -= 0.58;
-        }
-      }
-    }
-
-    gondola(4.8, 5.7);
-    gondola(7.3, 8.2);
-    // ---- Comptoir / caisse avec liseré or (maquette) ----
-    box(canvas, 5.0, 9.6, 9.0, 11.2, 0, 1.05, const Color(0xFF3A2A1C));
-    final top = [
-      P(5.0, 9.6, 1.05), P(9.0, 9.6, 1.05),
-      P(9.0, 11.2, 1.05), P(5.0, 11.2, 1.05)
-    ];
-    final goldTrim = Paint()
-      ..color = const Color(0xFFD6A84F)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.8
-      ..strokeJoin = StrokeJoin.round;
-    final topPath = Path()..moveTo(top[0].dx, top[0].dy);
-    for (var i = 1; i < 4; i++) {
-      topPath.lineTo(top[i].dx, top[i].dy);
-    }
-    topPath.close();
-    canvas.drawPath(topPath, goldTrim);
-    stroke(canvas, P(5.0, 11.2, 0.98), P(9.0, 11.2, 0.98),
-        const Color(0xFFD6A84F), 1.4);
-    // Terminal de caisse vert + écran.
-    box(canvas, 6.2, 10.0, 7.3, 10.8, 1.05, 1.62, const Color(0xFF0E5C38));
-    quad(canvas, [
-      P(6.45, 10.15, 1.62), P(7.05, 10.15, 1.62),
-      P(7.05, 10.65, 1.62), P(6.45, 10.65, 1.62)
-    ], const Color(0xFFBFF0D6));
-    box(canvas, 7.9, 10.3, 8.5, 10.8, 1.05, 1.32, const Color(0xFF20302A));
-
-    // ---- Plante d'angle (avant gauche) ----
-    plant(1.0, 11.0);
-
-    // ---- Étiquettes de rayons (chips verts, maquette) ----
-    void chip(Offset c, String letter, String text) {
-      final tp = TextPainter(
-        text: TextSpan(
-            text: text,
-            style: const TextStyle(
-                color: Colors.white,
-                fontSize: 9.5,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.2)),
-        textDirection: ui.TextDirection.ltr,
-      )..layout();
-      final rect = Rect.fromCenter(center: c, width: tp.width + 32, height: 19);
-      final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(10));
-      canvas.drawRRect(rrect, Paint()..color = const Color(0xCC00C96B));
-      canvas.drawRRect(
-          rrect,
-          Paint()
-            ..color = Colors.white.withValues(alpha: 0.35)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1);
-      final lc = Offset(rect.left + 10, c.dy);
-      canvas.drawCircle(
-          lc, 6, Paint()..color = Colors.white.withValues(alpha: 0.30));
-      final ltp = TextPainter(
-        text: TextSpan(
-            text: letter,
-            style: const TextStyle(
-                color: Colors.white,
-                fontSize: 8.5,
-                fontWeight: FontWeight.w900)),
-        textDirection: ui.TextDirection.ltr,
-      )..layout();
-      ltp.paint(canvas, lc - Offset(ltp.width / 2, ltp.height / 2));
-      tp.paint(canvas, Offset(rect.left + 20, c.dy - tp.height / 2));
-    }
-
-    // Étiquette de prix verte sur tête de gondole (maquette).
-    void priceTag(Offset c, String s) {
-      final tp = TextPainter(
-        text: TextSpan(
-            text: s,
-            style: const TextStyle(
-                color: Colors.white,
-                fontSize: 7.5,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.2)),
-        textDirection: ui.TextDirection.ltr,
-      )..layout();
-      final rect = Rect.fromCenter(center: c, width: tp.width + 14, height: 15);
-      final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(7));
-      canvas.drawRRect(rrect, Paint()..color = const Color(0xE60E7A44));
-      canvas.drawRRect(
-          rrect,
-          Paint()
-            ..color = const Color(0xFF7BEBA4).withValues(alpha: 0.8)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1);
-      tp.paint(canvas, Offset(rect.left + 7, c.dy - tp.height / 2));
-    }
-
-    // Zones nommées de la maquette.
-    chip(P(5.5, 0.75, 3.15), 'M', 'MÉDICAMENTS');
-    chip(P(0.9, 8.8, 3.05), 'O', 'ORDONNANCES');
-    chip(P(10.6, 0.9, 3.05), 'S', 'STOCK');
-    chip(P(7.0, 10.4, 1.95), 'C', 'CAISSE');
-    // Étiquettes de prix vertes sur les têtes de gondoles (maquette).
-    priceTag(P(10.15, 5.25, 1.75), 'PARACÉTAMOL 23,50 DHS');
-    priceTag(P(10.15, 7.75, 1.75), 'DOLIPRANE 15,80 DHS');
-  }
-
-  @override
-  bool shouldRepaint(covariant _IsoPainter old) => false;
 }
 
 /// ============================================================

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
+import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
@@ -65,12 +66,8 @@ class _AccountingPageState extends State<AccountingPage>
       return;
     }
     setState(() {
-      _journal = (journal.data?['items'] as List? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
-      _expenses = (expenses.data?['items'] as List? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
+      _journal = ApiList.of(journal.data);
+      _expenses = ApiList.of(expenses.data);
       _loading = false;
     });
   }

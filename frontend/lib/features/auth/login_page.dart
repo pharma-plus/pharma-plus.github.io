@@ -263,7 +263,7 @@ class _LoginPageState extends State<LoginPage>
           child: Container(
             decoration: BoxDecoration(
               color: const Color(0xFF03100D).withValues(alpha: 0.97),
-              border: Border(
+              border: const Border(
                 left: BorderSide(
                   color: AppColors.goldBorderStrong,
                   width: 1,
@@ -315,17 +315,17 @@ class _LoginPageState extends State<LoginPage>
             ),
           ),
         ),
-        Center(
+        const Center(
           child: Padding(
-            padding: const EdgeInsets.all(28),
+            padding: EdgeInsets.all(28),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Logo officiel complet : le nom PHARMA+ et la signature
                 // sont deja dans l'asset — aucun texte répété en dessous.
-                const PharmaFullLogo(width: 360),
-                const SizedBox(height: 16),
-                const Text(
+                PharmaFullLogo(width: 360),
+                SizedBox(height: 16),
+                Text(
                   'PHARMACIE PREMIUM',
                   style: TextStyle(
                     color: AppColors.pharmaGold,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
+import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
@@ -66,15 +67,9 @@ class _AttendancePageState extends State<AttendancePage>
       return;
     }
     setState(() {
-      _records = (records.data?['items'] as List? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
-      _leaves = (leaves.data?['items'] as List? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
-      _summary = (summary.data?['rows'] as List? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
+      _records = ApiList.of(records.data);
+      _leaves = ApiList.of(leaves.data);
+      _summary = ApiList.of(summary.data);
       _loading = false;
     });
   }
@@ -86,9 +81,7 @@ class _AttendancePageState extends State<AttendancePage>
       query: {'limit': 200, 'status': 'active'},
     );
     if (!mounted) return;
-    final employees = (result.data?['items'] as List? ?? const [])
-        .whereType<Map<String, dynamic>>()
-        .toList();
+    final employees = ApiList.of(result.data);
     if (employees.isEmpty) return;
     String? employeeId;
     final confirmed = await showDialog<bool>(
@@ -140,9 +133,7 @@ class _AttendancePageState extends State<AttendancePage>
       query: {'limit': 200},
     );
     if (!mounted) return;
-    final employees = (employeesResult.data?['items'] as List? ?? const [])
-        .whereType<Map<String, dynamic>>()
-        .toList();
+    final employees = ApiList.of(employeesResult.data);
     if (employees.isEmpty) return;
     String? employeeId;
     String leaveType = 'annual';
