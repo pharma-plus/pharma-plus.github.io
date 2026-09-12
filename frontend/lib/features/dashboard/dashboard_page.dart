@@ -1795,8 +1795,6 @@ class _Plan3DPanel extends StatefulWidget {
 }
 
 class _Plan3DPanelState extends State<_Plan3DPanel> {
-  final double _rot = 0.0;
-  final double _zoom = 1.0;
   static const _legend = <(String, String)>[
     ('M', 'Médicaments'),
     ('O', 'Ordonnances'),
@@ -1825,8 +1823,7 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
                   border: Border.all(
                       color: AppColors.dividerDark.withValues(alpha: 0.9))),
               child: PharmacyPlan3D(
-                initialRot: _rot,
-                initialZoom: _zoom,
+                compact: widget.compact,
                 showControls: false,
                 showLegend: false,
                 interactive: true,

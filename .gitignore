@@ -12,6 +12,8 @@ frontend/__pycache__/
 tmp_*.txt
 tmp_*.json
 analyze_out.txt
+analyze_now.txt
+analyze_done.txt
 build_web_out.txt
 
 # Depot git imbrique (pharma-plus-api) : ne pas ajouter comme gitlink
