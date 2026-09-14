@@ -33,7 +33,6 @@ import '../settings/settings_page.dart';
 import '../stock/stock_page.dart';
 import '../suppliers/suppliers_page.dart';
 import '../website/website_page.dart';
-import 'kpi_art.dart';
 import 'pos_panel.dart';
 
 /// ============================================================
@@ -473,49 +472,49 @@ class _DashboardPageState extends State<DashboardPage> {
           value: Fmt.money(_revenueToday),
           trendPct: pct(_trendRevenueToday),
           trendVs: 'vs hier',
-          art: KpiArt.register,
+          image: 'assets/images/kpi_bg_1.png',
           badge: Icons.point_of_sale_rounded,
           badgeColor: green),
       _KpiDef(
           label: 'MÉDICAMENTS',
           value: Fmt.number(_medications),
           sub: 'Références actives',
-          art: KpiArt.bottle,
+          image: 'assets/images/kpi_bg_2.png',
           badge: Icons.medication_rounded,
           badgeColor: green),
       _KpiDef(
           label: 'STOCK FAIBLE',
           value: '$_lowStock',
           sub: 'Produits',
-          art: KpiArt.boxes,
+          image: 'assets/images/kpi_bg_3.png',
           badge: Icons.warning_amber_rounded,
           badgeColor: amber),
       _KpiDef(
           label: 'COMMANDES',
           value: '$_pendingOrders',
           sub: 'En attente',
-          art: KpiArt.clipboard,
+          image: 'assets/images/kpi_bg_4.png',
           badge: Icons.fact_check_rounded,
           badgeColor: green),
       _KpiDef(
           label: 'FOURNISSEURS',
           value: Fmt.number(_suppliers),
           sub: 'Fournisseurs',
-          art: KpiArt.truck,
+          image: 'assets/images/kpi_bg_5.png',
           badge: Icons.local_shipping_rounded,
           badgeColor: green),
       _KpiDef(
           label: 'CLIENTS',
           value: Fmt.number(_customers),
           sub: 'Clients',
-          art: KpiArt.people,
+          image: 'assets/images/kpi_bg_6.png',
           badge: Icons.groups_rounded,
           badgeColor: green),
       _KpiDef(
           label: 'EMPLOYÉS',
           value: '$_employees',
           sub: 'Employés',
-          art: KpiArt.pharmacist,
+          image: 'assets/images/kpi_bg_7.png',
           badge: Icons.person_rounded,
           badgeColor: green),
       _KpiDef(
@@ -523,7 +522,7 @@ class _DashboardPageState extends State<DashboardPage> {
           value: Fmt.money(_profitMonth),
           trendPct: pct(_trendProfitMonth),
           trendVs: 'vs mois dernier',
-          art: KpiArt.bars,
+          image: 'assets/images/kpi_bg_8.png',
           badge: Icons.bar_chart_rounded,
           badgeColor: green),
     ];
@@ -535,7 +534,7 @@ class _DashboardPageState extends State<DashboardPage> {
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: compact ? 10 : 12,
       mainAxisSpacing: compact ? 10 : 12,
-      childAspectRatio: compact ? 1.60 : 1.45,
+      childAspectRatio: compact ? 1.20 : 1.05,
       children: [
         for (var i = 0; i < kpis.length; i++)
           _KpiCard(
@@ -557,7 +556,10 @@ class _KpiDef {
   final String sub;
   final String? trendPct;
   final String trendVs;
-  final KpiArt art;
+  /// Fond photo extrait de la maquette (assets/images/kpi_bg_N.png) :
+  /// dégradé du carton + cadre + illustration 3D sur socle, textes de la
+  /// maquette effacés — l'app dessine les valeurs réelles par-dessus.
+  final String image;
   final IconData badge;
   final Color badgeColor;
   const _KpiDef({
@@ -566,7 +568,7 @@ class _KpiDef {
     this.sub = '',
     this.trendPct,
     this.trendVs = '',
-    required this.art,
+    required this.image,
     required this.badge,
     required this.badgeColor,
   });
@@ -616,12 +618,8 @@ class _KpiCardState extends State<_KpiCard> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOut,
-            padding: const EdgeInsets.all(12),
+            clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF10291B), Color(0xFF0A1D13)]),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
                   color: _hover
@@ -638,34 +636,26 @@ class _KpiCardState extends State<_KpiCard> {
                       blurRadius: 18,
                       offset: const Offset(0, 8)),
               ],
+              // Fond photo : visuel EXACT de la maquette (dégradé du carton,
+              // cadre intérieur, illustration 3D sur socle lumineux). Les
+              // textes dynamiques (titre/valeur/tendance) sont superposés
+              // dans la zone claire en haut à gauche, comme sur la maquette.
+              image: DecorationImage(
+                image: AssetImage(def.image),
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
+              ),
             ),
+            // CONTENU TEXTE — aligné sur la maquette : titre + badge en haut,
+            // valeur/sous-titre/tendance dans la moitié haute ; les
+            // illustrations de fond vivent en bas à droite du carton.
             child: LayoutBuilder(builder: (context, box) {
-            // ENCART VISUEL : l'illustration (transparence totale, aucun
-            // arrière-plan) vit dans sa propre zone en bas à droite.
-            // Elle ne passe JAMAIS derrière le titre, la valeur ou les
-            // textes : la colonne de texte est réservée à gauche.
-            final artW = (box.maxWidth * 0.42).clamp(84.0, 180.0);
-            final artH = artW * 80.0 / 100.0;
-            return Stack(
-              clipBehavior: Clip.hardEdge,
-              children: [
-                // Illustration transparente — encart dédié, indépendant
-                // du fond de la carte (pas d'image de fond, pas d'overlay).
-                Positioned(
-                  bottom: 6,
-                  right: 8,
-                  width: artW,
-                  height: artH,
-                  child: RepaintBoundary(
-                    child: CustomPaint(painter: KpiArtPainter(def.art)),
-                  ),
-                ),
-                // CONTENU TEXTE — zone protégée, jamais recouverte.
-                Padding(
-                  padding: EdgeInsets.only(right: artW * 0.42),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+              final pr = (box.maxWidth * 0.30).clamp(26.0, 92.0);
+              return Padding(
+                padding: EdgeInsets.fromLTRB(14, 11, pr, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                       // Titre vert numéroté + badge
                       Row(children: [
                         Expanded(
@@ -693,7 +683,7 @@ class _KpiCardState extends State<_KpiCard> {
                           child: Icon(def.badge, size: 14, color: def.badgeColor),
                         ),
                       ]),
-                      const Spacer(),
+                      const SizedBox(height: 10),
                       // Valeur
                       FittedBox(
                         fit: BoxFit.scaleDown,
@@ -733,12 +723,11 @@ class _KpiCardState extends State<_KpiCard> {
                                 fontSize: 9.5,
                                 fontWeight: FontWeight.w600)),
                       ],
+                      const Spacer(),
                     ],
                   ),
-                ),
-              ],
-            );
-          }),
+                );
+            }),
           ),
         ),
       ),
