@@ -3,12 +3,12 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 /// ============================================================
-/// ILLUSTRATIONS 3D DES 8 KPI — fidèles à la maquette PHARMA+ :
-/// 1 TPE + reçu + pièces d'or · 2 pilulier bouchon vert + blister ·
-/// 3 cartons + triangle d'alerte rouge · 4 presse-papiers COMMANDE
-/// + carton · 5 camion PHARMADE + cartons · 6 clients en polo vert ·
-/// 7 employé blouse blanche croix verte · 8 barres + flèche + or.
-/// Espace logique : 100 × 80 · socle vert lumineux (podium).
+/// ILLUSTRATIONS 3D DES 8 KPI ÔÇö fid├¿les ├á la maquette PHARMA+ :
+/// 1 TPE + re├ºu + pi├¿ces d'or ┬À 2 pilulier bouchon vert + blister ┬À
+/// 3 cartons + triangle d'alerte rouge ┬À 4 presse-papiers COMMANDE
+/// + carton ┬À 5 camion PHARMADE + cartons ┬À 6 clients en polo vert ┬À
+/// 7 employ├® blouse blanche croix verte ┬À 8 barres + fl├¿che + or.
+/// Espace logique : 100 ├ù 80 ┬À socle vert lumineux (podium).
 /// ============================================================
 enum KpiArt { register, bottle, boxes, clipboard, truck, people, pharmacist, bars }
 
@@ -78,7 +78,7 @@ class KpiArtPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.3);
 
-    // ---- Pièces d'or empilées (réutilisables) ----
+    // ---- Pi├¿ces d'or empil├®es (r├®utilisables) ----
     void coinStack(double cx, double baseY, int n, double rw) {
       for (var i = 0; i < n; i++) {
         final cy = baseY - i * 3.4;
@@ -411,80 +411,84 @@ class KpiArtPainter extends CustomPainter {
       // 5. FOURNISSEURS — camion PHARMADE + cartons
       // ==============================================
       case KpiArt.truck:
-        // Roues 3D.
-        void wheel(double x) {
-          canvas.drawCircle(P(x, 62), 6.4 * ux, shadow);
-          canvas.drawCircle(P(x, 60), 6.2 * ux,
-              Paint()..color = const Color(0xFF141B18));
-          canvas.drawCircle(
-              P(x, 60), 3.4 * ux, Paint()..color = const Color(0xFFAEB8BC));
-          canvas.drawCircle(
-              P(x, 60), 1.3 * ux, Paint()..color = const Color(0xFF5A666B));
-        }
-
-        // Caisse blanche (arrière).
-        final cargoRect = R(12, 20, 46, 40);
-        canvas.drawRRect(rr(14, 22, 46, 38, 2.5), shadow);
+        // Ombre au sol.
+        canvas.drawOval(
+            Rect.fromCenter(
+                center: P(50, 66), width: 84 * ux, height: 7 * uy),
+            Paint()..color = const Color(0xFF020E08).withValues(alpha: 0.4));
+        // Cartons à l'arrière (gauche).
         canvas.drawRRect(
-            rr(12, 20, 46, 40, 2.5),
-            vgrad(cargoRect, const Color(0xFFFFFFFF),
-                const Color(0xFFD9E0DA)));
+            rr(6, 46, 15, 16, 1.6),
+            vgrad(R(6, 46, 15, 16), const Color(0xFFC89B5F),
+                const Color(0xFF96703E)));
         canvas.drawRRect(
-            rr(12, 20, 46, 40, 2.5),
+            rr(6, 42, 15, 5.5, 1.4),
+            Paint()..color = const Color(0xFFDDB277));
+        canvas.drawRRect(
+            rr(10.5, 47, 5.5, 15, 0.8),
+            Paint()..color = const Color(0xFFE4C98F).withValues(alpha: 0.85));
+        // Caisse du camion (blanche à bande verte PHARMADE).
+        final cargo = R(20, 22, 44, 32);
+        canvas.drawRRect(rr(22, 24, 44, 32, 2), shadow);
+        canvas.drawRRect(
+            rr(20, 22, 44, 32, 2.4),
+            vgrad(cargo, const Color(0xFFFDFDFB), const Color(0xFFE2E0D6)));
+        canvas.drawRRect(
+            rr(20, 22, 44, 32, 2.4),
             Paint()
-              ..color = const Color(0xFFA8B2AC)
               ..style = PaintingStyle.stroke
-              ..strokeWidth = 0.9);
-        // Bande adhésive kraft + croix verte + nom.
+              ..strokeWidth = 1
+              ..color = const Color(0xFFC2BFAF));
+        // Bande verte + PHARMADE.
         canvas.drawRRect(
-            rr(33, 21, 5, 38, 0.8),
+            rr(20, 32, 44, 11, 0),
             Paint()
-              ..color = const Color(0xFFB98F58).withValues(alpha: 0.85));
-        final tc = Paint()..color = const Color(0xFF00A651);
-        canvas.drawRRect(rr(18, 30, 2.8, 9, 1), tc);
-        canvas.drawRRect(rr(14.9, 33.1, 9, 2.8, 1), tc);
-        text('PHARMADE', P(45, 40), 3.6, const Color(0xFF0E5C38));
-        canvas.drawRRect(rr(18, 46, 22, 3, 1.4),
-            Paint()..color = const Color(0xFFEDF3EE));
-        canvas.drawRRect(rr(18, 51, 16, 3, 1.4),
-            Paint()..color = const Color(0xFFEDF3EE));
-        // Cabine verte (avant, à droite).
-        canvas.drawRRect(rr(58, 36, 26, 24, 3), shadow);
+              ..shader = ui.Gradient.linear(
+                  P(20, 32), P(20, 43),
+                  [const Color(0xFF17C97E), const Color(0xFF067A44)]));
+        text('PHARMADE', P(42, 37.5), 5.4, Colors.white, ls: 0.4);
+        // Liseré supérieur de la caisse.
         canvas.drawRRect(
-            rr(56, 34, 26, 24, 3),
-            vgrad(R(56, 34, 26, 24), const Color(0xFF2FA367),
-                const Color(0xFF0E5C38)));
+            rr(20, 22, 44, 2.6, 1.3),
+            Paint()..color = Colors.white.withValues(alpha: 0.6));
+        // Cabine (à droite).
+        final cab = R(64, 28, 24, 28);
+        canvas.drawRRect(rr(66, 30, 24, 28, 2), shadow);
         canvas.drawRRect(
-            rr(64, 38, 14, 8, 1.6),
-            Paint()..color = const Color(0xFFBFE8D2));
+            rr(64, 28, 24, 28, 3),
+            vgrad(cab, const Color(0xFFFDFDFB), const Color(0xFFDCDAD0)));
+        // Pare-brise + bas de caisse vert.
         canvas.drawRRect(
-            rr(78.5, 52, 3, 2.4, 1),
-            Paint()..color = const Color(0xFFF7E2A0));
+            rr(75, 32, 11, 10, 1.6),
+            vgrad(R(75, 32, 11, 10), const Color(0xFF9FD8C8),
+                const Color(0xFF1F5C40)));
+        canvas.drawRRect(
+            rr(64, 48, 24, 8, 0), Paint()..color = const Color(0xFF0B7A44));
+        canvas.drawRRect(
+            rr(64, 28, 24, 28, 3),
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1
+              ..color = const Color(0xFFC2BFAF));
+        // Phare + rétroviseur.
+        canvas.drawRRect(
+            rr(85.5, 44, 2.5, 4, 1), Paint()..color = const Color(0xFFF2C94C));
+        canvas.drawLine(
+            P(64, 30), P(61.5, 28),
+            Paint()
+              ..color = const Color(0xFF9AA29B)
+              ..strokeWidth = 2);
         // Roues.
-        wheel(22);
-        wheel(45);
-        wheel(70);
-        // Cartons livrés empilés à droite.
-        void box2(double x, double y, double w2, double h2) {
-          final rc = R(x, y, w2, h2);
-          canvas.drawRRect(rr(x, y, w2, h2, 1.5), shadow);
-          canvas.drawRRect(
-              rr(x, y, w2, h2, 1.5),
-              vgrad(rc, const Color(0xFFD2A56E), const Color(0xFF9C7243)));
-          canvas.drawRRect(
-              rr(x, y, w2, h2, 1.5),
-              Paint()
-                ..color = const Color(0xFF7A562F)
-                ..style = PaintingStyle.stroke
-                ..strokeWidth = 0.7);
-          canvas.drawRRect(
-              rr(x + w2 / 2 - 1.6, y, 3.2, h2, 0.5),
-              Paint()
-                ..color = const Color(0xFFB98F58).withValues(alpha: 0.9));
+        void wheel(double cx, double cy, double rr2) {
+          canvas.drawCircle(P(cx, cy), rr2 * ux,
+              Paint()..color = const Color(0xFF1C211D));
+          canvas.drawCircle(P(cx, cy), rr2 * 0.52 * ux,
+              Paint()..color = const Color(0xFF8E948D));
+          canvas.drawCircle(P(cx, cy), rr2 * 0.22 * ux,
+              Paint()..color = const Color(0xFF4A524B));
         }
-
-        box2(84, 54, 13, 11);
-        box2(86, 44, 11, 10);
+        wheel(32, 55, 6.4);
+        wheel(72, 57, 6.4);
 
       // ==============================================
       // 6. CLIENTS — trio en polo vert + croix santé

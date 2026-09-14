@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -9,14 +9,65 @@ import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../shell/shell_nav.dart';
 
-/// Représentation isométrique 2.5D interactive de la pharmacie :
-/// sol, rayons (étagères en volume), zones colorées et interaction au toucher.
+/// ReprÃ©sentation isomÃ©trique 2.5D interactive de la pharmacie :
+/// sol, rayons (Ã©tagÃ¨res en volume), zones colorÃ©es et interaction au toucher.
 class PharmacyPlanPage extends StatefulWidget {
   final String? focusZoneId;
   const PharmacyPlanPage({super.key, this.focusZoneId});
 
   @override
   State<PharmacyPlanPage> createState() => _PharmacyPlanPageState();
+}
+
+/// ============================================================
+/// PLAN 3D — APERÇU PARTAGÉ (source unique du modèle)
+/// Le Dashboard et la page "Plan 3D" utilisent EXACTEMENT le
+/// même modèle : mêmes zones (`_buildZones`), même peintre
+/// (`PlanPainter`), mêmes valeurs initiales (rot 0.6 / zoom 1.0).
+/// Ici : aperçu compact (pan = rotation, tap = ouvrir le plan
+/// complet). La page Plan 3D reste la version interactive complète.
+/// ============================================================
+class Plan3DPreview extends StatefulWidget {
+  final ValueChanged<PlanZoneHit?>? onZoneTap;
+  const Plan3DPreview({super.key, this.onZoneTap});
+
+  @override
+  State<Plan3DPreview> createState() => _Plan3DPreviewState();
+}
+
+class _Plan3DPreviewState extends State<Plan3DPreview> {
+  late final List<PlanZoneHit> _zones = _buildZones();
+  double _rot = 0.6;
+  final double _zoom = 1.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = context.watch<AuthStore>().locale;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onPanUpdate: (d) => setState(() => _rot += d.delta.dx * 0.01),
+        onTap: () => widget.onZoneTap?.call(null),
+        child: LayoutBuilder(
+          builder: (ctx, c) {
+            final size = c.biggest;
+            return CustomPaint(
+              size: size,
+              painter: PlanPainter(
+                zones: _zones,
+                rot: _rot,
+                zoom: _zoom,
+                locale: locale,
+                size: size,
+                selectedId: null,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
 }
 
 class _PharmacyPlanPageState extends State<PharmacyPlanPage> {
@@ -26,7 +77,7 @@ class _PharmacyPlanPageState extends State<PharmacyPlanPage> {
   bool _auto = false;
   Timer? _timer;
 
-  final List<_Zone> _zones = _buildZones();
+  final List<PlanZoneHit> _zones = _buildZones();
 
   @override
   void initState() {
@@ -60,8 +111,8 @@ class _PharmacyPlanPageState extends State<PharmacyPlanPage> {
     });
   }
 
-  /// Plein écran : la scène occupe tout l'écran avec les mêmes
-  /// interactions (rotation, zoom, sélection). Bouton de fermeture +
+  /// Plein Ã©cran : la scÃ¨ne occupe tout l'Ã©cran avec les mÃªmes
+  /// interactions (rotation, zoom, sÃ©lection). Bouton de fermeture +
   /// navigation retour toujours disponibles.
   void _openFullscreen() {
     Navigator.of(context).push(MaterialPageRoute<void>(
@@ -80,7 +131,7 @@ class _PharmacyPlanPageState extends State<PharmacyPlanPage> {
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
-    _Zone? sel;
+    PlanZoneHit? sel;
     for (final z in _zones) {
       if (z.id == _selected) {
         sel = z;
@@ -119,7 +170,7 @@ class _PharmacyPlanPageState extends State<PharmacyPlanPage> {
                   builder: (ctx, constraints) {
                     final size =
                         Size(constraints.maxWidth, constraints.maxHeight);
-                    final proj = _Projector(rot: _rot, zoom: _zoom, size: size);
+                    final proj = PlanProjector(rot: _rot, zoom: _zoom, size: size);
                     return Stack(
                       children: [
                         GestureDetector(
@@ -127,7 +178,7 @@ class _PharmacyPlanPageState extends State<PharmacyPlanPage> {
                               setState(() => _rot += d.delta.dx * 0.01),
                           child: CustomPaint(
                             size: size,
-                            painter: _PlanPainter(
+                            painter: PlanPainter(
                               zones: _zones,
                               rot: _rot,
                               zoom: _zoom,
@@ -177,7 +228,7 @@ class _PharmacyPlanPageState extends State<PharmacyPlanPage> {
     );
   }
 
-  Widget _zoneHit(_Projector proj, _Zone z) {
+  Widget _zoneHit(PlanProjector proj, PlanZoneHit z) {
     final corners = [
       proj.project(z.x0, z.y0, 0),
       proj.project(z.x1, z.y0, 0),
@@ -219,7 +270,7 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
       child: Row(
         children: [
-          // ← HOME : retour toujours visible, sortie garantie de la page
+          // â† HOME : retour toujours visible, sortie garantie de la page
           // (navigation interne + bouton retour navigateur fonctionnels).
           const ShellBackButton(),
           const SizedBox(width: 2),
@@ -298,9 +349,9 @@ class _Controls extends StatelessWidget {
               auto ? 'Pause' : S.t('rotateLeft', locale), fg, onAuto),
           _btn(Icons.remove, S.t('zoomOut', locale), fg, onZoomOut),
           _btn(Icons.add, S.t('zoomIn', locale), fg, onZoomIn),
-          // Zoom initial = vue réinitialisée (rotation + zoom d'origine).
+          // Zoom initial = vue rÃ©initialisÃ©e (rotation + zoom d'origine).
           _btn(Icons.restart_alt, S.t('resetView', locale), fg, onReset),
-          _btn(Icons.fullscreen, 'Plein écran', fg, onFullscreen),
+          _btn(Icons.fullscreen, 'Plein Ã©cran', fg, onFullscreen),
         ],
       ),
     );
@@ -323,7 +374,7 @@ class _Controls extends StatelessWidget {
 }
 
 class _DetailPanel extends StatelessWidget {
-  final _Zone zone;
+  final PlanZoneHit zone;
   final String locale;
   final VoidCallback onClose;
 
@@ -386,7 +437,7 @@ class _DetailPanel extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                              '${S.t('occupancy', locale)} · ${zone.occupancy}%',
+                              '${S.t('occupancy', locale)} Â· ${zone.occupancy}%',
                               style: const TextStyle(
                                   color: Colors.white70, fontSize: 12)),
                           const SizedBox(height: 6),
@@ -446,15 +497,15 @@ class _DetailPanel extends StatelessWidget {
   }
 }
 
-/// Projection isométrique 2:1 d'un repère monde (x largeur, y profondeur, z hauteur).
-class _Projector {
+/// Projection isomÃ©trique 2:1 d'un repÃ¨re monde (x largeur, y profondeur, z hauteur).
+class PlanProjector {
   final double rot;
   final double zoom;
   final double scale;
   final double originX;
   final double originY;
 
-  _Projector({required this.rot, required this.zoom, required Size size})
+  PlanProjector({required this.rot, required this.zoom, required Size size})
       : scale = (math.min(size.width, size.height) / 13) * zoom,
         originX = size.width / 2,
         originY = size.height * 0.56;
@@ -469,21 +520,21 @@ class _Projector {
   }
 }
 
-class _P {
+class PlanPt {
   final double x, y, z;
-  const _P(this.x, this.y, this.z);
+  const PlanPt(this.x, this.y, this.z);
 }
 
-class _Face {
-  final List<_P> pts;
+class PlanFace {
+  final List<PlanPt> pts;
   final Color color;
   final double depth;
-  _Face(this.pts, this.color)
-      : depth = pts.fold(0.0, (double s, _P p) => s + (p.x + p.y) - p.z * 0.5) /
+  PlanFace(this.pts, this.color)
+      : depth = pts.fold(0.0, (double s, PlanPt p) => s + (p.x + p.y) - p.z * 0.5) /
             pts.length;
 }
 
-class _Zone {
+class PlanZoneHit {
   final String id;
   final String labelKey;
   final Color color;
@@ -494,7 +545,7 @@ class _Zone {
   final int occupancy;
   final List<String> products;
 
-  const _Zone({
+  const PlanZoneHit({
     required this.id,
     required this.labelKey,
     required this.color,
@@ -510,8 +561,8 @@ class _Zone {
   });
 }
 
-List<_Zone> _buildZones() => [
-      const _Zone(
+List<PlanZoneHit> _buildZones() => [
+      const PlanZoneHit(
         id: 'entrance',
         labelKey: 'zoneEntrance',
         color: Color(0xFF9E9E9E),
@@ -521,7 +572,7 @@ List<_Zone> _buildZones() => [
         y1: 4.15,
         hasShelves: false,
       ),
-      const _Zone(
+      const PlanZoneHit(
         id: 'counter',
         labelKey: 'zoneCounter',
         color: Color(0xFFFFB300),
@@ -535,7 +586,7 @@ List<_Zone> _buildZones() => [
         occupancy: 86,
         products: ['Caisse', 'Conseil', 'TPE', 'Paiement'],
       ),
-      const _Zone(
+      const PlanZoneHit(
         id: 'meds',
         labelKey: 'zoneMedications',
         color: Color(0xFF2E7D32),
@@ -555,7 +606,7 @@ List<_Zone> _buildZones() => [
           'Levothyrox'
         ],
       ),
-      const _Zone(
+      const PlanZoneHit(
         id: 'presc',
         labelKey: 'zonePrescriptions',
         color: Color(0xFF7B1FA2),
@@ -566,9 +617,9 @@ List<_Zone> _buildZones() => [
         shelfHeight: 1.4,
         shelfCount: 8,
         occupancy: 46,
-        products: ['Ordonnances', 'Boîtes', 'Trames', 'Ajustement'],
+        products: ['Ordonnances', 'BoÃ®tes', 'Trames', 'Ajustement'],
       ),
-      const _Zone(
+      const PlanZoneHit(
         id: 'vac',
         labelKey: 'zoneVaccines',
         color: Color(0xFF039BE5),
@@ -579,9 +630,9 @@ List<_Zone> _buildZones() => [
         shelfHeight: 1.2,
         shelfCount: 6,
         occupancy: 38,
-        products: ['Vaccin grippe', 'Réfrigérateur', 'Antitétanique'],
+        products: ['Vaccin grippe', 'RÃ©frigÃ©rateur', 'AntitÃ©tanique'],
       ),
-      const _Zone(
+      const PlanZoneHit(
         id: 'para',
         labelKey: 'zoneParapharmacy',
         color: Color(0xFF00BFA5),
@@ -595,12 +646,12 @@ List<_Zone> _buildZones() => [
         products: [
           'Biafine',
           'La Roche-Posay',
-          'Avène',
+          'AvÃ¨ne',
           'Cicaplast',
           'Dermalibour'
         ],
       ),
-      const _Zone(
+      const PlanZoneHit(
         id: 'cos',
         labelKey: 'zoneCosmetics',
         color: Color(0xFFD81B60),
@@ -611,19 +662,19 @@ List<_Zone> _buildZones() => [
         shelfHeight: 1.35,
         shelfCount: 12,
         occupancy: 58,
-        products: ['Rouge à lèvres', 'Fond de teint', 'Mascara', 'Crème jour'],
+        products: ['Rouge Ã  lÃ¨vres', 'Fond de teint', 'Mascara', 'CrÃ¨me jour'],
       ),
     ];
 
-class _PlanPainter extends CustomPainter {
-  final List<_Zone> zones;
+class PlanPainter extends CustomPainter {
+  final List<PlanZoneHit> zones;
   final double rot;
   final double zoom;
   final String locale;
   final Size size;
   final String? selectedId;
 
-  _PlanPainter({
+  PlanPainter({
     required this.zones,
     required this.rot,
     required this.zoom,
@@ -632,7 +683,7 @@ class _PlanPainter extends CustomPainter {
     required this.selectedId,
   });
 
-  late final _Projector _proj = _Projector(rot: rot, zoom: zoom, size: size);
+  late final PlanProjector _proj = PlanProjector(rot: rot, zoom: zoom, size: size);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -663,16 +714,16 @@ class _PlanPainter extends CustomPainter {
     _drawLabels(canvas);
   }
 
-  /// Sol : damier 1×1 (deux tons verts discrets) + joints clairs —
+  /// Sol : damier 1Ã—1 (deux tons verts discrets) + joints clairs â€”
   /// carrelage pharmacie comme sur la maquette.
   void _drawFloor(Canvas canvas) {
     for (int i = -5; i < 5; i++) {
       for (int j = -4; j < 4; j++) {
         final path = _quadPath([
-          _P(i.toDouble(), j.toDouble(), 0),
-          _P(i + 1.0, j.toDouble(), 0),
-          _P(i + 1.0, j + 1.0, 0),
-          _P(i.toDouble(), j + 1.0, 0),
+          PlanPt(i.toDouble(), j.toDouble(), 0),
+          PlanPt(i + 1.0, j.toDouble(), 0),
+          PlanPt(i + 1.0, j + 1.0, 0),
+          PlanPt(i.toDouble(), j + 1.0, 0),
         ]);
         canvas.drawPath(
             path,
@@ -695,7 +746,7 @@ class _PlanPainter extends CustomPainter {
       final b = _proj.project(5, j.toDouble(), 0);
       canvas.drawLine(a, b, g);
     }
-    // Liseré du périmètre (plinth) : trait clair autour du sol.
+    // LiserÃ© du pÃ©rimÃ¨tre (plinth) : trait clair autour du sol.
     final perim = Path()
       ..moveTo(_proj.project(-5, -4, 0).dx, _proj.project(-5, -4, 0).dy)
       ..lineTo(_proj.project(5, -4, 0).dx, _proj.project(5, -4, 0).dy)
@@ -710,7 +761,7 @@ class _PlanPainter extends CustomPainter {
           ..color = const Color(0xFF2E5241).withValues(alpha: 0.9));
   }
 
-  Path _quadPath(List<_P> pts) {
+  Path _quadPath(List<PlanPt> pts) {
     final path = Path();
     for (int k = 0; k < pts.length; k++) {
       final o = _proj.project(pts[k].x, pts[k].y, pts[k].z);
@@ -754,50 +805,50 @@ class _PlanPainter extends CustomPainter {
     }
   }
 
-  /// Boîte 3D complète entre z0 et z1 (5 faces : dessus + 4 côtés).
-  void _addBox(List<_Face> faces, double x0, double y0, double x1, double y1,
+  /// BoÃ®te 3D complÃ¨te entre z0 et z1 (5 faces : dessus + 4 cÃ´tÃ©s).
+  void _addBox(List<PlanFace> faces, double x0, double y0, double x1, double y1,
       double z0, double z1, Color base) {
-    faces.add(_Face(
-        [_P(x0, y0, z1), _P(x1, y0, z1), _P(x1, y1, z1), _P(x0, y1, z1)],
+    faces.add(PlanFace(
+        [PlanPt(x0, y0, z1), PlanPt(x1, y0, z1), PlanPt(x1, y1, z1), PlanPt(x0, y1, z1)],
         _lighten(base, 0.16)));
-    faces.add(_Face(
-        [_P(x1, y0, z0), _P(x1, y1, z0), _P(x1, y1, z1), _P(x1, y0, z1)],
+    faces.add(PlanFace(
+        [PlanPt(x1, y0, z0), PlanPt(x1, y1, z0), PlanPt(x1, y1, z1), PlanPt(x1, y0, z1)],
         _darken(base, 0.30)));
-    faces.add(_Face(
-        [_P(x0, y0, z0), _P(x0, y1, z0), _P(x0, y1, z1), _P(x0, y0, z1)],
+    faces.add(PlanFace(
+        [PlanPt(x0, y0, z0), PlanPt(x0, y1, z0), PlanPt(x0, y1, z1), PlanPt(x0, y0, z1)],
         _darken(base, 0.46)));
-    faces.add(_Face(
-        [_P(x0, y1, z0), _P(x1, y1, z0), _P(x1, y1, z1), _P(x0, y1, z1)],
+    faces.add(PlanFace(
+        [PlanPt(x0, y1, z0), PlanPt(x1, y1, z0), PlanPt(x1, y1, z1), PlanPt(x0, y1, z1)],
         _darken(base, 0.22)));
-    faces.add(_Face(
-        [_P(x0, y0, z0), _P(x1, y0, z0), _P(x1, y0, z1), _P(x0, y0, z1)],
+    faces.add(PlanFace(
+        [PlanPt(x0, y0, z0), PlanPt(x1, y0, z0), PlanPt(x1, y0, z1), PlanPt(x0, y0, z1)],
         _darken(base, 0.38)));
   }
 
-  /// Face unique quad (vitrine, écran, enseigne...).
-  void _addQuad(List<_Face> faces, _P a, _P b, _P c, _P d, Color color) {
-    faces.add(_Face([a, b, c, d], color));
+  /// Face unique quad (vitrine, Ã©cran, enseigne...).
+  void _addQuad(List<PlanFace> faces, PlanPt a, PlanPt b, PlanPt c, PlanPt d, Color color) {
+    faces.add(PlanFace([a, b, c, d], color));
   }
 
-  /// Ombre portée au sol sous un meuble (rectangle fondu, alpha faible).
+  /// Ombre portÃ©e au sol sous un meuble (rectangle fondu, alpha faible).
   void _addShadow(
-      List<_Face> faces, double x0, double y0, double x1, double y1) {
+      List<PlanFace> faces, double x0, double y0, double x1, double y1) {
     const grow = 0.14;
-    faces.add(_Face([
-      _P(x0 - grow, y0 - grow, 0.002),
-      _P(x1 + grow, y0 - grow, 0.002),
-      _P(x1 + grow, y1 + grow, 0.002),
-      _P(x0 - grow, y1 + grow, 0.002),
+    faces.add(PlanFace([
+      PlanPt(x0 - grow, y0 - grow, 0.002),
+      PlanPt(x1 + grow, y0 - grow, 0.002),
+      PlanPt(x1 + grow, y1 + grow, 0.002),
+      PlanPt(x0 - grow, y1 + grow, 0.002),
     ], Colors.black.withValues(alpha: 0.34)));
   }
 
-  /// PETITS PRODUITS sur une tablette : boîtes colorées de hauteurs
-  /// variées (déterministe — aucune valeur aléatoire instable).
-  void _addProductRow(List<_Face> faces, double x0, double y0, double x1,
+  /// PETITS PRODUITS sur une tablette : boÃ®tes colorÃ©es de hauteurs
+  /// variÃ©es (dÃ©terministe â€” aucune valeur alÃ©atoire instable).
+  void _addProductRow(List<PlanFace> faces, double x0, double y0, double x1,
       double y1, double zBoard, int seed) {
     const palette = <Color>[
       Color(0xFF3FA96C), // vert
-      Color(0xFFE8E2D4), // blanc cassé
+      Color(0xFFE8E2D4), // blanc cassÃ©
       Color(0xFFF0C75E), // or
       Color(0xFF8ED0F0), // bleu clair
       Color(0xFFE77C8E), // rose
@@ -813,31 +864,31 @@ class _PlanPainter extends CustomPainter {
       final px1 = x0 + (k + 1) * w - gap;
       const py0 = 0.05;
       final color = palette[(s + k) % palette.length];
-      // 2 faces seulement (dessus + façade sud) : perf maîtrisée.
-      faces.add(_Face([
-        _P(px0, y0 + py0, zBoard + ph),
-        _P(px1, y0 + py0, zBoard + ph),
-        _P(px1, y1 - py0, zBoard + ph),
-        _P(px0, y1 - py0, zBoard + ph),
+      // 2 faces seulement (dessus + faÃ§ade sud) : perf maÃ®trisÃ©e.
+      faces.add(PlanFace([
+        PlanPt(px0, y0 + py0, zBoard + ph),
+        PlanPt(px1, y0 + py0, zBoard + ph),
+        PlanPt(px1, y1 - py0, zBoard + ph),
+        PlanPt(px0, y1 - py0, zBoard + ph),
       ], _lighten(color, 0.10)));
-      faces.add(_Face([
-        _P(px0, y1 - py0, zBoard),
-        _P(px1, y1 - py0, zBoard),
-        _P(px1, y1 - py0, zBoard + ph),
-        _P(px0, y1 - py0, zBoard + ph),
+      faces.add(PlanFace([
+        PlanPt(px0, y1 - py0, zBoard),
+        PlanPt(px1, y1 - py0, zBoard),
+        PlanPt(px1, y1 - py0, zBoard + ph),
+        PlanPt(px0, y1 - py0, zBoard + ph),
       ], _darken(color, 0.12)));
     }
   }
 
-  /// GONDOLE COMPLÈTE pour une cellule de zone : montants latéraux +
-  /// tablettes en bois clair + rangées de produits colorés.
-  void _addShelfUnit(List<_Face> faces, double bx0, double by0, double bx1,
+  /// GONDOLE COMPLÃˆTE pour une cellule de zone : montants latÃ©raux +
+  /// tablettes en bois clair + rangÃ©es de produits colorÃ©s.
+  void _addShelfUnit(List<PlanFace> faces, double bx0, double by0, double bx1,
       double by1, double height, Color base, int seed) {
     final frame = _darken(base, 0.42);
-    // Montants latéraux.
+    // Montants latÃ©raux.
     _addBox(faces, bx0, by0, bx0 + 0.07, by1, 0, height, frame);
     _addBox(faces, bx1 - 0.07, by0, bx1, by1, 0, height, frame);
-    // Tablettes + produits dessus (la dernière près du sommet).
+    // Tablettes + produits dessus (la derniÃ¨re prÃ¨s du sommet).
     final levels = <double>[0.10, height * 0.38, height * 0.66, height * 0.92];
     for (int l = 0; l < levels.length; l++) {
       final zl = levels[l];
@@ -851,48 +902,48 @@ class _PlanPainter extends CustomPainter {
   }
 
   /// COMPTOIR 3D (zone 'counter') : meuble vert PHARMA+, plateau bois,
-  /// TPE à écran vert, imprimante + rouleau de reçu, écran de caisse.
-  void _addCounter(List<_Face> faces, _Zone z) {
+  /// TPE Ã  Ã©cran vert, imprimante + rouleau de reÃ§u, Ã©cran de caisse.
+  void _addCounter(List<PlanFace> faces, PlanZoneHit z) {
     _addShadow(faces, z.x0, z.y0 + 0.22, z.x1, z.y1 - 0.06);
     const body = Color(0xFF16402F);
     final w = z.x1 - z.x0;
     // Corps du comptoir.
     _addBox(faces, z.x0, z.y0 + 0.28, z.x1, z.y1 - 0.08, 0, 0.92, body);
-    // Plateau bois clair en porte-à-faux.
+    // Plateau bois clair en porte-Ã -faux.
     _addBox(faces, z.x0 - 0.05, z.y0 + 0.20, z.x1 + 0.05, z.y1 - 0.02, 0.92,
         1.02, const Color(0xFFD9BC8C));
-    // TPE (terminal de paiement) — écran vert orienté entrée.
+    // TPE (terminal de paiement) â€” Ã©cran vert orientÃ© entrÃ©e.
     final tpeX0 = z.x0 + w * 0.30, tpeX1 = z.x0 + w * 0.44;
     _addBox(faces, tpeX0, z.y0 + 0.36, tpeX1, z.y0 + 0.56, 1.02, 1.22,
         const Color(0xFF0B1712));
     _addQuad(
         faces,
-        _P(tpeX0 + 0.02, z.y0 + 0.565, 1.195),
-        _P(tpeX1 - 0.02, z.y0 + 0.565, 1.195),
-        _P(tpeX1 - 0.02, z.y0 + 0.565, 1.115),
-        _P(tpeX0 + 0.02, z.y0 + 0.565, 1.115),
-        const Color(0xFF00C96B)); // écran vert lumineux
-    // Imprimante de reçus + rouleau.
+        PlanPt(tpeX0 + 0.02, z.y0 + 0.565, 1.195),
+        PlanPt(tpeX1 - 0.02, z.y0 + 0.565, 1.195),
+        PlanPt(tpeX1 - 0.02, z.y0 + 0.565, 1.115),
+        PlanPt(tpeX0 + 0.02, z.y0 + 0.565, 1.115),
+        const Color(0xFF00C96B)); // Ã©cran vert lumineux
+    // Imprimante de reÃ§us + rouleau.
     _addBox(faces, z.x0 + w * 0.52, z.y0 + 0.36, z.x0 + w * 0.70, z.y0 + 0.54,
         1.02, 1.13, const Color(0xFFE8E2D4));
     _addBox(faces, z.x0 + w * 0.575, z.y0 + 0.385, z.x0 + w * 0.645,
         z.y0 + 0.515, 1.13, 1.25, const Color(0xFFF4EFE3));
-    // Écran de caisse orienté vendeur.
+    // Ã‰cran de caisse orientÃ© vendeur.
     _addBox(faces, z.x0 + w * 0.76, z.y0 + 0.40, z.x0 + w * 0.88, z.y0 + 0.46,
         1.02, 1.36, const Color(0xFF101D16));
     _addQuad(
         faces,
-        _P(z.x0 + w * 0.765, z.y0 + 0.462, 1.345),
-        _P(z.x0 + w * 0.875, z.y0 + 0.462, 1.345),
-        _P(z.x0 + w * 0.875, z.y0 + 0.462, 1.175),
-        _P(z.x0 + w * 0.765, z.y0 + 0.462, 1.175),
+        PlanPt(z.x0 + w * 0.765, z.y0 + 0.462, 1.345),
+        PlanPt(z.x0 + w * 0.875, z.y0 + 0.462, 1.345),
+        PlanPt(z.x0 + w * 0.875, z.y0 + 0.462, 1.175),
+        PlanPt(z.x0 + w * 0.765, z.y0 + 0.462, 1.175),
         const Color(0xFF1F7A4D)); // dalle caisse
   }
 
-  /// VITRINE D'ENTRÉE : portes vitrées translucides + enseigne PHARMA+
-  /// lumineuse au-dessus de l'entrée.
-  void _addEntranceGlass(List<_Face> faces, _Zone z) {
-    final y = z.y1 - 0.04; // bord sud (façade)
+  /// VITRINE D'ENTRÃ‰E : portes vitrÃ©es translucides + enseigne PHARMA+
+  /// lumineuse au-dessus de l'entrÃ©e.
+  void _addEntranceGlass(List<PlanFace> faces, PlanZoneHit z) {
+    final y = z.y1 - 0.04; // bord sud (faÃ§ade)
     // Montants de porte + linteau.
     _addBox(faces, z.x0 - 0.04, y - 0.06, z.x0 + 0.05, y + 0.06, 0, 2.15,
         const Color(0xFF24483A));
@@ -904,38 +955,38 @@ class _PlanPainter extends CustomPainter {
         const Color(0xFF24483A));
     // Vitrage translucide (2 vantaux).
     final glass = const Color(0xFF9FD8C8).withValues(alpha: 0.16);
-    _addQuad(faces, _P(z.x0 + 0.05, y, 1.98), _P(-0.05, y, 1.98),
-        _P(-0.05, y, 0.04), _P(z.x0 + 0.05, y, 0.04), glass);
-    _addQuad(faces, _P(0.05, y, 1.98), _P(z.x1 - 0.05, y, 1.98),
-        _P(z.x1 - 0.05, y, 0.04), _P(0.05, y, 0.04), glass);
+    _addQuad(faces, PlanPt(z.x0 + 0.05, y, 1.98), PlanPt(-0.05, y, 1.98),
+        PlanPt(-0.05, y, 0.04), PlanPt(z.x0 + 0.05, y, 0.04), glass);
+    _addQuad(faces, PlanPt(0.05, y, 1.98), PlanPt(z.x1 - 0.05, y, 1.98),
+        PlanPt(z.x1 - 0.05, y, 0.04), PlanPt(0.05, y, 0.04), glass);
     // Enseigne lumineuse PHARMA+ au-dessus de la porte.
     _addQuad(
         faces,
-        _P(z.x0 + 0.02, y + 0.02, 2.42),
-        _P(z.x1 - 0.02, y + 0.02, 2.42),
-        _P(z.x1 - 0.02, y + 0.02, 2.06),
-        _P(z.x0 + 0.02, y + 0.02, 2.06),
+        PlanPt(z.x0 + 0.02, y + 0.02, 2.42),
+        PlanPt(z.x1 - 0.02, y + 0.02, 2.42),
+        PlanPt(z.x1 - 0.02, y + 0.02, 2.06),
+        PlanPt(z.x0 + 0.02, y + 0.02, 2.06),
         const Color(0xFF00C96B));
   }
 
-  /// MURS du fond (coupe 3D « maquette » : nord + ouest visibles,
-  /// sud et est ouverts pour ne jamais masquer la vue intérieure).
-  void _addWalls(List<_Face> faces) {
+  /// MURS du fond (coupe 3D Â« maquette Â» : nord + ouest visibles,
+  /// sud et est ouverts pour ne jamais masquer la vue intÃ©rieure).
+  void _addWalls(List<PlanFace> faces) {
     const h = 2.7;
     // Mur nord (plan y = -4) + frise claire.
-    _addQuad(faces, const _P(-5, -4, h), const _P(5, -4, h), const _P(5, -4, 0), const _P(-5, -4, 0),
+    _addQuad(faces, const PlanPt(-5, -4, h), const PlanPt(5, -4, h), const PlanPt(5, -4, 0), const PlanPt(-5, -4, 0),
         const Color(0xFF1A2C22));
-    _addQuad(faces, const _P(-5, -4, h), const _P(5, -4, h), const _P(5, -4, h - 0.14),
-        const _P(-5, -4, h - 0.14), const Color(0xFF2E5241));
+    _addQuad(faces, const PlanPt(-5, -4, h), const PlanPt(5, -4, h), const PlanPt(5, -4, h - 0.14),
+        const PlanPt(-5, -4, h - 0.14), const Color(0xFF2E5241));
     // Mur ouest (plan x = -5) + frise claire.
-    _addQuad(faces, const _P(-5, -4, h), const _P(-5, 4, h), const _P(-5, 4, 0), const _P(-5, -4, 0),
+    _addQuad(faces, const PlanPt(-5, -4, h), const PlanPt(-5, 4, h), const PlanPt(-5, 4, 0), const PlanPt(-5, -4, 0),
         const Color(0xFF16241C));
-    _addQuad(faces, const _P(-5, -4, h), const _P(-5, 4, h), const _P(-5, 4, h - 0.14),
-        const _P(-5, -4, h - 0.14), const Color(0xFF284638));
+    _addQuad(faces, const PlanPt(-5, -4, h), const PlanPt(-5, 4, h), const PlanPt(-5, 4, h - 0.14),
+        const PlanPt(-5, -4, h - 0.14), const Color(0xFF284638));
   }
 
-  List<_Face> _buildFaces() {
-    final faces = <_Face>[];
+  List<PlanFace> _buildFaces() {
+    final faces = <PlanFace>[];
     _addWalls(faces);
     for (final z in zones) {
       if (z.id == 'entrance') {
@@ -974,9 +1025,9 @@ class _PlanPainter extends CustomPainter {
     return faces;
   }
 
-  /// ENSEIGNES texte projetées dans la scène (PHARMA+ entrée + comptoir).
+  /// ENSEIGNES texte projetÃ©es dans la scÃ¨ne (PHARMA+ entrÃ©e + comptoir).
   void _drawSigns(Canvas canvas) {
-    // 1) Enseigne blanche sur la barre émeraude de l'entrée.
+    // 1) Enseigne blanche sur la barre Ã©meraude de l'entrÃ©e.
     final p1 = _proj.project(0, 4.16, 2.24);
     _drawSignText(canvas, 'PHARMA+', p1, const Color(0xFF062E1E),
         const Color(0xFFEAFFF4), 11.5, 30, 16);
@@ -1049,7 +1100,7 @@ class _PlanPainter extends CustomPainter {
   Color _darken(Color c, double a) => Color.lerp(c, Colors.black, a)!;
 
   @override
-  bool shouldRepaint(covariant _PlanPainter old) =>
+  bool shouldRepaint(covariant PlanPainter old) =>
       old.rot != rot ||
       old.zoom != zoom ||
       old.selectedId != selectedId ||
@@ -1057,13 +1108,13 @@ class _PlanPainter extends CustomPainter {
 }
 
 /// ============================================================
-/// PLEIN ÉCRAN — scène isométrique sur tout l'écran :
-/// glisser = tourner, boutons = zoom +/− / zoom initial,
-/// sélection de zone au clic, fermeture always-available (✕,
-/// ESC via route plein écran, bouton retour navigateur).
+/// PLEIN Ã‰CRAN â€” scÃ¨ne isomÃ©trique sur tout l'Ã©cran :
+/// glisser = tourner, boutons = zoom +/âˆ’ / zoom initial,
+/// sÃ©lection de zone au clic, fermeture always-available (âœ•,
+/// ESC via route plein Ã©cran, bouton retour navigateur).
 /// ============================================================
 class _FullScreenPlan extends StatefulWidget {
-  final List<_Zone> zones;
+  final List<PlanZoneHit> zones;
   final double rot;
   final double zoom;
   final String locale;
@@ -1093,14 +1144,14 @@ class _FullScreenPlanState extends State<_FullScreenPlan> {
             child: LayoutBuilder(
               builder: (ctx, constraints) {
                 final size = Size(constraints.maxWidth, constraints.maxHeight);
-                final proj = _Projector(rot: _rot, zoom: _zoom, size: size);
+                final proj = PlanProjector(rot: _rot, zoom: _zoom, size: size);
                 return Stack(children: [
                   GestureDetector(
                     onPanUpdate: (d) =>
                         setState(() => _rot += d.delta.dx * 0.01),
                     child: CustomPaint(
                       size: size,
-                      painter: _PlanPainter(
+                      painter: PlanPainter(
                         zones: widget.zones,
                         rot: _rot,
                         zoom: _zoom,
@@ -1124,7 +1175,7 @@ class _FullScreenPlanState extends State<_FullScreenPlan> {
               },
             ),
           ),
-          // Contrôles flottants + sortie garantie.
+          // ContrÃ´les flottants + sortie garantie.
           Positioned(
             top: 12,
             left: 12,
@@ -1148,7 +1199,7 @@ class _FullScreenPlanState extends State<_FullScreenPlan> {
                         _zoom = 1.0;
                       })),
               const SizedBox(width: 8),
-              _fsBtn(Icons.close_rounded, 'Quitter le plein écran', () {
+              _fsBtn(Icons.close_rounded, 'Quitter le plein Ã©cran', () {
                 Navigator.of(context).popUntil((route) => route.isFirst);
                 ShellNav.goHome();
               }),
@@ -1159,7 +1210,7 @@ class _FullScreenPlanState extends State<_FullScreenPlan> {
     );
   }
 
-  Rect _hitRect(_Projector proj, _Zone z) {
+  Rect _hitRect(PlanProjector proj, PlanZoneHit z) {
     final corners = [
       proj.project(z.x0, z.y0, 0),
       proj.project(z.x1, z.y0, 0),

@@ -7,7 +7,6 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/models/medication.dart';
-import '../../core/widgets/pharmacy_plan_3d.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
@@ -1822,13 +1821,10 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
                       colors: [Color(0xFF0D1713), Color(0xFF080E0C)]),
                   border: Border.all(
                       color: AppColors.dividerDark.withValues(alpha: 0.9))),
-              child: PharmacyPlan3D(
-                compact: widget.compact,
-                showControls: false,
-                showLegend: false,
-                interactive: true,
-                onZoneTap: (_) => widget.onOpen(),
-              ),
+              // MÊME modèle 3D que la page "Plan 3D" (PlanPainter +
+              // mêmes zones) : aperçu du plan complet, pas un modèle
+              // différent. Tap = ouverture de la page Plan 3D.
+              child: Plan3DPreview(onZoneTap: (_) => widget.onOpen()),
             ),
           ),
         ),
