@@ -164,6 +164,10 @@ class _PharmacyPlanPageState extends State<PharmacyPlanPage> {
                     setState(() => _zoom = math.max(0.5, _zoom / 1.15)),
                 onReset: _reset,
                 onFullscreen: _openFullscreen,
+                // Combobox zones : fil la liste + la sÃ©lection courante.
+                zones: _zones,
+                selectedZoneId: _selected,
+                onZoneSelected: (v) => setState(() => _selected = v),
               ),
               Expanded(
                 child: LayoutBuilder(
@@ -214,7 +218,10 @@ class _PharmacyPlanPageState extends State<PharmacyPlanPage> {
                           _DetailPanel(
                             zone: sel,
                             locale: locale,
-                            onClose: () => setState(() => _selected = 'meds'),
+                            // Fermer = deselectionner TOUTE zone : le panneau
+                            // doit disparaitre (avant: re-selectionnait 'meds'
+                            // et semblait ne jamais se fermer).
+                            onClose: () => setState(() => _selected = null),
                           ),
                       ],
                     );
@@ -321,6 +328,11 @@ class _Controls extends StatelessWidget {
   final VoidCallback onReset;
   final VoidCallback onFullscreen;
 
+  /// Combobox de sélection de zone (liste des zones + zone active).
+  final List<PlanZoneHit> zones;
+  final String? selectedZoneId;
+  final ValueChanged<String?> onZoneSelected;
+
   const _Controls({
     required this.locale,
     required this.auto,
@@ -331,6 +343,9 @@ class _Controls extends StatelessWidget {
     required this.onZoomOut,
     required this.onReset,
     required this.onFullscreen,
+    required this.zones,
+    required this.selectedZoneId,
+    required this.onZoneSelected,
   });
 
   @override
@@ -341,6 +356,7 @@ class _Controls extends StatelessWidget {
       child: Wrap(
         spacing: 8,
         runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           _btn(Icons.rotate_left, S.t('rotateLeft', locale), fg, onRotateLeft),
           _btn(Icons.rotate_right, S.t('rotateRight', locale), fg,
@@ -352,6 +368,34 @@ class _Controls extends StatelessWidget {
           // Zoom initial = vue rÃ©initialisÃ©e (rotation + zoom d'origine).
           _btn(Icons.restart_alt, S.t('resetView', locale), fg, onReset),
           _btn(Icons.fullscreen, 'Plein Ã©cran', fg, onFullscreen),
+          // Combobox zones : sÃ©lection directe d'une zone (ouvre le
+          // panneau de dÃ©tails), fonctionne au clic ET au tactile.
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: selectedZoneId,
+                hint: Text(S.t('selectZoneHint', locale),
+                    style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                dropdownColor: AppColors.surfaceDark,
+                iconEnabledColor: Colors.white70,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+                items: [
+                  for (final z in zones)
+                    DropdownMenuItem(
+                      value: z.id,
+                      child: Text(S.t(z.labelKey, locale)),
+                    ),
+                ],
+                onChanged: onZoneSelected,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -1168,6 +1212,9 @@ class _FullScreenPlanState extends State<_FullScreenPlan> {
                       width: _hitRect(proj, z).width,
                       height: _hitRect(proj, z).height,
                       child: GestureDetector(
+                        // sans enfant, le hit-test Ã©choue sans behavior
+                        // explicite : la sÃ©lection tactile ne rÃ©pondait pas.
+                        behavior: HitTestBehavior.opaque,
                         onTap: () => setState(() => _selected = z.id),
                       ),
                     ),
@@ -1200,8 +1247,10 @@ class _FullScreenPlanState extends State<_FullScreenPlan> {
                       })),
               const SizedBox(width: 8),
               _fsBtn(Icons.close_rounded, 'Quitter le plein Ã©cran', () {
-                Navigator.of(context).popUntil((route) => route.isFirst);
-                ShellNav.goHome();
+                // Quitter le plein Ã©cran = revenir Ã  la page Plan 3D
+                // (une seule route Ã  dÃ©piler — avant: popUntil dÃ©pilait
+                // TOUT et renvoyait au tableau de bord).
+                Navigator.of(context).pop();
               }),
             ]),
           ),

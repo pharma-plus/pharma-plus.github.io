@@ -8,7 +8,6 @@ import '../../core/theme/colors.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/status_chip.dart';
-import '../shell/shell_nav.dart';
 
 /// Portail réservé au Super Administrateur PHARMA+ :
 /// statistiques globales, gestion des pharmacies, création, suspension.
@@ -139,7 +138,9 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
     final locale = context.watch<AuthStore>().locale;
     return Scaffold(
       appBar: AppBar(
-        leading: const ShellBackButton(),
+        // Pas de bouton HOME ici : le portail super admin EST la page
+        // d'accueil (aucun HomeShell n'écoute ShellNav pour ce rôle —
+        // l'icône maison n'avait donc aucun effet).
         title: Row(
           children: [
             const Icon(Icons.shield_outlined, color: AppColors.accent),
