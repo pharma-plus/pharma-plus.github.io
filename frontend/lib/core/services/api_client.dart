@@ -78,16 +78,15 @@ Map<String, dynamic>? _safeDecode(String body) {
   }
 }
 
-/// Bonto (hébergement gratuit) endort le conteneur à l'inactivité. Au
-/// réveil, il renvoie une page HTML « Starting container » (statut 200)
-/// au lieu du JSON attendu. On la détecte pour attendre et réessayer.
+/// Certaines plateformes d'hébergement (cold start, maintenance) renvoient
+/// une page HTML au lieu du JSON attendu — on détecte pour réessayer.
 bool _isWakePage(String body) {
   final t = body.trim().toLowerCase();
   if (t.startsWith('<!doctype') || t.startsWith('<html')) {
     return t.contains('waking up') ||
         t.contains('starting container') ||
         t.contains('starting pharma') ||
-        t.contains('bonto');
+        t.contains('deploying');
   }
   return false;
 }

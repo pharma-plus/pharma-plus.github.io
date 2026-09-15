@@ -1,0 +1,710 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
+const corsHeaders: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-pharmacy-id",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+};
+
+function json(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function jwtPayload(req: Request): Record<string, unknown> | null {
+  const auth = req.headers.get("authorization") ?? "";
+  const m = auth.match(/^Bearer\s+(.+)$/i);
+  if (!m) return null;
+  try {
+    const parts = m[1].split(".");
+    if (parts.length < 2) return null;
+    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(b64));
+  } catch {
+    return null;
+  }
+}
+
+function pharmacyId(req: Request, fallback = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"): string {
+  const hdr = req.headers.get("x-pharmacy-id");
+  if (hdr) return hdr;
+  const p = jwtPayload(req);
+  if (p) {
+    const v =
+      p.pharmacyId ?? p.pharmacy_id ?? p.app_metadata?.pharmacy_id ?? null;
+    if (v) return String(v);
+  }
+  return fallback;
+}
+
+/* ---- Route helpers ---- */
+
+const TABLE_MAP: Record<string, string> = {
+  "/catalog/medications": "medications",
+  "/catalog/categories": "categories",
+  "/catalog/laboratories": "laboratories",
+  "/catalog/families": "therapeutic_families",
+  "/suppliers": "suppliers",
+  "/customers": "customers",
+  "/employees": "employees",
+  "/cameras": "cameras",
+  "/branches": "branches",
+  "/roles": "roles",
+  "/users": "users",
+  "/notifications": "notifications",
+  "/prescriptions": "prescriptions",
+  "/pharmacies": "pharmacies",
+  "/purchases/orders": "purchase_orders",
+  "/purchases/receptions": "purchase_receptions",
+  "/sales": "sales",
+  "/stock/adjustments": "stock_movements",
+  "/stock/lots": "lots",
+  "/stock/transfers": "stock_transfers",
+  "/accounting/accounts": "accounts",
+  "/accounting/journal": "journal_entries",
+  "/accounting/expense-categories": "expense_categories",
+  "/accounting/expenses": "expenses",
+  "/accounting/registers": "cash_registers",
+  "/accounting/closings": "closing_periods",
+  "/attendance/leaves": "leaves",
+  "/attendance/schedules": "schedules",
+  "/reference/categories": "reference_categories",
+  "/website/settings": "website_settings",
+  "/website/blog/posts": "blog_posts",
+  "/support/tickets": "support_tickets",
+  "/backups": "backups",
+};
+
+function mapTable(raw: string): string | null {
+  const clean = raw.replace(/\/+$/, "");
+  return TABLE_MAP[clean] ?? null;
+}
+
+/** Proxy POST/PUT/DELETE to PostgREST with pharmacy_id injection. */
+async function proxyToTable(
+  supabase: ReturnType<typeof createClient>,
+  supabaseUrl: string,
+  req: Request,
+  table: string,
+  subpath: string,
+  pid: string,
+) {
+  let restPath = `/rest/v1/${table}`;
+  if (subpath) restPath += `/${subpath}`;
+  const targetUrl = new URL(`${supabaseUrl}${restPath}`);
+  const url = new URL(req.url);
+  url.searchParams.forEach((v, k) => targetUrl.searchParams.set(k, v));
+
+  const headers: Record<string, string> = {
+    apikey: supabase,
+    Authorization: `Bearer ${supabase}`,
+    "Content-Type": "application/json",
+    Prefer: "return=representation",
+  };
+
+  const method = req.method;
+  let body: string | undefined;
+  if (method !== "GET" && method !== "HEAD") {
+    const raw = await req.text();
+    const parsed = JSON.parse(raw || "{}");
+    if (!parsed.pharmacy_id && table !== "pharmacies" && table !== "roles") {
+      parsed.pharmacy_id = pid;
+    }
+    body = JSON.stringify(parsed);
+  }
+
+  const res = await fetch(targetUrl.toString(), { method, headers, body });
+  const text = await res.text();
+  return new Response(text, {
+    status: res.status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS")
+    return new Response(null, { headers: corsHeaders });
+
+  const url = new URL(req.url);
+  const raw = url.pathname.replace(/^\/pharma-api\/?/, "").replace(/^\/+/, "/");
+  const path = raw.startsWith("api/v1/") ? raw.slice(7) : raw;
+  const pid = pharmacyId(req);
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const sb = createClient(supabaseUrl, serviceKey);
+
+  /* ===========================================================
+     HEALTH
+     =========================================================== */
+  if (path === "health") {
+    try {
+      const { count } = await sb
+        .from("pharmacies")
+        .select("id", { count: "exact", head: true });
+      return json({
+        status: "ok",
+        database: "connected",
+        pharmacies: count,
+        version: "2.1.0",
+        uptime: Math.round(performance.now() / 1000),
+        timestamp: new Date().toISOString(),
+      });
+    } catch (e) {
+      return json({ status: "error", message: String(e) }, 500);
+    }
+  }
+
+  /* ===========================================================
+     AUTH
+     =========================================================== */
+  if (path === "auth/login" || path === "/auth/login") {
+    if (req.method !== "POST")
+      return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+    const body = await req.json().catch(() => ({}));
+    const { email, password } = body as any;
+    if (!email || !password)
+      return json(
+        { error: { code: "VALIDATION", message: "email + password requis" } },
+        400,
+      );
+
+    const { data: authData, error: authErr } =
+      await sb.auth.signInWithPassword({ email, password });
+    if (authData?.user && !authErr) {
+      const { data: profile } = await sb
+        .from("users")
+        .select(
+          "id, pharmacy_id, branch_id, role_id, first_name, last_name, email, username, phone",
+        )
+        .ilike("email", email)
+        .maybeSingle();
+      const userProfile = profile ?? {
+        email,
+        id: authData.user.id,
+        pharmacy_id: pid,
+        branch_id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        role_id: "00000000-0000-0000-0000-000000000002",
+        first_name: "Admin",
+        last_name: "Pharma",
+      };
+      return json({
+        data: {
+          accessToken: authData.session?.access_token,
+          refreshToken: authData.session?.refresh_token,
+          user: userProfile,
+        },
+      });
+    }
+
+    const { data: user } = await sb
+      .from("users")
+      .select("id, pharmacy_id, email, status")
+      .ilike("email", email)
+      .maybeSingle();
+    if (user && user.status === "active") {
+      return json(
+        {
+          error: {
+            code: "MIGRATION_REQUIRED",
+            message:
+              "Compte existant en base mais pas dans Supabase Auth. Crée-le via /auth/signup.",
+          },
+        },
+        401,
+      );
+    }
+    return json(
+      { error: { code: "INVALID_CREDENTIALS", message: "Identifiants invalides" } },
+      401,
+    );
+  }
+
+  if (path === "auth/signup" || path === "/auth/signup") {
+    if (req.method !== "POST")
+      return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+    const body = await req.json().catch(() => ({}));
+    const { email, password, first_name, last_name, pharmacy_id: pId } =
+      body as any;
+    if (!email || !password)
+      return json({ error: { code: "VALIDATION" } }, 400);
+    const { data, error } = await sb.auth.signUp({ email, password });
+    if (error)
+      return json(
+        { error: { code: "SIGNUP_FAILED", message: error.message } },
+        400,
+      );
+    if (pId) {
+      await sb.from("users").insert({
+        email,
+        first_name: first_name ?? "New",
+        last_name: last_name ?? "User",
+        pharmacy_id: pId,
+        password_hash: "supabase-auth",
+      });
+    }
+    return json({ data });
+  }
+
+  if (path === "auth/refresh" || path === "/auth/refresh") {
+    if (req.method !== "POST")
+      return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+    const body = await req.json().catch(() => ({}));
+    const { refresh_token } = body as any;
+    if (!refresh_token)
+      return json({ error: { code: "VALIDATION" } }, 400);
+    const { data, error } = await sb.auth.refreshSession({ refresh_token });
+    if (error)
+      return json({ error: { code: "REFRESH_FAILED", message: error.message } }, 401);
+    return json({
+      data: {
+        accessToken: data.session?.access_token,
+        refreshToken: data.session?.refresh_token,
+      },
+    });
+  }
+
+  if (path === "auth/change-password" || path === "/auth/change-password") {
+    if (req.method !== "POST")
+      return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+    const body = await req.json().catch(() => ({}));
+    const { currentPassword, newPassword } = body as any;
+    const auth = req.headers.get("authorization") ?? "";
+    const token = auth.replace(/^Bearer\s+/i, "");
+    const { error } = await sb.auth.updateUser(
+      { password: newPassword },
+    );
+    if (error)
+      return json({ error: { code: "UPDATE_FAILED", message: error.message } }, 400);
+    return json({ data: { message: "Mot de passe mis à jour" } });
+  }
+
+  /* ===========================================================
+     DASHBOARD
+     =========================================================== */
+  if (path === "dashboard/overview" || path === "/dashboard/overview") {
+    try {
+      const now = new Date();
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      const [meds, cats, labs, suppliers, customers, prescs, stockBalances, salesToday, salesMonth] =
+        await Promise.all([
+          sb.from("medications").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid),
+          sb.from("categories").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid),
+          sb.from("laboratories").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid),
+          sb.from("suppliers").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid),
+          sb.from("customers").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid),
+          sb.from("prescriptions").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid),
+          sb.from("stock_balances").select("quantity").eq("pharmacy_id", pid),
+          sb.from("sales").select("total, cost_total").eq("pharmacy_id", pid).eq("status", "completed").gte("created_at", startOfDay.toISOString()),
+          sb.from("sales").select("total, cost_total").eq("pharmacy_id", pid).eq("status", "completed").gte("created_at", startOfMonth.toISOString()),
+        ]);
+
+      const lowStock = (stockBalances.data ?? []).filter((r: any) => Number(r.quantity) < 10).length;
+      const revenueToday = (salesToday.data ?? []).reduce((s: number, r: any) => s + Number(r.total ?? 0), 0);
+      const revenueMonth = (salesMonth.data ?? []).reduce((s: number, r: any) => s + Number(r.total ?? 0), 0);
+      const costMonth = (salesMonth.data ?? []).reduce((s: number, r: any) => s + Number(r.cost_total ?? 0), 0);
+      const salesCountToday = (salesToday.data ?? []).length;
+
+      return json({
+        data: {
+          revenue: {
+            revenue_today: revenueToday,
+            revenue_month: revenueMonth,
+            profit_month: revenueMonth - costMonth,
+            sales_today: salesCountToday,
+            sales_month: (salesMonth.data ?? []).length,
+          },
+          alerts: { low_stock: lowStock, expiring: 0, expired: 0, pending_orders: 0 },
+          counts: {
+            medications: { total: meds.count ?? 0, available: meds.count ?? 0 },
+            prescriptions: { month: prescs.count ?? 0, pending: 0 },
+            customers: { total: customers.count ?? 0, active: customers.count ?? 0 },
+            suppliers: { total: suppliers.count ?? 0, active: suppliers.count ?? 0 },
+          },
+          stock: { stock_value: 0 },
+          top_products: [],
+          sales_trend: [],
+          pharma_plus: {
+            parapharmacy: { products: cats.count ?? 0, revenue_month: 0 },
+            cameras: { total: 0, online: 0, recording: 0 },
+            pharma_ai: { requests_7d: 0, success_7d: 0 },
+            reference: { total: labs.count ?? 0, last_sync: {} },
+          },
+          employees_present: 0,
+        },
+      });
+    } catch (e) {
+      return json({ error: { code: "DASHBOARD_ERROR", message: String(e) } }, 500);
+    }
+  }
+
+  /* ===========================================================
+     AI — CHAT, INSIGHTS, REORDER-PLAN, SALES-ANALYSIS
+     =========================================================== */
+  if (path === "ai/chat" && req.method === "POST") {
+    const body = await req.json().catch(() => ({}));
+    const text = (body as any).message ?? (body as any).query ?? "";
+    const lower = text.toLowerCase();
+    const fmt = (n: unknown) =>
+      `${Number(n ?? 0).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} MAD`;
+    const detectPeriod = (l: string) => {
+      if (/(aujourd|today|du jour)/.test(l)) return 1;
+      if (/(semaine|week|7)/.test(l)) return 7;
+      if (/(mois|month|30)/.test(l)) return 30;
+      if (/(trimestre|quarter|90)/.test(l)) return 90;
+      return 30;
+    };
+    const days = detectPeriod(lower);
+
+    // Helper: list products
+    const chatCatalog = async () => {
+      const { data } = await sb.from("medications").select("name, price_sale").eq("pharmacy_id", pid).eq("status", "available").order("name").limit(25);
+      if (!data?.length) return { reply: "Votre catalogue est vide.", intent: "catalog", data: [] };
+      const lines = data.map((r: any) => `• ${r.name} — ${fmt(r.price_sale)}`);
+      return { reply: `Catalogue (${data.length} ref) :\n${lines.join("\n")}`, intent: "catalog", data };
+    };
+
+    // Product stock lookup
+    const matchProduct = async (q: string) => {
+      const n = q.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const stop = new Set(["combien","avoir","est","sont","il","en","de","du","des","les","dans","niveau","stock","rupture"]);
+      const tokens = n.split(/[^a-z0-9]/).filter((t: string) => t.length >= 4 && !stop.has(t));
+      if (!tokens.length) return null;
+      const { data } = await sb.from("medications").select("id, name").eq("pharmacy_id", pid).eq("status", "available").limit(200);
+      if (!data?.length) return null;
+      let best: any = null, bestScore = 0;
+      for (const r of data) {
+        const norm = String(r.name).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (n.includes(norm)) { if (norm.length > bestScore) { best = r; bestScore = norm.length; } continue; }
+        const nameTokens = new Set(norm.split(/[^a-z0-9]/).filter((t: string) => t.length >= 4));
+        let score = 0;
+        for (const t of nameTokens) if (tokens.includes(t)) score++;
+        if (score > bestScore) { best = r; bestScore = score; }
+      }
+      if (!best) return null;
+      const { data: found } = await sb.from("medications").select("name, reorder_level").eq("pharmacy_id", pid).ilike("name", best.name).limit(1);
+      const { data: sbData } = await sb.from("stock_balances").select("quantity").eq("pharmacy_id", pid).eq("medication_id", best.id);
+      const stock = (sbData ?? []).reduce((s: number, r: any) => s + Number(r.quantity ?? 0), 0);
+      const r = found?.[0] ?? best;
+      return { reply: `• ${r.name} : ${stock} u. en stock (seuil ${Number(r.reorder_level ?? 0)} u.)`, intent: "stock", data: { ...r, stock } };
+    };
+
+    let result: any;
+    if (/(bonjour|salut|hello|salam|bonsoir)/.test(lower)) {
+      result = { reply: "Bonjour ! Je suis l'assistant PHARMA+. Comment puis-je vous aider ?", intent: "greeting" };
+    } else if (/(aide|help|que peux)/.test(lower)) {
+      result = { reply: "Je peux analyser vos ventes et votre stock. Essayez : « CA du mois », « plan de réassort », « ruptures de stock », « liste des médicaments », « stock [nom] », « prix [nom] ».", intent: "help" };
+    } else if (/(liste.*(médicament|produit|catalogue)|catalogue|tous les médicaments)/i.test(lower)) {
+      result = await chatCatalog();
+    } else if (/(rupture|stock|inventaire|épuisé)/.test(lower)) {
+      const named = await matchProduct(text);
+      if (named) { result = named; } else {
+        const { data } = await sb.from("stock_balances").select("quantity").eq("pharmacy_id", pid);
+        const { data: meds2 } = await sb.from("medications").select("id, reorder_level").eq("pharmacy_id", pid).eq("status", "available");
+        let low = 0, out = 0;
+        for (const m of (meds2 ?? [])) {
+          const stock = (data ?? []).filter((s: any) => s.medication_id === m.id).reduce((a: number, r: any) => a + Number(r.quantity ?? 0), 0);
+          if (stock <= 0) out++;
+          else if (stock <= Number(m.reorder_level ?? 0)) low++;
+        }
+        result = { reply: `${low} référence(s) sous seuil, dont ${out} en rupture. Tapez « plan de réassort » pour la liste.`, intent: "stock" };
+      }
+    } else if (/(réassort|reorder|commander|approvisionn)/.test(lower)) {
+      const { data } = await sb.from("medications").select("id, name, reorder_level").eq("pharmacy_id", pid).eq("status", "available");
+      const items: any[] = [];
+      for (const m of (data ?? [])) {
+        const { data: sbData } = await sb.from("stock_balances").select("quantity").eq("pharmacy_id", pid).eq("medication_id", m.id);
+        const stock = (sbData ?? []).reduce((a: number, r: any) => a + Number(r.quantity ?? 0), 0);
+        if (stock <= Number(m.reorder_level ?? 0)) items.push({ ...m, stock, suggested_qty: Math.max(0, Number(m.reorder_level ?? 0) * 2 - stock) });
+      }
+      if (!items.length) return json({ data: { reply: "Aucun produit sous seuil. Stock bien tenu !", intent: "reorder" } });
+      const top = items.slice(0, 5).map((i: any) => `• ${i.name} : commander ~${i.suggested_qty} u.`);
+      const more = items.length > 5 ? `\n… et ${items.length - 5} autre(s).` : "";
+      result = { reply: `${items.length} produit(s) à commander :\n${top.join("\n")}${more}`, intent: "reorder", data: { items } };
+    } else if (/(prix de|prix du|quel est le prix|combien coûte|combien coute)/.test(lower)) {
+      const term = text.replace(/^(quel est|donne moi|donnez moi)?\s*(le\s+)?prix\s+(de|du|des|d')\s*/i, "").replace(/\?/g, "").trim().slice(0, 60);
+      if (!term) { result = { reply: "Quel produit recherchez-vous ?", intent: "price" }; }
+      else {
+        const { data } = await sb.from("medications").select("name, price_sale").eq("pharmacy_id", pid).eq("status", "available").ilike("name", `%${term}%`).limit(3);
+        if (!data?.length) { result = { reply: `Aucun produit pour « ${term} ».`, intent: "price" }; }
+        else { const lines = data.map((r: any) => `• ${r.name} : ${fmt(r.price_sale)}`); result = { reply: lines.join("\n"), intent: "price", data }; }
+      }
+    } else if (/(vente|ca\b|chiffre|revenue|panier)/.test(lower)) {
+      const d = new Date(); d.setDate(d.getDate() - days);
+      const { data } = await sb.from("sales").select("total").eq("pharmacy_id", pid).eq("status", "completed").gte("created_at", d.toISOString());
+      const revenue = (data ?? []).reduce((s: number, r: any) => s + Number(r.total ?? 0), 0);
+      const nb = data?.length ?? 0;
+      const label = days === 1 ? "aujourd'hui" : `${days} derniers jours`;
+      const basket = nb > 0 ? ` Panier moyen : ${fmt(revenue / nb)}.` : "";
+      result = { reply: `CA ${label} : ${fmt(revenue)} (${nb} vente(s)).${basket}`, intent: "revenue" };
+    } else if (/(marge|profit|bénéfice)/.test(lower)) {
+      const d = new Date(); d.setDate(d.getDate() - days);
+      const { data } = await sb.from("sales").select("total, cost_total").eq("pharmacy_id", pid).eq("status", "completed").gte("created_at", d.toISOString());
+      const revenue = (data ?? []).reduce((s: number, r: any) => s + Number(r.total ?? 0), 0);
+      const profit = (data ?? []).reduce((s: number, r: any) => s + Number(r.total ?? 0) - Number(r.cost_total ?? 0), 0);
+      const pct = revenue > 0 ? ` soit ${Math.round((profit / revenue) * 100)}%` : "";
+      result = { reply: `Sur ${days} jours : CA ${fmt(revenue)}, marge ${fmt(profit)}${pct}.`, intent: "margin" };
+    } else if (/(top|meilleur|star)/.test(lower)) {
+      const { data: items } = await sb.from("sales").select("id").eq("pharmacy_id", pid).eq("status", "completed").gte("created_at", new Date(Date.now() - 30 * 86400000).toISOString());
+      result = { reply: `Top produits (30j) : ${items?.length ?? 0} ventes enregistrées.`, intent: "top_products" };
+    } else if (/(périm|perim|expir)/.test(lower)) {
+      const { data: lots } = await sb.from("lots").select("expiry_date, quantity").eq("pharmacy_id", pid);
+      const now2 = new Date();
+      const soon = (lots ?? []).filter((l: any) => { const d = new Date(l.expiry_date); return d > now2 && d < new Date(now2.getTime() + 60 * 86400000); });
+      result = { reply: `${soon.length} lot(s) expirent dans les 60 prochains jours.`, intent: "expiry" };
+    } else if (/(pointe|heure|pic)/.test(lower)) {
+      result = { reply: "Analyse des heures de pointe : fonctionnalité en cours de développement.", intent: "peak_hours" };
+    } else if (/(débiteur|debiteur|créance|impayé)/.test(lower)) {
+      const { data } = await sb.from("customers").select("credit_balance").eq("pharmacy_id", pid);
+      const debtors = (data ?? []).filter((c: any) => Number(c.credit_balance ?? 0) > 0);
+      const total = debtors.reduce((s: number, c: any) => s + Number(c.credit_balance ?? 0), 0);
+      result = { reply: `${debtors.length} client(s) débiteur(s), total ${fmt(total)}.`, intent: "debtors" };
+    } else if (/(merci|shokran|thanks)/.test(lower)) {
+      result = { reply: "Avec plaisir ! N'hésitez pas pour d'autres questions.", intent: "thanks" };
+    } else {
+      result = { reply: `Je n'ai pas compris. Essayez : « CA du mois », « plan de réassort », « ruptures de stock », « liste des médicaments ».`, intent: "help" };
+    }
+    return json({ data: result });
+  }
+
+  if (path === "ai/insights") {
+    return json({ data: { generated_at: new Date().toISOString(), reorder_soon: [], expiring_within_60d: [], no_sales_30d: [], top_sellers_30d: [], low_margin_30d: [], expired_units: 0 } });
+  }
+  if (path === "ai/reorder-plan") {
+    return json({ data: { generated_at: new Date().toISOString(), days_cover_target: 14, items: [] } });
+  }
+  if (path === "ai/sales-analysis") {
+    return json({ data: { generated_at: new Date().toISOString(), window_days: 30, series: [], summary: { revenue: 0, profit: 0 }, top_products: [] } });
+  }
+
+  /* ===========================================================
+     CATEGORIES (reference)
+     =========================================================== */
+  if (path === "reference/categories" || path === "/reference/categories") {
+    const { data, error } = await sb.from("reference_categories").select("*").order("name");
+    return json({ data: data ?? [], error: error?.message });
+  }
+  if (path === "reference/sync" && req.method === "POST") {
+    return json({ data: { synced: 0, message: "Sync non disponible côté edge" } });
+  }
+
+  /* ===========================================================
+     BRANCHES — alias for pharmacies (branches = pharmacies)
+     =========================================================== */
+  if (path === "branches") {
+    const { data } = await sb.from("pharmacies").select("id, name, city, address, phone, slug").limit(50);
+    return json({ data: data ?? [] });
+  }
+
+  /* ===========================================================
+     PHARMACIES ME
+     =========================================================== */
+  if (path === "pharmacies/me") {
+    if (req.method === "PUT") {
+      const body = await req.json().catch(() => ({}));
+      const { error } = await sb.from("pharmacies").update(body).eq("id", pid);
+      if (error) return json({ error: { code: "UPDATE_FAILED", message: error.message } }, 400);
+      return json({ data: { message: "Pharmacie mise à jour" } });
+    }
+    const { data } = await sb.from("pharmacies").select("*").eq("id", pid).maybeSingle();
+    return json({ data });
+  }
+
+  /* ===========================================================
+     STOCK ALERTS
+     =========================================================== */
+  if (path === "stock/alerts") {
+    const { data: meds } = await sb.from("medications").select("id, name, reorder_level, min_stock").eq("pharmacy_id", pid).eq("status", "available");
+    const { data: balances } = await sb.from("stock_balances").select("medication_id, quantity").eq("pharmacy_id", pid);
+    const alerts = (meds ?? [])
+      .map((m: any) => {
+        const stock = (balances ?? []).filter((b: any) => b.medication_id === m.id).reduce((s: number, r: any) => s + Number(r.quantity ?? 0), 0);
+        return { ...m, current_stock: stock, is_low: stock <= Number(m.reorder_level ?? 0), is_out: stock <= 0 };
+      })
+      .filter((a: any) => a.is_low);
+    return json({ data: alerts });
+  }
+
+  /* ===========================================================
+     STOCK WRITE-OFF
+     =========================================================== */
+  if (path === "stock/write-off" && req.method === "POST") {
+    const body = await req.json().catch(() => ({}));
+    const { data, error } = await sb.from("stock_movements").insert({ ...body, pharmacy_id: pid, movement_type: "write_off" }).select().single();
+    if (error) return json({ error: { code: "WRITEOFF_FAILED", message: error.message } }, 400);
+    return json({ data });
+  }
+
+  /* ===========================================================
+     USERS — reset-password
+     =========================================================== */
+  if (/^users\/[^/]+\/reset-password$/.test(path) && req.method === "POST") {
+    const userId = path.split("/")[1];
+    const { error } = await sb.auth.admin.updateUserById(userId, { password: (await req.json().catch(() => ({}))).newPassword ?? "reset123" });
+    if (error) return json({ error: { code: "RESET_FAILED", message: error.message } }, 400);
+    return json({ data: { message: "Mot de passe réinitialisé" } });
+  }
+
+  /* ===========================================================
+     NOTIFICATIONS — read, read-all
+     =========================================================== */
+  if (/^notifications\/[^/]+\/read$/.test(path) && req.method === "POST") {
+    const nId = path.split("/")[1];
+    const { error } = await sb.from("notifications").update({ is_read: true }).eq("id", nId);
+    if (error) return json({ error: { message: error.message } }, 400);
+    return json({ data: { success: true } });
+  }
+  if (path === "notifications/read-all" && req.method === "POST") {
+    await sb.from("notifications").update({ is_read: true }).eq("pharmacy_id", pid).eq("is_read", false);
+    return json({ data: { success: true } });
+  }
+
+  /* ===========================================================
+     EMPLOYEES SUMMARY
+     =========================================================== */
+  if (path === "employees/summary") {
+    const { data } = await sb.from("employees").select("id, status, department").eq("pharmacy_id", pid);
+    const total = data?.length ?? 0;
+    const active = data?.filter((e: any) => e.status === "active").length ?? 0;
+    return json({ data: { total, active, departments: {} } });
+  }
+
+  /* ===========================================================
+     REPORTS
+     =========================================================== */
+  if (path === "reports/sales") {
+    const d = new Date(); d.setDate(d.getDate() - 30);
+    const { data } = await sb.from("sales").select("id, total, cost_total, created_at").eq("pharmacy_id", pid).eq("status", "completed").gte("created_at", d.toISOString()).order("created_at", { ascending: false });
+    return json({ data: data ?? [] });
+  }
+  if (path === "reports/products") {
+    const { data } = await sb.from("medications").select("id, name, price_sale").eq("pharmacy_id", pid).eq("status", "available");
+    return json({ data: data ?? [] });
+  }
+  if (path === "reports/stock") {
+    const { data: meds } = await sb.from("medications").select("id, name, reorder_level").eq("pharmacy_id", pid).eq("status", "available");
+    const { data: bal } = await sb.from("stock_balances").select("medication_id, quantity").eq("pharmacy_id", pid);
+    const report = (meds ?? []).map((m: any) => ({
+      ...m,
+      current_stock: (bal ?? []).filter((b: any) => b.medication_id === m.id).reduce((s: number, r: any) => s + Number(r.quantity ?? 0), 0),
+    }));
+    return json({ data: report });
+  }
+  if (path === "reports/employees") {
+    const { data } = await sb.from("employees").select("id, first_name, last_name, department, status").eq("pharmacy_id", pid);
+    return json({ data: data ?? [] });
+  }
+
+  /* ===========================================================
+     ACCOUNTING — registers, expenses, journal
+     =========================================================== */
+  if (path === "accounting/registers" && req.method === "POST") {
+    const body = await req.json().catch(() => ({}));
+    const { data, error } = await sb.from("cash_registers").insert({ ...body, pharmacy_id: pid }).select().single();
+    if (error) return json({ error: { message: error.message } }, 400);
+    return json({ data });
+  }
+  if (/^accounting\/registers\/[^/]+\/movements$/.test(path) && req.method === "POST") {
+    const body = await req.json().catch(() => ({}));
+    const { data, error } = await sb.from("cash_register_movements").insert({ ...body, pharmacy_id: pid }).select().single();
+    if (error) return json({ error: { message: error.message } }, 400);
+    return json({ data });
+  }
+  if (/^accounting\/registers\/[^/]+\/close$/.test(path) && req.method === "POST") {
+    const regId = path.split("/")[2];
+    const { error } = await sb.from("cash_registers").update({ status: "closed", closed_at: new Date().toISOString() }).eq("id", regId);
+    if (error) return json({ error: { message: error.message } }, 400);
+    return json({ data: { message: "Caisse fermée" } });
+  }
+
+  /* ===========================================================
+     ATTENDANCE — summary
+     =========================================================== */
+  if (path === "attendance/summary") {
+    const { data } = await sb.from("attendance").select("id, status, clock_in").eq("pharmacy_id", pid);
+    return json({ data: { total: data?.length ?? 0, present: data?.filter((a: any) => a.clock_in).length ?? 0 } });
+  }
+
+  /* ===========================================================
+     PRESCRIPTIONS — dispense
+     =========================================================== */
+  if (/^prescriptions\/[^/]+\/dispense$/.test(path) && req.method === "POST") {
+    const prescId = path.split("/")[2];
+    const { error } = await sb.from("prescriptions").update({ status: "dispensed" }).eq("id", prescId);
+    if (error) return json({ error: { message: error.message } }, 400);
+    return json({ data: { message: "Prescription dispensée" } });
+  }
+
+  /* ===========================================================
+     WEBSITE
+     =========================================================== */
+  if (path === "website/settings") {
+    if (req.method === "PUT") {
+      const body = await req.json().catch(() => ({}));
+      const { data: existing } = await sb.from("website_settings").select("id").limit(1).maybeSingle();
+      if (existing) {
+        await sb.from("website_settings").update(body).eq("id", existing.id);
+      } else {
+        await sb.from("website_settings").insert({ ...body, pharmacy_id: pid });
+      }
+      return json({ data: { message: "Paramètres mis à jour" } });
+    }
+    const { data } = await sb.from("website_settings").select("*").limit(1).maybeSingle();
+    return json({ data: data ?? {} });
+  }
+  if (path === "website/blog/posts" && req.method === "POST") {
+    const body = await req.json().catch(() => ({}));
+    const { data, error } = await sb.from("blog_posts").insert({ ...body, pharmacy_id: pid }).select().single();
+    if (error) return json({ error: { message: error.message } }, 400);
+    return json({ data });
+  }
+
+  /* ===========================================================
+     PUBLIC WEBSITE — blog post by slug
+     =========================================================== */
+  if (/^blog\/[^/]+$/.test(path) && req.method === "GET") {
+    const slug = path.split("/")[1];
+    const { data } = await sb.from("blog_posts").select("*").eq("slug", slug).maybeSingle();
+    return json({ data });
+  }
+
+  /* ===========================================================
+     GENERIC TABLE PROXY — catalog, suppliers, customers,
+     employees, cameras, roles, users, notifications,
+     prescriptions, purchases, sales, accounting, attendance, etc.
+     =========================================================== */
+  const genericMatch = path.match(
+    /^(catalog\/medications|catalog\/categories|catalog\/laboratories|catalog\/families|suppliers|customers|employees|cameras|branches|roles|users|notifications|prescriptions|pharmacies|purchases\/orders|purchases\/receptions|sales|stock\/adjustments|stock\/lots|stock\/transfers|accounting\/accounts|accounting\/journal|accounting\/expense-categories|accounting\/expenses|accounting\/registers|accounting\/closings|attendance\/leaves|attendance\/schedules|reference\/categories|website\/settings|website\/blog\/posts|support\/tickets|backups)(?:\/(.+))?$/,
+  );
+  if (genericMatch) {
+    const [, basePath, sub] = genericMatch;
+    const table = TABLE_MAP[`/${basePath}`];
+    if (table) {
+      return await proxyToTable(sb, supabaseUrl, req, table, sub ?? "", pid);
+    }
+  }
+
+  /* ===========================================================
+     ROOT
+     =========================================================== */
+  if (path === "/" || path === "") {
+    return json({
+      name: "PHARMA+ Edge API (Supabase)",
+      version: "2.1.0",
+      health: "/health",
+      auth: "/auth/login",
+    });
+  }
+
+  /* ===========================================================
+     404
+     =========================================================== */
+  return json(
+    { error: { code: "NOT_FOUND", message: `Route ${path} non trouvée` } },
+    404,
+  );
+});
