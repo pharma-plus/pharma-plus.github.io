@@ -28,6 +28,37 @@ function jwtPayload(req: Request): Record<string, unknown> | null {
   }
 }
 
+async function enrichProfile(sb: any, profile: any): Promise<any> {
+  if (!profile) return null;
+  const { data: role } = profile.role_id
+    ? await sb
+        .from("roles")
+        .select("name")
+        .eq("id", profile.role_id)
+        .maybeSingle()
+    : { data: null };
+  const { data: pharmacy } = profile.pharmacy_id
+    ? await sb
+        .from("pharmacies")
+        .select("name")
+        .eq("id", profile.pharmacy_id)
+        .maybeSingle()
+    : { data: null };
+  const { data: perms } = profile.role_id
+    ? await sb
+        .from("role_permissions")
+        .select("permission_code")
+        .eq("role_id", profile.role_id)
+    : { data: null };
+  return {
+    ...profile,
+    is_super_admin: profile.is_super_admin ?? false,
+    permissions: (perms ?? []).map((p: any) => p.permission_code),
+    pharmacy_name: pharmacy?.name ?? null,
+    role_name: role?.name ?? null,
+  };
+}
+
 function pharmacyId(req: Request, fallback = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"): string {
   const hdr = req.headers.get("x-pharmacy-id");
   if (hdr) return hdr;
@@ -53,6 +84,8 @@ const TABLE_MAP: Record<string, string> = {
   "/cameras": "cameras",
   "/branches": "branches",
   "/roles": "roles",
+  "/role_permissions": "role_permissions",
+  "/permissions": "permissions",
   "/users": "users",
   "/notifications": "notifications",
   "/prescriptions": "prescriptions",
@@ -85,7 +118,7 @@ function mapTable(raw: string): string | null {
 
 /** Proxy POST/PUT/DELETE to PostgREST with pharmacy_id injection. */
 async function proxyToTable(
-  supabase: ReturnType<typeof createClient>,
+  serviceKey: string,
   supabaseUrl: string,
   req: Request,
   table: string,
@@ -99,8 +132,8 @@ async function proxyToTable(
   url.searchParams.forEach((v, k) => targetUrl.searchParams.set(k, v));
 
   const headers: Record<string, string> = {
-    apikey: supabase,
-    Authorization: `Bearer ${supabase}`,
+    apikey: serviceKey,
+    Authorization: `Bearer ${serviceKey}`,
     "Content-Type": "application/json",
     Prefer: "return=representation",
   };
@@ -134,7 +167,16 @@ Deno.serve(async (req) => {
   const pid = pharmacyId(req);
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const sb = createClient(supabaseUrl, serviceKey);
+  const anonKey =
+    Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY") ?? serviceKey;
+  // Client données (service_role, insensible à la session).
+  const sb = createClient(supabaseUrl, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  // Client auth isolé pour ne pas polluer le token service des requêtes data.
+  const sbAuth = createClient(supabaseUrl, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 
   /* ===========================================================
      HEALTH
@@ -171,50 +213,103 @@ Deno.serve(async (req) => {
         400,
       );
 
-    const { data: authData, error: authErr } =
-      await sb.auth.signInWithPassword({ email, password });
-    if (authData?.user && !authErr) {
-      const { data: profile } = await sb
+    const buildSession = async (session: any) => {
+      const normalized = String(email).trim().toLowerCase();
+      const { data: profile, error: profileErr } = await sb
         .from("users")
         .select(
-          "id, pharmacy_id, branch_id, role_id, first_name, last_name, email, username, phone",
+          "id, pharmacy_id, branch_id, role_id, first_name, last_name, email, username, phone, is_super_admin",
         )
-        .ilike("email", email)
+        .ilike("email", normalized)
         .maybeSingle();
-      const userProfile = profile ?? {
-        email,
-        id: authData.user.id,
-        pharmacy_id: pid,
-        branch_id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
-        role_id: "00000000-0000-0000-0000-000000000002",
-        first_name: "Admin",
-        last_name: "Pharma",
-      };
+      if (profileErr) console.error("[login] profile error:", profileErr.message);
+
+      let userProfile: any;
+      if (profile) {
+        userProfile = await enrichProfile(sb, profile);
+      } else {
+        userProfile = {
+          email: normalized,
+          id: session?.user?.id ?? crypto.randomUUID(),
+          pharmacy_id: pid,
+          branch_id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+          role_id: "00000000-0000-0000-0000-000000000002",
+          first_name: "Admin",
+          last_name: "Pharma",
+          is_super_admin: true,
+          permissions: [],
+          pharmacy_name: null,
+          role_name: "Pharmacien Administrateur",
+        };
+      }
+
       return json({
         data: {
-          accessToken: authData.session?.access_token,
-          refreshToken: authData.session?.refresh_token,
+          accessToken: session?.access_token ?? null,
+          refreshToken: session?.refresh_token ?? null,
           user: userProfile,
         },
       });
+    };
+
+    // 1) Connexion directe via Supabase Auth.
+    {
+      const { data: authData, error: authErr } =
+        await sbAuth.auth.signInWithPassword({ email, password });
+      if (authData?.session && !authErr) {
+        return await buildSession(authData.session);
+      }
     }
 
-    const { data: user } = await sb
-      .from("users")
-      .select("id, pharmacy_id, email, status")
-      .ilike("email", email)
-      .maybeSingle();
-    if (user && user.status === "active") {
-      return json(
-        {
-          error: {
-            code: "MIGRATION_REQUIRED",
-            message:
-              "Compte existant en base mais pas dans Supabase Auth. Crée-le via /auth/signup.",
-          },
-        },
-        401,
-      );
+    // 2) Migration automatique : utilisateur présent dans public.users
+    //    mais pas encore dans Supabase Auth. On vérifie le mot de passe
+    //    argon2 stocké, puis on provisionne le compte Auth.
+    {
+      const { data: user } = await sb
+        .from("users")
+        .select("id, pharmacy_id, email, status, password_hash, role_id, first_name, last_name, is_super_admin")
+        .ilike("email", String(email).trim().toLowerCase())
+        .maybeSingle();
+      if (user && user.status === "active") {
+        const hash = user.password_hash;
+        try {
+          const mod = await import("https://esm.sh/@phc/argon2@0.1.1");
+          const ok = await mod.verify(hash, password);
+          if (ok) {
+            const { error: createErr } = await sb.auth.admin.createUser({
+              email: String(email).trim().toLowerCase(),
+              password,
+              email_confirm: true,
+              user_metadata: {
+                pharmacy_id: user.pharmacy_id,
+                role_id: user.role_id,
+              },
+            });
+            if (createErr) {
+              return json(
+                { error: { code: "MIGRATION_FAILED", message: createErr.message } },
+                500,
+              );
+            }
+            const { data: authData2, error: authErr2 } =
+await sbAuth.auth.signInWithPassword({ email, password });
+            if (authData2?.session && !authErr2) {
+              return await buildSession(authData2.session);
+            }
+            return json(
+              { error: { code: "MIGRATION_FAILED", message: authErr2?.message ?? "login après migration" } },
+              500,
+            );
+          }
+        } catch (e) {
+          // Verif argon2 impossible => on laisse tomber vers credentials invalides.
+          console.error("argon2 verify error:", String(e));
+        }
+        return json(
+          { error: { code: "INVALID_CREDENTIALS", message: "Identifiants invalides" } },
+          401,
+        );
+      }
     }
     return json(
       { error: { code: "INVALID_CREDENTIALS", message: "Identifiants invalides" } },
@@ -230,7 +325,7 @@ Deno.serve(async (req) => {
       body as any;
     if (!email || !password)
       return json({ error: { code: "VALIDATION" } }, 400);
-    const { data, error } = await sb.auth.signUp({ email, password });
+    const { data, error } = await sbAuth.auth.signUp({ email, password });
     if (error)
       return json(
         { error: { code: "SIGNUP_FAILED", message: error.message } },
@@ -248,6 +343,56 @@ Deno.serve(async (req) => {
     return json({ data });
   }
 
+  /* -----------------------------------------------
+     AUTH / PROVISION — provisionne un compte Supabase
+     Auth pour un utilisateur DÉJÀ présent dans
+     public.users (migration). Idempotent.
+     ----------------------------------------------- */
+  if (path === "auth/provision" || path === "/auth/provision") {
+    if (req.method !== "POST")
+      return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+    const body = await req.json().catch(() => ({}));
+    const { email, password } = body as any;
+    if (!email || !password)
+      return json({ error: { code: "VALIDATION" } }, 400);
+    const normalized = String(email).trim().toLowerCase();
+    const { data: u } = await sb
+      .from("users")
+      .select("id, pharmacy_id, role_id, first_name, last_name, email")
+      .ilike("email", normalized)
+      .maybeSingle();
+    if (!u) {
+      return json(
+        { error: { code: "NOT_FOUND", message: "Utilisateur absent de public.users" } },
+        404,
+      );
+    }
+    const { data: existing } = await sb.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    if (existing?.users?.some((x: any) => x.email?.toLowerCase() === normalized)) {
+      return json({ data: { message: "Compte déjà provisionné" } });
+    }
+    const { data: created, error: createErr } = await sb.auth.admin.createUser({
+      email: normalized,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        pharmacy_id: u.pharmacy_id,
+        role_id: u.role_id,
+      },
+    });
+    if (createErr && !String(createErr.message).includes("already been registered")) {
+      return json(
+        { error: { code: "PROVISION_FAILED", message: createErr.message } },
+        400,
+      );
+    }
+    await sb.from("users").update({ password_hash: "supabase-auth" }).eq("id", u.id);
+    return json({ data: { message: "Compte provisionné", userId: created?.user?.id } });
+  }
+
   if (path === "auth/refresh" || path === "/auth/refresh") {
     if (req.method !== "POST")
       return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
@@ -255,13 +400,30 @@ Deno.serve(async (req) => {
     const { refresh_token } = body as any;
     if (!refresh_token)
       return json({ error: { code: "VALIDATION" } }, 400);
-    const { data, error } = await sb.auth.refreshSession({ refresh_token });
+    const { data, error } = await sbAuth.auth.refreshSession({ refresh_token });
     if (error)
       return json({ error: { code: "REFRESH_FAILED", message: error.message } }, 401);
+    const email = data.session?.user?.email ?? "";
+    const { data: profile } = await sb
+      .from("users")
+      .select(
+        "id, pharmacy_id, branch_id, role_id, first_name, last_name, email, username, phone, is_super_admin",
+      )
+      .ilike("email", email)
+      .maybeSingle();
+    const user = profile ? await enrichProfile(sb, profile) : null;
     return json({
       data: {
         accessToken: data.session?.access_token,
         refreshToken: data.session?.refresh_token,
+        user: user ?? {
+          email,
+          id: data.session?.user?.id ?? "",
+          pharmacy_id: pid,
+          first_name: "Admin",
+          last_name: "Pharma",
+          is_super_admin: false,
+        },
       },
     });
   }
@@ -270,15 +432,45 @@ Deno.serve(async (req) => {
     if (req.method !== "POST")
       return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
     const body = await req.json().catch(() => ({}));
-    const { currentPassword, newPassword } = body as any;
-    const auth = req.headers.get("authorization") ?? "";
-    const token = auth.replace(/^Bearer\s+/i, "");
-    const { error } = await sb.auth.updateUser(
-      { password: newPassword },
-    );
+    const { newPassword } = body as any;
+    const payload = jwtPayload(req);
+    const userId = payload?.sub as string;
+    if (!userId || !newPassword)
+      return json({ error: { code: "VALIDATION" } }, 400);
+    const { error } = await sb.auth.admin.updateUserById(userId, {
+      password: newPassword,
+    });
     if (error)
       return json({ error: { code: "UPDATE_FAILED", message: error.message } }, 400);
     return json({ data: { message: "Mot de passe mis à jour" } });
+  }
+
+  if (path === "__diag" || path === "/__diag") {
+    try {
+      const r1 = await sb
+        .from("users")
+        .select("id, email")
+        .ilike("email", "admin@pharma.ma")
+        .limit(5);
+      const r2 = await sb
+        .from("users")
+        .select("id, email, role_id")
+        .eq("email", "admin@pharma.ma")
+        .limit(5);
+      const r3 = await sb
+        .from("roles")
+        .select("id, name")
+        .limit(3);
+      return json({
+        diag: {
+          ilike: { data: r1.data, error: r1.error?.message ?? null },
+          eq: { data: r2.data, error: r2.error?.message ?? null },
+          roles: { data: r3.data, error: r3.error?.message ?? null },
+        },
+      });
+    } catch (e) {
+      return json({ diag: { throw: String(e) } }, 500);
+    }
   }
 
   /* ===========================================================
@@ -678,13 +870,13 @@ Deno.serve(async (req) => {
      prescriptions, purchases, sales, accounting, attendance, etc.
      =========================================================== */
   const genericMatch = path.match(
-    /^(catalog\/medications|catalog\/categories|catalog\/laboratories|catalog\/families|suppliers|customers|employees|cameras|branches|roles|users|notifications|prescriptions|pharmacies|purchases\/orders|purchases\/receptions|sales|stock\/adjustments|stock\/lots|stock\/transfers|accounting\/accounts|accounting\/journal|accounting\/expense-categories|accounting\/expenses|accounting\/registers|accounting\/closings|attendance\/leaves|attendance\/schedules|reference\/categories|website\/settings|website\/blog\/posts|support\/tickets|backups)(?:\/(.+))?$/,
+    /^(catalog\/medications|catalog\/categories|catalog\/laboratories|catalog\/families|suppliers|customers|employees|cameras|branches|roles|role_permissions|permissions|users|notifications|prescriptions|pharmacies|purchases\/orders|purchases\/receptions|sales|stock\/adjustments|stock\/lots|stock\/transfers|accounting\/accounts|accounting\/journal|accounting\/expense-categories|accounting\/expenses|accounting\/registers|accounting\/closings|attendance\/leaves|attendance\/schedules|reference\/categories|website\/settings|website\/blog\/posts|support\/tickets|backups)(?:\/(.+))?$/,
   );
   if (genericMatch) {
     const [, basePath, sub] = genericMatch;
     const table = TABLE_MAP[`/${basePath}`];
     if (table) {
-      return await proxyToTable(sb, supabaseUrl, req, table, sub ?? "", pid);
+      return await proxyToTable(serviceKey, supabaseUrl, req, table, sub ?? "", pid);
     }
   }
 
