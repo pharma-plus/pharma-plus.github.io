@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
+import '../catalog/catalog_page.dart';
 import '../shell/shell_nav.dart';
 
 /// ReprÃ©sentation isomÃ©trique 2.5D interactive de la pharmacie :
@@ -222,6 +223,13 @@ class _PharmacyPlanPageState extends State<PharmacyPlanPage> {
                             // doit disparaitre (avant: re-selectionnait 'meds'
                             // et semblait ne jamais se fermer).
                             onClose: () => setState(() => _selected = null),
+                            onProductTap: (product) {
+                              final nav = Navigator.of(context);
+                              nav.push(MaterialPageRoute(
+                                builder: (_) =>
+                                    CatalogPage(initialQuery: product),
+                              ));
+                            },
                           ),
                       ],
                     );
@@ -317,7 +325,7 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _Controls extends StatelessWidget {
+class _Controls extends StatefulWidget {
   final String locale;
   final bool auto;
   final VoidCallback onRotateLeft;
@@ -349,8 +357,102 @@ class _Controls extends StatelessWidget {
   });
 
   @override
+  State<StatefulWidget> createState() => _ControlsState();
+}
+
+class _ControlsState extends State<_Controls> {
+  final GlobalKey _zoneButtonKey = GlobalKey();
+
+  /// Ouvre le menu de sélection de zone via [showMenu] : le menu se ferme
+  /// automatiquement au clic extérieur, à la touche Échap ou après un choix —
+  /// aucun état « bloqué ». Un item « Ne rien afficher » permet de fermer.
+  Future<void> _openZoneMenu() async {
+    final box = _zoneButtonKey.currentContext?.findRenderObject() as RenderBox?;
+    final overlay =
+        Overlay.of(context, rootOverlay: true).context.findRenderObject() as RenderBox;
+    if (box == null) return;
+    final pos = box.localToGlobal(Offset.zero);
+    final result = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        pos.dx,
+        pos.dy + box.size.height + 4,
+        overlay.size.width - pos.dx - box.size.width,
+        math.max(0, overlay.size.height - pos.dy - box.size.height - 4),
+      ),
+      color: AppColors.surfaceDark,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      items: [
+        PopupMenuItem<String>(
+          value: '__none__',
+          child: Row(
+            children: [
+              Icon(Icons.close, size: 16,
+                  color: widget.selectedZoneId != null
+                      ? Colors.white70
+                      : Colors.white38),
+              const SizedBox(width: 10),
+              Text(
+                widget.selectedZoneId != null
+                    ? S.t('closePanel', widget.locale)
+                    : S.t('selectZoneHint', widget.locale),
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        for (final z in widget.zones)
+          PopupMenuItem<String>(
+            value: z.id,
+            child: Row(
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                      color: z.color, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  S.t(z.labelKey, widget.locale),
+                  style: TextStyle(
+                    color: widget.selectedZoneId == z.id
+                        ? const Color(0xFFE9C873)
+                        : Colors.white,
+                    fontSize: 13,
+                    fontWeight: widget.selectedZoneId == z.id
+                        ? FontWeight.w800
+                        : FontWeight.w400,
+                  ),
+                ),
+                if (widget.selectedZoneId == z.id) ...[
+                  const Spacer(),
+                  const Icon(Icons.check, size: 16, color: Color(0xFFE9C873)),
+                ],
+              ],
+            ),
+          ),
+      ],
+    );
+    if (!mounted) return;
+    if (result == '__none__') {
+      widget.onZoneSelected(null);
+    } else if (result != null) {
+      widget.onZoneSelected(result);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     const fg = Colors.white;
+    PlanZoneHit? sel;
+    for (final z in widget.zones) {
+      if (z.id == widget.selectedZoneId) {
+        sel = z;
+        break;
+      }
+    }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Wrap(
@@ -358,41 +460,56 @@ class _Controls extends StatelessWidget {
         runSpacing: 8,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          _btn(Icons.rotate_left, S.t('rotateLeft', locale), fg, onRotateLeft),
-          _btn(Icons.rotate_right, S.t('rotateRight', locale), fg,
-              onRotateRight),
-          _btn(auto ? Icons.pause : Icons.play_arrow,
-              auto ? 'Pause' : S.t('rotateLeft', locale), fg, onAuto),
-          _btn(Icons.remove, S.t('zoomOut', locale), fg, onZoomOut),
-          _btn(Icons.add, S.t('zoomIn', locale), fg, onZoomIn),
-          // Zoom initial = vue rÃ©initialisÃ©e (rotation + zoom d'origine).
-          _btn(Icons.restart_alt, S.t('resetView', locale), fg, onReset),
-          _btn(Icons.fullscreen, 'Plein Ã©cran', fg, onFullscreen),
-          // Combobox zones : sÃ©lection directe d'une zone (ouvre le
-          // panneau de dÃ©tails), fonctionne au clic ET au tactile.
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: selectedZoneId,
-                hint: Text(S.t('selectZoneHint', locale),
-                    style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                dropdownColor: AppColors.surfaceDark,
-                iconEnabledColor: Colors.white70,
-                style: const TextStyle(color: Colors.white, fontSize: 13),
-                items: [
-                  for (final z in zones)
-                    DropdownMenuItem(
-                      value: z.id,
-                      child: Text(S.t(z.labelKey, locale)),
+          _btn(Icons.rotate_left, S.t('rotateLeft', widget.locale), fg,
+              widget.onRotateLeft),
+          _btn(Icons.rotate_right, S.t('rotateRight', widget.locale), fg,
+              widget.onRotateRight),
+          _btn(widget.auto ? Icons.pause : Icons.play_arrow,
+              widget.auto ? 'Pause' : S.t('rotateLeft', widget.locale), fg,
+              widget.onAuto),
+          _btn(Icons.remove, S.t('zoomOut', widget.locale), fg,
+              widget.onZoomOut),
+          _btn(Icons.add, S.t('zoomIn', widget.locale), fg, widget.onZoomIn),
+          // Zoom initial = vue réinitialisée (rotation + zoom d'origine).
+          _btn(Icons.restart_alt, S.t('resetView', widget.locale), fg,
+              widget.onReset),
+          _btn(Icons.fullscreen, 'Plein écran', fg, widget.onFullscreen),
+          // Choix de zone : menu Flutter natif (fermeture garantie : clic
+          // extérieur, Échap, X « fermer le panneau » ou sélection).
+          GestureDetector(
+            key: _zoneButtonKey,
+            behavior: HitTestBehavior.opaque,
+            onTap: _openZoneMenu,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.12)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (sel != null) ...[
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                          color: sel.color, shape: BoxShape.circle),
                     ),
+                    const SizedBox(width: 8),
+                  ],
+                  Text(
+                    sel != null
+                        ? S.t(sel.labelKey, widget.locale)
+                        : S.t('selectZoneHint', widget.locale),
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                  ),
+                  const SizedBox(width: 6),
+                  const Icon(Icons.arrow_drop_down,
+                      color: Colors.white70, size: 20),
                 ],
-                onChanged: onZoneSelected,
               ),
             ),
           ),
@@ -421,9 +538,13 @@ class _DetailPanel extends StatelessWidget {
   final PlanZoneHit zone;
   final String locale;
   final VoidCallback onClose;
+  final ValueChanged<String>? onProductTap;
 
   const _DetailPanel(
-      {required this.zone, required this.locale, required this.onClose});
+      {required this.zone,
+      required this.locale,
+      required this.onClose,
+      this.onProductTap});
 
   @override
   Widget build(BuildContext context) {
@@ -508,11 +629,14 @@ class _DetailPanel extends StatelessWidget {
                   runSpacing: 6,
                   children: [
                     for (final p in zone.products)
-                      Chip(
+                      ActionChip(
                         backgroundColor: zone.color.withValues(alpha: 0.18),
+                        side: BorderSide(
+                            color: zone.color.withValues(alpha: 0.35)),
                         label: Text(p,
                             style: const TextStyle(
                                 color: Colors.white, fontSize: 11)),
+                        onPressed: () => onProductTap?.call(p),
                       ),
                   ],
                 ),

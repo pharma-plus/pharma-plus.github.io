@@ -13,9 +13,12 @@ import '../../core/widgets/glass_card.dart';
 import '../shell/shell_nav.dart';
 
 class CatalogPage extends StatefulWidget {
-  const CatalogPage({super.key, this.parapharmacy = false});
+  const CatalogPage({super.key, this.parapharmacy = false, this.initialQuery});
 
   final bool parapharmacy;
+
+  /// Pré-remplit la recherche (ex. produit cliqué depuis le Plan 3D).
+  final String? initialQuery;
 
   @override
   State<CatalogPage> createState() => _CatalogPageState();
@@ -33,7 +36,9 @@ class _CatalogPageState extends State<CatalogPage> {
   @override
   void initState() {
     super.initState();
-    _load();
+    final q = widget.initialQuery;
+    if (q != null && q.isNotEmpty) _search.text = q;
+    _load(query: q);
   }
 
   Future<void> _load({int page = 1, String? query}) async {

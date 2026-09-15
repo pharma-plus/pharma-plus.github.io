@@ -361,6 +361,7 @@ export const aiService = {
       reply: 'Je peux analyser vos ventes et votre stock. Essayez : « CA du mois ? », « plan de réassort », '
         + '« ruptures de stock ? », « produits à péremption », « top produits », « heures de pointe », '
         + '« prévision semaine », « marge du mois », « clients débiteurs », « meilleurs vendeurs », '
+        + '« liste des médicaments », « stock [nom du produit] », '
         + 'ou « prix [nom du produit] ».',
       intent: 'help',
     };
@@ -394,8 +395,10 @@ export const aiService = {
       result = this._helpReply();
     } else if (/(réassort|reassort|reorder|commander|approvisionn|rappro)/.test(lower)) {
       result = await this._chatReorder(pharmacyId);
+    } else if (/(liste.*(médicament|produit|référence|catalogue)|catalogue|catalog|tous les (médicaments|produits)|mes (produits|références|médicaments))/i.test(lower)) {
+      result = await this._chatCatalog(pharmacyId);
     } else if (/(rupture|stock|inventaire|épuisé)/.test(lower)) {
-      result = await this._chatStock(pharmacyId);
+      result = await this._chatStock(pharmacyId, text);
     } else if (/(prévision|prevision|forecast|demain|semaine prochaine|tendance)/.test(lower)) {
       result = await this._chatForecast(pharmacyId);
     } else if (/(marge|profit|bénéfice|benefice|rentab)/.test(lower)) {
@@ -410,7 +413,7 @@ export const aiService = {
       result = await this._chatDebtors(pharmacyId);
     } else if (/(vendeur|employé|employe|caissier|equipe)/.test(lower)) {
       result = await this._chatSellers(pharmacyId);
-    } else if (/^prix\b|prix de|prix du|combien coûte|combien coute/.test(lower)) {
+    } else if (/(^prix\b|prix de|prix du|quel est le prix|donne le prix|combien coûte|combien coute|coûte combien|coute combien)/.test(lower)) {
       result = await this._chatPrice(pharmacyId, text);
     } else if (/(vente|ca\b|chiffre|revenue|vendu|panier)/.test(lower)) {
       result = await this._chatRevenue(pharmacyId, this._detectPeriod(lower));
@@ -444,8 +447,13 @@ export const aiService = {
     };
   },
 
-  /** « Ruptures / stock » → compteurs sous-seuil et ruptures franches. */
-  async _chatStock(pharmacyId) {
+  /** « Ruptures / stock » → compteurs sous-seuil ou relevé d'un produit précis. */
+  async _chatStock(pharmacyId, rawText = '') {
+    // Si la question cite un nom de produit du catalogue, répondre produit par produit.
+    if (rawText && typeof rawText === 'string') {
+      const named = await this._matchCatalogProduct(pharmacyId, rawText);
+      if (named) return named;
+    }
     const { rows } = await query(
       `SELECT count(*) FILTER (WHERE t.stock <= t.reorder_level)::int AS low_count,
               count(*) FILTER (WHERE t.stock <= 0)::int AS out_count
@@ -466,6 +474,87 @@ export const aiService = {
         + 'Tapez « plan de réassort » pour la liste priorisée.',
       intent: 'stock',
       data: rows[0],
+    };
+  },
+
+  /** Essaie de faire correspondre un nom de produit présent dans la question. */
+  async _matchCatalogProduct(pharmacyId, text) {
+    const q = (text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const { rows } = await query(
+      `SELECT name FROM medications
+        WHERE pharmacy_id = $1 AND status = 'available'
+        ORDER BY name LIMIT 200`,
+      [pharmacyId],
+    );
+    // Tokens significatifs de la question (mots de >3 lettres, hors mots outils).
+    const stop = new Set(["combien", "avoir", "est", "sont", "il", "en", "de", "du", "des", "les", "dans", "niveau", "quand", "quel", "quelle", "stock", "rupture", "inventaire", "épuisé", "epuise", "j'ai", "mon", "mes", "ma"]);
+    const qTokens = q.split(/[^a-z0-9]/)
+      .map((t) => t.trim())
+      .filter((t) => t.length >= 4 && !stop.has(t));
+    if (qTokens.length === 0) return null;
+
+    let best = null;
+    let bestScore = 0;
+    for (const r of rows) {
+      const norm = String(r.name).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const nameTokens = new Set(norm.split(/[^a-z0-9]/).filter((t) => t.length >= 4));
+      // Le nom complet est présent dans la question → match parfait.
+      if (q.includes(norm)) {
+        if (norm.length > bestScore) { best = r.name; bestScore = norm.length; }
+        continue;
+      }
+      // Score = nombre de tokens distincts du nom présents dans la question.
+      let score = 0;
+      for (const t of nameTokens) {
+        if (qTokens.includes(t)) score++;
+      }
+      if (score > 0 && score > bestScore) {
+        best = r.name;
+        bestScore = score;
+      }
+    }
+    if (!best) return null;
+    const { rows: found } = await query(
+      `SELECT m.name AS name, m.reorder_level,
+              COALESCE((SELECT SUM(sb.quantity - sb.reserved_quantity)
+                          FROM stock_balances sb
+                         WHERE sb.medication_id = m.id AND sb.pharmacy_id = $1), 0)::numeric(12,3) AS stock
+         FROM medications m
+        WHERE m.pharmacy_id = $1 AND m.status = 'available' AND lower(m.name) = lower($2)
+        LIMIT 1`,
+      [pharmacyId, best],
+    );
+    if (found.length === 0) return null;
+    const r = found[0];
+    return {
+      reply: `• ${r.name} : ${Number(r.stock)} u. en stock (seuil ${Number(r.reorder_level)} u.)`,
+      intent: 'stock',
+      data: r,
+    };
+  },
+
+  /** « Catalogue / liste » → synthèse des médicaments disponibles. */
+  async _chatCatalog(pharmacyId) {
+    const { rows } = await query(
+      `SELECT m.name,
+              COALESCE((SELECT SUM(sb.quantity - sb.reserved_quantity)
+                          FROM stock_balances sb
+                         WHERE sb.medication_id = m.id AND sb.pharmacy_id = $1), 0)::numeric(12,3) AS stock,
+              m.price_sale
+         FROM medications m
+        WHERE m.pharmacy_id = $1 AND m.status = 'available'
+        ORDER BY m.name LIMIT 25`,
+      [pharmacyId],
+    );
+    if (rows.length === 0) {
+      return { reply: 'Votre catalogue est vide : aucune référence disponible dans cette pharmacie.', intent: 'catalog', data: [] };
+    }
+    const names = rows.map((r) => `• ${r.name} (${Number(r.stock)} u. — ${this._fmtMoney(r.price_sale)})`);
+    const more = rows.length === 25 ? `\n… et plus de références (demandez « prix [nom] »).` : '';
+    return {
+      reply: `Catalogue (${rows.length} référence(s) disponibles) :\n${names.join('\n')}${more}`,
+      intent: 'catalog',
+      data: rows,
     };
   },
 
@@ -608,7 +697,9 @@ export const aiService = {
 
   /** « Prix <produit> » → recherche par nom et renvoi du prix/stock. */
   async _chatPrice(pharmacyId, text) {
-    const term = (text || '').replace(/^prix\b|prix de|prix du|combien coûte|combien coute|\?/gi, '').trim().slice(0, 60);
+    const term = (text || '')
+      .replace(/^(?:quel est|qu' est|donne moi|donnez moi|donne-moi)?\s*(?:le\s+)?prix\s+(?:de|du|des|d'|)\b|prix (?:de|du|des|d') *|combien coûte|combien coute|coûte combien|coute combien|\?/gi, '')
+      .trim().slice(0, 60);
     if (!term) return this._helpReply();
     const { rows } = await query(
       `SELECT m.name, m.price_sale,
