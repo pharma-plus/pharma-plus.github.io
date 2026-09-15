@@ -93,7 +93,14 @@ const TABLE_MAP: Record<string, string> = {
   "/purchases/orders": "purchase_orders",
   "/purchases/receptions": "purchase_receptions",
   "/sales": "sales",
+  "/sale-items": "sale_items",
+  "/sale-returns": "sale_returns",
+  "/payments": "payments",
+  "/invoices": "invoices",
+  "/invoice-items": "invoice_items",
   "/stock/adjustments": "stock_movements",
+  "/stock/movements": "stock_movements",
+  "/stock/balances": "stock_balances",
   "/stock/lots": "lots",
   "/stock/transfers": "stock_transfers",
   "/accounting/accounts": "accounts",
@@ -462,11 +469,55 @@ await sbAuth.auth.signInWithPassword({ email, password });
         .from("roles")
         .select("id, name")
         .limit(3);
+      const [saleItems, payments, moves] = await Promise.all([
+        sb.from("sale_items").select("id, sale_id, medication_id, quantity").limit(5),
+        sb.from("payments").select("id, sale_id, method, amount").limit(5),
+        sb.from("stock_movements").select("id, movement_type, reference_id, quantity").limit(5).order("created_at", { ascending: false }),
+      ]);
+      let schemaInfo: any = {};
+      try {
+        const sres = await fetch(
+          `${supabaseUrl}/rest/v1/?apikey=${serviceKey}`,
+          { headers: { Accept: "application/openapi+json", apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
+        );
+        const sjson: any = await sres.json();
+        const defs: any = sjson?.definitions ?? {};
+        const salesDef = defs?.sales;
+        if (salesDef) {
+          const sc = salesDef.properties ?? {};
+          schemaInfo.sales_properties = Object.fromEntries(
+            Object.entries(sc).map(([k, v]: any) => [k, (v as any)?.enum ?? (v as any)?.type ?? "?"]),
+          );
+          schemaInfo.sales_required = salesDef.required ?? [];
+        }
+        const prodDef = defs?.sale_items;
+        schemaInfo.sale_items_def = prodDef
+          ? Object.fromEntries(
+              Object.entries(prodDef.properties ?? {}).map(([k, v]: any) => [k, (v as any)?.type ?? "?"]),
+            )
+          : null;
+        schemaInfo.sale_items_required = prodDef?.required ?? [];
+        const payDef = defs?.payments;
+        schemaInfo.payments_def = payDef
+          ? Object.fromEntries(
+              Object.entries(payDef.properties ?? {}).map(([k, v]: any) => [k, (v as any)?.type ?? "?"]),
+            )
+          : null;
+        schemaInfo.all_def_keys = Object.keys(defs).slice(0, 80);
+      } catch (e: any) {
+        schemaInfo.openapi_error = String(e);
+      }
       return json({
         diag: {
           ilike: { data: r1.data, error: r1.error?.message ?? null },
           eq: { data: r2.data, error: r2.error?.message ?? null },
           roles: { data: r3.data, error: r3.error?.message ?? null },
+          sanity: {
+            sale_items: { count: saleItems.data?.length, err: saleItems.error?.message ?? null, sample: saleItems.data?.map((x: any) => ({ sale: x.sale_id, med: x.medication_id, qty: x.quantity })) },
+            payments: { count: payments.data?.length, err: payments.error?.message ?? null, sample: payments.data?.map((x: any) => ({ sale: x.sale_id, method: x.method, amount: x.amount })) },
+            stock_movements: { count: moves.data?.length, err: moves.error?.message ?? null, sample: moves.data?.map((x: any) => ({ type: x.movement_type, ref: x.reference_id, qty: x.quantity })) },
+          },
+          schema: schemaInfo,
         },
       });
     } catch (e) {
@@ -857,6 +908,220 @@ await sbAuth.auth.signInWithPassword({ email, password });
   }
 
   /* ===========================================================
+     POS — POST /sales : vente transactionnelle complète
+     (sale + sale_items + décrément stock + stock_movements + payments)
+     =========================================================== */
+  if (path === "sales" && req.method === "POST") {
+    try {
+      const body = await req.json().catch(() => ({}));
+      const branchId = body.branchId ?? body.branch_id;
+      const rawSaleType = body.saleType ?? body.sale_type ?? "pos";
+      const saleType = ({ pos: "cash", cash: "cash", credit: "credit" }[rawSaleType] ?? "cash") as string;
+      const items: any[] = Array.isArray(body.items) ? body.items : [];
+      const payments: any[] = Array.isArray(body.payments) ? body.payments : [];
+      const customerId = body.customerId ?? body.customer_id ?? body.client_id ?? null;
+      const notes = body.notes ?? null;
+      if (!branchId) {
+        return json({ error: { code: "VALIDATION", message: "branchId requis" } }, 400);
+      }
+      if (items.length === 0) {
+        return json({ error: { code: "VALIDATION", message: "Aucun article dans la vente" } }, 400);
+      }
+
+      // Utilisateur connecté (sub du JWT) → user_id de public.users.
+      const payload = jwtPayload(req);
+      const authEmail = (payload?.email as string) ?? "";
+      let userId: string | null = null;
+      if (authEmail) {
+        const { data: u } = await sb
+          .from("users")
+          .select("id")
+          .ilike("email", authEmail)
+          .maybeSingle();
+        userId = u?.id ?? null;
+      }
+      if (!userId) {
+        const { data: first } = await sb
+          .from("users")
+          .select("id")
+          .eq("pharmacy_id", pid)
+          .eq("status", "active")
+          .limit(1)
+          .maybeSingle();
+        userId = first?.id ?? null;
+      }
+
+      // Coordonnées médicaments (coût, TVA) — aucune donnée inventée.
+      const medIds = [...new Set(items.map((i: any) => i.medication_id))];
+      const { data: meds } = await sb
+        .from("medications")
+        .select("id, name, price_purchase, price_sale, tva_rate")
+        .eq("pharmacy_id", pid)
+        .in("id", medIds);
+      const medMap = new Map((meds ?? []).map((m: any) => [m.id, m]));
+
+      // Lots disponibles par médicament (FIFO : péremption la plus proche),
+      // via les balances de stock de la succursale.
+      const { data: stockRows } = await sb
+        .from("stock_balances")
+        .select("medication_id, lot_id, quantity, lots!inner(expiry_date)")
+        .eq("pharmacy_id", pid)
+        .eq("branch_id", branchId)
+        .gt("quantity", 0)
+        .in("medication_id", medIds);
+      const lotByMed = new Map<string, string | null>();
+      for (const s of stockRows ?? []) {
+        const cur = lotByMed.get(s.medication_id);
+        if (!cur && Number(s.quantity) > 0) {
+          lotByMed.set(s.medication_id, s.lot_id);
+        } else if (cur && s.lots?.expiry_date) {
+          const curExp = (stockRows ?? []).find((x: any) => x.lot_id === cur)?.lots?.expiry_date;
+          if (!curExp || new Date(s.lots.expiry_date) < new Date(curExp)) {
+            lotByMed.set(s.medication_id, s.lot_id);
+          }
+        }
+      }
+
+      let subtotal = 0, discountTotal = 0, taxTotal = 0, costTotal = 0, lineCount = 0;
+      const rows: any[] = [];
+      for (const it of items) {
+        const med = medMap.get(it.medication_id);
+        if (!med) {
+          return json(
+            { error: { code: "INVALID_ITEM", message: `Médicament ${it.medication_id} introuvable` } },
+            400,
+          );
+        }
+        const qty = Number(it.quantity ?? 0);
+        const unitPrice = Number(it.unit_price ?? med.price_sale ?? 0);
+        const discountPct = Number(it.discount ?? 0);
+        if (qty <= 0) continue;
+        const gross = unitPrice * qty;
+        const discountAmt = gross * (discountPct / 100);
+        const net = gross - discountAmt;
+        const tvaRate = Number(med.tva_rate ?? 0) || 0;
+        const tvaAmt = net * (tvaRate / 100);
+        const cost = Number(med.price_purchase ?? 0) * qty;
+        subtotal += net;
+        discountTotal += discountAmt;
+        taxTotal += tvaAmt;
+        costTotal += cost;
+        lineCount += qty;
+        rows.push({
+          medication_id: med.id,
+          lot_id: lotByMed.get(med.id) ?? null,
+          quantity: qty,
+          unit_price: unitPrice,
+          cost_price: Number(med.price_purchase ?? 0),
+          tva_rate: tvaRate,
+          discount: discountPct,
+        });
+      }
+      if (rows.length === 0) {
+        return json({ error: { code: "VALIDATION", message: "Aucun article valide" } }, 400);
+      }
+      const total = subtotal + taxTotal;
+      const paidAmount =
+        payments.reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
+      const changeAmount = Math.max(0, paidAmount - total);
+      const paymentMethod = payments[0]?.method ?? "cash";
+
+      // Numéro de vente séquentiel atomique par pharmacie (FN next_number).
+      const { data: numberData, error: numErr } = await sb.rpc("fn_next_number", {
+        p_pharmacy: pid,
+        p_prefix: "POS",
+      });
+      let number = numErr ? null : numberData;
+      if (!number) {
+        number = `POS-${Date.now()}`;
+      }
+
+      // 1) Vente
+      const { data: sale, error: saleErr } = await sb
+        .from("sales")
+        .insert({
+          pharmacy_id: pid,
+          branch_id: branchId,
+          user_id: userId,
+          customer_id: customerId,
+          number,
+          sale_type: saleType,
+          status: "completed",
+          subtotal: Number(subtotal.toFixed(2)),
+          discount_total: Number(discountTotal.toFixed(2)),
+          tax_total: Number(taxTotal.toFixed(2)),
+          total: Number(total.toFixed(2)),
+          cost_total: Number(costTotal.toFixed(2)),
+          paid_amount: Number(paidAmount.toFixed(2)),
+          change_amount: Number(changeAmount.toFixed(2)),
+          payment_method: paymentMethod,
+          notes,
+        })
+        .select()
+        .single();
+      if (saleErr) {
+        console.error("[sales] insert error:", saleErr.message);
+        return json({ error: { code: "SALE_FAILED", message: saleErr.message } }, 400);
+      }
+
+      // 2) Lignes + décrément stock (déclenché par le trigger fn_apply_stock_movement
+      //    à l'insertion du stock_movement de type 'sale').
+      for (const r of rows) {
+        const { error: itemErr } = await sb.from("sale_items").insert({
+          pharmacy_id: pid,
+          sale_id: sale.id,
+          ...r,
+          unit_cost: Number(r.cost_price ?? 0),
+          discount_percent: Number(r.discount ?? 0),
+          tax_rate: Number(r.tva_rate ?? 0),
+        });
+        if (itemErr) {
+          console.error("[sales] sale_items error:", itemErr.message);
+        }
+        await sb.from("stock_movements").insert({
+          pharmacy_id: pid,
+          branch_id: branchId,
+          medication_id: r.medication_id,
+          lot_id: r.lot_id,
+          movement_type: "sale",
+          quantity: Number(r.quantity) * -1,
+          unit_cost: r.cost_price,
+          reference_type: "sale",
+          reference_id: sale.id,
+          user_id: userId,
+          notes: `Vente ${number}`,
+        });
+      }
+
+      // 3) Paiements
+      for (const p of payments) {
+        await sb.from("payments").insert({
+          pharmacy_id: pid,
+          sale_id: sale.id,
+          customer_id: customerId,
+          method: p.method ?? "cash",
+          amount: Number(p.amount ?? 0),
+          status: "completed",
+          received_by: userId,
+          reference: p.reference ?? null,
+        });
+      }
+
+      return json({
+        data: {
+          id: sale.id,
+          number: sale.number,
+          total: sale.total,
+          lineCount,
+        },
+      });
+    } catch (e) {
+      console.error("[sales] exception:", String(e));
+      return json({ error: { code: "SALE_ERROR", message: String(e) } }, 500);
+    }
+  }
+
+  /* ===========================================================
      PUBLIC WEBSITE — blog post by slug
      =========================================================== */
   if (/^blog\/[^/]+$/.test(path) && req.method === "GET") {
@@ -871,7 +1136,7 @@ await sbAuth.auth.signInWithPassword({ email, password });
      prescriptions, purchases, sales, accounting, attendance, etc.
      =========================================================== */
   const genericMatch = path.match(
-    /^(catalog\/medications|catalog\/categories|catalog\/laboratories|catalog\/families|suppliers|customers|employees|cameras|branches|roles|role_permissions|permissions|users|notifications|prescriptions|pharmacies|purchases\/orders|purchases\/receptions|sales|stock\/adjustments|stock\/lots|stock\/transfers|accounting\/accounts|accounting\/journal|accounting\/expense-categories|accounting\/expenses|accounting\/registers|accounting\/closings|attendance\/leaves|attendance\/schedules|reference\/categories|website\/settings|website\/blog\/posts|support\/tickets|backups)(?:\/(.+))?$/,
+    /^(catalog\/medications|catalog\/categories|catalog\/laboratories|catalog\/families|suppliers|customers|employees|cameras|branches|roles|role_permissions|permissions|users|notifications|prescriptions|pharmacies|purchases\/orders|purchases\/receptions|sales|sale-items|sale-returns|payments|invoices|invoice-items|stock\/adjustments|stock\/balances|stock\/movements|stock\/lots|stock\/transfers|accounting\/accounts|accounting\/journal|accounting\/expense-categories|accounting\/expenses|accounting\/registers|accounting\/closings|attendance\/leaves|attendance\/schedules|reference\/categories|website\/settings|website\/blog\/posts|support\/tickets|backups)(?:\/(.+))?$/,
   );
   if (genericMatch) {
     const [, basePath, sub] = genericMatch;
