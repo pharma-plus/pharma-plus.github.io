@@ -16,8 +16,19 @@ analyze_now.txt
 analyze_done.txt
 build_web_out.txt
 
-# Depot git imbrique (pharma-plus-api) : ne pas ajouter comme gitlink
-backend/
+# Backend versionné (sauf secrets et dépendances — voir lignes 1-2 ci-dessus :
+# backend/.env et backend/node_modules/ restent ignorés).
+# Ancien dépôt git imbriqué (pharma-plus-api) : ne pas ajouter comme gitlink.
+backend/.git/
+
+# CLI Supabase : cache local du link (ne pas versionner)
+supabase/.temp/
+supabase/.branches/
+supabase/.pooler/
+
+# Serveur statique local (logs temporaires)
+server_err.txt
+server_log.txt
 
 main.dart.js.locked
 build_exit_code.txt

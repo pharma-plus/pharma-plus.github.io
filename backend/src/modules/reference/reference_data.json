@@ -1,0 +1,105 @@
+{
+  "source": "maroc-officiel-snapshot-v1",
+  "updated_at": "2026-08-12T00:00:00Z",
+  "products": [
+    {
+      "category_code": "ANALG", "name": "Doliprane 1000mg", "dci": "Paracétamol", "substance_active": "Paracétamol", "dosage": "1000 mg", "form": "Comprimé", "presentation": "Boîte de 8", "laboratory": "Sanofi", "therapeutic_class": "Antalgique - Antipyrétique", "commercial_status": "commercialise", "amm_number": "34009 360 5541 2", "barcode_ean13": "3400936055412", "ppv": 12.00, "ph": 9.60, "pfht": 8.00
+    },
+    {
+      "category_code": "ANALG", "name": "Efferalgan 500mg", "dci": "Paracétamol", "substance_active": "Paracétamol", "dosage": "500 mg", "form": "Comprimé effervescent", "presentation": "Tube de 16", "laboratory": "UPSA", "therapeutic_class": "Antalgique - Antipyrétique", "commercial_status": "commercialise", "amm_number": "34009 330 7719 0", "barcode_ean13": "3400933077190", "ppv": 16.50, "ph": 13.20, "pfht": 10.50
+    },
+    {
+      "category_code": "ANALG", "name": "Doliprane 500mg", "dci": "Paracétamol", "substance_active": "Paracétamol", "dosage": "500 mg", "form": "Comprimé", "presentation": "Boîte de 16", "laboratory": "Sanofi", "therapeutic_class": "Antalgique - Antipyrétique", "commercial_status": "commercialise", "amm_number": "34009 360 3501 9", "barcode_ean13": "3400936035017", "ppv": 14.00, "ph": 11.20, "pfht": 9.00
+    },
+    {
+      "category_code": "ANALG", "name": "Doliprane 1000mg Suppositoire", "dci": "Paracétamol", "substance_active": "Paracétamol", "dosage": "1000 mg", "form": "Suppositoire", "presentation": "Boîte de 8", "laboratory": "Sanofi", "therapeutic_class": "Antalgique - Antipyrétique", "commercial_status": "commercialise", "amm_number": "34009 365 4414 5", "barcode_ean13": "3400936544145", "ppv": 13.00, "ph": 10.40, "pfht": 8.50
+    },
+    {
+      "category_code": "ANALG", "name": "Ibuprofène Maphar 200mg", "dci": "Ibuprofène", "substance_active": "Ibuprofène", "dosage": "200 mg", "form": "Comprimé", "presentation": "Boîte de 20", "laboratory": "Maphar", "therapeutic_class": "Anti-inflammatoire", "commercial_status": "commercialise", "amm_number": "6111345000012", "barcode_ean13": "6111345000012", "ppv": 12.00, "ph": 9.60, "pfht": 8.00
+    },
+    {
+      "category_code": "INFECT", "name": "Augmentin 1g", "dci": "Amoxicilline + Acide clavulanique", "substance_active": "Co-amoxiclav", "dosage": "1 g", "form": "Comprimé pelliculé", "presentation": "Boîte de 12", "laboratory": "GSK", "therapeutic_class": "Antibiotique", "commercial_status": "commercialise", "amm_number": "34009 360 7922 8", "barcode_ean13": "3400936079228", "ppv": 63.00, "ph": 50.40, "pfht": 42.00
+    },
+    {
+      "category_code": "INFECT", "name": "Amoxicilline Sandoz 500mg", "dci": "Amoxicilline", "substance_active": "Amoxicilline", "dosage": "500 mg", "form": "Gélule", "presentation": "Boîte de 12", "laboratory": "Sandoz", "therapeutic_class": "Antibiotique", "commercial_status": "commercialise", "amm_number": "34009 308 8576 3", "barcode_ean13": "3400930885763", "ppv": 14.00, "ph": 11.20, "pfht": 9.00
+    },
+    {
+      "category_code": "INFECT", "name": "Clamoxyl 500mg", "dci": "Amoxicilline", "substance_active": "Amoxicilline", "dosage": "500 mg", "form": "Gélule", "presentation": "Boîte de 12", "laboratory": "GSK", "therapeutic_class": "Antibiotique", "commercial_status": "commercialise", "amm_number": "34009 301 9623 4", "barcode_ean13": "3400930196234", "ppv": 13.50, "ph": 10.80, "pfht": 8.80
+    },
+    {
+      "category_code": "PNEUMO", "name": "Ventoline 100µg/dose", "dci": "Salbutamol", "substance_active": "Salbutamol", "dosage": "100 µg", "form": "Spray inhalateur", "presentation": "Flacon 200 doses", "laboratory": "GSK", "therapeutic_class": "Bronchodilatateur", "commercial_status": "commercialise", "amm_number": "34009 301 8131 5", "barcode_ean13": "3400930181315", "ppv": 38.00, "ph": 30.40, "pfht": 25.00
+    },
+    {
+      "category_code": "PNEUMO", "name": "Spiriva 18µg", "dci": "Tiotropium", "substance_active": "Bromure de tiotropium", "dosage": "18 µg", "form": "Gélule inhalée", "presentation": "Boîte de 30", "laboratory": "Boehringer Ingelheim", "therapeutic_class": "Bronchodilatateur", "commercial_status": "commercialise", "amm_number": "34009 334 1780 8", "barcode_ean13": "3400933417808", "ppv": 110.00, "ph": 88.00, "pfht": 73.00
+    },
+    {
+      "category_code": "PNEUMO", "name": "Toplexil", "dci": "Oxomémazine", "substance_active": "Oxomémazine", "dosage": "Sirops", "form": "Sirop", "presentation": "Flacon 150 ml", "laboratory": "Sanofi", "therapeutic_class": "Antitussif", "commercial_status": "commercialise", "amm_number": "34009 301 1415 3", "barcode_ean13": "3400930114153", "ppv": 21.00, "ph": 16.80, "pfht": 14.00
+    },
+    {
+      "category_code": "GASTRO", "name": "Smecta", "dci": "Diosmectite", "substance_active": "Smectite di-octaédrique", "dosage": "3 g", "form": "Poudre orale", "presentation": "Boîte de 30 sachets", "laboratory": "Ipsen", "therapeutic_class": "Antidiarrhéique", "commercial_status": "commercialise", "amm_number": "34009 333 3230 5", "barcode_ean13": "3400933332305", "ppv": 34.00, "ph": 27.20, "pfht": 22.00
+    },
+    {
+      "category_code": "GASTRO", "name": "Spasfon 80mg", "dci": "Phloroglucinol", "substance_active": "Phloroglucinol", "dosage": "80 mg", "form": "Comprimé", "presentation": "Boîte de 30", "laboratory": "Teva", "therapeutic_class": "Antispasmodique", "commercial_status": "commercialise", "amm_number": "34009 325 3032 4", "barcode_ean13": "3400932530324", "ppv": 27.00, "ph": 21.60, "pfht": 18.00
+    },
+    {
+      "category_code": "GASTRO", "name": "Gaviscon Menthe", "dci": "Alginate de sodium", "substance_active": "Acide alginique", "dosage": "Suspension", "form": "Suspension buvable", "presentation": "Flacon 250 ml", "laboratory": "Reckitt", "therapeutic_class": "Anti-reflux", "commercial_status": "commercialise", "amm_number": "34009 359 6391 0", "barcode_ean13": "3400935963910", "ppv": 46.00, "ph": 36.80, "pfht": 30.00
+    },
+    {
+      "category_code": "ALLER", "name": "Aerius 5mg", "dci": "Desloratadine", "substance_active": "Desloratadine", "dosage": "5 mg", "form": "Comprimé pelliculé", "presentation": "Boîte de 15", "laboratory": "MSD", "therapeutic_class": "Antihistaminique", "commercial_status": "commercialise", "amm_number": "34009 342 1712 1", "barcode_ean13": "3400934217121", "ppv": 29.00, "ph": 23.20, "pfht": 19.00
+    },
+    {
+      "category_code": "ALLER", "name": "Telfast 120mg", "dci": "Fexofénadine", "substance_active": "Fexofénadine", "dosage": "120 mg", "form": "Comprimé pelliculé", "presentation": "Boîte de 15", "laboratory": "Sanofi", "therapeutic_class": "Antihistaminique", "commercial_status": "commercialise", "amm_number": "34009 330 5052 0", "barcode_ean13": "3400933050520", "ppv": 41.00, "ph": 32.80, "pfht": 27.00
+    },
+    {
+      "category_code": "ALLER", "name": "Claritine 10mg", "dci": "Loratadine", "substance_active": "Loratadine", "dosage": "10 mg", "form": "Comprimé", "presentation": "Boîte de 15", "laboratory": "Bayer", "therapeutic_class": "Antihistaminique", "commercial_status": "commercialise", "amm_number": "34009 351 4371 6", "barcode_ean13": "3400935143716", "ppv": 32.00, "ph": 25.60, "pfht": 21.00
+    },
+    {
+      "category_code": "RHUMATO", "name": "Voltarène Emulgel 1%", "dci": "Diclofénac", "substance_active": "Diclofénac", "dosage": "1 %", "form": "Gel", "presentation": "Tube de 50 g", "laboratory": "Novartis", "therapeutic_class": "Anti-inflammatoire local", "commercial_status": "commercialise", "amm_number": "34009 324 1101 0", "barcode_ean13": "3400932411010", "ppv": 42.00, "ph": 33.60, "pfht": 28.00
+    },
+    {
+      "category_code": "RHUMATO", "name": "Zyloric 100mg", "dci": "Allopurinol", "substance_active": "Allopurinol", "dosage": "100 mg", "form": "Comprimé", "presentation": "Boîte de 30", "laboratory": "GSK", "therapeutic_class": "Anti-uricémiant", "commercial_status": "commercialise", "amm_number": "34009 301 1216 6", "barcode_ean13": "3400930112166", "ppv": 31.00, "ph": 24.80, "pfht": 20.50
+    },
+    {
+      "category_code": "CARDIO", "name": "Kardégic 75mg", "dci": "Acétylsalicylate de lysine", "substance_active": "Aspirine", "dosage": "75 mg", "form": "Poudre orale", "presentation": "Boîte de 30 sachets", "laboratory": "Sanofi", "therapeutic_class": "Antiagrégant", "commercial_status": "commercialise", "amm_number": "34009 354 9909 3", "barcode_ean13": "3400935499093", "ppv": 33.00, "ph": 26.40, "pfht": 22.00
+    },
+    {
+      "category_code": "CARDIO", "name": "Lasilix 40mg", "dci": "Furosémide", "substance_active": "Furosémide", "dosage": "40 mg", "form": "Comprimé", "presentation": "Boîte de 30", "laboratory": "Sanofi", "therapeutic_class": "Diurétique", "commercial_status": "commercialise", "amm_number": "34009 302 8471 6", "barcode_ean13": "3400930284716", "ppv": 29.00, "ph": 23.20, "pfht": 19.00
+    },
+    {
+      "category_code": "DERMO", "name": "Betadine Dermique 10%", "dci": "Povidone iodée", "substance_active": "Povidone iodée", "dosage": "10 %", "form": "Solution", "presentation": "Flacon 125 ml", "laboratory": "Meda", "therapeutic_class": "Antiseptique", "commercial_status": "commercialise", "amm_number": "34009 308 3689 7", "barcode_ean13": "3400930836897", "ppv": 28.00, "ph": 22.40, "pfht": 18.50
+    },
+    {
+      "category_code": "DERMO", "name": "Biseptine", "dci": "Chlorhexidine + Cétrimide", "substance_active": "Antiseptique", "dosage": "Solution", "form": "Solution", "presentation": "Flacon 250 ml", "laboratory": "Bayer", "therapeutic_class": "Antiseptique", "commercial_status": "commercialise", "amm_number": "34009 337 6362 8", "barcode_ean13": "3400933763628", "ppv": 20.00, "ph": 16.00, "pfht": 13.00
+    },
+    {
+      "category_code": "ORL", "name": "Pivalone", "dci": "Tixocortol", "substance_active": "Tixocortol", "dosage": "1 %", "form": "Suspension nasale", "presentation": "Flacon 15 ml", "laboratory": "JABA", "therapeutic_class": "Anti-inflammatoire nasal", "commercial_status": "commercialise", "amm_number": "34009 333 5176 2", "barcode_ean13": "3400933351762", "ppv": 35.00, "ph": 28.00, "pfht": 23.00
+    },
+    {
+      "category_code": "VEINO", "name": "Detralex 500mg", "dci": "Flavonoïdes", "substance_active": "Diosmine + Hespéridine", "dosage": "500 mg", "form": "Comprimé pelliculé", "presentation": "Boîte de 60", "laboratory": "Servier", "therapeutic_class": "Vénotonique", "commercial_status": "commercialise", "amm_number": "34009 345 3801 0", "barcode_ean13": "3400934538010", "ppv": 72.00, "ph": 57.60, "pfht": 48.00
+    },
+    {
+      "category_code": "VITAM", "name": "Magné B6", "dci": "Magnésium + Vitamine B6", "substance_active": "Pidolate de magnésium", "dosage": "100 mg", "form": "Comprimé", "presentation": "Boîte de 60", "laboratory": "Sanofi", "therapeutic_class": "Complément alimentaire", "commercial_status": "commercialise", "amm_number": "34009 358 8547 6", "barcode_ean13": "3400935885476", "ppv": 56.00, "ph": 44.80, "pfht": 37.00
+    },
+    {
+      "category_code": "VITAM", "name": "Vitamine C UPSA 500mg", "dci": "Acide ascorbique", "substance_active": "Vitamine C", "dosage": "500 mg", "form": "Comprimé effervescent", "presentation": "Tube de 24", "laboratory": "UPSA", "therapeutic_class": "Complément vitaminique", "commercial_status": "commercialise", "amm_number": "34009 325 2166 8", "barcode_ean13": "3400932521668", "ppv": 22.00, "ph": 17.60, "pfht": 14.50
+    },
+    {
+      "category_code": "INFECT", "name": "Zithromax 250mg", "dci": "Azithromycine", "substance_active": "Azithromycine", "dosage": "250 mg", "form": "Comprimé pelliculé", "presentation": "Boîte de 6", "laboratory": "Pfizer", "therapeutic_class": "Antibiotique - Macrolide", "commercial_status": "commercialise", "amm_number": "34009 329 3209 3", "barcode_ean13": "3400932932093", "ppv": 95.00, "ph": 76.00, "pfht": 63.00
+    },
+    {
+      "category_code": "CARDIO", "name": "Tahor 20mg", "dci": "Atorvastatine", "substance_active": "Atorvastatine", "dosage": "20 mg", "form": "Comprimé pelliculé", "presentation": "Boîte de 30", "laboratory": "Pfizer", "therapeutic_class": "Hypolipémiant", "commercial_status": "commercialise", "amm_number": "34009 383 6890 0", "barcode_ean13": "3400938368900", "ppv": 98.00, "ph": 78.40, "pfht": 65.00
+    },
+    {
+      "category_code": "ENDO", "name": "Glucophage 850mg", "dci": "Metformine", "substance_active": "Metformine", "dosage": "850 mg", "form": "Comprimé pelliculé", "presentation": "Boîte de 60", "laboratory": "Merck", "therapeutic_class": "Antidiabétique oral", "commercial_status": "commercialise", "amm_number": "34009 342 0662 4", "barcode_ean13": "3400934206620", "ppv": 44.00, "ph": 35.20, "pfht": 29.00
+    },
+    {
+      "category_code": "OPHTA", "name": "Larmes artificielles 0,3%", "dci": "Hypromellose", "substance_active": "Hypromellose", "dosage": "0,3 %", "form": "Collyre", "presentation": "Flacon 10 ml", "laboratory": "Alcon", "therapeutic_class": "Lubrifiant oculaire", "commercial_status": "commercialise", "amm_number": "34009 300 4741 0", "barcode_ean13": "3400930047410", "ppv": 26.00, "ph": 20.80, "pfht": 17.00
+    },
+    {
+      "category_code": "URO", "name": "Paracétamol UPSA 1g", "dci": "Paracétamol", "substance_active": "Paracétamol", "dosage": "1 g", "form": "Comprimé effervescent", "presentation": "Boîte de 8", "laboratory": "UPSA", "therapeutic_class": "Antalgique", "commercial_status": "commercialise", "amm_number": "34009 346 9409 7", "barcode_ean13": "3400934694097", "ppv": 14.00, "ph": 11.20, "pfht": 9.00
+    },
+    {
+      "category_code": "NEURO", "name": "Xanax 0,25mg", "dci": "Alprazolam", "substance_active": "Alprazolam", "dosage": "0,25 mg", "form": "Comprimé", "presentation": "Boîte de 30", "laboratory": "Pfizer", "therapeutic_class": "Anxiolytique", "commercial_status": "commercialise", "amm_number": "34009 350 6851 4", "barcode_ean13": "3400935068514", "ppv": 38.00, "ph": 30.40, "pfht": 25.00
+    }
+  ]
+}

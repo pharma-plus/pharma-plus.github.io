@@ -1,0 +1,3509 @@
+{
+  "dumped_at": "2026-09-08T22:53:37.652Z",
+  "roles": [
+    {
+      "id": "00000000-0000-0000-0000-000000000001",
+      "pharmacy_id": null,
+      "name": "Super Administrateur",
+      "code": "super_admin",
+      "is_system": true,
+      "created_at": "2026-08-26T23:54:15.807Z"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000002",
+      "pharmacy_id": null,
+      "name": "Pharmacien Administrateur",
+      "code": "pharmacy_admin",
+      "is_system": true,
+      "created_at": "2026-08-26T23:54:15.807Z"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000003",
+      "pharmacy_id": null,
+      "name": "Pharmacien",
+      "code": "pharmacist",
+      "is_system": true,
+      "created_at": "2026-08-26T23:54:15.807Z"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000004",
+      "pharmacy_id": null,
+      "name": "Assistant",
+      "code": "assistant",
+      "is_system": true,
+      "created_at": "2026-08-26T23:54:15.807Z"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000005",
+      "pharmacy_id": null,
+      "name": "Caissier",
+      "code": "cashier",
+      "is_system": true,
+      "created_at": "2026-08-26T23:54:15.807Z"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000006",
+      "pharmacy_id": null,
+      "name": "Gestionnaire de stock",
+      "code": "stock_manager",
+      "is_system": true,
+      "created_at": "2026-08-26T23:54:15.807Z"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000007",
+      "pharmacy_id": null,
+      "name": "Comptable",
+      "code": "accountant",
+      "is_system": true,
+      "created_at": "2026-08-26T23:54:15.807Z"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000008",
+      "pharmacy_id": null,
+      "name": "Employé",
+      "code": "employee",
+      "is_system": true,
+      "created_at": "2026-08-26T23:54:15.807Z"
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000009",
+      "pharmacy_id": null,
+      "name": "Stagiaire",
+      "code": "trainee",
+      "is_system": true,
+      "created_at": "2026-08-26T23:54:15.807Z"
+    }
+  ],
+  "permissions": [
+    {
+      "code": "accounting:approve",
+      "name": "accounting - approve",
+      "module": "accounting"
+    },
+    {
+      "code": "accounting:create",
+      "name": "accounting - create",
+      "module": "accounting"
+    },
+    {
+      "code": "accounting:delete",
+      "name": "accounting - delete",
+      "module": "accounting"
+    },
+    {
+      "code": "accounting:edit",
+      "name": "accounting - edit",
+      "module": "accounting"
+    },
+    {
+      "code": "accounting:export",
+      "name": "accounting - export",
+      "module": "accounting"
+    },
+    {
+      "code": "accounting:print",
+      "name": "accounting - print",
+      "module": "accounting"
+    },
+    {
+      "code": "accounting:view",
+      "name": "accounting - view",
+      "module": "accounting"
+    },
+    {
+      "code": "ai:approve",
+      "name": "ai - approve",
+      "module": "ai"
+    },
+    {
+      "code": "ai:create",
+      "name": "ai - create",
+      "module": "ai"
+    },
+    {
+      "code": "ai:delete",
+      "name": "ai - delete",
+      "module": "ai"
+    },
+    {
+      "code": "ai:edit",
+      "name": "ai - edit",
+      "module": "ai"
+    },
+    {
+      "code": "ai:export",
+      "name": "ai - export",
+      "module": "ai"
+    },
+    {
+      "code": "ai:print",
+      "name": "ai - print",
+      "module": "ai"
+    },
+    {
+      "code": "ai:view",
+      "name": "ai - view",
+      "module": "ai"
+    },
+    {
+      "code": "attendance:approve",
+      "name": "attendance - approve",
+      "module": "attendance"
+    },
+    {
+      "code": "attendance:create",
+      "name": "attendance - create",
+      "module": "attendance"
+    },
+    {
+      "code": "attendance:delete",
+      "name": "attendance - delete",
+      "module": "attendance"
+    },
+    {
+      "code": "attendance:edit",
+      "name": "attendance - edit",
+      "module": "attendance"
+    },
+    {
+      "code": "attendance:export",
+      "name": "attendance - export",
+      "module": "attendance"
+    },
+    {
+      "code": "attendance:print",
+      "name": "attendance - print",
+      "module": "attendance"
+    },
+    {
+      "code": "attendance:view",
+      "name": "attendance - view",
+      "module": "attendance"
+    },
+    {
+      "code": "audit:approve",
+      "name": "audit - approve",
+      "module": "audit"
+    },
+    {
+      "code": "audit:create",
+      "name": "audit - create",
+      "module": "audit"
+    },
+    {
+      "code": "audit:delete",
+      "name": "audit - delete",
+      "module": "audit"
+    },
+    {
+      "code": "audit:edit",
+      "name": "audit - edit",
+      "module": "audit"
+    },
+    {
+      "code": "audit:export",
+      "name": "audit - export",
+      "module": "audit"
+    },
+    {
+      "code": "audit:print",
+      "name": "audit - print",
+      "module": "audit"
+    },
+    {
+      "code": "audit:view",
+      "name": "audit - view",
+      "module": "audit"
+    },
+    {
+      "code": "backups:approve",
+      "name": "backups - approve",
+      "module": "backups"
+    },
+    {
+      "code": "backups:create",
+      "name": "backups - create",
+      "module": "backups"
+    },
+    {
+      "code": "backups:delete",
+      "name": "backups - delete",
+      "module": "backups"
+    },
+    {
+      "code": "backups:edit",
+      "name": "backups - edit",
+      "module": "backups"
+    },
+    {
+      "code": "backups:export",
+      "name": "backups - export",
+      "module": "backups"
+    },
+    {
+      "code": "backups:print",
+      "name": "backups - print",
+      "module": "backups"
+    },
+    {
+      "code": "backups:view",
+      "name": "backups - view",
+      "module": "backups"
+    },
+    {
+      "code": "cashier:approve",
+      "name": "cashier - approve",
+      "module": "cashier"
+    },
+    {
+      "code": "cashier:create",
+      "name": "cashier - create",
+      "module": "cashier"
+    },
+    {
+      "code": "cashier:delete",
+      "name": "cashier - delete",
+      "module": "cashier"
+    },
+    {
+      "code": "cashier:edit",
+      "name": "cashier - edit",
+      "module": "cashier"
+    },
+    {
+      "code": "cashier:export",
+      "name": "cashier - export",
+      "module": "cashier"
+    },
+    {
+      "code": "cashier:print",
+      "name": "cashier - print",
+      "module": "cashier"
+    },
+    {
+      "code": "cashier:view",
+      "name": "cashier - view",
+      "module": "cashier"
+    },
+    {
+      "code": "catalog:approve",
+      "name": "catalog - approve",
+      "module": "catalog"
+    },
+    {
+      "code": "catalog:create",
+      "name": "catalog - create",
+      "module": "catalog"
+    },
+    {
+      "code": "catalog:delete",
+      "name": "catalog - delete",
+      "module": "catalog"
+    },
+    {
+      "code": "catalog:edit",
+      "name": "catalog - edit",
+      "module": "catalog"
+    },
+    {
+      "code": "catalog:export",
+      "name": "catalog - export",
+      "module": "catalog"
+    },
+    {
+      "code": "catalog:print",
+      "name": "catalog - print",
+      "module": "catalog"
+    },
+    {
+      "code": "catalog:view",
+      "name": "catalog - view",
+      "module": "catalog"
+    },
+    {
+      "code": "customers:approve",
+      "name": "customers - approve",
+      "module": "customers"
+    },
+    {
+      "code": "customers:create",
+      "name": "customers - create",
+      "module": "customers"
+    },
+    {
+      "code": "customers:delete",
+      "name": "customers - delete",
+      "module": "customers"
+    },
+    {
+      "code": "customers:edit",
+      "name": "customers - edit",
+      "module": "customers"
+    },
+    {
+      "code": "customers:export",
+      "name": "customers - export",
+      "module": "customers"
+    },
+    {
+      "code": "customers:print",
+      "name": "customers - print",
+      "module": "customers"
+    },
+    {
+      "code": "customers:view",
+      "name": "customers - view",
+      "module": "customers"
+    },
+    {
+      "code": "dashboard:approve",
+      "name": "dashboard - approve",
+      "module": "dashboard"
+    },
+    {
+      "code": "dashboard:create",
+      "name": "dashboard - create",
+      "module": "dashboard"
+    },
+    {
+      "code": "dashboard:delete",
+      "name": "dashboard - delete",
+      "module": "dashboard"
+    },
+    {
+      "code": "dashboard:edit",
+      "name": "dashboard - edit",
+      "module": "dashboard"
+    },
+    {
+      "code": "dashboard:export",
+      "name": "dashboard - export",
+      "module": "dashboard"
+    },
+    {
+      "code": "dashboard:print",
+      "name": "dashboard - print",
+      "module": "dashboard"
+    },
+    {
+      "code": "dashboard:view",
+      "name": "Dashboard - view",
+      "module": "dashboard"
+    },
+    {
+      "code": "employees:approve",
+      "name": "employees - approve",
+      "module": "employees"
+    },
+    {
+      "code": "employees:create",
+      "name": "employees - create",
+      "module": "employees"
+    },
+    {
+      "code": "employees:delete",
+      "name": "employees - delete",
+      "module": "employees"
+    },
+    {
+      "code": "employees:edit",
+      "name": "employees - edit",
+      "module": "employees"
+    },
+    {
+      "code": "employees:export",
+      "name": "employees - export",
+      "module": "employees"
+    },
+    {
+      "code": "employees:print",
+      "name": "employees - print",
+      "module": "employees"
+    },
+    {
+      "code": "employees:view",
+      "name": "employees - view",
+      "module": "employees"
+    },
+    {
+      "code": "inventory:approve",
+      "name": "inventory - approve",
+      "module": "inventory"
+    },
+    {
+      "code": "inventory:create",
+      "name": "inventory - create",
+      "module": "inventory"
+    },
+    {
+      "code": "inventory:delete",
+      "name": "inventory - delete",
+      "module": "inventory"
+    },
+    {
+      "code": "inventory:edit",
+      "name": "inventory - edit",
+      "module": "inventory"
+    },
+    {
+      "code": "inventory:export",
+      "name": "inventory - export",
+      "module": "inventory"
+    },
+    {
+      "code": "inventory:print",
+      "name": "inventory - print",
+      "module": "inventory"
+    },
+    {
+      "code": "inventory:view",
+      "name": "inventory - view",
+      "module": "inventory"
+    },
+    {
+      "code": "licenses:approve",
+      "name": "licenses - approve",
+      "module": "licenses"
+    },
+    {
+      "code": "licenses:create",
+      "name": "licenses - create",
+      "module": "licenses"
+    },
+    {
+      "code": "licenses:delete",
+      "name": "licenses - delete",
+      "module": "licenses"
+    },
+    {
+      "code": "licenses:edit",
+      "name": "licenses - edit",
+      "module": "licenses"
+    },
+    {
+      "code": "licenses:export",
+      "name": "licenses - export",
+      "module": "licenses"
+    },
+    {
+      "code": "licenses:print",
+      "name": "licenses - print",
+      "module": "licenses"
+    },
+    {
+      "code": "licenses:view",
+      "name": "licenses - view",
+      "module": "licenses"
+    },
+    {
+      "code": "notifications:approve",
+      "name": "notifications - approve",
+      "module": "notifications"
+    },
+    {
+      "code": "notifications:create",
+      "name": "notifications - create",
+      "module": "notifications"
+    },
+    {
+      "code": "notifications:delete",
+      "name": "notifications - delete",
+      "module": "notifications"
+    },
+    {
+      "code": "notifications:edit",
+      "name": "notifications - edit",
+      "module": "notifications"
+    },
+    {
+      "code": "notifications:export",
+      "name": "notifications - export",
+      "module": "notifications"
+    },
+    {
+      "code": "notifications:print",
+      "name": "notifications - print",
+      "module": "notifications"
+    },
+    {
+      "code": "notifications:view",
+      "name": "notifications - view",
+      "module": "notifications"
+    },
+    {
+      "code": "prescriptions:approve",
+      "name": "prescriptions - approve",
+      "module": "prescriptions"
+    },
+    {
+      "code": "prescriptions:create",
+      "name": "prescriptions - create",
+      "module": "prescriptions"
+    },
+    {
+      "code": "prescriptions:delete",
+      "name": "prescriptions - delete",
+      "module": "prescriptions"
+    },
+    {
+      "code": "prescriptions:edit",
+      "name": "prescriptions - edit",
+      "module": "prescriptions"
+    },
+    {
+      "code": "prescriptions:export",
+      "name": "prescriptions - export",
+      "module": "prescriptions"
+    },
+    {
+      "code": "prescriptions:print",
+      "name": "prescriptions - print",
+      "module": "prescriptions"
+    },
+    {
+      "code": "prescriptions:view",
+      "name": "prescriptions - view",
+      "module": "prescriptions"
+    },
+    {
+      "code": "purchases:approve",
+      "name": "purchases - approve",
+      "module": "purchases"
+    },
+    {
+      "code": "purchases:create",
+      "name": "purchases - create",
+      "module": "purchases"
+    },
+    {
+      "code": "purchases:delete",
+      "name": "purchases - delete",
+      "module": "purchases"
+    },
+    {
+      "code": "purchases:edit",
+      "name": "purchases - edit",
+      "module": "purchases"
+    },
+    {
+      "code": "purchases:export",
+      "name": "purchases - export",
+      "module": "purchases"
+    },
+    {
+      "code": "purchases:print",
+      "name": "purchases - print",
+      "module": "purchases"
+    },
+    {
+      "code": "purchases:view",
+      "name": "purchases - view",
+      "module": "purchases"
+    },
+    {
+      "code": "reports:approve",
+      "name": "reports - approve",
+      "module": "reports"
+    },
+    {
+      "code": "reports:create",
+      "name": "reports - create",
+      "module": "reports"
+    },
+    {
+      "code": "reports:delete",
+      "name": "reports - delete",
+      "module": "reports"
+    },
+    {
+      "code": "reports:edit",
+      "name": "reports - edit",
+      "module": "reports"
+    },
+    {
+      "code": "reports:export",
+      "name": "reports - export",
+      "module": "reports"
+    },
+    {
+      "code": "reports:print",
+      "name": "reports - print",
+      "module": "reports"
+    },
+    {
+      "code": "reports:view",
+      "name": "reports - view",
+      "module": "reports"
+    },
+    {
+      "code": "sales:approve",
+      "name": "sales - approve",
+      "module": "sales"
+    },
+    {
+      "code": "sales:create",
+      "name": "sales - create",
+      "module": "sales"
+    },
+    {
+      "code": "sales:delete",
+      "name": "sales - delete",
+      "module": "sales"
+    },
+    {
+      "code": "sales:edit",
+      "name": "sales - edit",
+      "module": "sales"
+    },
+    {
+      "code": "sales:export",
+      "name": "sales - export",
+      "module": "sales"
+    },
+    {
+      "code": "sales:print",
+      "name": "sales - print",
+      "module": "sales"
+    },
+    {
+      "code": "sales:view",
+      "name": "sales - view",
+      "module": "sales"
+    },
+    {
+      "code": "settings:approve",
+      "name": "settings - approve",
+      "module": "settings"
+    },
+    {
+      "code": "settings:create",
+      "name": "settings - create",
+      "module": "settings"
+    },
+    {
+      "code": "settings:delete",
+      "name": "settings - delete",
+      "module": "settings"
+    },
+    {
+      "code": "settings:edit",
+      "name": "settings - edit",
+      "module": "settings"
+    },
+    {
+      "code": "settings:export",
+      "name": "settings - export",
+      "module": "settings"
+    },
+    {
+      "code": "settings:print",
+      "name": "settings - print",
+      "module": "settings"
+    },
+    {
+      "code": "settings:view",
+      "name": "settings - view",
+      "module": "settings"
+    },
+    {
+      "code": "stock:approve",
+      "name": "stock - approve",
+      "module": "stock"
+    },
+    {
+      "code": "stock:create",
+      "name": "stock - create",
+      "module": "stock"
+    },
+    {
+      "code": "stock:delete",
+      "name": "stock - delete",
+      "module": "stock"
+    },
+    {
+      "code": "stock:edit",
+      "name": "stock - edit",
+      "module": "stock"
+    },
+    {
+      "code": "stock:export",
+      "name": "stock - export",
+      "module": "stock"
+    },
+    {
+      "code": "stock:print",
+      "name": "stock - print",
+      "module": "stock"
+    },
+    {
+      "code": "stock:view",
+      "name": "stock - view",
+      "module": "stock"
+    },
+    {
+      "code": "suppliers:approve",
+      "name": "suppliers - approve",
+      "module": "suppliers"
+    },
+    {
+      "code": "suppliers:create",
+      "name": "suppliers - create",
+      "module": "suppliers"
+    },
+    {
+      "code": "suppliers:delete",
+      "name": "suppliers - delete",
+      "module": "suppliers"
+    },
+    {
+      "code": "suppliers:edit",
+      "name": "suppliers - edit",
+      "module": "suppliers"
+    },
+    {
+      "code": "suppliers:export",
+      "name": "suppliers - export",
+      "module": "suppliers"
+    },
+    {
+      "code": "suppliers:print",
+      "name": "suppliers - print",
+      "module": "suppliers"
+    },
+    {
+      "code": "suppliers:view",
+      "name": "suppliers - view",
+      "module": "suppliers"
+    },
+    {
+      "code": "support:approve",
+      "name": "support - approve",
+      "module": "support"
+    },
+    {
+      "code": "support:create",
+      "name": "support - create",
+      "module": "support"
+    },
+    {
+      "code": "support:delete",
+      "name": "support - delete",
+      "module": "support"
+    },
+    {
+      "code": "support:edit",
+      "name": "support - edit",
+      "module": "support"
+    },
+    {
+      "code": "support:export",
+      "name": "support - export",
+      "module": "support"
+    },
+    {
+      "code": "support:print",
+      "name": "support - print",
+      "module": "support"
+    },
+    {
+      "code": "support:view",
+      "name": "support - view",
+      "module": "support"
+    },
+    {
+      "code": "sync:approve",
+      "name": "sync - approve",
+      "module": "sync"
+    },
+    {
+      "code": "sync:create",
+      "name": "sync - create",
+      "module": "sync"
+    },
+    {
+      "code": "sync:delete",
+      "name": "sync - delete",
+      "module": "sync"
+    },
+    {
+      "code": "sync:edit",
+      "name": "sync - edit",
+      "module": "sync"
+    },
+    {
+      "code": "sync:export",
+      "name": "sync - export",
+      "module": "sync"
+    },
+    {
+      "code": "sync:print",
+      "name": "sync - print",
+      "module": "sync"
+    },
+    {
+      "code": "sync:view",
+      "name": "sync - view",
+      "module": "sync"
+    },
+    {
+      "code": "users:approve",
+      "name": "users - approve",
+      "module": "users"
+    },
+    {
+      "code": "users:create",
+      "name": "users - create",
+      "module": "users"
+    },
+    {
+      "code": "users:delete",
+      "name": "users - delete",
+      "module": "users"
+    },
+    {
+      "code": "users:edit",
+      "name": "users - edit",
+      "module": "users"
+    },
+    {
+      "code": "users:export",
+      "name": "users - export",
+      "module": "users"
+    },
+    {
+      "code": "users:print",
+      "name": "users - print",
+      "module": "users"
+    },
+    {
+      "code": "users:view",
+      "name": "users - view",
+      "module": "users"
+    },
+    {
+      "code": "website:approve",
+      "name": "website - approve",
+      "module": "website"
+    },
+    {
+      "code": "website:create",
+      "name": "website - create",
+      "module": "website"
+    },
+    {
+      "code": "website:delete",
+      "name": "website - delete",
+      "module": "website"
+    },
+    {
+      "code": "website:edit",
+      "name": "website - edit",
+      "module": "website"
+    },
+    {
+      "code": "website:export",
+      "name": "website - export",
+      "module": "website"
+    },
+    {
+      "code": "website:print",
+      "name": "website - print",
+      "module": "website"
+    },
+    {
+      "code": "website:view",
+      "name": "website - view",
+      "module": "website"
+    }
+  ],
+  "role_permissions": [
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "accounting:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "accounting:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "accounting:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "accounting:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "accounting:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "accounting:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "accounting:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "ai:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "ai:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "ai:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "ai:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "ai:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "ai:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "ai:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "attendance:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "attendance:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "attendance:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "attendance:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "attendance:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "attendance:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "attendance:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "audit:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "audit:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "audit:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "audit:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "audit:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "audit:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "audit:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "backups:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "backups:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "backups:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "backups:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "backups:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "backups:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "backups:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "cashier:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "cashier:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "cashier:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "cashier:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "cashier:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "cashier:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "cashier:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "catalog:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "catalog:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "catalog:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "catalog:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "catalog:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "catalog:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "catalog:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "customers:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "customers:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "customers:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "customers:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "customers:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "customers:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "customers:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "dashboard:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "dashboard:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "dashboard:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "dashboard:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "dashboard:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "dashboard:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "dashboard:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "employees:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "employees:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "employees:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "employees:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "employees:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "employees:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "employees:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "inventory:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "inventory:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "inventory:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "inventory:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "inventory:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "inventory:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "inventory:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "licenses:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "licenses:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "licenses:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "licenses:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "licenses:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "licenses:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "licenses:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "notifications:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "notifications:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "notifications:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "notifications:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "notifications:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "notifications:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "notifications:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "prescriptions:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "prescriptions:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "prescriptions:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "prescriptions:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "prescriptions:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "prescriptions:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "prescriptions:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "purchases:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "purchases:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "purchases:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "purchases:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "purchases:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "purchases:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "purchases:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "reports:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "reports:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "reports:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "reports:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "reports:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "reports:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "reports:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "sales:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "sales:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "sales:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "sales:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "sales:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "sales:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "sales:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "settings:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "settings:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "settings:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "settings:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "settings:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "settings:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "settings:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "stock:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "stock:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "stock:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "stock:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "stock:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "stock:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "stock:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "suppliers:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "suppliers:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "suppliers:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "suppliers:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "suppliers:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "suppliers:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "suppliers:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "support:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "support:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "support:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "support:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "support:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "support:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "support:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "sync:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "sync:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "sync:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "sync:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "sync:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "sync:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "sync:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "users:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "users:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "users:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "users:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "users:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "users:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "users:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "website:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "website:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "website:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "website:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "website:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "website:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000001",
+      "permission_code": "website:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "accounting:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "accounting:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "accounting:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "accounting:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "accounting:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "accounting:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "accounting:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "ai:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "ai:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "ai:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "ai:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "ai:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "ai:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "ai:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "attendance:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "attendance:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "attendance:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "attendance:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "attendance:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "attendance:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "attendance:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "audit:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "audit:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "audit:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "audit:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "audit:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "audit:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "audit:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "backups:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "backups:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "backups:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "backups:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "backups:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "backups:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "backups:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "cashier:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "cashier:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "cashier:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "cashier:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "cashier:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "cashier:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "cashier:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "catalog:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "catalog:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "catalog:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "catalog:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "catalog:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "catalog:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "catalog:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "customers:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "customers:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "customers:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "customers:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "customers:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "customers:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "customers:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "dashboard:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "dashboard:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "dashboard:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "dashboard:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "dashboard:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "dashboard:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "dashboard:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "employees:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "employees:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "employees:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "employees:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "employees:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "employees:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "employees:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "inventory:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "inventory:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "inventory:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "inventory:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "inventory:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "inventory:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "inventory:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "licenses:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "licenses:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "licenses:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "licenses:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "licenses:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "licenses:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "licenses:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "notifications:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "notifications:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "notifications:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "notifications:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "notifications:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "notifications:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "notifications:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "prescriptions:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "prescriptions:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "prescriptions:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "prescriptions:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "prescriptions:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "prescriptions:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "prescriptions:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "purchases:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "purchases:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "purchases:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "purchases:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "purchases:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "purchases:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "purchases:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "reports:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "reports:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "reports:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "reports:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "reports:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "reports:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "reports:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "sales:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "sales:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "sales:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "sales:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "sales:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "sales:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "sales:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "settings:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "settings:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "settings:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "settings:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "settings:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "settings:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "settings:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "stock:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "stock:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "stock:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "stock:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "stock:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "stock:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "stock:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "suppliers:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "suppliers:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "suppliers:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "suppliers:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "suppliers:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "suppliers:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "suppliers:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "support:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "support:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "support:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "support:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "support:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "support:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "support:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "sync:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "sync:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "sync:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "sync:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "sync:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "sync:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "sync:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "users:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "users:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "users:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "users:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "users:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "users:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "users:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "website:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "website:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "website:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "website:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "website:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "website:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000002",
+      "permission_code": "website:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "accounting:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "accounting:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "accounting:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "accounting:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "accounting:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "accounting:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "accounting:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "ai:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "ai:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "ai:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "ai:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "ai:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "ai:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "ai:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "attendance:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "attendance:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "attendance:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "attendance:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "attendance:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "attendance:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "attendance:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "cashier:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "cashier:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "cashier:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "cashier:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "cashier:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "cashier:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "cashier:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "catalog:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "catalog:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "catalog:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "catalog:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "catalog:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "catalog:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "catalog:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "customers:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "customers:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "customers:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "customers:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "customers:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "customers:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "customers:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "dashboard:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "dashboard:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "dashboard:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "dashboard:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "dashboard:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "dashboard:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "dashboard:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "employees:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "employees:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "employees:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "employees:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "employees:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "employees:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "employees:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "inventory:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "inventory:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "inventory:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "inventory:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "inventory:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "inventory:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "inventory:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "notifications:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "notifications:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "notifications:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "notifications:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "notifications:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "notifications:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "notifications:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "prescriptions:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "prescriptions:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "prescriptions:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "prescriptions:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "prescriptions:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "prescriptions:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "prescriptions:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "purchases:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "purchases:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "purchases:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "purchases:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "purchases:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "purchases:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "purchases:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "reports:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "reports:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "reports:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "reports:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "reports:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "reports:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "reports:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "sales:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "sales:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "sales:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "sales:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "sales:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "sales:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "sales:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "stock:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "stock:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "stock:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "stock:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "stock:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "stock:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "stock:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "suppliers:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "suppliers:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "suppliers:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "suppliers:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "suppliers:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "suppliers:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "suppliers:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "support:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "support:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "support:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "support:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "support:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "support:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "support:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "sync:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "sync:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "sync:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "sync:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "sync:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "sync:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "sync:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "website:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "website:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "website:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "website:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "website:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "website:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000003",
+      "permission_code": "website:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "cashier:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "cashier:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "cashier:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "cashier:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "cashier:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "cashier:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "cashier:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "catalog:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "catalog:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "catalog:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "customers:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "customers:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "customers:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "customers:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "customers:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "customers:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "customers:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "dashboard:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "dashboard:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "dashboard:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "dashboard:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "dashboard:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "dashboard:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "dashboard:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "prescriptions:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "prescriptions:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "prescriptions:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "prescriptions:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "prescriptions:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "prescriptions:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "prescriptions:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "sales:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "sales:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "sales:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "sales:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "sales:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "sales:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000004",
+      "permission_code": "sales:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "cashier:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "cashier:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "cashier:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "cashier:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "cashier:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "cashier:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "cashier:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "customers:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "customers:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "customers:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "customers:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "customers:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "customers:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "customers:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "dashboard:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "dashboard:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "dashboard:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "dashboard:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "dashboard:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "dashboard:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "dashboard:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "sales:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "sales:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "sales:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "sales:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "sales:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "sales:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000005",
+      "permission_code": "sales:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "catalog:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "catalog:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "catalog:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "catalog:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "catalog:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "catalog:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "catalog:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "dashboard:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "dashboard:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "dashboard:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "dashboard:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "dashboard:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "dashboard:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "dashboard:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "inventory:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "inventory:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "inventory:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "inventory:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "inventory:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "inventory:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "inventory:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "purchases:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "purchases:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "purchases:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "purchases:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "purchases:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "purchases:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "purchases:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "stock:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "stock:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "stock:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "stock:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "stock:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "stock:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "stock:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "suppliers:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "suppliers:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "suppliers:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "suppliers:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "suppliers:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "suppliers:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000006",
+      "permission_code": "suppliers:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "accounting:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "accounting:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "accounting:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "accounting:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "accounting:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "accounting:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "accounting:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "customers:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "customers:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "customers:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "customers:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "customers:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "customers:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "customers:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "dashboard:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "dashboard:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "dashboard:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "dashboard:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "dashboard:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "dashboard:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "dashboard:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "purchases:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "purchases:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "purchases:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "purchases:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "purchases:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "purchases:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "purchases:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "reports:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "reports:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "reports:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "reports:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "reports:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "reports:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "reports:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "sales:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "sales:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "sales:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "sales:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "sales:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "sales:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "sales:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "suppliers:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "suppliers:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "suppliers:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "suppliers:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "suppliers:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "suppliers:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000007",
+      "permission_code": "suppliers:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000008",
+      "permission_code": "attendance:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000008",
+      "permission_code": "attendance:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000008",
+      "permission_code": "attendance:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000008",
+      "permission_code": "attendance:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000008",
+      "permission_code": "attendance:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000008",
+      "permission_code": "attendance:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000008",
+      "permission_code": "attendance:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000008",
+      "permission_code": "catalog:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000008",
+      "permission_code": "dashboard:approve"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000008",
+      "permission_code": "dashboard:create"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000008",
+      "permission_code": "dashboard:delete"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000008",
+      "permission_code": "dashboard:edit"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000008",
+      "permission_code": "dashboard:export"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000008",
+      "permission_code": "dashboard:print"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000008",
+      "permission_code": "dashboard:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000008",
+      "permission_code": "reports:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000009",
+      "permission_code": "catalog:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000009",
+      "permission_code": "customers:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000009",
+      "permission_code": "dashboard:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000009",
+      "permission_code": "reports:view"
+    },
+    {
+      "role_id": "00000000-0000-0000-0000-000000000009",
+      "permission_code": "stock:view"
+    }
+  ]
+}
