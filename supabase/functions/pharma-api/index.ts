@@ -397,10 +397,11 @@ await sbAuth.auth.signInWithPassword({ email, password });
     if (req.method !== "POST")
       return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
     const body = await req.json().catch(() => ({}));
-    const { refresh_token } = body as any;
-    if (!refresh_token)
+    const { refresh_token, refreshToken } = body as any;
+    const rt = refresh_token ?? refreshToken;
+    if (!rt)
       return json({ error: { code: "VALIDATION" } }, 400);
-    const { data, error } = await sbAuth.auth.refreshSession({ refresh_token });
+    const { data, error } = await sbAuth.auth.refreshSession({ refresh_token: rt });
     if (error)
       return json({ error: { code: "REFRESH_FAILED", message: error.message } }, 401);
     const email = data.session?.user?.email ?? "";
