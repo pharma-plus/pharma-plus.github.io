@@ -107,8 +107,16 @@ class _HomeShellState extends State<HomeShell> {
         ),
         bottomNavigationBar: showBottomNav
             ? NavigationBar(
-                selectedIndex:
-                    mobileItems.map((m) => m.$4).toList().indexOf(shellIndex),
+                selectedIndex: () {
+                  final idx = mobileItems
+                      .map((m) => m.$4)
+                      .toList()
+                      .indexOf(shellIndex);
+                  // Pages hors barre mobile (ex : fournisseurs, achats,
+                  // clients, employés, rapports) : repli non-destructif sur
+                  // l'onglet Modules au lieu de -1 (crash/assert).
+                  return idx < 0 ? 1 : idx;
+                }(),
                 onDestinationSelected: (i) =>
                     ShellNav.index.value = mobileItems[i].$4,
                 destinations: mobileDestinations,

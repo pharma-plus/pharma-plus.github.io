@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
+import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/services/receipt_pdf.dart';
 import '../../core/services/sync_engine.dart';
@@ -55,9 +56,8 @@ class _SettingsPageState extends State<SettingsPage> {
         await ApiClient.instance.get<Map<String, dynamic>>('/users?limit=100');
     if (!mounted) return;
     if (r.success) {
-      _users = (r.data as List? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
+      // Non-destructif : accepte data=[...] et data={items/rows:[...]}.
+      _users = ApiList.of(r.data);
     } else {
       _usersError = r.error?.readableMessage;
     }
@@ -69,9 +69,8 @@ class _SettingsPageState extends State<SettingsPage> {
     final r = await ApiClient.instance.get<Map<String, dynamic>>('/roles');
     if (!mounted) return;
     if (r.success) {
-      _roles = (r.data as List? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
+      // Non-destructif : accepte data=[...] et data={items/rows:[...]}.
+      _roles = ApiList.of(r.data);
     }
   }
 
@@ -80,9 +79,8 @@ class _SettingsPageState extends State<SettingsPage> {
         await ApiClient.instance.get<Map<String, dynamic>>('/audit?limit=50');
     if (!mounted) return;
     if (r.success) {
-      _audit = (r.data as List? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
+      // Non-destructif : accepte data=[...] et data={items/rows:[...]}.
+      _audit = ApiList.of(r.data);
     } else {
       _auditError = r.error?.readableMessage;
     }

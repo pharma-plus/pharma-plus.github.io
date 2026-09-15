@@ -17,6 +17,55 @@ class AuthStore extends ChangeNotifier {
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
   );
+
+  /// Stockage des jetons : sur le Web, `flutter_secure_storage` repose sur
+  /// `dart:html`/`package:js` (incompatible Wasm, persistance fragile).
+  /// Repli non-destructif : `SharedPreferences` (localStorage) sur Web,
+  /// stockage sécurisé natif sur mobile/desktop. Aucune API modifiée.
+  static Future<String?> _tokenRead(String key) async {
+    if (kIsWeb) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        return prefs.getString(key);
+      } catch (_) {
+        return null;
+      }
+    }
+    try {
+      return await _storage.read(key: key);
+    } on MissingPluginException {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(key);
+    }
+  }
+
+  static Future<void> _tokenWrite(String key, String value) async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(key, value);
+      return;
+    }
+    try {
+      await _storage.write(key: key, value: value);
+    } on MissingPluginException {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(key, value);
+    }
+  }
+
+  static Future<void> _tokenDelete(String key) async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(key);
+      return;
+    }
+    try {
+      await _storage.delete(key: key);
+    } on MissingPluginException {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(key);
+    }
+  }
   static const _kAccess = 'pmg_access_token';
   static const _kRefresh = 'pmg_refresh_token';
   static const _kUser = 'pmg_user';
@@ -90,9 +139,9 @@ class AuthStore extends ChangeNotifier {
       _baseUrl = storedUrl;
     }
 
-    _accessToken = await _storage.read(key: _kAccess);
-    _refreshToken = await _storage.read(key: _kRefresh);
-    final userRaw = await _storage.read(key: _kUser);
+    _accessToken = await _tokenRead(_kAccess);
+    _refreshToken = await _tokenRead(_kRefresh);
+    final userRaw = await _tokenRead(_kUser);
     if (userRaw != null) {
       _user = User.fromJson(jsonDecode(userRaw) as Map<String, dynamic>);
     }
@@ -156,9 +205,9 @@ class AuthStore extends ChangeNotifier {
     _accessToken = accessToken;
     _refreshToken = refreshToken;
     _user = user;
-    await _storage.write(key: _kAccess, value: accessToken);
-    await _storage.write(key: _kRefresh, value: refreshToken);
-    await _storage.write(key: _kUser, value: jsonEncode(user.toJson()));
+    await _tokenWrite(_kAccess, accessToken);
+    await _tokenWrite(_kRefresh, refreshToken);
+    await _tokenWrite(_kUser, jsonEncode(user.toJson()));
     notifyListeners();
   }
 
@@ -191,9 +240,9 @@ class AuthStore extends ChangeNotifier {
     _accessToken = null;
     _refreshToken = null;
     _user = null;
-    await _storage.delete(key: _kAccess);
-    await _storage.delete(key: _kRefresh);
-    await _storage.delete(key: _kUser);
+    await _tokenDelete(_kAccess);
+    await _tokenDelete(_kRefresh);
+    await _tokenDelete(_kUser);
     notifyListeners();
   }
 }
