@@ -319,14 +319,14 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
     if (_loading) {
       return const Scaffold(
-        backgroundColor: AppColors.backgroundDark,
+        backgroundColor: Colors.transparent,
         body:
             Center(child: CircularProgressIndicator(color: AppColors.emerald)),
       );
     }
     if (_error != null) {
       return Scaffold(
-        backgroundColor: AppColors.backgroundDark,
+        backgroundColor: Colors.transparent,
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -347,7 +347,7 @@ class _DashboardPageState extends State<DashboardPage> {
       );
     }
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: Colors.transparent,
       body: LayoutBuilder(builder: (context, constraints) {
         final w = constraints.maxWidth;
         // Large POS latéral uniquement sur les grands écrans ; en dessous,

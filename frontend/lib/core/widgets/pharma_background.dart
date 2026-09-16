@@ -56,11 +56,13 @@ class PharmaBackground extends StatelessWidget {
       );
     }
 
+    final bool customImage = networkImage != null || assetImage != null;
     return Stack(
       fit: StackFit.expand,
       children: [
         bg,
-        ColoredBox(color: Color(0xFF00110A).withValues(alpha: (networkImage != null || assetImage != null) ? 0.15 : overlayOpacity)),
+        if (!customImage)
+          ColoredBox(color: Color(0xFF00110A).withValues(alpha: overlayOpacity)),
         child,
       ],
     );

@@ -133,8 +133,18 @@ async function proxyToTable(
   pid: string,
 ) {
   let restPath = `/rest/v1/${table}`;
-  if (subpath) restPath += `/${subpath}`;
+  const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (subpath && uuidRe.test(subpath)) {
+    // UUID → filtre PostgREST id=eq.xxx (pas de sous-chemin)
+    restPath += ``;
+  } else if (subpath) {
+    restPath += `/${subpath}`;
+  }
   const targetUrl = new URL(`${supabaseUrl}${restPath}`);
+  // Si subpath est un UUID, on l'ajoute comme filtre id=eq
+  if (subpath && uuidRe.test(subpath)) {
+    targetUrl.searchParams.set("id", `eq.${subpath}`);
+  }
   const url = new URL(req.url);
   const limit = parseInt(url.searchParams.get("limit") ?? "50", 10);
   const page = parseInt(url.searchParams.get("page") ?? "1", 10);
@@ -168,8 +178,27 @@ async function proxyToTable(
     body = JSON.stringify(parsed);
   }
 
+  const isUuidLookup = !!(subpath && uuidRe.test(subpath));
+  if (isUuidLookup) {
+    targetUrl.searchParams.set("limit", "1");
+  }
+
   const res = await fetch(targetUrl.toString(), { method, headers, body });
   const text = await res.text();
+
+  // UUID lookup : unwrap [item] → item (le Flutter attend un Map, pas une List)
+  if (isUuidLookup && method === "GET" && res.status >= 200 && res.status < 300) {
+    try {
+      const arr = JSON.parse(text);
+      if (Array.isArray(arr) && arr.length === 1) {
+        return json(arr[0]);
+      }
+      if (Array.isArray(arr) && arr.length === 0) {
+        return json({ error: { code: "NOT_FOUND", message: "Not found" } }, 404);
+      }
+    } catch (_) { /* fallback to raw */ }
+  }
+
   return new Response(text, {
     status: res.status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
