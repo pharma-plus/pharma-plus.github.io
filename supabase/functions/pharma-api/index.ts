@@ -136,7 +136,19 @@ async function proxyToTable(
   if (subpath) restPath += `/${subpath}`;
   const targetUrl = new URL(`${supabaseUrl}${restPath}`);
   const url = new URL(req.url);
-  url.searchParams.forEach((v, k) => targetUrl.searchParams.set(k, v));
+  const limit = parseInt(url.searchParams.get("limit") ?? "50", 10);
+  const page = parseInt(url.searchParams.get("page") ?? "1", 10);
+  url.searchParams.forEach((v, k) => {
+    if (k === "page") {
+      targetUrl.searchParams.set("offset", String((page - 1) * limit));
+    } else if (k === "limit") {
+      targetUrl.searchParams.set("limit", v);
+    } else if (v === "true" || v === "false") {
+      targetUrl.searchParams.set(k, `eq.${v}`);
+    } else {
+      targetUrl.searchParams.set(k, v);
+    }
+  });
 
   const headers: Record<string, string> = {
     apikey: serviceKey,
