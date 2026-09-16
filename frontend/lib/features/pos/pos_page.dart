@@ -371,46 +371,49 @@ class _PosPageState extends State<PosPage> {
   }
 
   Widget _buildProductPanel(String locale) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: TextField(
-            controller: _search,
-            onChanged: _searchMedications,
-            decoration: InputDecoration(
-              hintText: S.t('search', locale),
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _searching
-                  ? const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    )
-                  : null,
-              fillColor: AppColors.pharmaSurface,
-              filled: true,
+    // FIX FORENSIQUE: le Column avec Expanded + GridView provoquait
+    // RenderFlex overflow 223-266px sur PC 768p/600p (test) → contenu
+    // masqué → page parait "vide" (seul AppBar visible). On rend le
+    // panneau scrollable et la grille shrinkWrap.
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
+              controller: _search,
+              onChanged: _searchMedications,
+              decoration: InputDecoration(
+                hintText: S.t('search', locale),
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searching
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    : null,
+                fillColor: AppColors.pharmaSurface,
+                filled: true,
+              ),
             ),
           ),
-        ),
-        // Catégories 4×2 premium
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          child: Text(
-            S.t('categories', locale),
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AppColors.pharmaMuted,
+          // Catégories 4×2 premium
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: Text(
+              S.t('categories', locale),
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.pharmaMuted,
+              ),
             ),
           ),
-        ),
-        SizedBox(
-          height: 340,
-          child: Padding(
+          Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: PosCategoriesGrid(
               onSelected: (cat) {
@@ -423,16 +426,20 @@ class _PosPageState extends State<PosPage> {
               },
             ),
           ),
-        ),
-        Expanded(
-          child: _searching && _results.isEmpty
-              ? const Center(
-                  child: CircularProgressIndicator(color: Color(0xFF0E8C4F)))
+          _searching && _results.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Center(
+                      child:
+                          CircularProgressIndicator(color: Color(0xFF0E8C4F))))
               : _results.isEmpty
-                  ? const _EmptyProducts()
+                  ? const Padding(
+                      padding: EdgeInsets.all(24), child: _EmptyProducts())
                   : GridView.builder(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount:
                         _gridColumns(MediaQuery.of(context).size.width),
                     childAspectRatio: 0.95,
@@ -445,9 +452,8 @@ class _PosPageState extends State<PosPage> {
                     onTap: () => setState(() => _cart.add(_results[i])),
                   ),
                 ),
-        ),
       ],
-    );
+    ));
   }
 
   Widget _buildCartPanel(String locale) {

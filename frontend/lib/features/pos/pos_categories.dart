@@ -78,20 +78,24 @@ class PosCategoriesGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SliverGrid(
-      delegate: SliverChildBuilderDelegate((context, index) {
-        final c = categories[index];
-        return _CategoryTile(
-          category: c,
-          onTap: () => onSelected?.call(c),
-        );
-      }, childCount: categories.length),
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
         mainAxisSpacing: 10,
         crossAxisSpacing: 10,
         childAspectRatio: 1.0,
       ),
+      itemCount: categories.length,
+      itemBuilder: (context, index) {
+        final c = categories[index];
+        return _CategoryTile(
+          category: c,
+          onTap: () => onSelected?.call(c),
+        );
+      },
     );
   }
 }
