@@ -132,12 +132,7 @@ class _PosPanelState extends State<PosPanel> {
         query: {'q': query.trim(), 'limit': 60});
     if (!mounted) return;
     if (!r.success) {
-      debugPrint('[PosPanel] catalog load failed: ${r.error}');
-      if (mounted && query.trim().isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Catalogue: ${r.error?.readableMessage ?? r.error?.code ?? 'réseau'}')),
-        );
-      }
+      debugPrint('[PosPanel] catalog load failed: ${r.error} base=${ApiClient.instance.baseUrl}');
     }
     final items =
         r.success ? ApiList.of(r.data) : <Map<String, dynamic>>[];

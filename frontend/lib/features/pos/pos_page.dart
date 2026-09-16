@@ -133,14 +133,7 @@ class _PosPageState extends State<PosPage> {
     );
     if (!mounted) return;
     if (!result.success) {
-      // PC Windows/Mac web : erreur réseau visible (sinon page paraît "vide")
       debugPrint('[POS] catalog load failed: ${result.error} base=${ApiClient.instance.baseUrl}');
-      if (mounted && query.trim().isEmpty) {
-        // Ne pas laisser la page vide sans explication sur PC
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Chargement catalogue échoué: ${result.error?.readableMessage ?? result.error?.code ?? 'réseau'}')),
-        );
-      }
     }
     final rows = result.success
         ? ApiList.of(result.data)
