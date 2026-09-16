@@ -5,10 +5,14 @@ class PharmaBackground extends StatelessWidget {
   final Widget child;
   final double overlayOpacity;
 
+  /// Si fourni, remplace l'image de fond par défaut.
+  final String? assetImage;
+
   const PharmaBackground({
     super.key,
     required this.child,
     this.overlayOpacity = 0.52,
+    this.assetImage,
   });
 
     @override
@@ -16,23 +20,30 @@ class PharmaBackground extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        kIsWeb
-            ? Image.network(
-                'images/pharma_background.png',
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Image.network(
-                  'images/pharma_login_background.jpg',
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
-                      const ColoredBox(color: Color(0xFF07130F)),
-                ),
-              )
-            : Image.asset(
-                'assets/images/pharma_background.png',
+        assetImage != null
+            ? Image.asset(
+                assetImage!,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) =>
                     const ColoredBox(color: Color(0xFF07130F)),
-              ),
+              )
+            : kIsWeb
+                ? Image.network(
+                    'images/pharma_background.png',
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Image.network(
+                      'images/pharma_login_background.jpg',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          const ColoredBox(color: Color(0xFF07130F)),
+                    ),
+                  )
+                : Image.asset(
+                    'assets/images/pharma_background.png',
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) =>
+                        const ColoredBox(color: Color(0xFF07130F)),
+                  ),
         ColoredBox(color: const Color(0xFF00110A).withValues(alpha: overlayOpacity)),
         child,
       ],

@@ -90,6 +90,7 @@ class _HomeShellState extends State<HomeShell> {
       valueListenable: ShellNav.index,
       builder: (context, shellIndex, _) => Scaffold(
         body: PharmaBackground(
+          assetImage: 'assets/images/background.png',
           child: SafeArea(
             child: Theme(
               data: Theme.of(context).copyWith(
