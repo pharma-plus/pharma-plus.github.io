@@ -883,6 +883,26 @@ await sbAuth.auth.signInWithPassword({ email, password });
     const { data } = await sb.from("employees").select("id, first_name, last_name, department, status").eq("pharmacy_id", pid);
     return json({ data: data ?? [] });
   }
+  if (path === "reports/financial") {
+    const d30 = new Date(); d30.setDate(d30.getDate() - 30);
+    const { data: sales } = await sb.from("sales").select("id, total, cost_total, created_at, payment_method").eq("pharmacy_id", pid).eq("status", "completed").gte("created_at", d30.toISOString());
+    const { data: expenses } = await sb.from("accounting_entries").select("id, amount, entry_type, created_at").eq("pharmacy_id", pid).gte("created_at", d30.toISOString()).in("entry_type", ["expense", "withdrawal"]);
+    const totalSales = (sales ?? []).reduce((s: number, r: any) => s + Number(r.total ?? 0), 0);
+    const totalCost = (sales ?? []).reduce((s: number, r: any) => s + Number(r.cost_total ?? 0), 0);
+    const totalExpenses = (expenses ?? []).reduce((s: number, r: any) => s + Number(r.amount ?? 0), 0);
+    return json({
+      data: {
+        total_sales: totalSales,
+        total_cost: totalCost,
+        gross_margin: totalSales - totalCost,
+        total_expenses: totalExpenses,
+        net_profit: totalSales - totalCost - totalExpenses,
+        sales_count: (sales ?? []).length,
+        sales: sales ?? [],
+        expenses: expenses ?? [],
+      },
+    });
+  }
 
   /* ===========================================================
      ACCOUNTING — registers, expenses, journal

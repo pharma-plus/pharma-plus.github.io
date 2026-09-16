@@ -104,7 +104,7 @@ class _ScannerPageState extends State<ScannerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.menu,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         // ← HOME : retour toujours disponible (sous-page → pop ;
         // racine du shell → retour au Tableau de bord).
