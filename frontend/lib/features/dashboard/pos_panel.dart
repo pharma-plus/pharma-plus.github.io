@@ -86,6 +86,9 @@ class _PosPanelState extends State<PosPanel> {
   void initState() {
     super.initState();
     _loadHeld();
+    // Catalogue chargé dès l'ouverture du mini-POS (comme le POS complet) :
+    // l'encart n'est JAMAIS vide — il affiche les produits dès l'arrivée.
+    _doSearch(_search.text.trim());
   }
 
   @override
@@ -127,14 +130,18 @@ class _PosPanelState extends State<PosPanel> {
     setState(() => _searching = true);
     final r = await ApiClient.instance.get<Map<String, dynamic>>(
         '/catalog/medications',
-        query: {'q': query.trim(), 'limit': 8});
+        query: {'q': query.trim(), 'limit': 60});
     if (!mounted) return;
     final items =
         r.success ? ApiList.of(r.data) : <Map<String, dynamic>>[];
     setState(() {
       _results.clear();
       for (final it in items) {
-        if (it['id'] != null) _results['${it['id']}'] = Medication.fromJson(it);
+        final m = Medication.fromJson(it);
+        if (it['id'] != null &&
+            (m.stockQuantity == null || m.stockQuantity! > 0)) {
+          _results['${it['id']}'] = m;
+        }
       }
       _searching = false;
     });
