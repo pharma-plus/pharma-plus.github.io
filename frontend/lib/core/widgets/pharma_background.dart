@@ -60,7 +60,7 @@ class PharmaBackground extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         bg,
-        ColoredBox(color: const Color(0xFF00110A).withValues(alpha: overlayOpacity)),
+        ColoredBox(color: Color(0xFF00110A).withValues(alpha: (networkImage != null || assetImage != null) ? 0.15 : overlayOpacity)),
         child,
       ],
     );
