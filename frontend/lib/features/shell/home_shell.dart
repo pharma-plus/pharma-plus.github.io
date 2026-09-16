@@ -99,8 +99,13 @@ class _HomeShellState extends State<HomeShell> {
                 canvasColor: Colors.transparent,
                 appBarTheme: const AppBarTheme(
                   backgroundColor: Colors.transparent,
+                  surfaceTintColor: Colors.transparent,
                   elevation: 0,
                   scrolledUnderElevation: 0,
+                ),
+                inputDecorationTheme: InputDecorationThemeData(
+                  filled: true,
+                  fillColor: Colors.transparent,
                 ),
               ),
               child: Stack(
