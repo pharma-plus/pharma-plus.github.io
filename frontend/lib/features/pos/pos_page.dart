@@ -132,6 +132,16 @@ class _PosPageState extends State<PosPage> {
       query: params,
     );
     if (!mounted) return;
+    if (!result.success) {
+      // PC Windows/Mac web : erreur réseau visible (sinon page paraît "vide")
+      debugPrint('[POS] catalog load failed: ${result.error} base=${ApiClient.instance.baseUrl}');
+      if (mounted && query.trim().isEmpty) {
+        // Ne pas laisser la page vide sans explication sur PC
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Chargement catalogue échoué: ${result.error?.readableMessage ?? result.error?.code ?? 'réseau'}')),
+        );
+      }
+    }
     final rows = result.success
         ? ApiList.of(result.data)
         : <Map<String, dynamic>>[];
@@ -140,7 +150,15 @@ class _PosPageState extends State<PosPage> {
         .where((m) => m.stockQuantity == null || m.stockQuantity! > 0)
         .toList();
     _applyFilter();
-    setState(() => _searching = false);
+    if (mounted) setState(() => _searching = false);
+    // Fallback PC : si catalogue vide au premier chargement (cold start),
+    // on retente une fois après 1.2s (edge supabase en réveil)
+    if (query.trim().isEmpty && _catalog.isEmpty && result.success) {
+      await Future.delayed(const Duration(milliseconds: 1200));
+      if (!mounted) return;
+      // Ne retente que si toujours vide et pas de recherche en cours
+      if (_catalog.isEmpty && !_searching) _searchMedications('');
+    }
   }
 
   /// Applique la catégorie active sur la liste chargée
@@ -414,9 +432,12 @@ class _PosPageState extends State<PosPage> {
           ),
         ),
         Expanded(
-          child: _results.isEmpty
-              ? const _EmptyProducts()
-              : GridView.builder(
+          child: _searching && _results.isEmpty
+              ? const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF0E8C4F)))
+              : _results.isEmpty
+                  ? const _EmptyProducts()
+                  : GridView.builder(
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount:

@@ -131,6 +131,14 @@ class _PosPanelState extends State<PosPanel> {
         '/catalog/medications',
         query: {'q': query.trim(), 'limit': 60});
     if (!mounted) return;
+    if (!r.success) {
+      debugPrint('[PosPanel] catalog load failed: ${r.error}');
+      if (mounted && query.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Catalogue: ${r.error?.readableMessage ?? r.error?.code ?? 'réseau'}')),
+        );
+      }
+    }
     final items =
         r.success ? ApiList.of(r.data) : <Map<String, dynamic>>[];
     setState(() {
@@ -144,6 +152,10 @@ class _PosPanelState extends State<PosPanel> {
       }
       _searching = false;
     });
+    if (query.trim().isEmpty && _results.isEmpty && r.success && mounted) {
+      await Future.delayed(const Duration(milliseconds: 1200));
+      if (mounted && _results.isEmpty && !_searching) _doSearch('');
+    }
   }
 
   void _searchCategory(String kind) {
@@ -368,10 +380,24 @@ class _PosPanelState extends State<PosPanel> {
           ]),
         ),
         // ---- Résultats de recherche (API réelle) ----
+        if (_searching && _results.isEmpty)
+          Container(
+            margin: const EdgeInsets.only(top: 6),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+                color: const Color(0xFF0C1F16),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.dividerDark)),
+            child: const Center(
+                child: SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0E8C4F)))),
+          ),
         if (_results.isNotEmpty)
           Container(
             margin: const EdgeInsets.only(top: 6),
-            constraints: const BoxConstraints(maxHeight: 150),
+            constraints: const BoxConstraints(maxHeight: 260),
             decoration: BoxDecoration(
                 color: const Color(0xFF0C1F16),
                 borderRadius: BorderRadius.circular(12),
