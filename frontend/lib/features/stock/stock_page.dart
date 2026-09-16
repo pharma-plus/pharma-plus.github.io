@@ -234,7 +234,7 @@ class _StockPageState extends State<StockPage> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: const ShellBackButton(),
-        backgroundColor: AppColors.pharmaSurface,
+        backgroundColor: Colors.transparent,
         foregroundColor: AppColors.pharmaText,
         elevation: 0,
         title: Text(S.t('stock', locale),
