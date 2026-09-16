@@ -96,6 +96,11 @@ class _HomeShellState extends State<HomeShell> {
               data: Theme.of(context).copyWith(
                 scaffoldBackgroundColor: Colors.transparent,
                 canvasColor: Colors.transparent,
+                appBarTheme: const AppBarTheme(
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  scrolledUnderElevation: 0,
+                ),
               ),
               child: Stack(
                 children: [
