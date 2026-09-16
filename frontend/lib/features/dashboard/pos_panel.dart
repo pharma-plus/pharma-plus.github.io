@@ -117,10 +117,9 @@ class _PosPanelState extends State<PosPanel> {
   void _onSearchChanged(String query) {
     _debounce?.cancel();
     if (query.trim().isEmpty) {
-      setState(() {
-        _results.clear();
-        _searching = false;
-      });
+      // Champ vidé -> on réaffiche tout le catalogue (jamais vide)
+      // comme le POS complet. Identique à l'init.
+      _doSearch('');
       return;
     }
     _debounce = Timer(const Duration(milliseconds: 350), () => _doSearch(query));
