@@ -26,8 +26,8 @@ class GlassCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark
-        ? AppColors.pharmaSurface
-        : Colors.white.withValues(alpha: 0.92);
+        ? AppColors.pharmaSurface.withValues(alpha: 0.75)
+        : Colors.white.withValues(alpha: 0.85);
 
     return DecoratedBox(
       decoration: BoxDecoration(
