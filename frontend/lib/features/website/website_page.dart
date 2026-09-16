@@ -141,6 +141,7 @@ class _WebsitePageState extends State<WebsitePage> {
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: const ShellBackButton(),
         title: Text(S.t('website', locale)),

@@ -101,6 +101,7 @@ class _EmployeesPageState extends State<EmployeesPage> {
     final locale = context.watch<AuthStore>().locale;
     final s = _summary;
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: const ShellBackButton(),
         title: Text(S.t('employees', locale)),

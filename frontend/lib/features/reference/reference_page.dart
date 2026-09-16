@@ -131,6 +131,7 @@ class _ReferencePageState extends State<ReferencePage> {
     final last = _syncStatus?['last_run'] as Map<String, dynamic>?;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: const ShellBackButton(),
         title: Text(S.t('baseMaroc', locale)),

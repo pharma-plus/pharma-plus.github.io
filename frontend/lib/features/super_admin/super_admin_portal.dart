@@ -140,6 +140,7 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         // Pas de bouton HOME ici : le portail super admin EST la page
         // d'accueil (aucun HomeShell n'écoute ShellNav pour ce rôle —

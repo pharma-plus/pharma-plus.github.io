@@ -141,6 +141,7 @@ class _PharmacyPlanPageState extends State<PharmacyPlanPage> {
     }
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -1305,7 +1306,7 @@ class _FullScreenPlanState extends State<_FullScreenPlan> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0B1210),
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         child: Stack(children: [
           Positioned.fill(

@@ -96,6 +96,7 @@ class _ReportsPageState extends State<ReportsPage> {
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: const ShellBackButton(),
         title: Text(S.t('reports', locale)),

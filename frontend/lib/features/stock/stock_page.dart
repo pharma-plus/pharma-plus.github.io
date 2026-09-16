@@ -231,6 +231,7 @@ class _StockPageState extends State<StockPage> {
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: const ShellBackButton(),
         backgroundColor: AppColors.pharmaSurface,

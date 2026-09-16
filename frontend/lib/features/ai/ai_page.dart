@@ -104,6 +104,7 @@ class _AiPageState extends State<AiPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
           leading: const ShellBackButton(),
           title: Text(S.t('pharmaAi', locale))),

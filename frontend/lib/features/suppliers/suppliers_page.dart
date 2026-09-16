@@ -86,6 +86,7 @@ class _SuppliersPageState extends State<SuppliersPage> {
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: const ShellBackButton(),
         title: Text(S.t('suppliers', locale)),

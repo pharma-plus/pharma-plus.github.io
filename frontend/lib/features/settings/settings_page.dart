@@ -138,6 +138,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final user = auth.user;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
           leading: const ShellBackButton(),
           title: Text(S.t('settings', locale))),

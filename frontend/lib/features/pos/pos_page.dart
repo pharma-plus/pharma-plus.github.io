@@ -308,6 +308,7 @@ class _PosPageState extends State<PosPage> {
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: const ShellBackButton(),
         title: Text(S.t('pos', locale)),
@@ -831,6 +832,7 @@ class _ScannerScreenState extends State<_ScannerScreen> {
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(title: Text(S.t('scanTitle', locale))),
       body: Column(children: [
         Expanded(

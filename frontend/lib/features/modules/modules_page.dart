@@ -102,6 +102,7 @@ class ModulesPage extends StatelessWidget {
     ];
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
           leading: const ShellBackButton(),
           title: Text(S.t('modules', locale))),

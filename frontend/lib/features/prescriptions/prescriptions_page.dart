@@ -93,6 +93,7 @@ class _PrescriptionsPageState extends State<PrescriptionsPage> {
       'archived'
     ];
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: const ShellBackButton(),
         title: Text(S.t('prescriptions', locale)),

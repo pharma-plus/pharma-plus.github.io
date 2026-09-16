@@ -159,6 +159,7 @@ class _CamerasPageState extends State<CamerasPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: const ShellBackButton(),
         title: Text(S.t('cameras', locale)),
