@@ -75,8 +75,8 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
     final results = await Future.wait([
       if (reset)
         ApiClient.instance
-            .get<Map<String, dynamic>>('/pharmacies/global-stats'),
-      ApiClient.instance.get<Map<String, dynamic>>('/pharmacies', query: {
+            .get('/pharmacies/global-stats'),
+      ApiClient.instance.get('/pharmacies', query: {
         'page': _page,
         'limit': _limit,
         if (_q != null && _q!.isNotEmpty) 'q': _q!,
@@ -84,7 +84,10 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
     ]);
 
     if (!mounted) return;
-    if (reset) _global = results[0].data;
+    if (reset) {
+      final gd = results[0].data;
+      _global = gd is Map<String, dynamic> ? gd : (gd is Map ? Map<String, dynamic>.from(gd) : null);
+    }
     final listRes = results.last;
     if (!listRes.success) {
       setState(() {
@@ -500,11 +503,12 @@ class _PharmacyDetailState extends State<_PharmacyDetail> {
   }
 
   Future<void> _load() async {
-    final result = await ApiClient.instance.get<Map<String, dynamic>>(
+    final result = await ApiClient.instance.get(
         '/pharmacies/${widget.pharmacy['id']}/stats');
     if (!mounted) return;
     if (result.success) {
-      setState(() => _stats = result.data);
+      final d = result.data;
+      setState(() => _stats = d is Map<String, dynamic> ? d : (d is Map ? Map<String, dynamic>.from(d) : null));
     } else {
       setState(() => _error = result.error?.message);
     }

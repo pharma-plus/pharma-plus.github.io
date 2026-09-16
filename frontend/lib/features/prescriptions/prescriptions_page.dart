@@ -36,7 +36,7 @@ class _PrescriptionsPageState extends State<PrescriptionsPage> {
       _loading = true;
       _error = null;
     });
-    final result = await ApiClient.instance.get<Map<String, dynamic>>(
+    final result = await ApiClient.instance.get(
       '/prescriptions',
       query: {
         'limit': 100,
@@ -274,7 +274,7 @@ class _PrescriptionFormState extends State<_PrescriptionForm> {
   }
 
   Future<void> _load() async {
-    final result = await ApiClient.instance.get<Map<String, dynamic>>(
+    final result = await ApiClient.instance.get(
       '/catalog/medications',
       query: {'limit': 200, 'status': 'available'},
     );
@@ -522,10 +522,11 @@ class _PrescriptionDetailState extends State<_PrescriptionDetail> {
 
   Future<void> _load() async {
     final result = await ApiClient.instance
-        .get<Map<String, dynamic>>('/prescriptions/${widget.prescriptionId}');
+        .get('/prescriptions/${widget.prescriptionId}');
     if (!mounted) return;
     if (result.success) {
-      setState(() => _prescription = result.data);
+      final d = result.data;
+      setState(() => _prescription = d is Map ? Map<String, dynamic>.from(d) : null);
     } else {
       setState(() => _error = result.error?.message);
     }

@@ -80,7 +80,7 @@ class _LoginPageState extends State<LoginPage>
     });
 
     final locale = context.read<AuthStore>().locale;
-    final result = await ApiClient.instance.post<Map<String, dynamic>>(
+    final result = await ApiClient.instance.post(
       '/auth/login',
       body: {
         'email': _emailController.text.trim(),
@@ -123,12 +123,14 @@ class _LoginPageState extends State<LoginPage>
     }
 
     final data = result.data!;
-    if (data['requireTwoFactor'] == true) {
+    if (data is! Map) return;
+    final map = Map<String, dynamic>.from(data);
+    if (map['requireTwoFactor'] == true) {
       if (!mounted) return;
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) =>
-              TwoFactorPage(token: data['twoFactorToken'] as String),
+              TwoFactorPage(token: map['twoFactorToken'] as String),
         ),
       );
       return;
@@ -136,9 +138,9 @@ class _LoginPageState extends State<LoginPage>
 
     if (!mounted) return;
     await context.read<AuthStore>().saveSession(
-      accessToken: data['accessToken'] as String,
-      refreshToken: data['refreshToken'] as String,
-      user: User.fromSession(data),
+      accessToken: map['accessToken'] as String,
+      refreshToken: map['refreshToken'] as String,
+      user: User.fromSession(map),
     );
   }
 

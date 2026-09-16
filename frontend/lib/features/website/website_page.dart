@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
+import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
@@ -46,9 +47,9 @@ class _WebsitePageState extends State<WebsitePage> {
       _error = null;
     });
     final results = await Future.wait([
-      ApiClient.instance.get<Map<String, dynamic>>('/website/settings'),
+      ApiClient.instance.get('/website/settings'),
       ApiClient.instance
-          .get<List<dynamic>>('/website/blog/posts', query: {'limit': '100'}),
+          .get('/website/blog/posts', query: {'limit': '100'}),
     ]);
     if (!mounted) return;
     if (!results[0].success) {
@@ -59,14 +60,12 @@ class _WebsitePageState extends State<WebsitePage> {
       return;
     }
     setState(() {
-      final s =
-          results[0].data as Map<String, dynamic>? ?? const <String, dynamic>{};
+      final s0 = results[0].data;
+      final s = s0 is Map<String, dynamic> ? s0 : (s0 is Map ? Map<String, dynamic>.from(s0) : <String, dynamic>{});
       _heroTitle.text = '${s['hero_title'] ?? ''}';
       _heroSubtitle.text = '${s['hero_subtitle'] ?? ''}';
       _about.text = '${s['about'] ?? ''}';
-      _posts = (results[1].data as List<dynamic>? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
+      _posts = ApiList.of(results[1].data);
       _loading = false;
     });
   }

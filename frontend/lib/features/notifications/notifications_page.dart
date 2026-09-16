@@ -38,7 +38,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       _error = null;
     });
     final result = await ApiClient.instance
-        .get<Map<String, dynamic>>('/notifications', query: {'limit': 100});
+        .get('/notifications', query: {'limit': 100});
     if (!mounted) return;
     if (!result.success) {
       setState(() {

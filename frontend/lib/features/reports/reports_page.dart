@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
+import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
@@ -45,13 +46,12 @@ class _ReportsPageState extends State<ReportsPage> {
     });
     final query = {'from': _iso(_from), 'to': _iso(_to)};
     final results = await Future.wait([
-      ApiClient.instance
-          .get<Map<String, dynamic>>('/reports/financial', query: query),
-      ApiClient.instance.get<List<dynamic>>('/reports/sales', query: query),
-      ApiClient.instance.get<List<dynamic>>('/reports/products',
+      ApiClient.instance.get('/reports/financial', query: query),
+      ApiClient.instance.get('/reports/sales', query: query),
+      ApiClient.instance.get('/reports/products',
           query: {...query, 'limit': '10'}),
-      ApiClient.instance.get<List<dynamic>>('/reports/employees', query: query),
-      ApiClient.instance.get<Map<String, dynamic>>('/reports/stock'),
+      ApiClient.instance.get('/reports/employees', query: query),
+      ApiClient.instance.get('/reports/stock'),
     ]);
     if (!mounted) return;
     final failures = results.where((r) => !r.success).toList();
@@ -63,17 +63,13 @@ class _ReportsPageState extends State<ReportsPage> {
       return;
     }
     setState(() {
-      _financial = results[0].data as Map<String, dynamic>?;
-      _sales = (results[1].data as List<dynamic>? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
-      _products = (results[2].data as List<dynamic>? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
-      _employees = (results[3].data as List<dynamic>? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
-      _stock = results[4].data as Map<String, dynamic>?;
+      final fd = results[0].data;
+      _financial = fd is Map<String, dynamic> ? fd : (fd is Map ? Map<String, dynamic>.from(fd) : null);
+      _sales = ApiList.of(results[1].data);
+      _products = ApiList.of(results[2].data);
+      _employees = ApiList.of(results[3].data);
+      final sd = results[4].data;
+      _stock = sd is Map<String, dynamic> ? sd : (sd is Map ? Map<String, dynamic>.from(sd) : null);
       _loading = false;
     });
   }

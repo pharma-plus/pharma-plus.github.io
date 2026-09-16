@@ -49,10 +49,10 @@ class _AttendancePageState extends State<AttendancePage>
     final month = now.toIso8601String().split('T').first.substring(0, 7);
     final results = await Future.wait([
       ApiClient.instance
-          .get<Map<String, dynamic>>('/attendance', query: {'limit': 100}),
-      ApiClient.instance.get<Map<String, dynamic>>('/attendance/leaves',
+          .get('/attendance', query: {'limit': 100}),
+      ApiClient.instance.get('/attendance/leaves',
           query: {'limit': 100}),
-      ApiClient.instance.get<Map<String, dynamic>>('/attendance/summary',
+      ApiClient.instance.get('/attendance/summary',
           query: {'month': month}),
     ]);
     if (!mounted) return;
@@ -76,7 +76,7 @@ class _AttendancePageState extends State<AttendancePage>
 
   Future<void> _clock({required bool in_}) async {
     final locale = context.read<AuthStore>().locale;
-    final result = await ApiClient.instance.get<Map<String, dynamic>>(
+    final result = await ApiClient.instance.get(
       '/employees',
       query: {'limit': 200, 'status': 'active'},
     );
@@ -128,7 +128,7 @@ class _AttendancePageState extends State<AttendancePage>
 
   Future<void> _requestLeave() async {
     final locale = context.read<AuthStore>().locale;
-    final employeesResult = await ApiClient.instance.get<Map<String, dynamic>>(
+    final employeesResult = await ApiClient.instance.get(
       '/employees',
       query: {'limit': 200},
     );

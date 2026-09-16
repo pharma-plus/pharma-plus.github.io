@@ -43,17 +43,18 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _loadPharmacy() async {
     final r =
-        await ApiClient.instance.get<Map<String, dynamic>>('/pharmacies/me');
+        await ApiClient.instance.get('/pharmacies/me');
     if (!mounted) return;
     setState(() {
-      _pharmacy = r.success ? r.data : null;
+      final d = r.data;
+      _pharmacy = r.success ? (d is Map<String, dynamic> ? d : (d is Map ? Map<String, dynamic>.from(d) : null)) : null;
       _pharmacyLoading = false;
     });
   }
 
   Future<void> _loadUsers() async {
     final r =
-        await ApiClient.instance.get<Map<String, dynamic>>('/users?limit=100');
+        await ApiClient.instance.get('/users?limit=100');
     if (!mounted) return;
     if (r.success) {
       // Non-destructif : accepte data=[...] et data={items/rows:[...]}.
@@ -66,7 +67,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _loadRoles() async {
-    final r = await ApiClient.instance.get<Map<String, dynamic>>('/roles');
+    final r = await ApiClient.instance.get('/roles');
     if (!mounted) return;
     if (r.success) {
       // Non-destructif : accepte data=[...] et data={items/rows:[...]}.
@@ -76,7 +77,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _loadAudit() async {
     final r =
-        await ApiClient.instance.get<Map<String, dynamic>>('/audit?limit=50');
+        await ApiClient.instance.get('/audit?limit=50');
     if (!mounted) return;
     if (r.success) {
       // Non-destructif : accepte data=[...] et data={items/rows:[...]}.

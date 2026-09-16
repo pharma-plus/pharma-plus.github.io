@@ -37,7 +37,7 @@ class _CustomersPageState extends State<CustomersPage> {
       _loading = true;
       _error = null;
     });
-    final result = await ApiClient.instance.get<Map<String, dynamic>>(
+    final result = await ApiClient.instance.get(
       '/customers',
       query: {
         'limit': 100,
@@ -394,9 +394,12 @@ class _CustomerDetailState extends State<_CustomerDetail> {
 
   Future<void> _load() async {
     final result = await ApiClient.instance
-        .get<Map<String, dynamic>>('/customers/${widget.customerId}');
+        .get('/customers/${widget.customerId}');
     if (!mounted) return;
-    if (result.success) setState(() => _customer = result.data);
+    if (result.success) {
+      final d = result.data;
+      setState(() => _customer = d is Map<String, dynamic> ? d : (d is Map ? Map<String, dynamic>.from(d) : null));
+    }
   }
 
   @override

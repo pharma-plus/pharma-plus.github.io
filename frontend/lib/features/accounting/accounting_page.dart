@@ -49,9 +49,9 @@ class _AccountingPageState extends State<AccountingPage>
       _error = null;
     });
     final results = await Future.wait([
-      ApiClient.instance.get<Map<String, dynamic>>('/accounting/journal',
+      ApiClient.instance.get('/accounting/journal',
           query: {'limit': 100}),
-      ApiClient.instance.get<Map<String, dynamic>>('/accounting/expenses',
+      ApiClient.instance.get('/accounting/expenses',
           query: {'limit': 100}),
     ]);
     if (!mounted) return;
@@ -76,11 +76,12 @@ class _AccountingPageState extends State<AccountingPage>
     final branchId = _branchId;
     if (branchId == null) return;
     final result = await ApiClient.instance
-        .get<Map<String, dynamic>>('/accounting/registers/$branchId/open');
+        .get('/accounting/registers/$branchId/open');
     if (!mounted) return;
     if (result.success) {
+      final d = result.data;
       setState(() {
-        _register = result.data;
+        _register = d is Map<String, dynamic> ? d : (d is Map ? Map<String, dynamic>.from(d) : null);
         _registerChecked = true;
       });
     } else {
@@ -203,10 +204,9 @@ class _AccountingPageState extends State<AccountingPage>
   Future<void> _addExpense() async {
     final locale = context.read<AuthStore>().locale;
     final categoriesResult = await ApiClient.instance
-        .get<List<dynamic>>('/accounting/expense-categories');
+        .get('/accounting/expense-categories');
     if (!mounted) return;
-    final categories =
-        categoriesResult.data?.whereType<Map<String, dynamic>>().toList() ?? [];
+    final categories = ApiList.of(categoriesResult.data);
     final amount = TextEditingController();
     final description = TextEditingController();
     String? categoryId =

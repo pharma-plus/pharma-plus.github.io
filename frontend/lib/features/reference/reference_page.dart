@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
+import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
@@ -40,15 +41,17 @@ class _ReferencePageState extends State<ReferencePage> {
       _error = null;
     });
     final categoriesResult =
-        await ApiClient.instance.get<List<dynamic>>('/reference/categories');
+        await ApiClient.instance.get('/reference/categories');
     final statusResult = await ApiClient.instance
-        .get<Map<String, dynamic>>('/reference/sync/status');
+        .get('/reference/sync/status');
     if (!mounted) return;
     if (categoriesResult.success) {
-      _categories = categoriesResult.data ?? [];
+      final cd = categoriesResult.data;
+      _categories = cd is List ? cd : [];
     }
     if (statusResult.success) {
-      _syncStatus = statusResult.data;
+      final sd = statusResult.data;
+      _syncStatus = sd is Map ? Map<String, dynamic>.from(sd) : null;
     }
     await _loadProducts(reset: true);
   }
@@ -67,7 +70,7 @@ class _ReferencePageState extends State<ReferencePage> {
       if (_activeCategory != null) 'category': _activeCategory!,
     };
     final result = await ApiClient.instance
-        .get<List<dynamic>>('/reference/products', query: query);
+        .get('/reference/products', query: query);
     if (!mounted) return;
     if (!result.success) {
       setState(() {
@@ -78,7 +81,8 @@ class _ReferencePageState extends State<ReferencePage> {
     }
     final total = (result.meta?['total'] as num?)?.toInt() ?? 0;
     setState(() {
-      _products = [..._products, ...?result.data];
+      final listData = ApiList.of(result.data);
+      _products = [..._products, ...listData];
       _page++;
       _hasMore = _products.length < total;
       _loading = false;
@@ -88,10 +92,11 @@ class _ReferencePageState extends State<ReferencePage> {
   Future<void> _runSync() async {
     setState(() => _syncing = true);
     final result =
-        await ApiClient.instance.post<Map<String, dynamic>>('/reference/sync');
+        await ApiClient.instance.post('/reference/sync');
     if (!mounted) return;
     if (result.success) {
-      setState(() => _syncStatus = result.data);
+      final sd = result.data;
+      setState(() => _syncStatus = sd is Map<String, dynamic> ? sd : (sd is Map ? Map<String, dynamic>.from(sd) : null));
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(S.t('syncCompleted', locale))));
     } else {
@@ -102,7 +107,7 @@ class _ReferencePageState extends State<ReferencePage> {
   }
 
   Future<void> _import(dynamic product) async {
-    final result = await ApiClient.instance.post<Map<String, dynamic>>(
+    final result = await ApiClient.instance.post(
         '/reference/products/${product['id']}/import',
         body: const {});
     if (!mounted) return;

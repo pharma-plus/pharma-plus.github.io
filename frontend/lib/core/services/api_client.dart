@@ -6,7 +6,7 @@ import 'auth_store.dart';
 /// Résultat d'API normalisé par le backend.
 class ApiResult<T> {
   final bool success;
-  final T? data;
+  final dynamic data;
   final Map<String, dynamic>? meta;
   final ApiError? error;
   final int statusCode;
@@ -16,11 +16,11 @@ class ApiResult<T> {
   factory ApiResult.fromResponse(http.Response res) {
     final decoded = _safeDecode(res.body);
     if (res.statusCode >= 200 && res.statusCode < 300) {
-      final data = decoded?['data'];
+      final data = _extractData(decoded?['data']);
       final meta = decoded?['meta'];
       return ApiResult._(
         true,
-        data as T?,
+        data,
         meta == null ? null : Map<String, dynamic>.from(meta as Map),
         null,
         res.statusCode,
@@ -78,6 +78,16 @@ Map<String, dynamic>? _safeDecode(String body) {
   }
 }
 
+/// Extraction sûre de la valeur `data` quelle que soit la forme de la réponse :
+/// - PostgREST brut : `[ {...}, ... ]` → `_safeDecode` wrappé → `data = List`
+/// - Backend normalisé : `{ "data": [...] }` → `data = List`
+/// - Backend normalisé : `{ "data": { ... } }` → `data = Map`
+dynamic _extractData(dynamic data) {
+  if (data == null) return null;
+  if (data is List || data is Map) return data;
+  return null;
+}
+
 /// Certaines plateformes d'hébergement (cold start, maintenance) renvoient
 /// une page HTML au lieu du JSON attendu — on détecte pour réessayer.
 bool _isWakePage(String body) {
@@ -126,12 +136,12 @@ class ApiClient {
     return headers;
   }
 
-  Future<ApiResult<T>> get<T>(String path,
+  Future<ApiResult<dynamic>> get(String path,
       {Map<String, dynamic>? query}) async {
     return _send(() => _http.get(_uri(path, query), headers: _headers()));
   }
 
-  Future<ApiResult<T>> post<T>(String path,
+  Future<ApiResult<dynamic>> post(String path,
       {Object? body, bool auth = true}) async {
     return _send(
       () => _http.post(
@@ -142,14 +152,14 @@ class ApiClient {
     );
   }
 
-  Future<ApiResult<T>> put<T>(String path, {Object? body}) async {
+  Future<ApiResult<dynamic>> put(String path, {Object? body}) async {
     return _send(
       () => _http.put(_uri(path),
           headers: _headers(), body: jsonEncode(body ?? {})),
     );
   }
 
-  Future<ApiResult<T>> delete<T>(String path) async {
+  Future<ApiResult<dynamic>> delete(String path) async {
     return _send(() => _http.delete(_uri(path), headers: _headers()));
   }
 
@@ -158,7 +168,7 @@ class ApiClient {
   ///    jusqu'à ce que le JSON soit servi ;
   ///  - le renouvellement de session unique en cas de 401 ;
   ///  - les erreurs réseau / timeout.
-  Future<ApiResult<T>> _send<T>(Future<http.Response> Function() request,
+  Future<ApiResult<dynamic>> _send(Future<http.Response> Function() request,
       {bool retried = false}) async {
     const maxWakeRetries = 10;
     const wakeDelay = Duration(seconds: 4);
@@ -193,8 +203,8 @@ class ApiClient {
           }
           _auth.signOut();
         }
-        return ApiResult<T>.fromResponse(res);
-      } on ApiResult<T> {
+        return ApiResult<dynamic>.fromResponse(res);
+      } on ApiResult<dynamic> {
         rethrow;
       } catch (e) {
         final isTimeout = e is TimeoutException;

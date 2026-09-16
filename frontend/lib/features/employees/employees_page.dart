@@ -38,14 +38,14 @@ class _EmployeesPageState extends State<EmployeesPage> {
       _error = null;
     });
     final results = await Future.wait([
-      ApiClient.instance.get<Map<String, dynamic>>(
+      ApiClient.instance.get(
         '/employees',
         query: {
           'limit': 100,
           if (_search.text.trim().isNotEmpty) 'q': _search.text.trim(),
         },
       ),
-      ApiClient.instance.get<Map<String, dynamic>>('/employees/summary'),
+      ApiClient.instance.get('/employees/summary'),
     ]);
     if (!mounted) return;
     final list = results[0];
@@ -59,7 +59,10 @@ class _EmployeesPageState extends State<EmployeesPage> {
     }
     setState(() {
       _items = ApiList.of(list.data);
-      _summary = summary.success ? summary.data : null;
+      final sd = summary.data;
+      _summary = summary.success && sd is Map
+          ? (sd is Map<String, dynamic> ? sd : Map<String, dynamic>.from(sd))
+          : null;
       _loading = false;
     });
   }
@@ -497,9 +500,12 @@ class _EmployeeDetailState extends State<_EmployeeDetail> {
 
   Future<void> _load() async {
     final result = await ApiClient.instance
-        .get<Map<String, dynamic>>('/employees/${widget.employeeId}');
+        .get('/employees/${widget.employeeId}');
     if (!mounted) return;
-    if (result.success) setState(() => _employee = result.data);
+    if (result.success) {
+      final d = result.data;
+      setState(() => _employee = d is Map<String, dynamic> ? d : (d is Map ? Map<String, dynamic>.from(d) : null));
+    }
   }
 
   @override

@@ -46,10 +46,10 @@ class _AiPageState extends State<AiPage> {
       _loading = true;
       _error = null;
     });
-    final results = await Future.wait<ApiResult<Map<String, dynamic>>>([
-      ApiClient.instance.get<Map<String, dynamic>>('/ai/insights'),
-      ApiClient.instance.get<Map<String, dynamic>>('/ai/reorder-plan'),
-      ApiClient.instance.get<Map<String, dynamic>>('/ai/sales-analysis'),
+    final results = await Future.wait([
+      ApiClient.instance.get('/ai/insights'),
+      ApiClient.instance.get('/ai/reorder-plan'),
+      ApiClient.instance.get('/ai/sales-analysis'),
     ]);
     if (!mounted) return;
     final insights = results[0];
@@ -57,9 +57,12 @@ class _AiPageState extends State<AiPage> {
       if (!insights.success) {
         _error = insights.error?.readableMessage ?? 'Erreur';
       } else {
-        _insights = insights.data;
-        _plan = results[1].success ? results[1].data : null;
-        _analysis = results[2].success ? results[2].data : null;
+        final id = insights.data;
+        _insights = id is Map ? Map<String, dynamic>.from(id) : null;
+        final pd = results[1].data;
+        _plan = results[1].success && pd is Map ? Map<String, dynamic>.from(pd) : null;
+        final ad = results[2].data;
+        _analysis = results[2].success && ad is Map ? Map<String, dynamic>.from(ad) : null;
       }
       _loading = false;
       _activeTab ??= 'reorder_soon';
@@ -75,14 +78,16 @@ class _AiPageState extends State<AiPage> {
       _chatController.clear();
     });
     final result = await ApiClient.instance
-        .post<Map<String, dynamic>>('/ai/chat', body: {'query': text});
+        .post('/ai/chat', body: {'query': text});
     if (!mounted) return;
+    final replyData = result.data;
+    final replyText = (replyData is Map && replyData['reply'] != null)
+        ? '${replyData['reply']}'
+        : result.error?.readableMessage ?? 'Erreur';
     setState(() {
       _messages.add({
         'role': 'ai',
-        'text': result.success
-            ? '${result.data?['reply']}'
-            : result.error?.readableMessage ?? 'Erreur',
+        'text': replyText,
       });
       _sending = false;
     });

@@ -127,7 +127,7 @@ class _PosPanelState extends State<PosPanel> {
 
   Future<void> _doSearch(String query) async {
     setState(() => _searching = true);
-    final r = await ApiClient.instance.get<Map<String, dynamic>>(
+    final r = await ApiClient.instance.get(
         '/catalog/medications',
         query: {'q': query.trim(), 'limit': 60});
     if (!mounted) return;

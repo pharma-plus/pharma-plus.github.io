@@ -36,7 +36,7 @@ class _SuppliersPageState extends State<SuppliersPage> {
       _loading = true;
       _error = null;
     });
-    final result = await ApiClient.instance.get<Map<String, dynamic>>(
+    final result = await ApiClient.instance.get(
       '/suppliers',
       query: {
         'limit': 100,
@@ -380,9 +380,12 @@ class _SupplierDetailState extends State<_SupplierDetail> {
 
   Future<void> _load() async {
     final result = await ApiClient.instance
-        .get<Map<String, dynamic>>('/suppliers/${widget.supplierId}');
+        .get('/suppliers/${widget.supplierId}');
     if (!mounted) return;
-    if (result.success) setState(() => _supplier = result.data);
+    if (result.success) {
+      final d = result.data;
+      setState(() => _supplier = d is Map<String, dynamic> ? d : (d is Map ? Map<String, dynamic>.from(d) : null));
+    }
   }
 
   Future<void> _recordPayment() async {

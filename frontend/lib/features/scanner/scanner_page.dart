@@ -81,7 +81,7 @@ class _ScannerPageState extends State<ScannerPage> {
     if (code.isEmpty || _busy || code == _lastCode) return;
     _lastCode = code;
     setState(() => _busy = true);
-    final result = await ApiClient.instance.get<Map<String, dynamic>>(
+    final result = await ApiClient.instance.get(
       '/catalog/medications/barcode/${Uri.encodeComponent(code)}',
     );
     if (!mounted) return;
@@ -94,7 +94,8 @@ class _ScannerPageState extends State<ScannerPage> {
       return;
     }
     // Produit trouvé → ajout automatique au panier : POS pré-rempli.
-    final medication = Medication.fromJson(med);
+    final medMap = med is Map ? Map<String, dynamic>.from(med) : <String, dynamic>{};
+    final medication = Medication.fromJson(medMap);
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => PosPage(initialItems: [medication]),
     ));

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
+import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/glass_card.dart';
@@ -31,7 +32,7 @@ class _CamerasPageState extends State<CamerasPage> {
       _loading = true;
       _error = null;
     });
-    final result = await ApiClient.instance.get<List<dynamic>>('/cameras');
+    final result = await ApiClient.instance.get('/cameras');
     if (!mounted) return;
     if (!result.success) {
       setState(() {
@@ -41,7 +42,7 @@ class _CamerasPageState extends State<CamerasPage> {
       return;
     }
     setState(() {
-      _cameras = result.data ?? [];
+      _cameras = ApiList.of(result.data);
       _loading = false;
     });
   }
@@ -49,7 +50,7 @@ class _CamerasPageState extends State<CamerasPage> {
   Future<void> _toggleRecording(dynamic camera) async {
     setState(() => _busyId = '${camera['id']}');
     final isRecording = camera['status'] == 'recording';
-    final result = await ApiClient.instance.post<Map<String, dynamic>>(
+    final result = await ApiClient.instance.post(
         '/cameras/${camera['id']}/recordings/${isRecording ? 'stop' : 'start'}');
     if (!mounted) return;
     if (result.success) {
@@ -115,7 +116,7 @@ class _CamerasPageState extends State<CamerasPage> {
     };
     if (body['name'] == null || (body['name'] as String).isEmpty) return;
     final result = await ApiClient.instance
-        .post<Map<String, dynamic>>('/cameras', body: body);
+        .post('/cameras', body: body);
     if (!mounted) return;
     if (result.success) {
       await _load();
@@ -146,7 +147,7 @@ class _CamerasPageState extends State<CamerasPage> {
     );
     if (confirm != true) return;
     final result = await ApiClient.instance
-        .delete<Map<String, dynamic>>('/cameras/${camera['id']}');
+        .delete('/cameras/${camera['id']}');
     if (!mounted) return;
     if (result.success) {
       await _load();

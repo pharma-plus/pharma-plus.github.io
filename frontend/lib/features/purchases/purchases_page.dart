@@ -46,9 +46,9 @@ class _PurchasesPageState extends State<PurchasesPage>
       _error = null;
     });
     final results = await Future.wait([
-      ApiClient.instance.get<Map<String, dynamic>>('/purchases/orders',
+      ApiClient.instance.get('/purchases/orders',
           query: {'limit': 100}),
-      ApiClient.instance.get<Map<String, dynamic>>('/purchases/receptions',
+      ApiClient.instance.get('/purchases/receptions',
           query: {'limit': 100}),
     ]);
     if (!mounted) return;
@@ -281,17 +281,15 @@ class _OrderFormState extends State<_OrderForm> {
 
   Future<void> _load() async {
     final results = await Future.wait([
-      ApiClient.instance.get<List<dynamic>>('/branches'),
+      ApiClient.instance.get('/branches'),
       ApiClient.instance
-          .get<Map<String, dynamic>>('/suppliers', query: {'limit': 200}),
-      ApiClient.instance.get<Map<String, dynamic>>('/catalog/medications',
+          .get('/suppliers', query: {'limit': 200}),
+      ApiClient.instance.get('/catalog/medications',
           query: {'limit': 200, 'status': 'available'}),
     ]);
     if (!mounted) return;
     setState(() {
-      _branches = (results[0].data as List<dynamic>? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
+      _branches = ApiList.of(results[0].data);
       _suppliers = ApiList.of(results[1].data);
       _medications = ApiList.of(results[2].data);
       _loading = false;
@@ -567,10 +565,11 @@ class _OrderDetailState extends State<_OrderDetail> {
 
   Future<void> _load() async {
     final result = await ApiClient.instance
-        .get<Map<String, dynamic>>('/purchases/orders/${widget.orderId}');
+        .get('/purchases/orders/${widget.orderId}');
     if (!mounted) return;
     if (result.success) {
-      setState(() => _order = result.data);
+      final d = result.data;
+      setState(() => _order = d is Map<String, dynamic> ? d : (d is Map ? Map<String, dynamic>.from(d) : null));
     } else {
       setState(() => _error = result.error?.message);
     }

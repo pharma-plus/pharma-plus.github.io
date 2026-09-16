@@ -76,7 +76,7 @@ class _PosPageState extends State<PosPage> {
   }
 
   Future<void> _loadBranches() async {
-    final r = await ApiClient.instance.get<Map<String, dynamic>>('/branches');
+    final r = await ApiClient.instance.get('/branches');
     if (!mounted) return;
     if (r.success) {
       final list = (r.data as List? ?? const [])
@@ -127,7 +127,7 @@ class _PosPageState extends State<PosPage> {
     final q = query.trim();
     final Map<String, dynamic> params = {'limit': 60};
     if (q.isNotEmpty) params['q'] = q;
-    final result = await ApiClient.instance.get<Map<String, dynamic>>(
+    final result = await ApiClient.instance.get(
       '/catalog/medications',
       query: params,
     );
@@ -177,7 +177,7 @@ class _PosPageState extends State<PosPage> {
       MaterialPageRoute(builder: (_) => const _ScannerScreen()),
     );
     if (code != null && code.isNotEmpty) {
-      final result = await ApiClient.instance.get<Map<String, dynamic>>(
+      final result = await ApiClient.instance.get(
         '/catalog/medications/barcode/${Uri.encodeComponent(code)}',
       );
       if (!mounted) return;
@@ -191,7 +191,8 @@ class _PosPageState extends State<PosPage> {
         return;
       }
       setState(() {
-        _cart.add(Medication.fromJson(medication));
+        final medMap = medication is Map ? Map<String, dynamic>.from(medication) : <String, dynamic>{};
+        _cart.add(Medication.fromJson(medMap));
       });
     }
   }
@@ -219,7 +220,7 @@ class _PosPageState extends State<PosPage> {
     try {
       final paid =
           double.parse((receivedAmount ?? _cart.total).toStringAsFixed(2));
-      final result = await ApiClient.instance.post<Map<String, dynamic>>(
+      final result = await ApiClient.instance.post(
         '/sales',
         body: {
           'branchId': _branchId,

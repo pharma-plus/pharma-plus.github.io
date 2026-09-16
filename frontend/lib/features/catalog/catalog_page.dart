@@ -46,7 +46,7 @@ class _CatalogPageState extends State<CatalogPage> {
       _loading = true;
       _error = null;
     });
-    var result = await ApiClient.instance.get<Map<String, dynamic>>(
+    var result = await ApiClient.instance.get(
       '/catalog/medications',
       query: {
         if (query != null && query.isNotEmpty) 'q': query,
@@ -59,7 +59,7 @@ class _CatalogPageState extends State<CatalogPage> {
     // n'est pas déployée (PGRST125), on retombe sur la table brute
     // /medications pour au moins afficher le catalogue existant.
     if (!result.success && result.error?.code == 'PGRST125') {
-      result = await ApiClient.instance.get<Map<String, dynamic>>(
+      result = await ApiClient.instance.get(
         '/medications',
         query: {'limit': 500, 'is_parapharmacie': _paraMode},
       );

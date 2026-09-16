@@ -61,7 +61,7 @@ class SyncEngine {
   Future<void> _pullCatalog({required bool verbose}) async {
     final since = await _store.getRevision('medications');
     try {
-      final result = await ApiClient.instance.get<Map<String, dynamic>>(
+      final result = await ApiClient.instance.get(
         '/sync/pull/medications',
         query: {'sinceRevision': since},
       );

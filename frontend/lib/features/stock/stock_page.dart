@@ -37,7 +37,7 @@ class _StockPageState extends State<StockPage> {
       _loading = true;
       _error = null;
     });
-    final result = await ApiClient.instance.get<Map<String, dynamic>>(
+    final result = await ApiClient.instance.get(
       '/stock/balances',
       query: {
         'limit': 200,

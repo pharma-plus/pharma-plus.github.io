@@ -34,7 +34,7 @@ class _TwoFactorPageState extends State<TwoFactorPage> {
       _loading = true;
       _error = null;
     });
-    final result = await ApiClient.instance.post<Map<String, dynamic>>(
+    final result = await ApiClient.instance.post(
       '/auth/verify-2fa',
       body: {'twoFactorToken': widget.token, 'code': code},
     );
@@ -46,10 +46,12 @@ class _TwoFactorPageState extends State<TwoFactorPage> {
       return;
     }
     final data = result.data!;
+    if (data is! Map) return;
+    final map = Map<String, dynamic>.from(data);
     await context.read<AuthStore>().saveSession(
-          accessToken: data['accessToken'] as String,
-          refreshToken: data['refreshToken'] as String,
-          user: User.fromSession(data),
+          accessToken: map['accessToken'] as String,
+          refreshToken: map['refreshToken'] as String,
+          user: User.fromSession(map),
         );
   }
 

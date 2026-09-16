@@ -84,8 +84,7 @@ class _DashboardPageState extends State<DashboardPage> {
       _loading = true;
       _error = null;
     });
-    final result = await ApiClient.instance
-        .get<Map<String, dynamic>>('/dashboard/overview');
+    final result = await ApiClient.instance.get('/dashboard/overview');
     if (!mounted) return;
     if (!result.success) {
       setState(() {
@@ -95,7 +94,8 @@ class _DashboardPageState extends State<DashboardPage> {
       return;
     }
     setState(() {
-      _data = result.data;
+      final d = result.data;
+      _data = d is Map<String, dynamic> ? d : (d is Map ? Map<String, dynamic>.from(d) : null);
       _loading = false;
     });
     _loadNotificationCount();
@@ -105,25 +105,33 @@ class _DashboardPageState extends State<DashboardPage> {
   /// Alertes stock : produits réellement en stock faible / expirant /
   /// expirés (API /stock/alerts). Aucun produit fictif affiché.
   Future<void> _loadStockAlerts() async {
-    final r =
-        await ApiClient.instance.get<Map<String, dynamic>>('/stock/alerts');
+    final r = await ApiClient.instance.get('/stock/alerts');
     if (!mounted || !r.success || r.data == null) return;
     List<Map<String, dynamic>> listOf(dynamic v) =>
-        (v as List? ?? const []).whereType<Map<String, dynamic>>().toList();
-    setState(() {
-      _lowStockRows = listOf(r.data!['low_stock']);
-      _expiringRows = listOf(r.data!['expiring']);
-      _expiredRows = listOf(r.data!['expired']);
-    });
+        (v is List ? v : const []).whereType<Map<String, dynamic>>().toList();
+    final d = r.data;
+    if (d is Map) {
+      setState(() {
+        _lowStockRows = listOf(d['low_stock']);
+        _expiringRows = listOf(d['expiring']);
+        _expiredRows = listOf(d['expired']);
+      });
+    } else {
+      setState(() {
+        _lowStockRows = listOf(d);
+        _expiringRows = [];
+        _expiredRows = [];
+      });
+    }
   }
 
   /// Badge de notifications : valeur réelle depuis l'API (aucun chiffre
   /// codé en dur). Silencieux en cas d'échec (badge = 0).
   Future<void> _loadNotificationCount() async {
-    final r =
-        await ApiClient.instance.get<Map<String, dynamic>>('/notifications');
+    final r = await ApiClient.instance.get('/notifications');
     if (!mounted || !r.success) return;
-    final meta = r.data?['meta'];
+    final d = r.data;
+    final meta = (d is Map) ? d['meta'] : null;
     final unread = meta is Map ? meta['unread'] : null;
     setState(() => _notificationCount = _int(unread ?? 0));
   }
