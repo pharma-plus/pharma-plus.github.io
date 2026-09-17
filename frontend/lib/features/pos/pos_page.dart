@@ -251,6 +251,10 @@ class _PosPageState extends State<PosPage> {
           'branchId': _branchId,
           'saleType': 'pos',
           'items': _cart.lines.map((l) => l.toPayload()).toList(),
+          if (_cart.globalDiscountPercent > 0)
+            'discount_percent': _cart.globalDiscountPercent,
+          if (_cart.globalDiscountFixed > 0)
+            'discount_amount': _cart.globalDiscountFixed,
           if (_customerId != null) 'customerId': _customerId,
           'payments': [pay.toPayload()],
         },
@@ -499,6 +503,8 @@ class _PosPageState extends State<PosPage> {
     ));
   }
 
+  bool _discountIsPercent = true;
+
   Widget _buildCartPanel(String locale) {
     return GlassCard(
       radius: BorderRadius.circular(0),
@@ -543,7 +549,64 @@ class _PosPageState extends State<PosPage> {
                   ),
           ),
           const Divider(height: 20),
+          // ---- Remise globale ----
+          if (!_cart.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true),
+                      style: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w700),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        hintText: S.t('discount', locale),
+                        prefixIcon:
+                            const Icon(Icons.local_offer_outlined, size: 16),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 8),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onChanged: (v) {
+                        final d = double.tryParse(v) ?? 0;
+                        setState(() {
+                          _cart.globalDiscountPercent =
+                              _discountIsPercent ? d : 0;
+                          if (!_discountIsPercent) {
+                            _cart.globalDiscountFixed = d;
+                          }
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  ChoiceChip(
+                    label: const Text('%', style: TextStyle(fontSize: 11)),
+                    selected: _discountIsPercent,
+                    onSelected: (v) => setState(() => _discountIsPercent = v),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  const SizedBox(width: 2),
+                  ChoiceChip(
+                    label: const Text('MAD',
+                        style: TextStyle(fontSize: 11)),
+                    selected: !_discountIsPercent,
+                    onSelected: (v) =>
+                        setState(() => _discountIsPercent = !v),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ),
+            ),
           _TotalRow(label: S.t('subtotal', locale), value: _cart.subtotal),
+          if (_cart.globalDiscount > 0)
+            _TotalRow(
+                label: '${S.t('discount', locale)} (${_discountIsPercent ? "${_cart.globalDiscountPercent.toStringAsFixed(0)}%" : Fmt.money(_cart.globalDiscountFixed)})',
+                value: -_cart.globalDiscount),
           _TotalRow(label: S.t('tva', locale), value: _cart.tvaTotal),
           _TotalRow(
               label: S.t('total', locale), value: _cart.total, bold: true),

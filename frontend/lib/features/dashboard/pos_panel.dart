@@ -289,19 +289,17 @@ class _PosPanelState extends State<PosPanel> {
 
   String _fmt(double v) => Fmt.money(v);
 
-  /// Paiement ESPÈCES RÉEL : ouvre la feuille de paiement (montant reçu →
-  /// monnaie calculée via calculateChange()). Si validé, le panier est
-  /// transmis au POS complet pré-rempli qui enregistre la vente avec le
-  /// montant reçu (paid_amount) — le backend calcule change_amount.
+  /// Paiement multi-modes : ouvre la feuille complète (Espèces · Carte ·
+  /// Tiers payant) pour le mini-POS du dashboard.
   Future<void> _pay() async {
     if (_cart.isEmpty) {
       widget.onCheckout();
       return;
     }
-    final received = await PaymentSheet.show(context, _totals.total);
-    if (received == null || !mounted) return;
+    final result = await PaymentSheet.showFull(context, _totals.total);
+    if (result == null || !result.isValid || !mounted) return;
     widget.onPrefilled?.call(
-        _cart.values.toList(), _discount, _discountPercent, received);
+        _cart.values.toList(), _discount, _discountPercent, result.received ?? result.amount);
   }
 
   @override

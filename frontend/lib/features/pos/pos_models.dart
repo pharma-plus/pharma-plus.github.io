@@ -33,13 +33,16 @@ class CartLine {
 class Cart {
   final List<CartLine> lines;
   double globalDiscountPercent;
+  double globalDiscountFixed;
 
-  Cart({List<CartLine>? lines, this.globalDiscountPercent = 0})
+  Cart({List<CartLine>? lines, this.globalDiscountPercent = 0, this.globalDiscountFixed = 0})
       : lines = List<CartLine>.from(lines ?? const []);
 
   double get subtotal => lines.fold(0, (s, l) => s + l.net);
   double get tvaTotal => lines.fold(0, (s, l) => s + l.tvaAmount);
-  double get globalDiscount => subtotal * (globalDiscountPercent / 100);
+  double get globalDiscount => globalDiscountPercent > 0
+      ? subtotal * (globalDiscountPercent / 100)
+      : globalDiscountFixed;
   double get total => subtotal + tvaTotal - globalDiscount;
   int get itemCount => lines.fold(0, (s, l) => s + l.quantity.round());
 
@@ -65,5 +68,6 @@ class Cart {
   void clear() {
     lines.clear();
     globalDiscountPercent = 0;
+    globalDiscountFixed = 0;
   }
 }

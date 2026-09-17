@@ -606,6 +606,49 @@ class _CardTypeChip extends StatelessWidget {
       required this.selected,
       required this.onTap});
 
+  Widget _buildLogo() {
+    if (label == 'Visa') {
+      return Container(
+        width: 48,
+        height: 30,
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1F71),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        alignment: Alignment.center,
+        child: const Text('VISA',
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5)),
+      );
+    }
+    if (label == 'Mastercard') {
+      return SizedBox(
+        width: 48,
+        height: 30,
+        child: Stack(alignment: Alignment.center, children: [
+          Positioned(
+              left: 8,
+              child: Container(
+                  width: 20,
+                  height: 20,
+                  decoration: const BoxDecoration(
+                      shape: BoxShape.circle, color: Color(0xFFEB001B)))),
+          Positioned(
+              right: 8,
+              child: Container(
+                  width: 20,
+                  height: 20,
+                  decoration: const BoxDecoration(
+                      shape: BoxShape.circle, color: Color(0xFFF79E1B)))),
+        ]),
+      );
+    }
+    return Icon(icon, size: 22);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Expanded(
@@ -625,11 +668,7 @@ class _CardTypeChip extends StatelessWidget {
                     : Colors.white.withValues(alpha: 0.12)),
           ),
           child: Column(children: [
-            Icon(icon,
-                size: 22,
-                color: selected
-                    ? const Color(0xFF7BEBA4)
-                    : Colors.white54),
+            _buildLogo(),
             const SizedBox(height: 4),
             Text(label,
                 style: TextStyle(

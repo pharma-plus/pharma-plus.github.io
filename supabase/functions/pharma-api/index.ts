@@ -148,17 +148,46 @@ async function proxyToTable(
   const url = new URL(req.url);
   const limit = parseInt(url.searchParams.get("limit") ?? "50", 10);
   const page = parseInt(url.searchParams.get("page") ?? "1", 10);
+  let searchQ = "";
   url.searchParams.forEach((v, k) => {
     if (k === "page") {
       targetUrl.searchParams.set("offset", String((page - 1) * limit));
     } else if (k === "limit") {
       targetUrl.searchParams.set("limit", v);
-    } else if (v === "true" || v === "false") {
+    } else if (k === "q") {
+      searchQ = v;
+    } else if (k === "hasCredit" || v === "true" || v === "false") {
       targetUrl.searchParams.set(k, `eq.${v}`);
     } else {
       targetUrl.searchParams.set(k, v);
     }
   });
+  // Convert `q` to PostgREST or/ilike for medication search
+  if (searchQ && table === "medications") {
+    const pct = `%${searchQ}%`;
+    targetUrl.searchParams.set(
+      "or",
+      `(name.ilike.${pct},dci.ilike.${pct},generic_name.ilike.${pct},barcode_ean13.ilike.${pct})`
+    );
+  } else if (searchQ) {
+    const pct = `%${searchQ}%`;
+    if (table === "customers") {
+      targetUrl.searchParams.set(
+        "or",
+        `(name.ilike.${pct},first_name.ilike.${pct},last_name.ilike.${pct},phone.ilike.${pct},email.ilike.${pct})`
+      );
+    } else if (table === "suppliers") {
+      targetUrl.searchParams.set(
+        "or",
+        `(name.ilike.${pct},contact_name.ilike.${pct},phone.ilike.${pct})`
+      );
+    } else if (table === "employees") {
+      targetUrl.searchParams.set(
+        "or",
+        `(first_name.ilike.${pct},last_name.ilike.${pct},email.ilike.${pct})`
+      );
+    }
+  }
 
   const headers: Record<string, string> = {
     apikey: serviceKey,
