@@ -1,0 +1,35 @@
+[error] TypeError: pchstr must contain a $ as first char
+    at deserialize (C:\Users\Merouan\Documents\Default Project\pharma-maroc-gold\backend\node_modules\@phc\format\index.js:147:11)
+    at Object.verify (C:\Users\Merouan\Documents\Default Project\pharma-maroc-gold\backend\node_modules\argon2\argon2.cjs:158:27)
+    at Object.login (file:///C:/Users/Merouan/Documents/Default%20Project/pharma-maroc-gold/backend/src/core/auth/service.js:91:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async file:///C:/Users/Merouan/Documents/Default%20Project/pharma-maroc-gold/backend/src/core/auth/index.js:46:18
+[error] TypeError: pchstr must contain a $ as first char
+    at deserialize (C:\Users\Merouan\Documents\Default Project\pharma-maroc-gold\backend\node_modules\@phc\format\index.js:147:11)
+    at Object.verify (C:\Users\Merouan\Documents\Default Project\pharma-maroc-gold\backend\node_modules\argon2\argon2.cjs:158:27)
+    at Object.login (file:///C:/Users/Merouan/Documents/Default%20Project/pharma-maroc-gold/backend/src/core/auth/service.js:91:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async file:///C:/Users/Merouan/Documents/Default%20Project/pharma-maroc-gold/backend/src/core/auth/index.js:46:18
+[error] TypeError: pchstr must contain a $ as first char
+    at deserialize (C:\Users\Merouan\Documents\Default Project\pharma-maroc-gold\backend\node_modules\@phc\format\index.js:147:11)
+    at Object.verify (C:\Users\Merouan\Documents\Default Project\pharma-maroc-gold\backend\node_modules\argon2\argon2.cjs:158:27)
+    at Object.login (file:///C:/Users/Merouan/Documents/Default%20Project/pharma-maroc-gold/backend/src/core/auth/service.js:91:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async file:///C:/Users/Merouan/Documents/Default%20Project/pharma-maroc-gold/backend/src/core/auth/index.js:46:18
+[error] TypeError: pchstr must contain a $ as first char
+    at deserialize (C:\Users\Merouan\Documents\Default Project\pharma-maroc-gold\backend\node_modules\@phc\format\index.js:147:11)
+    at Object.verify (C:\Users\Merouan\Documents\Default Project\pharma-maroc-gold\backend\node_modules\argon2\argon2.cjs:158:27)
+    at Object.login (file:///C:/Users/Merouan/Documents/Default%20Project/pharma-maroc-gold/backend/src/core/auth/service.js:91:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async file:///C:/Users/Merouan/Documents/Default%20Project/pharma-maroc-gold/backend/src/core/auth/index.js:46:18
+[error] TypeError: pchstr must contain a $ as first char
+    at deserialize (C:\Users\Merouan\Documents\Default Project\pharma-maroc-gold\backend\node_modules\@phc\format\index.js:147:11)
+    at Object.verify (C:\Users\Merouan\Documents\Default Project\pharma-maroc-gold\backend\node_modules\argon2\argon2.cjs:158:27)
+    at Object.login (file:///C:/Users/Merouan/Documents/Default%20Project/pharma-maroc-gold/backend/src/core/auth/service.js:91:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async file:///C:/Users/Merouan/Documents/Default%20Project/pharma-maroc-gold/backend/src/core/auth/index.js:46:18
+[error] [Error: Output is too short]
+[error] [Error: Output is too short]
+[error] [Error: Output is too short]
+[error] [Error: Output is too short]
+[error] [Error: Output is too short]

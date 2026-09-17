@@ -451,56 +451,6 @@ Future<void> _pay() async {
             ),
           ),
         ),
-        // ── 2) Résultats de recherche (dropdown) ──
-        if (_searching && _results.isEmpty)
-          Container(
-            margin: const EdgeInsets.only(top: 4),
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            decoration: BoxDecoration(
-                color: const Color(0xFF0C1F16),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.dividerDark)),
-            child: const Center(
-                child: SizedBox(
-                    width: 14, height: 14,
-                    child: CircularProgressIndicator(strokeWidth: 1.5, color: Color(0xFF0E8C4F)))),
-          ),
-        if (_results.isNotEmpty)
-          Container(
-            margin: const EdgeInsets.only(top: 4),
-            constraints: const BoxConstraints(maxHeight: 140),
-            decoration: BoxDecoration(
-                color: const Color(0xFF0C1F16),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.dividerDark)),
-            child: ListView(
-              shrinkWrap: true,
-              padding: const EdgeInsets.symmetric(vertical: 3),
-              children: [
-                for (final m in _results.values)
-                  InkWell(
-                    onTap: () => _add(m),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                      child: Row(children: [
-                        const Icon(Icons.medication_rounded,
-                            size: 13, color: AppColors.emeraldLight),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                              '${m.name}${m.dosage != null ? ' · ${m.dosage}' : ''}',
-                              maxLines: 1, overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: Colors.white, fontSize: 10.5)),
-                        ),
-                        Text(_fmt(m.priceSale),
-                            style: const TextStyle(
-                                color: Color(0xFFE9C873), fontSize: 10.5, fontWeight: FontWeight.w800)),
-                      ]),
-                    ),
-                  ),
-              ],
-            ),
-          ),
         const SizedBox(height: 6),
         // ── 3) Catégories : GRILLE 2×4 COMPACTE ──
         LayoutBuilder(builder: (context, cons) {
@@ -531,45 +481,60 @@ Future<void> _pay() async {
           );
         }),
         const SizedBox(height: 6),
-        // ── 4) En-tête table + Panier + Remise + Totaux (ensemble en bas) ──
-        const _RowHeader(),
-        const SizedBox(height: 4),
+        // ── 4) CATALOGUE PRODUITS ──
         Expanded(
-          child: _cart.isEmpty
-              ? Center(
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  if (_heldIds.isNotEmpty)
-                    for (final id in _heldIds)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: _PanelButton(
-                            label: 'Reprendre (${_heldQty[id] ?? 0} art.)',
-                            icon: Icons.unarchive_rounded,
-                            color: const Color(0xFF2A7A5A),
-                            onTap: () => _resume(id)),
-                      ),
-                  Text('Recherchez un médicament',
+          child: ListView(
+            shrinkWrap: false,
+            padding: EdgeInsets.zero,
+            children: [
+              if (_results.isNotEmpty) ...[
+                const _RowHeader(),
+                const SizedBox(height: 4),
+                ..._results.values.map((m) => _CatalogRow(
+                      name: m.name,
+                      dosage: m.dosage,
+                      price: m.priceSale,
+                      qty: _qty[m.id] ?? 0,
+                      onPlus: () => _add(m),
+                      onMinus: () => _bump(m.id, -1),
+                    )),
+              ],
+              if (!_cart.isEmpty) ...[
+                const _RowHeader(),
+                const SizedBox(height: 4),
+                ..._cart.values.map((m) => _CartRow(
+                      name: m.name,
+                      qty: _qty[m.id] ?? 1,
+                      lineTotal: m.priceSale * (_qty[m.id] ?? 1),
+                      onMinus: () => _bump(m.id, -1),
+                      onPlus: () => _bump(m.id, 1),
+                      onDelete: () => _bump(m.id, -(_qty[m.id] ?? 1)),
+                    )),
+              ],
+              if (_cart.isEmpty && _heldIds.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                ..._heldIds.map((id) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: _PanelButton(
+                          label: 'Reprendre (${_heldQty[id] ?? 0} art.)',
+                          icon: Icons.unarchive_rounded,
+                          color: const Color(0xFF2A7A5A),
+                          onTap: () => _resume(id)),
+                    )),
+              ],
+              if (_cart.isEmpty && _heldIds.isEmpty)
+                const Center(
+                    child: Padding(
+                  padding: EdgeInsets.only(top: 16),
+                  child: Text('Aucun produit',
                       style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.35),
-                          fontSize: 10)),
-                ]))
-              : ListView(
-                  shrinkWrap: false,
-                  children: [
-                    for (final m in _cart.values)
-                      _CartRow(
-                        name: m.name,
-                        qty: _qty[m.id] ?? 1,
-                        lineTotal: m.priceSale * (_qty[m.id] ?? 1),
-                        onMinus: () => _bump(m.id, -1),
-                        onPlus: () => _bump(m.id, 1),
-                        onDelete: () => _bump(m.id, -(_qty[m.id] ?? 1)),
-                      ),
-                  ],
-                ),
+                          color: Colors.white, fontSize: 11)),
+                )),
+            ],
+          ),
         ),
         const SizedBox(height: 4),
-        // ── 5) Remise + TVA + Total (bas du panier) ──
+        // ── 6) Remise + TVA + Total (bas du panier) ──
         if (!_cart.isEmpty)
           Row(children: [
             SizedBox(
@@ -655,7 +620,7 @@ Future<void> _pay() async {
                           fontWeight: FontWeight.w900)),
                 ]),
           ),
-        // ── 5b) MODE DE PAIEMENT INLINE ──
+        // ── 7) MODE DE PAIEMENT INLINE ──
         if (!_cart.isEmpty) ...[
           Row(
             children: [
@@ -708,7 +673,7 @@ Future<void> _pay() async {
           ],
         ],
         const SizedBox(height: 6),
-        // ── 6) Actions : Vider / Suspendre / Paiement ──
+        // ── 8) Actions : Vider / Suspendre / Paiement ──
         Row(children: [
           Expanded(
               child: _PanelButton(
@@ -1007,6 +972,78 @@ class _MoneyRow extends StatelessWidget {
                 color: Colors.white,
                 fontSize: 11.5,
                 fontWeight: FontWeight.w700)),
+      ]),
+    );
+  }
+}
+
+/// Ligne du catalogue : nom · contrôles quantité · prix.
+class _CatalogRow extends StatelessWidget {
+  final String name;
+  final String? dosage;
+  final double price;
+  final int qty;
+  final VoidCallback onPlus;
+  final VoidCallback onMinus;
+  const _CatalogRow({
+    required this.name,
+    this.dosage,
+    required this.price,
+    required this.qty,
+    required this.onPlus,
+    required this.onMinus,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.03),
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.06))),
+      child: Row(children: [
+        Expanded(
+          child: Text('${name}${dosage != null ? ' · $dosage' : ''}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600)),
+        ),
+        SizedBox(
+          width: 86,
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            InkWell(
+                onTap: onMinus,
+                child: const Icon(Icons.remove_circle_outline_rounded,
+                    size: 15, color: Color(0xFF7BEBA4))),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 7),
+              child: Text('$qty',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800)),
+            ),
+            InkWell(
+                onTap: onPlus,
+                child: const Icon(Icons.add_circle_outline_rounded,
+                    size: 15, color: Color(0xFF7BEBA4))),
+          ]),
+        ),
+        SizedBox(
+          width: 62,
+          child: Text(Fmt.money(price),
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                  color: Color(0xFFE9C873),
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w800)),
+        ),
+        const SizedBox(width: 6),
       ]),
     );
   }
