@@ -18,6 +18,7 @@ import '../shell/shell_nav.dart';
 import '../../core/widgets/product_art.dart';
 import 'pos_categories.dart';
 import 'pos_models.dart';
+import 'payment_models.dart';
 
 class PosPage extends StatefulWidget {
   /// Panier pré-rempli (mini-POS du dashboard → POS complet),
@@ -50,11 +51,14 @@ class _PosPageState extends State<PosPage> {
   bool _checkout = false;
   List<Map<String, dynamic>> _branches = [];
   String? _branchId;
+  List<Map<String, dynamic>> _customers = [];
+  String? _customerId;
 
   @override
   void initState() {
     super.initState();
     _loadBranches();
+    _loadCustomers();
     // CHARGEMENT INITIAL du catalogue : la page Ventes affiche ses
     // produits dès l'ouverture (plus jamais vide avant la recherche).
     _searchMedications('');
@@ -96,10 +100,27 @@ class _PosPageState extends State<PosPage> {
           !_checkout) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted && !_checkout) {
-            _checkoutFlow(widget.initialReceived);
+            _checkoutFlow(PaymentResult.cash(
+              amount: _cart.total,
+              received: widget.initialReceived!,
+              change: calculateChange(
+                  received: widget.initialReceived!, total: _cart.total),
+            ));
           }
         });
       }
+    }
+  }
+
+  Future<void> _loadCustomers() async {
+    final r = await ApiClient.instance.get('/customers', query: {'limit': 200});
+    if (!mounted) return;
+    if (r.success) {
+      setState(() {
+        _customers = (r.data as List? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .toList();
+      });
     }
   }
 
@@ -197,17 +218,17 @@ class _PosPageState extends State<PosPage> {
     }
   }
 
-  /// Ouvre la feuille de paiement (montant reçu → monnaie calculée),
-  /// puis encaisse avec le montant réellement reçu.
+  /// Ouvre la feuille de paiement multi-modes (Espèces · Carte · Tiers payant),
+  /// puis encaisse avec le PaymentResult complet.
   Future<void> _openPayment() async {
     if (_cart.isEmpty || _checkout) return;
-    final received = await PaymentSheet.show(context, _cart.total);
-    if (received == null) return; // paiement annulé
+    final result = await PaymentSheet.showFull(context, _cart.total);
+    if (result == null || !result.isValid) return; // paiement annulé
     if (!mounted) return;
-    await _checkoutFlow(received);
+    await _checkoutFlow(result);
   }
 
-  Future<void> _checkoutFlow([double? receivedAmount]) async {
+  Future<void> _checkoutFlow([PaymentResult? payment]) async {
     if (_cart.isEmpty || _checkout) return;
     final auth = context.read<AuthStore>();
     if (_branchId == null) {
@@ -218,25 +239,24 @@ class _PosPageState extends State<PosPage> {
     }
     setState(() => _checkout = true);
     try {
-      final paid =
-          double.parse((receivedAmount ?? _cart.total).toStringAsFixed(2));
+      // Déterminer le paiement à envoyer
+      final pay = payment ?? PaymentResult.cash(
+        amount: _cart.total,
+        received: _cart.total,
+        change: 0,
+      );
       final result = await ApiClient.instance.post(
         '/sales',
         body: {
           'branchId': _branchId,
           'saleType': 'pos',
           'items': _cart.lines.map((l) => l.toPayload()).toList(),
-          'payments': [
-            {
-              'method': 'cash',
-              'amount': paid,
-              'generateInvoice': true,
-            }
-          ],
+          if (_customerId != null) 'customerId': _customerId,
+          'payments': [pay.toPayload()],
         },
       );
       if (result.success) {
-        final change = calculateChange(received: paid, total: _cart.total);
+        final change = pay.change ?? calculateChange(received: pay.amount, total: _cart.total);
         final lines = _cart.lines
             .map((l) => CartLineLike(
                   name: l.medication.name,
@@ -249,18 +269,20 @@ class _PosPageState extends State<PosPage> {
         final pharmacyName = _branchName();
         _cart.clear();
         if (mounted) {
+          final msg = pay.method == 'card'
+              ? '${S.t('saleSuccess', auth.locale)} · Carte ${pay.cardType ?? ''}'
+              : change > 0
+                  ? '${S.t('saleSuccess', auth.locale)} · Monnaie : ${Fmt.money(change)} MAD'
+                  : S.t('saleSuccess', auth.locale);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text(change > 0
-                    ? '${S.t('saleSuccess', auth.locale)} · Monnaie : ${Fmt.money(change)} MAD'
-                    : S.t('saleSuccess', auth.locale))),
+            SnackBar(content: Text(msg)),
           );
           ReceiptPdf.printSaleReceipt(
             lines: lines,
             pharmacyName: pharmacyName,
             locale: auth.locale,
             globalDiscountPercent: gdp,
-            amountReceived: paid,
+            amountReceived: pay.received ?? pay.amount,
             change: change,
           );
         }
@@ -270,12 +292,7 @@ class _PosPageState extends State<PosPage> {
           {
             'branchId': _branchId,
             'items': _cart.lines.map((l) => l.toPayload()).toList(),
-            'payments': [
-              {
-                'method': 'cash',
-                'amount': paid,
-              }
-            ],
+            'payments': [pay.toPayload()],
           },
         );
         await OfflineStore.instance.enqueue(
@@ -313,6 +330,30 @@ class _PosPageState extends State<PosPage> {
         leading: const ShellBackButton(),
         title: Text(S.t('pos', locale)),
         actions: [
+          // Sélecteur client
+          if (_customers.isNotEmpty)
+            DropdownButton<String>(
+              value: _customerId,
+              hint: const Icon(Icons.person_outline_rounded, size: 20),
+              underline: const SizedBox.shrink(),
+              iconEnabledColor: Colors.white70,
+              items: [
+                const DropdownMenuItem(
+                  value: null,
+                  child: Text('Client comptoir',
+                      style: TextStyle(fontSize: 13)),
+                ),
+                ..._customers.map((c) => DropdownMenuItem(
+                      value: '${c['id']}',
+                      child: Text(
+                        '${c['first_name'] ?? ''} ${c['last_name'] ?? ''}'
+                            .trim(),
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    )),
+              ],
+              onChanged: (v) => setState(() => _customerId = v),
+            ),
           if (_branches.isNotEmpty)
             DropdownButton<String>(
               value: _branchId,
