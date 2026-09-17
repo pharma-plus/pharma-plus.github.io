@@ -6,6 +6,7 @@ import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
+import '../../core/widgets/barcode_scanner.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/status_chip.dart';
@@ -93,6 +94,25 @@ class _PurchasesPageState extends State<PurchasesPage>
     );
   }
 
+  Future<void> _scanProduct() async {
+    final result = await BarcodeScannerSheet.show(
+        context, title: 'Scanner produit pour réception');
+    if (result == null || !mounted) return;
+    final code = result.code.trim();
+    if (code.isEmpty) return;
+    final apiResult = await ApiClient.instance.get(
+      '/catalog/medications/barcode/${Uri.encodeComponent(code)}',
+    );
+    if (!mounted) return;
+    if (!apiResult.success || apiResult.data == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Code inconnu : $code')));
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Produit trouvé : ${apiResult.data['name']}')));
+  }
+
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
@@ -101,6 +121,11 @@ class _PurchasesPageState extends State<PurchasesPage>
       appBar: AppBar(
         leading: const ShellBackButton(),
         title: Text(S.t('purchases', locale)),
+        actions: [
+          IconButton(
+              onPressed: _scanProduct,
+              icon: const Icon(Icons.qr_code_scanner, color: Color(0xFFE9C873))),
+        ],
         bottom: TabBar(
           controller: _tabs,
           tabs: [

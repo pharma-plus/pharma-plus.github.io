@@ -11,6 +11,7 @@ import '../../core/services/api_list.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/calculations.dart';
 import '../../core/utils/format.dart';
+import '../../core/widgets/barcode_scanner.dart';
 import 'payment_sheet.dart';
 import 'pos_category_grid.dart';
 
@@ -194,6 +195,31 @@ class _PosPanelState extends State<PosPanel> {
         _discountCtrl.clear();
       });
 
+  /// Scan code-barres : ouvre la caméra tablette/smartphone, cherche le
+  /// produit via l'API et l'ajoute au panier.
+  Future<void> _scanBarcode() async {
+    final result = await BarcodeScannerSheet.show(context, title: 'Scanner produit');
+    if (result == null || !mounted) return;
+    final code = result.code.trim();
+    if (code.isEmpty) return;
+    final apiResult = await ApiClient.instance.get(
+      '/catalog/medications/barcode/${Uri.encodeComponent(code)}',
+    );
+    if (!mounted) return;
+    if (!apiResult.success || apiResult.data == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Code inconnu : $code')));
+      return;
+    }
+    final med = apiResult.data;
+    final medMap = med is Map ? Map<String, dynamic>.from(med) : <String, dynamic>{};
+    final m = Medication.fromJson(medMap);
+    setState(() {
+      _qty[m.id] = (_qty[m.id] ?? 0) + 1;
+      _cart[m.id] = m;
+    });
+  }
+
   // ---- Ventes suspendues : persistance locale réelle ----
   Future<void> _loadHeld() async {
     final prefs = await SharedPreferences.getInstance();
@@ -331,108 +357,103 @@ class _PosPanelState extends State<PosPanel> {
         ),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        // ---- Recherche produit RÉELLE + scan ----
+        // ── 1) Recherche produit RÉELLE + scan ──
         Container(
-          height: 42,
+          height: 38,
           decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.035),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(
                   color: const Color(0xFFC9A24B).withValues(alpha: 0.4))),
           child: Row(children: [
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Icon(Icons.search_rounded,
-                size: 18, color: Colors.white.withValues(alpha: 0.45)),
-            const SizedBox(width: 6),
+                size: 16, color: Colors.white.withValues(alpha: 0.45)),
+            const SizedBox(width: 5),
             Expanded(
               child: TextField(
                 controller: _search,
                 onChanged: _onSearchChanged,
-                style: const TextStyle(color: Colors.white, fontSize: 12.5),
+                style: const TextStyle(color: Colors.white, fontSize: 11.5),
                 decoration: const InputDecoration(
                     isDense: true,
                     border: InputBorder.none,
-                    hintText: 'Rechercher un médicament…',
-                    hintStyle: TextStyle(color: Color(0x66FFFFFF), fontSize: 12)),
+                    hintText: 'Rechercher…',
+                    hintStyle: TextStyle(color: Color(0x66FFFFFF), fontSize: 11)),
               ),
             ),
             if (_searching)
               const Padding(
                 padding: EdgeInsets.all(8),
                 child: SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(strokeWidth: 2)),
+                    width: 12, height: 12,
+                    child: CircularProgressIndicator(strokeWidth: 1.5)),
               ),
             IconButton(
               tooltip: 'Scanner',
-              onPressed: widget.onCheckout,
+              onPressed: _scanBarcode,
               icon: const Icon(Icons.qr_code_scanner_rounded,
-                  size: 19, color: Color(0xFFE9C873)),
+                  size: 17, color: Color(0xFFE9C873)),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             ),
           ]),
         ),
-        // ---- Résultats de recherche (API réelle) ----
+        // ── 2) Résultats de recherche (dropdown) ──
         if (_searching && _results.isEmpty)
           Container(
-            margin: const EdgeInsets.only(top: 6),
-            padding: const EdgeInsets.symmetric(vertical: 14),
+            margin: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
                 color: const Color(0xFF0C1F16),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppColors.dividerDark)),
             child: const Center(
                 child: SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0E8C4F)))),
+                    width: 14, height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 1.5, color: Color(0xFF0E8C4F)))),
           ),
         if (_results.isNotEmpty)
           Container(
-            margin: const EdgeInsets.only(top: 6),
-            constraints: const BoxConstraints(maxHeight: 260),
+            margin: const EdgeInsets.only(top: 4),
+            constraints: const BoxConstraints(maxHeight: 140),
             decoration: BoxDecoration(
                 color: const Color(0xFF0C1F16),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppColors.dividerDark)),
             child: ListView(
               shrinkWrap: true,
-              padding: const EdgeInsets.symmetric(vertical: 4),
+              padding: const EdgeInsets.symmetric(vertical: 3),
               children: [
                 for (final m in _results.values)
                   InkWell(
                     onTap: () => _add(m),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 7),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                       child: Row(children: [
                         const Icon(Icons.medication_rounded,
-                            size: 15, color: AppColors.emeraldLight),
-                        const SizedBox(width: 8),
+                            size: 13, color: AppColors.emeraldLight),
+                        const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                               '${m.name}${m.dosage != null ? ' · ${m.dosage}' : ''}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 11.5)),
+                              maxLines: 1, overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: Colors.white, fontSize: 10.5)),
                         ),
                         Text(_fmt(m.priceSale),
                             style: const TextStyle(
-                                color: Color(0xFFE9C873),
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w800)),
+                                color: Color(0xFFE9C873), fontSize: 10.5, fontWeight: FontWeight.w800)),
                       ]),
                     ),
                   ),
               ],
             ),
           ),
-        const SizedBox(height: 8),
-        // ---- Catégories : GRILLE 2×4 STRICTE (design validé) ----
+        const SizedBox(height: 6),
+        // ── 3) Catégories : GRILLE 2×4 COMPACTE ──
         LayoutBuilder(builder: (context, cons) {
-          const gap = 10.0;
-          const tileH = 86.0;
+          const gap = 6.0;
+          const tileH = 48.0;
           final cellW = (cons.maxWidth - 3 * gap) / 4;
           final active = _search.text.trim().toLowerCase();
           return SizedBox(
@@ -457,11 +478,10 @@ class _PosPanelState extends State<PosPanel> {
             ),
           );
         }),
-        const SizedBox(height: 8),
-        // ---- En-tête table ----
-        const _RowHeader(),
         const SizedBox(height: 6),
-        // ---- Panier réel / ventes suspendues ----
+        // ── 4) En-tête table + Panier + Remise + Totaux (ensemble en bas) ──
+        const _RowHeader(),
+        const SizedBox(height: 4),
         Expanded(
           child: _cart.isEmpty
               ? Center(
@@ -469,17 +489,17 @@ class _PosPanelState extends State<PosPanel> {
                   if (_heldIds.isNotEmpty)
                     for (final id in _heldIds)
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.only(bottom: 4),
                         child: _PanelButton(
                             label: 'Reprendre (${_heldQty[id] ?? 0} art.)',
                             icon: Icons.unarchive_rounded,
                             color: const Color(0xFF2A7A5A),
                             onTap: () => _resume(id)),
                       ),
-                  Text('Recherchez un médicament pour commencer',
+                  Text('Recherchez un médicament',
                       style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.35),
-                          fontSize: 11)),
+                          fontSize: 10)),
                 ]))
               : ListView(
                   shrinkWrap: false,
@@ -496,120 +516,117 @@ class _PosPanelState extends State<PosPanel> {
                   ],
                 ),
         ),
-        const SizedBox(height: 8),
-        // ---- Remise RÉELLE (% ou montant) ----
-        Row(children: [
-          SizedBox(
-            width: 92,
-            height: 34,
-            child: TextField(
-              controller: _discountCtrl,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              onChanged: (v) => setState(
-                  () => _discount = double.tryParse(v.replaceAll(',', '.')) ?? 0),
-              style: const TextStyle(color: Colors.white, fontSize: 12),
-              decoration: InputDecoration(
-                  isDense: true,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.04),
-                  enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(9),
-                      borderSide: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.1))),
-                  hintText: 'Remise',
-                  hintStyle:
-                      const TextStyle(color: Color(0x55FFFFFF), fontSize: 11)),
+        const SizedBox(height: 4),
+        // ── 5) Remise + TVA + Total (bas du panier) ──
+        if (!_cart.isEmpty)
+          Row(children: [
+            SizedBox(
+              width: 80,
+              height: 30,
+              child: TextField(
+                controller: _discountCtrl,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                onChanged: (v) => setState(
+                    () => _discount = double.tryParse(v.replaceAll(',', '.')) ?? 0),
+                style: const TextStyle(color: Colors.white, fontSize: 11),
+                decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    filled: true,
+                    fillColor: Colors.white.withValues(alpha: 0.04),
+                    enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(7),
+                        borderSide: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.1))),
+                    hintText: 'Remise',
+                    hintStyle:
+                        const TextStyle(color: Color(0x55FFFFFF), fontSize: 10)),
+              ),
             ),
-          ),
-          const SizedBox(width: 6),
-          InkWell(
-            onTap: () => setState(() => _discountPercent = !_discountPercent),
-            child: Container(
-              height: 34,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              decoration: BoxDecoration(
-                  color: _discountPercent
-                      ? const Color(0xFF17523A)
-                      : Colors.white.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(9),
-                  border: Border.all(
-                      color: const Color(0xFF2A7A5A).withValues(alpha: 0.6))),
-              child: Center(
-                  child: Text(_discountPercent ? '%' : 'MAD',
+            const SizedBox(width: 4),
+            InkWell(
+              onTap: () => setState(() => _discountPercent = !_discountPercent),
+              child: Container(
+                height: 30,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                    color: _discountPercent
+                        ? const Color(0xFF17523A)
+                        : Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(7),
+                    border: Border.all(
+                        color: const Color(0xFF2A7A5A).withValues(alpha: 0.6))),
+                child: Center(
+                    child: Text(_discountPercent ? '%' : 'MAD',
+                        style: const TextStyle(
+                            color: Color(0xFF7BEBA4),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900))),
+              ),
+            ),
+            const Spacer(),
+            Text('TVA ${_fmt(t.tva)}',
+                style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.4),
+                    fontSize: 9.5)),
+          ]),
+        if (!_cart.isEmpty)
+          const SizedBox(height: 4),
+        if (!_cart.isEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+                color: const Color(0xFF0E2A1C),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                    color: const Color(0xFF2E7A50).withValues(alpha: 0.55))),
+            child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  if (t.discount > 0)
+                    Text('-${_fmt(t.discount)}',
+                        style: const TextStyle(
+                            color: Color(0xFFB3372F),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700)),
+                  const Text('TOTAL',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900)),
+                  Text(_fmt(t.total),
                       style: const TextStyle(
                           color: Color(0xFF7BEBA4),
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w900))),
-            ),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900)),
+                ]),
           ),
-          const Spacer(),
-          Text('TVA incl. ${_fmt(t.tva)}',
-              style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.45),
-                  fontSize: 10.5)),
+        const SizedBox(height: 6),
+        // ── 6) Actions : Vider / Suspendre / Paiement ──
+        Row(children: [
+          Expanded(
+              child: _PanelButton(
+                  label: 'Vider',
+                  icon: Icons.delete_outline_rounded,
+                  color: const Color(0xFFB3372F),
+                  onTap: _clearCart)),
+          const SizedBox(width: 6),
+          Expanded(
+              child: _PanelButton(
+                  label: 'Suspendre',
+                  icon: Icons.pause_circle_outline_rounded,
+                  color: const Color(0xFFB98A1F),
+                  onTap: _hold)),
+          const SizedBox(width: 6),
+          Expanded(
+              child: _PanelButton(
+                  label: 'Paiement',
+                  icon: Icons.payments_outlined,
+                  color: const Color(0xFF0E8C4F),
+                  onTap: _pay)),
         ]),
-        const SizedBox(height: 8),
-        // ---- Totaux RÉELS (service centralisé) ----
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-              color: const Color(0xFF0E2A1C),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                  color: const Color(0xFF2E7A50).withValues(alpha: 0.55))),
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _MoneyRow('Sous-total', _fmt(t.subtotal)),
-                if (t.discount > 0) _MoneyRow('Remise', '- ${_fmt(t.discount)}'),
-                const SizedBox(height: 4),
-                Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('TOTAL',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.5)),
-                      Text(_fmt(t.total),
-                          style: const TextStyle(
-                              color: Color(0xFF7BEBA4),
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900)),
-                    ]),
-              ]),
-        ),
-        const SizedBox(height: 10),
-        // ---- Vider / Suspendre / Paiement : actions RÉELLES ----
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Row(children: [
-            Expanded(
-                child: _PanelButton(
-                    label: 'Vider',
-                    icon: Icons.delete_outline_rounded,
-                    color: const Color(0xFFB3372F),
-                    onTap: _clearCart)),
-            const SizedBox(width: 8),
-            Expanded(
-                child: _PanelButton(
-                    label: 'Suspendre',
-                    icon: Icons.pause_circle_outline_rounded,
-                    color: const Color(0xFFB98A1F),
-                    onTap: _hold)),
-            const SizedBox(width: 8),
-            Expanded(
-                child: _PanelButton(
-                    label: 'Paiement',
-                    icon: Icons.payments_outlined,
-                    color: const Color(0xFF0E8C4F),
-                    onTap: _pay)),
-          ]),
-        ),
       ]),
     );
   }
@@ -697,18 +714,71 @@ class _RowHeader extends StatelessWidget {
   }
 }
 
-/// Tuile de catégorie illustrée (grille 2×4 — délègue à [PosCategoryTile]).
+/// Tuile de catégorie compacte pour le mini-POS (48px height).
 class _CatChip extends StatelessWidget {
   final String name;
   final bool selected;
   final VoidCallback onTap;
+
+  static const _icons = <String, IconData>{
+    'Antalgiques': Icons.medication_rounded,
+    'Antibiotiques': Icons.science_rounded,
+    'Cardiologie': Icons.favorite_rounded,
+    'Diabète': Icons.bloodtype_rounded,
+    'Vitamines': Icons.local_fire_department_rounded,
+    'Respiratoire': Icons.air_rounded,
+    'Digestif': Icons.local_dining_rounded,
+    'Autres': Icons.dashboard_outlined,
+  };
 
   const _CatChip(
       {required this.name, this.selected = false, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return PosCategoryTile(label: name, selected: selected, onTap: onTap);
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: selected
+                  ? [const Color(0xFF1A4A32), const Color(0xFF0E2A1C)]
+                  : [const Color(0xFF123324), const Color(0xFF0A1D13)]),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+              color: selected
+                  ? const Color(0xFFC9A24B)
+                  : const Color(0xFF27543C),
+              width: selected ? 1.4 : 0.8),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              _icons[name] ?? Icons.category_rounded,
+              size: 16,
+              color: selected
+                  ? const Color(0xFFE9C873)
+                  : const Color(0xFF7BEBA4),
+            ),
+            const SizedBox(height: 2),
+            Text(name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: selected
+                        ? const Color(0xFFE9C873)
+                        : Colors.white,
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.w700)),
+          ],
+        ),
+      ),
+    );
   }
 }
 

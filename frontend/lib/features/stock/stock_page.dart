@@ -6,6 +6,7 @@ import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
+import '../../core/widgets/barcode_scanner.dart';
 import '../../core/widgets/glass_card.dart';
 import '../shell/shell_nav.dart';
 
@@ -56,6 +57,39 @@ class _StockPageState extends State<StockPage> {
       _items = ApiList.of(result.data);
       _loading = false;
     });
+  }
+
+  Future<void> _scanAndFind() async {
+    final result = await BarcodeScannerSheet.show(
+        context, title: 'Scanner produit pour stock');
+    if (result == null || !mounted) return;
+    final code = result.code.trim();
+    if (code.isEmpty) return;
+    final apiResult = await ApiClient.instance.get(
+      '/catalog/medications/barcode/${Uri.encodeComponent(code)}',
+    );
+    if (!mounted) return;
+    if (!apiResult.success || apiResult.data == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Code inconnu : $code')));
+      return;
+    }
+    final med = apiResult.data;
+    final medMap = med is Map ? Map<String, dynamic>.from(med) : <String, dynamic>{};
+    final stockItem = _items.firstWhere(
+      (i) => i['medication_id'] == medMap['id'],
+      orElse: () => {},
+    );
+    if (stockItem.isNotEmpty) {
+      await _showStockActions(stockItem);
+    } else {
+      await _adjustStock({
+        'medication_id': medMap['id'],
+        'branch_id': medMap['branch_id'] ?? '',
+        'available': 0,
+        'medication_name': medMap['name'] ?? code,
+      });
+    }
   }
 
   List<Map<String, dynamic>> get _filtered {
@@ -243,6 +277,9 @@ class _StockPageState extends State<StockPage> {
                 fontWeight: FontWeight.w700,
                 color: AppColors.pharmaText)),
         actions: [
+          IconButton(
+              onPressed: _scanAndFind,
+              icon: const Icon(Icons.qr_code_scanner, color: Color(0xFFE9C873))),
           IconButton(
               onPressed: _load,
               icon: const Icon(Icons.refresh, color: AppColors.pharmaGold)),
