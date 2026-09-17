@@ -388,7 +388,7 @@ class _PosPageState extends State<PosPage> {
                               children: [
                                 _buildSearchRow(locale),
                                 const SizedBox(height: 8),
-                                _buildCategoriesGrid(locale),
+                                _buildCategoriesGrid(locale, aspectRatio: 3.5),
                                 const SizedBox(height: 10),
                                 _buildResultsTable(locale),
                               ],
@@ -534,7 +534,7 @@ class _PosPageState extends State<PosPage> {
   // ══════════════════════════════════════════
   //  SECTION 3 : CATÉGORIES 3D (PosCategoryTile glyphs)
   // ══════════════════════════════════════════
-  Widget _buildCategoriesGrid(String locale) {
+  Widget _buildCategoriesGrid(String locale, {double aspectRatio = 1.0}) {
     final cats = PosCategoriesGrid.categories;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -549,11 +549,11 @@ class _PosPageState extends State<PosPage> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           padding: EdgeInsets.zero,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 4,
             mainAxisSpacing: 10,
             crossAxisSpacing: 10,
-            childAspectRatio: 3.5,
+            childAspectRatio: aspectRatio,
           ),
           itemCount: cats.length,
           itemBuilder: (context, index) {
