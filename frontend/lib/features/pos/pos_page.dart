@@ -886,6 +886,7 @@ class _ScannerScreen extends StatefulWidget {
 class _ScannerScreenState extends State<_ScannerScreen> {
   MobileScannerController? _controller;
   bool _error = false;
+  String _errorMsg = '';
   final _manual = TextEditingController();
 
   @override
@@ -897,24 +898,23 @@ class _ScannerScreenState extends State<_ScannerScreen> {
   Future<void> _start() async {
     try {
       final c = MobileScannerController(
-        detectionSpeed: DetectionSpeed.normal,
-        formats: const [
-          BarcodeFormat.ean13,
-          BarcodeFormat.ean8,
-          BarcodeFormat.code128,
-          BarcodeFormat.qrCode,
-        ],
+        detectionSpeed: DetectionSpeed.unrestricted,
+        facing: CameraFacing.back,
+        autoStart: false,
       );
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (!mounted) return;
       await c.start();
       if (!mounted) {
         await c.dispose();
         return;
       }
       setState(() => _controller = c);
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() {
         _error = true;
+        _errorMsg = e.toString();
         _controller = null;
       });
     }
@@ -922,6 +922,7 @@ class _ScannerScreenState extends State<_ScannerScreen> {
 
   @override
   void dispose() {
+    _controller?.stop();
     _controller?.dispose();
     _manual.dispose();
     super.dispose();
@@ -936,7 +937,7 @@ class _ScannerScreenState extends State<_ScannerScreen> {
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color(0xFF08130E),
       appBar: AppBar(title: Text(S.t('scanTitle', locale))),
       body: Column(children: [
         Expanded(
@@ -954,6 +955,14 @@ class _ScannerScreenState extends State<_ScannerScreen> {
                       textAlign: TextAlign.center,
                     ),
                   ),
+                  if (_errorMsg.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(_errorMsg,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              color: Colors.redAccent, fontSize: 10)),
+                    ),
                   TextButton(
                     onPressed: () {
                       setState(() => _error = false);
