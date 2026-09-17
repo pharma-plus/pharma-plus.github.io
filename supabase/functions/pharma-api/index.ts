@@ -215,12 +215,12 @@ async function proxyToTable(
   const res = await fetch(targetUrl.toString(), { method, headers, body });
   const text = await res.text();
 
-  // UUID lookup : unwrap [item] → item (le Flutter attend un Map, pas une List)
+  // UUID lookup : unwrap [item] → {data: item} (le Flutter attend data dans result.data)
   if (isUuidLookup && method === "GET" && res.status >= 200 && res.status < 300) {
     try {
       const arr = JSON.parse(text);
       if (Array.isArray(arr) && arr.length === 1) {
-        return json(arr[0]);
+        return json({ data: arr[0] });
       }
       if (Array.isArray(arr) && arr.length === 0) {
         return json({ error: { code: "NOT_FOUND", message: "Not found" } }, 404);
