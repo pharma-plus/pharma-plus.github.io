@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/models/medication.dart';
@@ -13,6 +14,7 @@ import '../../core/utils/calculations.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/barcode_scanner.dart';
 import 'payment_sheet.dart';
+import '../pos/payment_models.dart';
 import 'pos_category_grid.dart';
 
 /// ============================================================
@@ -54,10 +56,13 @@ class _PosPanelState extends State<PosPanel> {
   List<String> _heldIds = [];
   double _discount = 0;
   bool _discountPercent = true;
-  bool _searching = false;
-  Timer? _debounce;
+bool _searching = false;
+   Timer? _debounce;
+   String _paymentMode = 'cash'; // cash | visa | mastercard
+   double _received = 0;
+   final _receivedCtrl = TextEditingController();
 
-  static const _kHeldKey = 'pmg_pos_held_sales';
+   static const _kHeldKey = 'pmg_pos_held_sales';
 
   /// Mots-clés de recherche réels par catégorie (filtre API du catalogue).
   static const Map<String, String> _catQueries = {
@@ -96,6 +101,7 @@ class _PosPanelState extends State<PosPanel> {
   void dispose() {
     _search.dispose();
     _discountCtrl.dispose();
+    _receivedCtrl.dispose();
     _debounce?.cancel();
     super.dispose();
   }
@@ -317,16 +323,37 @@ class _PosPanelState extends State<PosPanel> {
 
   /// Paiement multi-modes : ouvre la feuille complète (Espèces · Carte ·
   /// Tiers payant) pour le mini-POS du dashboard.
-  Future<void> _pay() async {
-    if (_cart.isEmpty) {
-      widget.onCheckout();
-      return;
-    }
-    final result = await PaymentSheet.showFull(context, _totals.total);
-    if (result == null || !result.isValid || !mounted) return;
-    widget.onPrefilled?.call(
-        _cart.values.toList(), _discount, _discountPercent, result.received ?? result.amount);
-  }
+Future<void> _pay() async {
+     if (_cart.isEmpty) {
+       widget.onCheckout();
+       return;
+     }
+     PaymentResult pay;
+     if (_paymentMode == 'cash') {
+       if (!_cashSufficient) return;
+       pay = PaymentResult.cash(
+           amount: _totals.total, received: _received, change: _change);
+     } else if (_paymentMode == 'visa') {
+       pay = PaymentResult.card(amount: _totals.total, cardType: 'visa');
+     } else {
+       pay = PaymentResult.card(amount: _totals.total, cardType: 'mastercard');
+     }
+     widget.onPrefilled?.call(
+         _cart.values.toList(), _discount, _discountPercent, pay.received ?? pay.amount);
+   }
+
+   void _setReceived(String v) =>
+       setState(() => _received = double.tryParse(v.replaceAll(',', '.')) ?? 0);
+
+   void _quickReceived(double v) {
+     final next = v == _totals.total ? v : _received + v;
+     _receivedCtrl.text =
+         next == next.roundToDouble() ? next.round().toString() : next.toStringAsFixed(2);
+     setState(() => _received = next);
+   }
+
+   bool get _cashSufficient => _received >= _totals.total || _paymentMode != 'cash';
+   double get _change => (_received > _totals.total) ? _received - _totals.total : 0;
 
   @override
   Widget build(BuildContext context) {
@@ -628,6 +655,58 @@ class _PosPanelState extends State<PosPanel> {
                           fontWeight: FontWeight.w900)),
                 ]),
           ),
+        // ── 5b) MODE DE PAIEMENT INLINE ──
+        if (!_cart.isEmpty) ...[
+          Row(
+            children: [
+              Expanded(child: _PaymentChip(label: 'Espèces', selected: _paymentMode == 'cash', onTap: () => setState(() => _paymentMode = 'cash'))),
+              const SizedBox(width: 4),
+              Expanded(child: _PaymentChip(label: 'Visa', selected: _paymentMode == 'visa', onTap: () => setState(() => _paymentMode = 'visa'))),
+              const SizedBox(width: 4),
+              Expanded(child: _PaymentChip(label: 'MC', selected: _paymentMode == 'mastercard', onTap: () => setState(() => _paymentMode = 'mastercard'))),
+            ],
+          ),
+          const SizedBox(height: 4),
+          if (_paymentMode == 'cash') ...[
+            TextField(
+              controller: _receivedCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d{0,2}'))],
+              onChanged: _setReceived,
+              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
+              decoration: InputDecoration(
+                hintText: '0,00',
+                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.25), fontSize: 18),
+                fillColor: Colors.white.withValues(alpha: 0.04),
+                filled: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.goldBorder)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.goldBorder)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.pharmaGold)),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Row(children: [
+              _QuickPayBtn(label: '+20', onTap: () => _quickReceived(20)),
+              const SizedBox(width: 4),
+              _QuickPayBtn(label: '+50', onTap: () => _quickReceived(50)),
+              const SizedBox(width: 4),
+              _QuickPayBtn(label: '+100', onTap: () => _quickReceived(100)),
+              const SizedBox(width: 4),
+              _QuickPayBtn(label: 'Exact', onTap: () { _receivedCtrl.text = _totals.total.round().toString(); setState(() => _received = _totals.total); }),
+            ]),
+            if (_received > 0)
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: _cashSufficient ? AppColors.emerald.withValues(alpha: 0.1) : AppColors.danger.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: _cashSufficient ? AppColors.emerald : AppColors.danger)),
+                child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Text(_cashSufficient ? 'MONNAIE' : 'RESTE À PAYER', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: _cashSufficient ? AppColors.emerald : AppColors.danger)),
+                  Text('${Fmt.money(_cashSufficient ? _change : _totals.total - _received)} MAD', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: _cashSufficient ? AppColors.emerald : AppColors.danger)),
+                ]),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ],
         const SizedBox(height: 6),
         // ── 6) Actions : Vider / Suspendre / Paiement ──
         Row(children: [
@@ -792,8 +871,50 @@ class _PanelButton extends StatelessWidget {
   }
 }
 
-/// Ligne du panier : nom · contrôles quantité · total ligne · suppression.
-class _CartRow extends StatelessWidget {
+class _PaymentChip extends StatelessWidget {
+   final String label;
+   final bool selected;
+   final VoidCallback onTap;
+   const _PaymentChip({required this.label, this.selected = false, required this.onTap});
+   @override
+   Widget build(BuildContext context) {
+     return GestureDetector(
+       onTap: onTap,
+       child: AnimatedContainer(
+         duration: const Duration(milliseconds: 150),
+         padding: const EdgeInsets.symmetric(vertical: 8),
+         decoration: BoxDecoration(
+           color: selected ? AppColors.emerald.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.03),
+           borderRadius: BorderRadius.circular(8),
+           border: Border.all(color: selected ? AppColors.emerald : Colors.white.withValues(alpha: 0.08), width: selected ? 1.6 : 0.8),
+         ),
+         child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: selected ? AppColors.emerald : Colors.white.withValues(alpha: 0.6))),
+       ),
+     );
+   }
+ }
+
+ class _QuickPayBtn extends StatelessWidget {
+   final String label;
+   final VoidCallback onTap;
+   const _QuickPayBtn({required this.label, required this.onTap});
+   @override
+   Widget build(BuildContext context) {
+     return Expanded(
+       child: GestureDetector(
+         onTap: onTap,
+         child: Container(
+           padding: const EdgeInsets.symmetric(vertical: 6),
+           decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.04), borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
+           child: Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white70)),
+         ),
+       ),
+     );
+   }
+ }
+
+ /// Ligne du panier : nom · contrôles quantité · total ligne · suppression.
+ class _CartRow extends StatelessWidget {
   final String name;
   final int qty;
   final double lineTotal;
