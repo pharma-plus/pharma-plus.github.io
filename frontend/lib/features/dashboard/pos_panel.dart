@@ -714,71 +714,18 @@ class _RowHeader extends StatelessWidget {
   }
 }
 
-/// Tuile de catégorie compacte pour le mini-POS (48px height).
+/// Tuile de catégorie 3D pour le mini-POS — délègue au painter [PosCategoryTile].
 class _CatChip extends StatelessWidget {
   final String name;
   final bool selected;
   final VoidCallback onTap;
-
-  static const _icons = <String, IconData>{
-    'Antalgiques': Icons.medication_rounded,
-    'Antibiotiques': Icons.science_rounded,
-    'Cardiologie': Icons.favorite_rounded,
-    'Diabète': Icons.bloodtype_rounded,
-    'Vitamines': Icons.local_fire_department_rounded,
-    'Respiratoire': Icons.air_rounded,
-    'Digestif': Icons.local_dining_rounded,
-    'Autres': Icons.dashboard_outlined,
-  };
 
   const _CatChip(
       {required this.name, this.selected = false, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: selected
-                  ? [const Color(0xFF1A4A32), const Color(0xFF0E2A1C)]
-                  : [const Color(0xFF123324), const Color(0xFF0A1D13)]),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-              color: selected
-                  ? const Color(0xFFC9A24B)
-                  : const Color(0xFF27543C),
-              width: selected ? 1.4 : 0.8),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              _icons[name] ?? Icons.category_rounded,
-              size: 16,
-              color: selected
-                  ? const Color(0xFFE9C873)
-                  : const Color(0xFF7BEBA4),
-            ),
-            const SizedBox(height: 2),
-            Text(name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: selected
-                        ? const Color(0xFFE9C873)
-                        : Colors.white,
-                    fontSize: 8.5,
-                    fontWeight: FontWeight.w700)),
-          ],
-        ),
-      ),
-    );
+    return PosCategoryTile(label: name, selected: selected, onTap: onTap);
   }
 }
 
