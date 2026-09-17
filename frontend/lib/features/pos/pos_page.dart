@@ -366,55 +366,89 @@ class _PosPageState extends State<PosPage> {
         onTap: () => FocusScope.of(context).unfocus(),
         child: Column(
           children: [
-            // ── 1) EN-TÊTE ──
+            // ── EN-TÊTE ──
             // (AppBar already handles this)
 
             // ── Scrollable content ──
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // ── 2) RECHERCHE + SCANNER ──
-                    _buildSearchRow(locale),
-                    const SizedBox(height: 8),
-
-                    // ── 3) CATÉGORIES ANIMÉES ──
-                    _buildCategoriesGrid(locale),
-                    const SizedBox(height: 10),
-
-                    // ── 4) TABLEAU PRODUIT / QTÉ / TOTAL ──
-                    _buildResultsTable(locale),
-                    const SizedBox(height: 10),
-
-                    // ── 5) CLIENT ──
-                    _buildClientRow(locale),
-                    const SizedBox(height: 8),
-
-                    // ── 6) REMISE ──
-                    _buildDiscountRow(locale),
-                    const SizedBox(height: 8),
-
-                    // ── 7+8) SOUS-TOTAL / TOTAL ──
-                    _buildTotals(locale),
-                    const SizedBox(height: 10),
-
-                    // ── 9) MODE DE PAIEMENT ──
-                    _buildPaymentMode(locale),
-                    const SizedBox(height: 8),
-
-                    // ── 10) MONTANT REÇU / MONNAIE (si espèces) ──
-                    if (_paymentMode == 'cash' && !_cart.isEmpty)
-                      _buildCashReceived(locale),
-                    if (_paymentMode == 'cash' && !_cart.isEmpty)
-                      const SizedBox(height: 12),
-                  ],
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    // ── PC/Mac : deux colonnes ──
+                    if (constraints.maxWidth > 768) {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // ── GAUCHE : Cartes (catégories + produits) ──
+                          Expanded(
+                            flex: 1,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _buildSearchRow(locale),
+                                const SizedBox(height: 8),
+                                _buildCategoriesGrid(locale),
+                                const SizedBox(height: 10),
+                                _buildResultsTable(locale),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          // ── DROITE : POS (client, remise, totaux, paiement, actions) ──
+                          Expanded(
+                            flex: 1,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _buildClientRow(locale),
+                                const SizedBox(height: 8),
+                                _buildDiscountRow(locale),
+                                const SizedBox(height: 8),
+                                _buildTotals(locale),
+                                const SizedBox(height: 10),
+                                _buildPaymentMode(locale),
+                                const SizedBox(height: 8),
+                                if (_paymentMode == 'cash' && !_cart.isEmpty)
+                                  _buildCashReceived(locale),
+                                if (_paymentMode == 'cash' && !_cart.isEmpty)
+                                  const SizedBox(height: 12),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                    // ── Mobile/Tablet : une seule colonne ──
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildSearchRow(locale),
+                        const SizedBox(height: 8),
+                        _buildCategoriesGrid(locale),
+                        const SizedBox(height: 10),
+                        _buildResultsTable(locale),
+                        const SizedBox(height: 10),
+                        _buildClientRow(locale),
+                        const SizedBox(height: 8),
+                        _buildDiscountRow(locale),
+                        const SizedBox(height: 8),
+                        _buildTotals(locale),
+                        const SizedBox(height: 10),
+                        _buildPaymentMode(locale),
+                        const SizedBox(height: 8),
+                        if (_paymentMode == 'cash' && !_cart.isEmpty)
+                          _buildCashReceived(locale),
+                        if (_paymentMode == 'cash' && !_cart.isEmpty)
+                          const SizedBox(height: 12),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
 
-            // ── 11) ACTIONS (fixed bottom) ──
+            // ── ACTIONS (fixed bottom) ──
             _buildActions(locale),
           ],
         ),
@@ -519,7 +553,7 @@ class _PosPageState extends State<PosPage> {
             crossAxisCount: 4,
             mainAxisSpacing: 10,
             crossAxisSpacing: 10,
-            childAspectRatio: 1.0,
+            childAspectRatio: 3.5,
           ),
           itemCount: cats.length,
           itemBuilder: (context, index) {
