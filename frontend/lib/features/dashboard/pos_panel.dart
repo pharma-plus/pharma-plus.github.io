@@ -357,7 +357,7 @@ class _PosPanelState extends State<PosPanel> {
         ),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        // ── 1) Recherche produit RÉELLE + scan ──
+        // ── 1) Recherche produit RÉELLE ──
         Container(
           height: 38,
           decoration: BoxDecoration(
@@ -389,15 +389,40 @@ class _PosPanelState extends State<PosPanel> {
                     width: 12, height: 12,
                     child: CircularProgressIndicator(strokeWidth: 1.5)),
               ),
-            IconButton(
-              tooltip: 'Scanner',
-              onPressed: _scanBarcode,
-              icon: const Icon(Icons.qr_code_scanner_rounded,
-                  size: 17, color: Color(0xFFE9C873)),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-            ),
           ]),
+        ),
+        const SizedBox(height: 6),
+        // ── 1b) Scanner sous la barre de recherche ──
+        SizedBox(
+          width: double.infinity,
+          child: InkWell(
+            onTap: _scanBarcode,
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1A4A32), Color(0xFF0E2A1C)],
+                ),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                    color: const Color(0xFFC9A24B).withValues(alpha: 0.4)),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.qr_code_scanner_rounded,
+                      color: Color(0xFFE9C873), size: 15),
+                  SizedBox(width: 6),
+                  Text('Scanner un produit',
+                      style: TextStyle(
+                          color: Color(0xFFE9C873),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700)),
+                ],
+              ),
+            ),
+          ),
         ),
         // ── 2) Résultats de recherche (dropdown) ──
         if (_searching && _results.isEmpty)

@@ -15,6 +15,7 @@ import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/barcode_scanner.dart';
 import '../shell/shell_nav.dart';
+import '../dashboard/pos_category_grid.dart';
 import 'pos_categories.dart';
 import 'pos_models.dart';
 import 'payment_models.dart';
@@ -497,7 +498,7 @@ class _PosPageState extends State<PosPage> {
   }
 
   // ══════════════════════════════════════════
-  //  SECTION 3 : CATÉGORIES 3D (PosCategoryTile)
+  //  SECTION 3 : CATÉGORIES 3D (PosCategoryTile glyphs)
   // ══════════════════════════════════════════
   Widget _buildCategoriesGrid(String locale) {
     final cats = PosCategoriesGrid.categories;
@@ -524,7 +525,9 @@ class _PosPageState extends State<PosPage> {
           itemBuilder: (context, index) {
             final c = cats[index];
             final active = _activeCategoryId == c.id;
-            return GestureDetector(
+            return PosCategoryTile(
+              label: c.label,
+              selected: active,
               onTap: () {
                 setState(() {
                   _activeCategoryId = active ? null : c.id;
@@ -533,10 +536,6 @@ class _PosPageState extends State<PosPage> {
                 _search.text = _catQueries[c.id] ?? '';
                 _searchMedications(_catQueries[c.id] ?? '');
               },
-              child: _PosCategoryTile3D(
-                category: c,
-                active: active,
-              ),
             );
           },
         ),
@@ -1467,75 +1466,14 @@ class _ActionButton extends StatelessWidget {
                     : Colors.white.withValues(alpha: 0.25)),
             const SizedBox(width: 5),
             Text(label,
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: enabled
-                        ? Colors.white.withValues(alpha: 0.9)
-                        : Colors.white.withValues(alpha: 0.25))),
+                 style: TextStyle(
+                     fontSize: 11,
+                     fontWeight: FontWeight.w800,
+                     color: enabled
+                         ? Colors.white.withValues(alpha: 0.9)
+                         : Colors.white.withValues(alpha: 0.25))),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// Tuile 3D pour catégorie POS — cercle coloré + bordure or.
-class _PosCategoryTile3D extends StatelessWidget {
-  final PosCategory category;
-  final bool active;
-  const _PosCategoryTile3D({required this.category, required this.active});
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      decoration: BoxDecoration(
-        color: active ? AppColors.pharmaSurface : AppColors.pharmaSurface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: active ? const Color(0xFFC9A24B) : AppColors.goldBorder,
-          width: active ? 1.8 : 1,
-        ),
-        boxShadow: active
-            ? [
-                BoxShadow(
-                  color: const Color(0xFFC9A24B).withValues(alpha: 0.25),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : null,
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: category.color.withValues(alpha: active ? 0.25 : 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(category.icon,
-                size: 24,
-                color: active
-                    ? const Color(0xFFE9C873)
-                    : category.color.withValues(alpha: 0.9)),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            category.label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: active ? const Color(0xFFE9C873) : AppColors.pharmaText,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
       ),
     );
   }
