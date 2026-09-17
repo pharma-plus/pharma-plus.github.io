@@ -59,17 +59,6 @@ class _PosPageState extends State<PosPage> {
   List<Medication> _catalog = [];
   String? _activeCategoryId;
 
-  static const _cats = <(String, String, IconData)>[
-    ('Antalgiques', 'antalgiques', Icons.medication_rounded),
-    ('Antibiotiques', 'antibiotiques', Icons.science_rounded),
-    ('Cardiologie', 'cardiologie', Icons.favorite_rounded),
-    ('Diabète', 'diabete', Icons.bloodtype_rounded),
-    ('Vitamines', 'vitamines', Icons.local_fire_department_rounded),
-    ('Respiratoire', 'respiratoire', Icons.air_rounded),
-    ('Digestif', 'digestif', Icons.local_dining_rounded),
-    ('Autres', 'autres', Icons.category_rounded),
-  ];
-
   static const _catQueries = <String, String>{
     'antalgiques': 'ibuprof',
     'antibiotiques': 'amoxicill',
@@ -433,60 +422,74 @@ class _PosPageState extends State<PosPage> {
   }
 
   // ══════════════════════════════════════════
-  //  SECTION 2 : RECHERCHE + SCANNER
+  //  SECTION 2 : RECHERCHE + SCANNER (sous la barre)
   // ══════════════════════════════════════════
   Widget _buildSearchRow(String locale) {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: TextField(
-            controller: _search,
-            onChanged: _searchMedications,
-            style: const TextStyle(color: Colors.white, fontSize: 13),
-            decoration: InputDecoration(
-              hintText: S.t('search', locale),
-              prefixIcon:
-                  const Icon(Icons.search, color: AppColors.pharmaMuted, size: 20),
-              suffixIcon: _searching
-                  ? const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2)),
-                    )
-                  : null,
-              fillColor: AppColors.pharmaSurface,
-              filled: true,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.goldBorder)),
-              enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.goldBorder)),
-              focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.pharmaGold)),
-            ),
+        // ── Barre de recherche pleine largeur ──
+        TextField(
+          controller: _search,
+          onChanged: _searchMedications,
+          style: const TextStyle(color: Colors.white, fontSize: 13),
+          decoration: InputDecoration(
+            hintText: S.t('search', locale),
+            prefixIcon:
+                const Icon(Icons.search, color: AppColors.pharmaMuted, size: 20),
+            suffixIcon: _searching
+                ? const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2)),
+                  )
+                : null,
+            fillColor: AppColors.pharmaSurface,
+            filled: true,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.goldBorder)),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.goldBorder)),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.pharmaGold)),
           ),
         ),
-        const SizedBox(width: 8),
-        // Scanner
-        InkWell(
-          onTap: _scan,
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppColors.pharmaSurface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.goldBorder),
+        const SizedBox(height: 8),
+        // ── Scanner sous la barre ──
+        SizedBox(
+          width: double.infinity,
+          child: InkWell(
+            onTap: _scan,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1A4A32), Color(0xFF0E2A1C)],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.goldBorder),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.qr_code_scanner_rounded,
+                      color: Color(0xFFE9C873), size: 20),
+                  SizedBox(width: 8),
+                  Text('Scanner un produit',
+                      style: TextStyle(
+                          color: Color(0xFFE9C873),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700)),
+                ],
+              ),
             ),
-            child: const Icon(Icons.qr_code_scanner_rounded,
-                color: Color(0xFFE9C873), size: 22),
           ),
         ),
       ],
@@ -494,11 +497,10 @@ class _PosPageState extends State<PosPage> {
   }
 
   // ══════════════════════════════════════════
-  //  SECTION 3 : CATÉGORIES ANIMÉES
+  //  SECTION 3 : CATÉGORIES 3D (PosCategoryTile)
   // ══════════════════════════════════════════
   Widget _buildCategoriesGrid(String locale) {
-    final w = MediaQuery.of(context).size.width;
-    final cols = w >= 900 ? 8 : (w >= 600 ? 4 : 4);
+    final cats = PosCategoriesGrid.categories;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -508,72 +510,35 @@ class _PosPageState extends State<PosPage> {
               fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.pharmaMuted),
         ),
         const SizedBox(height: 6),
-        SizedBox(
-          height: 96,
-          child: GridView.builder(
-            scrollDirection: Axis.horizontal,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 6,
-              crossAxisSpacing: 6,
-              childAspectRatio: 1.6,
-            ),
-            itemCount: _cats.length,
-            itemBuilder: (context, i) {
-              final (name, id, icon) = _cats[i];
-              final active = _activeCategoryId == id;
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _activeCategoryId = active ? null : id;
-                    if (id == 'autres') _activeCategoryId = null;
-                  });
-                  _search.text = _catQueries[id] ?? '';
-                  _searchMedications(_catQueries[id] ?? '');
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: active
-                          ? [const Color(0xFF1A4A32), const Color(0xFF0E2A1C)]
-                          : [const Color(0xFF123324), const Color(0xFF0A1D13)],
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: active
-                          ? const Color(0xFFC9A24B)
-                          : const Color(0xFF27543C),
-                      width: active ? 1.6 : 0.8,
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(icon,
-                          size: 18,
-                          color: active
-                              ? const Color(0xFFE9C873)
-                              : const Color(0xFF7BEBA4)),
-                      const SizedBox(height: 2),
-                      Text(name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                              color: active
-                                  ? const Color(0xFFE9C873)
-                                  : Colors.white)),
-                    ],
-                  ),
-                ),
-              );
-            },
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 4,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 1.0,
           ),
+          itemCount: cats.length,
+          itemBuilder: (context, index) {
+            final c = cats[index];
+            final active = _activeCategoryId == c.id;
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  _activeCategoryId = active ? null : c.id;
+                  if (c.id == 'autres') _activeCategoryId = null;
+                });
+                _search.text = _catQueries[c.id] ?? '';
+                _searchMedications(_catQueries[c.id] ?? '');
+              },
+              child: _PosCategoryTile3D(
+                category: c,
+                active: active,
+              ),
+            );
+          },
         ),
       ],
     );
@@ -1510,6 +1475,67 @@ class _ActionButton extends StatelessWidget {
                         : Colors.white.withValues(alpha: 0.25))),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Tuile 3D pour catégorie POS — cercle coloré + bordure or.
+class _PosCategoryTile3D extends StatelessWidget {
+  final PosCategory category;
+  final bool active;
+  const _PosCategoryTile3D({required this.category, required this.active});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      decoration: BoxDecoration(
+        color: active ? AppColors.pharmaSurface : AppColors.pharmaSurface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: active ? const Color(0xFFC9A24B) : AppColors.goldBorder,
+          width: active ? 1.8 : 1,
+        ),
+        boxShadow: active
+            ? [
+                BoxShadow(
+                  color: const Color(0xFFC9A24B).withValues(alpha: 0.25),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: category.color.withValues(alpha: active ? 0.25 : 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(category.icon,
+                size: 24,
+                color: active
+                    ? const Color(0xFFE9C873)
+                    : category.color.withValues(alpha: 0.9)),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            category.label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: active ? const Color(0xFFE9C873) : AppColors.pharmaText,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }
