@@ -363,10 +363,20 @@ class _PosPageState extends State<PosPage> {
             ),
         ],
       ),
-      body: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/background.webp',
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
+          ),
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: () => FocusScope.of(context).unfocus(),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
             final isWide = constraints.maxWidth > 768;
             // ── PC/Mac : deux colonnes, boutons fixés en bas de la colonne droite ──
             if (isWide) {
@@ -483,6 +493,9 @@ class _PosPageState extends State<PosPage> {
             );
           },
         ),
+        ),
+        ),
+      ],
       ),
       );
   }
