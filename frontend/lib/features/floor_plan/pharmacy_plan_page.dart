@@ -142,29 +142,31 @@ class _PharmacyPlanPageState extends State<PharmacyPlanPage> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.menu, Color(0xFF0B1210)],
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/background.webp',
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              _Header(locale: locale),
-              _Controls(
-                locale: locale,
-                auto: _auto,
-                onRotateLeft: () => setState(() => _rot -= 0.35),
-                onRotateRight: () => setState(() => _rot += 0.35),
-                onAuto: _toggleAuto,
-                onZoomIn: () =>
-                    setState(() => _zoom = math.min(3.0, _zoom * 1.15)),
-                onZoomOut: () =>
-                    setState(() => _zoom = math.max(0.5, _zoom / 1.15)),
-                onReset: _reset,
+          Positioned.fill(
+            child: SafeArea(
+              child: Column(
+                children: [
+                  _Header(locale: locale),
+                  _Controls(
+                    locale: locale,
+                    auto: _auto,
+                    onRotateLeft: () => setState(() => _rot -= 0.35),
+                    onRotateRight: () => setState(() => _rot += 0.35),
+                    onAuto: _toggleAuto,
+                    onZoomIn: () =>
+                        setState(() => _zoom = math.min(3.0, _zoom * 1.15)),
+                    onZoomOut: () =>
+                        setState(() => _zoom = math.max(0.5, _zoom / 1.15)),
+                    onReset: _reset,
                 onFullscreen: _openFullscreen,
                 // Combobox zones : fil la liste + la sÃ©lection courante.
                 zones: _zones,
@@ -232,17 +234,19 @@ class _PharmacyPlanPageState extends State<PharmacyPlanPage> {
                               ));
                             },
                           ),
-                      ],
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+                       ],
+                     );
+                   },
+                 ),
+               ),
+               ],
+             ),
+           ),
+           ),
+         ],
+       ),
+     );
+   }
 
   Widget _zoneHit(PlanProjector proj, PlanZoneHit z) {
     final corners = [
