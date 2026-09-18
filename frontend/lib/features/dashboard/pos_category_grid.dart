@@ -72,15 +72,21 @@ class _PosCategoryTileState extends State<PosCategoryTile> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              const Spacer(flex: 1),
               Expanded(
+                flex: 4,
                 child: Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: CustomPaint(
-                      size: const Size(54, 40), painter: _GlyphPainter(k)),
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    child: CustomPaint(
+                        size: const Size(54, 40), painter: _GlyphPainter(k)),
+                  ),
                 ),
               ),
+              const Spacer(flex: 1),
               Padding(
-                padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
+                padding: const EdgeInsets.fromLTRB(4, 0, 4, 6),
                 child: Text(widget.label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -89,7 +95,7 @@ class _PosCategoryTileState extends State<PosCategoryTile> {
                         color: widget.selected
                             ? const Color(0xFFE9C873)
                             : Colors.white,
-                        fontSize: 10.5,
+                        fontSize: 10,
                         fontWeight: FontWeight.w800)),
               ),
             ],

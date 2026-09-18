@@ -383,7 +383,7 @@ class _PosPageState extends State<PosPage> {
                         children: [
                           // ── GAUCHE : Cartes (catégories + produits) ──
                           Expanded(
-                            flex: 1,
+                            flex: 5,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
@@ -398,7 +398,7 @@ class _PosPageState extends State<PosPage> {
                           const SizedBox(width: 14),
                           // ── DROITE : POS (client, remise, totaux, paiement, actions) ──
                           Expanded(
-                            flex: 1,
+                            flex: 2,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [

@@ -62,6 +62,8 @@ class _PosPanelState extends State<PosPanel> {
   String _paymentMode = 'cash'; // cash | visa | mastercard
   double _received = 0;
   final _receivedCtrl = TextEditingController();
+  List<Map<String, dynamic>> _customers = [];
+  String? _customerId;
 
   static const _kHeldKey = 'pmg_pos_held_sales';
 
@@ -93,6 +95,7 @@ class _PosPanelState extends State<PosPanel> {
   void initState() {
     super.initState();
     _loadHeld();
+    _loadCustomers();
     _doSearch(_search.text.trim());
   }
 
@@ -195,6 +198,7 @@ class _PosPanelState extends State<PosPanel> {
         _received = 0;
         _receivedCtrl.clear();
         _paymentMode = 'cash';
+        _customerId = null;
       });
 
   Future<void> _scanBarcode() async {
@@ -238,6 +242,18 @@ class _PosPanelState extends State<PosPanel> {
         }
       });
     } catch (_) {}
+  }
+
+  Future<void> _loadCustomers() async {
+    final r = await ApiClient.instance.get('/customers', query: {'limit': 200});
+    if (!mounted) return;
+    if (r.success) {
+      setState(() {
+        _customers = (r.data as List? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .toList();
+      });
+    }
   }
 
   Future<void> _hold() async {
@@ -538,22 +554,49 @@ class _PosPanelState extends State<PosPanel> {
         if (!_cart.isEmpty)
           Container(
             margin: const EdgeInsets.only(bottom: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
             decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.04),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: const Color(0xFFC9A24B).withValues(alpha: 0.3))),
-            child: Row(children: [
-              const Icon(Icons.person_outline_rounded,
-                  size: 16, color: Color(0xFFE9C873)),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text('Client comptoir',
-                    style: TextStyle(color: Colors.white70, fontSize: 11.5, fontWeight: FontWeight.w600)),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                isExpanded: true,
+                value: _customerId,
+                dropdownColor: const Color(0xFF1A2E23),
+                icon: Icon(Icons.keyboard_arrow_down_rounded,
+                    size: 16, color: Colors.white.withValues(alpha: 0.5)),
+                hint: Row(children: [
+                  const Icon(Icons.person_outline_rounded,
+                      size: 16, color: Color(0xFFE9C873)),
+                  const SizedBox(width: 8),
+                  Text('Client comptoir',
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 11.5, fontWeight: FontWeight.w600)),
+                ]),
+                selectedItemBuilder: (ctx) => [
+                  for (final c in _customers)
+                    Row(children: [
+                      const Icon(Icons.person_outline_rounded,
+                          size: 16, color: Color(0xFFE9C873)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text('${c['name'] ?? ''}',
+                            maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Colors.white70, fontSize: 11.5, fontWeight: FontWeight.w600)),
+                      ),
+                    ]),
+                ],
+                items: [
+                  for (final c in _customers)
+                    DropdownMenuItem(
+                      value: '${c['id']}',
+                      child: Text('${c['name'] ?? ''}',
+                          style: const TextStyle(color: Colors.white, fontSize: 11.5)),
+                    ),
+                ],
+                onChanged: (v) => setState(() => _customerId = v),
               ),
-              Icon(Icons.keyboard_arrow_down_rounded,
-                  size: 16, color: Colors.white.withValues(alpha: 0.4)),
-            ]),
+            ),
           ),
         // ── 6) REMISE + TVA ──
         if (!_cart.isEmpty)
@@ -799,10 +842,10 @@ class _PosPanelState extends State<PosPanel> {
           const SizedBox(width: 6),
           Expanded(
               child: _PanelButton(
-                  label: 'Paiement',
-                  icon: Icons.payments_outlined,
-                  color: const Color(0xFF0E8C4F),
-                  onTap: _pay)),
+                  label: 'Payer',
+                   icon: Icons.payments_outlined,
+                   color: const Color(0xFF0E8C4F),
+                   onTap: _pay)),
         ]),
       ]),
     );
