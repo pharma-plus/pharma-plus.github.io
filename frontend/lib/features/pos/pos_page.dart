@@ -1072,12 +1072,10 @@ class _PosPageState extends State<PosPage> {
       ),
       child: SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: Row(
           children: [
             // Vider
-            SizedBox(
-              width: double.infinity,
+            Expanded(
               child: _ActionButton(
                 label: 'Vider',
                 icon: Icons.delete_outline_rounded,
@@ -1112,10 +1110,9 @@ class _PosPageState extends State<PosPage> {
                 },
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(width: 8),
             // Suspendre
-            SizedBox(
-              width: double.infinity,
+            Expanded(
               child: _ActionButton(
                 label: 'Suspendre',
                 icon: Icons.pause_circle_outline_rounded,
@@ -1131,10 +1128,9 @@ class _PosPageState extends State<PosPage> {
                 },
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(width: 8),
             // Paiement
-            SizedBox(
-              width: double.infinity,
+            Expanded(
               child: GradientButton(
                 label: canPay
                     ? 'Payer ${Fmt.money(t.total)} MAD'
