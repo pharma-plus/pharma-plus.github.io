@@ -368,77 +368,98 @@ class _PosPageState extends State<PosPage> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final isWide = constraints.maxWidth > 768;
+            // ── PC/Mac : deux colonnes, boutons fixés en bas de la colonne droite ──
+            if (isWide) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── GAUCHE : scrollable ──
+                    Expanded(
+                      flex: 5,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildSearchRow(locale),
+                            const SizedBox(height: 8),
+                            _buildCategoriesGrid(locale, aspectRatio: 3.5),
+                            const SizedBox(height: 10),
+                            _buildResultsTable(locale),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    // ── DROITE : scroll + boutons fixes en bas ──
+                    Expanded(
+                      flex: 2,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: SingleChildScrollView(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  _buildClientRow(locale),
+                                  const SizedBox(height: 8),
+                                  _buildDiscountRow(locale),
+                                  const SizedBox(height: 8),
+                                  _buildTotals(locale),
+                                  const SizedBox(height: 10),
+                                  _buildPaymentMode(locale),
+                                  const SizedBox(height: 8),
+                                  if (_paymentMode == 'cash' && !_cart.isEmpty)
+                                    _buildCashReceived(locale),
+                                  if (_paymentMode == 'cash' && !_cart.isEmpty)
+                                    const SizedBox(height: 12),
+                                ],
+                              ),
+                            ),
+                          ),
+                          // ── Boutons fixes en bas de la colonne droite ──
+                          _buildActions(locale),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+            // ── Mobile/Tablet : scroll + boutons fixes en bas ──
             return Column(
               children: [
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: isWide
-                        ? Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                flex: 5,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                                  children: [
-                                    _buildSearchRow(locale),
-                                    const SizedBox(height: 8),
-                                    _buildCategoriesGrid(locale, aspectRatio: 3.5),
-                                    const SizedBox(height: 10),
-                                    _buildResultsTable(locale),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                flex: 2,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                                  children: [
-                                    _buildClientRow(locale),
-                                    const SizedBox(height: 8),
-                                    _buildDiscountRow(locale),
-                                    const SizedBox(height: 8),
-                                    _buildTotals(locale),
-                                    const SizedBox(height: 10),
-                                    _buildPaymentMode(locale),
-                                    const SizedBox(height: 8),
-                                    if (_paymentMode == 'cash' && !_cart.isEmpty)
-                                      _buildCashReceived(locale),
-                                    if (_paymentMode == 'cash' && !_cart.isEmpty)
-                                      const SizedBox(height: 12),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          )
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _buildSearchRow(locale),
-                              const SizedBox(height: 8),
-                              _buildCategoriesGrid(locale),
-                              const SizedBox(height: 10),
-                              _buildResultsTable(locale),
-                              const SizedBox(height: 10),
-                              _buildClientRow(locale),
-                              const SizedBox(height: 8),
-                              _buildDiscountRow(locale),
-                              const SizedBox(height: 8),
-                              _buildTotals(locale),
-                              const SizedBox(height: 10),
-                              _buildPaymentMode(locale),
-                              const SizedBox(height: 8),
-                              if (_paymentMode == 'cash' && !_cart.isEmpty)
-                                _buildCashReceived(locale),
-                              if (_paymentMode == 'cash' && !_cart.isEmpty)
-                                const SizedBox(height: 12),
-                            ],
-                          ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildSearchRow(locale),
+                        const SizedBox(height: 8),
+                        _buildCategoriesGrid(locale),
+                        const SizedBox(height: 10),
+                        _buildResultsTable(locale),
+                        const SizedBox(height: 10),
+                        _buildClientRow(locale),
+                        const SizedBox(height: 8),
+                        _buildDiscountRow(locale),
+                        const SizedBox(height: 8),
+                        _buildTotals(locale),
+                        const SizedBox(height: 10),
+                        _buildPaymentMode(locale),
+                        const SizedBox(height: 8),
+                        if (_paymentMode == 'cash' && !_cart.isEmpty)
+                          _buildCashReceived(locale),
+                        if (_paymentMode == 'cash' && !_cart.isEmpty)
+                          const SizedBox(height: 12),
+                      ],
+                    ),
                   ),
                 ),
-                // ── BARRE FIXE EN BAS : Vider / Suspendre / Payer ──
+                // ── Boutons fixes en bas ──
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
