@@ -444,6 +444,8 @@ class _PosPageState extends State<PosPage> {
                           _buildCashReceived(locale),
                         if (_paymentMode == 'cash' && !_cart.isEmpty)
                           const SizedBox(height: 12),
+                        const Spacer(),
+                        _buildActions(locale),
                       ],
                     );
                   },
@@ -1063,78 +1065,74 @@ class _PosPageState extends State<PosPage> {
         !_checkout &&
         (_paymentMode != 'cash' || _cashSufficient);
     return Row(
-          children: [
-            // Vider
-            Expanded(
-              child: _ActionButton(
-                label: 'Vider',
-                icon: Icons.delete_outline_rounded,
-                color: AppColors.danger,
-                enabled: !_cart.isEmpty,
-                onTap: () {
-                  if (_cart.isEmpty) return;
-                  showDialog(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      title: const Text('Vider le panier ?'),
-                      content: const Text(
-                          'Tous les produits seront supprimés.'),
-                      actions: [
-                        TextButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            child: const Text('Annuler')),
-                        TextButton(
-                            onPressed: () {
-                              Navigator.pop(ctx);
-                              setState(() {
-                                _cart.clear();
-                                _received = 0;
-                                _receivedCtrl.clear();
-                              });
-                            },
-                            child: const Text('Vider',
-                                style: TextStyle(color: AppColors.danger))),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Suspendre
-            Expanded(
-              child: _ActionButton(
-                label: 'Suspendre',
-                icon: Icons.pause_circle_outline_rounded,
-                color: const Color(0xFFB98A1F),
-                enabled: !_cart.isEmpty,
-                onTap: () {
-                  if (_cart.isEmpty) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Vente suspendue — reprenez-la ici.')),
-                  );
-                  setState(() => _cart.clear());
-                },
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Paiement
-            Expanded(
-              child: _ActionButton(
-                label: canPay
-                    ? 'Payer ${Fmt.money(t.total)} MAD'
-                    : _paymentMode == 'cash' && _received > 0 && !_cashSufficient
-                        ? 'Montant insuffisant'
+      children: [
+        Expanded(
+          child: _PosButton(
+            label: 'Vider',
+            icon: Icons.delete_outline_rounded,
+            color: const Color(0xFFB3372F),
+            enabled: !_cart.isEmpty,
+            onTap: () {
+              if (_cart.isEmpty) return;
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Vider le panier ?'),
+                  content:
+                      const Text('Tous les produits seront supprimés.'),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Annuler')),
+                    TextButton(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          setState(() {
+                            _cart.clear();
+                            _received = 0;
+                            _receivedCtrl.clear();
+                          });
+                        },
+                        child: const Text('Vider',
+                            style: TextStyle(color: AppColors.danger))),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: _PosButton(
+            label: 'Suspendre',
+            icon: Icons.pause_circle_outline_rounded,
+            color: const Color(0xFFB98A1F),
+            enabled: !_cart.isEmpty,
+            onTap: () {
+              if (_cart.isEmpty) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content:
+                        Text('Vente suspendue — reprenez-la ici.')),
+              );
+              setState(() => _cart.clear());
+            },
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: _PayButton(
+            label: canPay
+                ? 'Payer ${Fmt.money(t.total)} MAD'
+                : _paymentMode == 'cash' && _received > 0 && !_cashSufficient
+                    ? 'Montant insuffisant'
                     : 'Payer',
-                icon: Icons.payments_outlined,
-                color: AppColors.emerald,
-                enabled: canPay,
-                onTap: canPay ? () => _confirmPayment() : null,
-              ),
-            ),
-          ],
-        );
+            enabled: canPay,
+            onTap: canPay ? () => _confirmPayment() : null,
+          ),
+        ),
+      ],
+    );
   }
 
   // ── Totaux ──
@@ -1436,13 +1434,13 @@ class _QuickBtn extends StatelessWidget {
   }
 }
 
-class _ActionButton extends StatelessWidget {
+class _PosButton extends StatelessWidget {
   final String label;
   final IconData icon;
   final Color color;
   final bool enabled;
   final VoidCallback? onTap;
-  const _ActionButton({
+  const _PosButton({
     required this.label,
     required this.icon,
     required this.color,
@@ -1456,33 +1454,88 @@ class _ActionButton extends StatelessWidget {
       onTap: enabled ? onTap : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        height: 36,
+        height: 38,
         decoration: BoxDecoration(
           color: enabled
-              ? color.withValues(alpha: 0.15)
+              ? color.withValues(alpha: 0.12)
               : Colors.white.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-              color: enabled
-                  ? color.withValues(alpha: 0.5)
-                  : Colors.white.withValues(alpha: 0.08)),
+            color: enabled
+                ? color.withValues(alpha: 0.6)
+                : Colors.white.withValues(alpha: 0.08),
+            width: enabled ? 1.4 : 0.8,
+          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon,
-                size: 16,
+                size: 15,
                 color: enabled
-                    ? Colors.white.withValues(alpha: 0.9)
+                    ? color
                     : Colors.white.withValues(alpha: 0.25)),
             const SizedBox(width: 5),
             Text(label,
-                 style: TextStyle(
-                     fontSize: 11,
-                     fontWeight: FontWeight.w800,
-                     color: enabled
-                         ? Colors.white.withValues(alpha: 0.9)
-                          : Colors.white.withValues(alpha: 0.25))),
+                style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                    color: enabled
+                        ? Colors.white.withValues(alpha: 0.9)
+                        : Colors.white.withValues(alpha: 0.25))),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PayButton extends StatelessWidget {
+  final String label;
+  final bool enabled;
+  final VoidCallback? onTap;
+  const _PayButton({
+    required this.label,
+    required this.enabled,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        height: 38,
+        decoration: BoxDecoration(
+          gradient: enabled
+              ? const LinearGradient(
+                  colors: [Color(0xFF0E8C4F), Color(0xFF086B3D)])
+              : null,
+          color: enabled ? null : Colors.white.withValues(alpha: 0.03),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: enabled
+                ? const Color(0xFF2A7A5A).withValues(alpha: 0.6)
+                : Colors.white.withValues(alpha: 0.08),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.payments_outlined,
+                size: 15,
+                color: enabled
+                    ? Colors.white
+                    : Colors.white.withValues(alpha: 0.25)),
+            const SizedBox(width: 5),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                    color: enabled
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.25))),
           ],
         ),
       ),
