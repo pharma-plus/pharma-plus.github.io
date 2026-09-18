@@ -903,6 +903,7 @@ class _PosPageState extends State<PosPage> {
               label: 'Espèces',
               selected: _paymentMode == 'cash',
               onTap: () => setState(() => _paymentMode = 'cash'),
+              selectedColor: const Color(0xFF00C96B),
             )),
             const SizedBox(width: 6),
             Expanded(
@@ -911,7 +912,8 @@ class _PosPageState extends State<PosPage> {
               label: 'Visa',
               selected: _paymentMode == 'visa',
               onTap: () => setState(() => _paymentMode = 'visa'),
-              logo: _buildVisaLogo(),
+              logo: _buildVisaLogo(_paymentMode == 'visa'),
+              selectedColor: const Color(0xFF1A1F71),
             )),
             const SizedBox(width: 6),
             Expanded(
@@ -921,6 +923,7 @@ class _PosPageState extends State<PosPage> {
               selected: _paymentMode == 'mastercard',
               onTap: () => setState(() => _paymentMode = 'mastercard'),
               logo: _buildMastercardLogo(),
+              selectedColor: const Color(0xFFD4760A),
             )),
           ],
         ),
@@ -928,19 +931,34 @@ class _PosPageState extends State<PosPage> {
     );
   }
 
-  Widget _buildVisaLogo() {
+  Widget _buildVisaLogo(bool active) {
     return Container(
-      width: 40,
-      height: 24,
+      width: 42,
+      height: 26,
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1F71),
+        gradient: active
+            ? const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF1A237E), Color(0xFF283593), Color(0xFF1A1F71)])
+            : null,
+        color: active ? null : const Color(0xFF1A1F71),
         borderRadius: BorderRadius.circular(4),
+        boxShadow: active
+            ? [
+                BoxShadow(
+                  color: const Color(0xFF1A1F71).withValues(alpha: 0.5),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
       ),
       alignment: Alignment.center,
       child: const Text('VISA',
           style: TextStyle(
               color: Colors.white,
-              fontSize: 10,
+              fontSize: 11,
               fontWeight: FontWeight.w900,
               letterSpacing: 1.2)),
     );
@@ -1307,62 +1325,115 @@ class _TotalLine extends StatelessWidget {
   }
 }
 
-class _PaymentChip extends StatelessWidget {
+class _PaymentChip extends StatefulWidget {
   final IconData icon;
   final String label;
   final bool selected;
   final VoidCallback onTap;
   final Widget? logo;
+  final Color? selectedColor;
   const _PaymentChip({
     required this.icon,
     required this.label,
     required this.selected,
     required this.onTap,
     this.logo,
+    this.selectedColor,
   });
 
   @override
+  State<_PaymentChip> createState() => _PaymentChipState();
+}
+
+class _PaymentChipState extends State<_PaymentChip>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ac;
+  late final Animation<double> _glow;
+
+  @override
+  void initState() {
+    super.initState();
+    _ac = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1200))
+      ..repeat(reverse: true);
+    _glow = Tween<double>(begin: 0.3, end: 0.8).animate(
+        CurvedAnimation(parent: _ac, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _ac.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final sc = widget.selectedColor ?? AppColors.emerald;
     return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected
-              ? AppColors.emerald.withValues(alpha: 0.15)
-              : AppColors.pharmaSurface.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: selected ? AppColors.emerald : AppColors.goldBorder,
-            width: selected ? 1.6 : 0.8,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (logo != null) ...[
-              logo!,
-              const SizedBox(height: 6),
-            ] else ...[
-              Icon(icon,
-                  size: 20,
-                  color: selected
-                      ? AppColors.emerald
-                      : Colors.white.withValues(alpha: 0.6)),
-              const SizedBox(height: 6),
-            ],
-            Text(label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    color: selected
-                        ? AppColors.emerald
-                        : Colors.white.withValues(alpha: 0.6))),
-          ],
-        ),
+      onTap: widget.onTap,
+      child: AnimatedBuilder(
+        animation: _glow,
+        builder: (context, child) {
+          final g = widget.selected ? _glow.value : 0.0;
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            decoration: BoxDecoration(
+              gradient: widget.selected
+                  ? LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        sc.withValues(alpha: 0.25 + g * 0.2),
+                        sc.withValues(alpha: 0.1),
+                      ],
+                    )
+                  : null,
+              color: widget.selected ? null : AppColors.pharmaSurface.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: widget.selected
+                    ? sc.withValues(alpha: 0.6 + g * 0.3)
+                    : AppColors.goldBorder,
+                width: widget.selected ? 1.6 : 0.8,
+              ),
+              boxShadow: widget.selected
+                  ? [
+                      BoxShadow(
+                        color: sc.withValues(alpha: g * 0.4),
+                        blurRadius: 8 + g * 4,
+                        offset: const Offset(0, 3),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.logo != null) ...[
+                  widget.logo!,
+                  const SizedBox(height: 6),
+                ] else ...[
+                  Icon(widget.icon,
+                      size: 20,
+                      color: widget.selected
+                          ? sc
+                          : Colors.white.withValues(alpha: 0.6)),
+                  const SizedBox(height: 6),
+                ],
+                Text(widget.label,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: widget.selected
+                            ? sc
+                            : Colors.white.withValues(alpha: 0.6))),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -1453,7 +1524,7 @@ class _QuickBtn extends StatelessWidget {
   }
 }
 
-class _PosButton extends StatelessWidget {
+class _PosButton extends StatefulWidget {
   final String label;
   final IconData icon;
   final Color color;
@@ -1468,48 +1539,104 @@ class _PosButton extends StatelessWidget {
   });
 
   @override
+  State<_PosButton> createState() => _PosButtonState();
+}
+
+class _PosButtonState extends State<_PosButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ac;
+  late final Animation<double> _glow;
+
+  @override
+  void initState() {
+    super.initState();
+    _ac = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1200))
+      ..repeat(reverse: true);
+    _glow = Tween<double>(begin: 0.4, end: 0.8).animate(
+        CurvedAnimation(parent: _ac, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _ac.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final c = widget.color;
     return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        height: 38,
-        decoration: BoxDecoration(
-          color: enabled
-              ? color.withValues(alpha: 0.12)
-              : Colors.white.withValues(alpha: 0.03),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: enabled
-                ? color.withValues(alpha: 0.6)
-                : Colors.white.withValues(alpha: 0.08),
-            width: enabled ? 1.4 : 0.8,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon,
-                size: 15,
-                color: enabled
-                    ? color
-                    : Colors.white.withValues(alpha: 0.25)),
-            const SizedBox(width: 5),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w800,
-                    color: enabled
-                        ? Colors.white.withValues(alpha: 0.9)
-                        : Colors.white.withValues(alpha: 0.25))),
-          ],
-        ),
+      onTap: widget.enabled ? widget.onTap : null,
+      child: AnimatedBuilder(
+        animation: _glow,
+        builder: (context, child) {
+          final g = widget.enabled ? _glow.value : 0.0;
+          return Container(
+            height: 38,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: widget.enabled
+                    ? [
+                        c.withValues(alpha: 0.35 + g * 0.25),
+                        c.withValues(alpha: 0.15),
+                      ]
+                    : [
+                        Colors.white.withValues(alpha: 0.04),
+                        Colors.white.withValues(alpha: 0.02),
+                      ],
+              ),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: widget.enabled
+                    ? c.withValues(alpha: 0.5 + g * 0.3)
+                    : Colors.white.withValues(alpha: 0.08),
+                width: widget.enabled ? 1.4 : 0.8,
+              ),
+              boxShadow: widget.enabled
+                  ? [
+                      BoxShadow(
+                        color: c.withValues(alpha: g * 0.35),
+                        blurRadius: 8 + g * 4,
+                        offset: const Offset(0, 3),
+                      ),
+                      BoxShadow(
+                        color: c.withValues(alpha: 0.15),
+                        blurRadius: 2,
+                        offset: const Offset(0, 1),
+                        spreadRadius: -1,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(widget.icon,
+                    size: 15,
+                    color: widget.enabled
+                        ? c
+                        : Colors.white.withValues(alpha: 0.25)),
+                const SizedBox(width: 5),
+                Text(widget.label,
+                    style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        color: widget.enabled
+                            ? Colors.white.withValues(alpha: 0.9)
+                            : Colors.white.withValues(alpha: 0.25))),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 }
 
-class _PayButton extends StatelessWidget {
+class _PayButton extends StatefulWidget {
   final String label;
   final bool enabled;
   final VoidCallback? onTap;
@@ -1520,43 +1647,98 @@ class _PayButton extends StatelessWidget {
   });
 
   @override
+  State<_PayButton> createState() => _PayButtonState();
+}
+
+class _PayButtonState extends State<_PayButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ac;
+  late final Animation<double> _glow;
+
+  @override
+  void initState() {
+    super.initState();
+    _ac = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1400))
+      ..repeat(reverse: true);
+    _glow = Tween<double>(begin: 0.4, end: 1.0).animate(
+        CurvedAnimation(parent: _ac, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _ac.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        height: 38,
-        decoration: BoxDecoration(
-          gradient: enabled
-              ? const LinearGradient(
-                  colors: [Color(0xFF0E8C4F), Color(0xFF086B3D)])
-              : null,
-          color: enabled ? null : Colors.white.withValues(alpha: 0.03),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: enabled
-                ? const Color(0xFF2A7A5A).withValues(alpha: 0.6)
-                : Colors.white.withValues(alpha: 0.08),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.payments_outlined,
-                size: 15,
-                color: enabled
-                    ? Colors.white
-                    : Colors.white.withValues(alpha: 0.25)),
-            const SizedBox(width: 5),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w800,
-                    color: enabled
+      onTap: widget.enabled ? widget.onTap : null,
+      child: AnimatedBuilder(
+        animation: _glow,
+        builder: (context, child) {
+          final g = widget.enabled ? _glow.value : 0.0;
+          return Container(
+            height: 38,
+            decoration: BoxDecoration(
+              gradient: widget.enabled
+                  ? LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color.lerp(
+                            const Color(0xFF0E8C4F),
+                            const Color(0xFF3BE39A),
+                            g * 0.4)!,
+                        const Color(0xFF086B3D),
+                      ],
+                    )
+                  : null,
+              color: widget.enabled ? null : Colors.white.withValues(alpha: 0.03),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: widget.enabled
+                    ? const Color(0xFF2A7A5A).withValues(alpha: 0.6 + g * 0.3)
+                    : Colors.white.withValues(alpha: 0.08),
+              ),
+              boxShadow: widget.enabled
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF0E8C4F)
+                            .withValues(alpha: g * 0.45),
+                        blurRadius: 10 + g * 6,
+                        offset: const Offset(0, 3),
+                      ),
+                      BoxShadow(
+                        color: const Color(0xFF3BE39A)
+                            .withValues(alpha: g * 0.2),
+                        blurRadius: 16 + g * 8,
+                        offset: const Offset(0, 0),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.payments_outlined,
+                    size: 15,
+                    color: widget.enabled
                         ? Colors.white
-                        : Colors.white.withValues(alpha: 0.25))),
-          ],
-        ),
+                        : Colors.white.withValues(alpha: 0.25)),
+                const SizedBox(width: 5),
+                Text(widget.label,
+                    style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        color: widget.enabled
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.25))),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
