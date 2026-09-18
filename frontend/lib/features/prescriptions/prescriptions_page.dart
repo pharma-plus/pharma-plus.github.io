@@ -108,7 +108,7 @@ class _PrescriptionsPageState extends State<PrescriptionsPage> {
         label: Text(S.t('newPrescription', locale)),
       ),
       body: PharmaBackground(
-        assetImage: 'assets/images/background.png',
+        assetImage: 'assets/images/background.webp',
         child: Column(
         children: [
           SizedBox(

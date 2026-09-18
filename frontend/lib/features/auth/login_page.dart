@@ -170,7 +170,7 @@ class _LoginPageState extends State<LoginPage>
     return Scaffold(
       body: PharmaBackground(
         overlayOpacity: 0.45,
-        assetImage: !isWide ? 'assets/images/background.png' : null,
+        assetImage: !isWide ? 'assets/images/background.webp' : null,
         child: Stack(
           children: [
             SafeArea(

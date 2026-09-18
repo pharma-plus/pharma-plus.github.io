@@ -151,7 +151,7 @@ class _ReferencePageState extends State<ReferencePage> {
         ],
       ),
       body: PharmaBackground(
-        assetImage: 'assets/images/background.png',
+        assetImage: 'assets/images/background.webp',
         child: Column(
         children: [
           Padding(

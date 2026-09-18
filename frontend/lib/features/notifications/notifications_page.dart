@@ -119,7 +119,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         ],
       ),
       body: PharmaBackground(
-        assetImage: 'assets/images/background.png',
+        assetImage: 'assets/images/background.webp',
         child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
