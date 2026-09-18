@@ -1131,15 +1131,16 @@ class _PosPageState extends State<PosPage> {
             const SizedBox(width: 8),
             // Paiement
             Expanded(
-              child: GradientButton(
+              child: _ActionButton(
                 label: canPay
                     ? 'Payer ${Fmt.money(t.total)} MAD'
                     : _paymentMode == 'cash' && _received > 0 && !_cashSufficient
                         ? 'Montant insuffisant'
-                        : 'Payer',
+                    : 'Payer',
                 icon: Icons.payments_outlined,
-                loading: _checkout,
-                onPressed: canPay ? _confirmPayment : null,
+                color: AppColors.emerald,
+                enabled: canPay,
+                onTap: canPay ? () => _confirmPayment() : null,
               ),
             ),
           ],
@@ -1452,13 +1453,13 @@ class _ActionButton extends StatelessWidget {
   final IconData icon;
   final Color color;
   final bool enabled;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   const _ActionButton({
     required this.label,
     required this.icon,
     required this.color,
     required this.enabled,
-    required this.onTap,
+    this.onTap,
   });
 
   @override
@@ -1467,12 +1468,12 @@ class _ActionButton extends StatelessWidget {
       onTap: enabled ? onTap : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        height: 48,
+        height: 36,
         decoration: BoxDecoration(
           color: enabled
               ? color.withValues(alpha: 0.15)
               : Colors.white.withValues(alpha: 0.03),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
               color: enabled
                   ? color.withValues(alpha: 0.5)
