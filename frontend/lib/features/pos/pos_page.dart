@@ -414,6 +414,8 @@ class _PosPageState extends State<PosPage> {
                                   _buildCashReceived(locale),
                                 if (_paymentMode == 'cash' && !_cart.isEmpty)
                                   const SizedBox(height: 12),
+                                const Spacer(),
+                                _buildActions(locale),
                               ],
                             ),
                           ),
@@ -449,8 +451,6 @@ class _PosPageState extends State<PosPage> {
               ),
             ),
 
-            // ── ACTIONS (fixed bottom) ──
-            _buildActions(locale),
           ],
         ),
       ),
