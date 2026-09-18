@@ -381,7 +381,6 @@ class _PosPageState extends State<PosPage> {
                       return Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // ── GAUCHE : Cartes (catégories + produits) ──
                           Expanded(
                             flex: 5,
                             child: Column(
@@ -396,7 +395,6 @@ class _PosPageState extends State<PosPage> {
                             ),
                           ),
                           const SizedBox(width: 14),
-                          // ── DROITE : POS (client, remise, totaux, paiement, actions) ──
                           Expanded(
                             flex: 2,
                             child: Column(
@@ -414,8 +412,6 @@ class _PosPageState extends State<PosPage> {
                                   _buildCashReceived(locale),
                                 if (_paymentMode == 'cash' && !_cart.isEmpty)
                                   const SizedBox(height: 12),
-                                const Spacer(),
-                                _buildActions(locale),
                               ],
                             ),
                           ),
@@ -449,6 +445,18 @@ class _PosPageState extends State<PosPage> {
                   },
                 ),
               ),
+            ),
+
+            // ── BARRE FIXE EN BAS : Vider / Suspendre / Payer ──
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.pharmaSurface.withValues(alpha: 0.8),
+                border: Border(
+                  top: BorderSide(color: AppColors.goldBorder.withValues(alpha: 0.3)),
+                ),
+              ),
+              child: _buildActions(locale),
             ),
 
           ],
