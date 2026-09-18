@@ -824,7 +824,7 @@ class _PosPanelState extends State<PosPanel> {
           ),
         ],
         const SizedBox(height: 6),
-        // ── 9) 3 BOUTONS — Vider / Suspendre / Paiement ──
+        // ── 9) 3 BOUTONS — Vider / Suspendre / Payer ──
         Row(children: [
           Expanded(
               child: _PanelButton(
@@ -841,11 +841,9 @@ class _PosPanelState extends State<PosPanel> {
                   onTap: _hold)),
           const SizedBox(width: 6),
           Expanded(
-              child: _PanelButton(
+              child: _PayButton(
                   label: 'Payer',
-                   icon: Icons.payments_outlined,
-                   color: const Color(0xFF0E8C4F),
-                   onTap: _pay)),
+                  onTap: _pay)),
         ]),
       ]),
     );
@@ -975,6 +973,38 @@ class _PanelButton extends StatelessWidget {
             border: Border.all(color: color.withValues(alpha: 0.5))),
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           Icon(icon, size: 15, color: Colors.white.withValues(alpha: 0.9)),
+          const SizedBox(width: 5),
+          Text(label,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800)),
+        ]),
+      ),
+    );
+  }
+}
+
+/// Bouton Payer avec gradient vert (identique au GradientButton du POS complet).
+class _PayButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _PayButton({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        height: 38,
+        decoration: BoxDecoration(
+            gradient: const LinearGradient(
+                colors: [Color(0xFF0E8C4F), Color(0xFF086B3D)]),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFF2A7A5A).withValues(alpha: 0.6))),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          const Icon(Icons.payments_outlined, size: 15, color: Colors.white),
           const SizedBox(width: 5),
           Text(label,
               style: const TextStyle(
