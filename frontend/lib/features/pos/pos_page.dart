@@ -444,8 +444,6 @@ class _PosPageState extends State<PosPage> {
                           _buildCashReceived(locale),
                         if (_paymentMode == 'cash' && !_cart.isEmpty)
                           const SizedBox(height: 12),
-                        const SizedBox(height: 8),
-                        _buildActions(locale),
                       ],
                     );
                   },
