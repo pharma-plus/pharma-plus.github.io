@@ -1062,17 +1062,7 @@ class _PosPageState extends State<PosPage> {
     final canPay = !_cart.isEmpty &&
         !_checkout &&
         (_paymentMode != 'cash' || _cashSufficient);
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
-        border: Border(
-            top: BorderSide(
-                color: AppColors.goldBorder.withValues(alpha: 0.3))),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Row(
+    return Row(
           children: [
             // Vider
             Expanded(
@@ -1144,9 +1134,7 @@ class _PosPageState extends State<PosPage> {
               ),
             ),
           ],
-        ),
-      ),
-    );
+        );
   }
 
   // ── Totaux ──
