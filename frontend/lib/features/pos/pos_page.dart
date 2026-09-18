@@ -365,23 +365,18 @@ class _PosPageState extends State<PosPage> {
       ),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
-        child: Column(
-          children: [
-            // ── EN-TÊTE ──
-            // (AppBar already handles this)
-
-            // ── Scrollable content ──
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    // ── PC/Mac : deux colonnes ──
-                    if (constraints.maxWidth > 768) {
-                      return Row(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // ── PC/Mac : deux colonnes, boutons dans colonne droite ──
+            if (constraints.maxWidth > 768) {
+              return Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // ── GAUCHE : catégories + produits ──
                           Expanded(
                             flex: 5,
                             child: Column(
@@ -396,7 +391,6 @@ class _PosPageState extends State<PosPage> {
                             ),
                           ),
                           const SizedBox(width: 14),
-                          // ── DROITE : client, remise, totaux, paiement, actions ──
                           Expanded(
                             flex: 2,
                             child: Column(
@@ -420,10 +414,19 @@ class _PosPageState extends State<PosPage> {
                             ),
                           ),
                         ],
-                      );
-                    }
-                    // ── Mobile/Tablet : une seule colonne ──
-                    return Column(
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+            // ── Mobile/Tablet : scroll + boutons fixes en bas ──
+            return Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _buildSearchRow(locale),
@@ -445,13 +448,22 @@ class _PosPageState extends State<PosPage> {
                         if (_paymentMode == 'cash' && !_cart.isEmpty)
                           const SizedBox(height: 12),
                       ],
-                    );
-                  },
+                    ),
+                  ),
                 ),
-              ),
-            ),
-
-          ],
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.pharmaSurface.withValues(alpha: 0.9),
+                    border: Border(
+                      top: BorderSide(color: AppColors.goldBorder.withValues(alpha: 0.3)),
+                    ),
+                  ),
+                  child: _buildActions(locale),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
