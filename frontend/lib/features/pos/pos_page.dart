@@ -367,90 +367,78 @@ class _PosPageState extends State<PosPage> {
         onTap: () => FocusScope.of(context).unfocus(),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            // ── PC/Mac : deux colonnes, boutons dans colonne droite ──
-            if (constraints.maxWidth > 768) {
-              return Column(
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            flex: 5,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                _buildSearchRow(locale),
-                                const SizedBox(height: 8),
-                                _buildCategoriesGrid(locale, aspectRatio: 3.5),
-                                const SizedBox(height: 10),
-                                _buildResultsTable(locale),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            flex: 2,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                _buildClientRow(locale),
-                                const SizedBox(height: 8),
-                                _buildDiscountRow(locale),
-                                const SizedBox(height: 8),
-                                _buildTotals(locale),
-                                const SizedBox(height: 10),
-                                _buildPaymentMode(locale),
-                                const SizedBox(height: 8),
-                                if (_paymentMode == 'cash' && !_cart.isEmpty)
-                                  _buildCashReceived(locale),
-                                if (_paymentMode == 'cash' && !_cart.isEmpty)
-                                  const SizedBox(height: 12),
-                                const Spacer(),
-                                _buildActions(locale),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            }
-            // ── Mobile/Tablet : scroll + boutons fixes en bas ──
+            final isWide = constraints.maxWidth > 768;
             return Column(
               children: [
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildSearchRow(locale),
-                        const SizedBox(height: 8),
-                        _buildCategoriesGrid(locale),
-                        const SizedBox(height: 10),
-                        _buildResultsTable(locale),
-                        const SizedBox(height: 10),
-                        _buildClientRow(locale),
-                        const SizedBox(height: 8),
-                        _buildDiscountRow(locale),
-                        const SizedBox(height: 8),
-                        _buildTotals(locale),
-                        const SizedBox(height: 10),
-                        _buildPaymentMode(locale),
-                        const SizedBox(height: 8),
-                        if (_paymentMode == 'cash' && !_cart.isEmpty)
-                          _buildCashReceived(locale),
-                        if (_paymentMode == 'cash' && !_cart.isEmpty)
-                          const SizedBox(height: 12),
-                      ],
-                    ),
+                    child: isWide
+                        ? Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                flex: 5,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    _buildSearchRow(locale),
+                                    const SizedBox(height: 8),
+                                    _buildCategoriesGrid(locale, aspectRatio: 3.5),
+                                    const SizedBox(height: 10),
+                                    _buildResultsTable(locale),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                flex: 2,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    _buildClientRow(locale),
+                                    const SizedBox(height: 8),
+                                    _buildDiscountRow(locale),
+                                    const SizedBox(height: 8),
+                                    _buildTotals(locale),
+                                    const SizedBox(height: 10),
+                                    _buildPaymentMode(locale),
+                                    const SizedBox(height: 8),
+                                    if (_paymentMode == 'cash' && !_cart.isEmpty)
+                                      _buildCashReceived(locale),
+                                    if (_paymentMode == 'cash' && !_cart.isEmpty)
+                                      const SizedBox(height: 12),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          )
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _buildSearchRow(locale),
+                              const SizedBox(height: 8),
+                              _buildCategoriesGrid(locale),
+                              const SizedBox(height: 10),
+                              _buildResultsTable(locale),
+                              const SizedBox(height: 10),
+                              _buildClientRow(locale),
+                              const SizedBox(height: 8),
+                              _buildDiscountRow(locale),
+                              const SizedBox(height: 8),
+                              _buildTotals(locale),
+                              const SizedBox(height: 10),
+                              _buildPaymentMode(locale),
+                              const SizedBox(height: 8),
+                              if (_paymentMode == 'cash' && !_cart.isEmpty)
+                                _buildCashReceived(locale),
+                              if (_paymentMode == 'cash' && !_cart.isEmpty)
+                                const SizedBox(height: 12),
+                            ],
+                          ),
                   ),
                 ),
+                // ── BARRE FIXE EN BAS : Vider / Suspendre / Payer ──
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
@@ -1133,7 +1121,7 @@ class _PosPageState extends State<PosPage> {
         Expanded(
           child: _PayButton(
             label: canPay
-                ? 'Payer ${Fmt.money(t.total)} MAD'
+                ? 'Payer'
                 : _paymentMode == 'cash' && _received > 0 && !_cashSufficient
                     ? 'Montant insuffisant'
                     : 'Payer',
