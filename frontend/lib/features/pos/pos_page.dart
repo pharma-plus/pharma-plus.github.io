@@ -473,7 +473,7 @@ class _PosPageState extends State<PosPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: AppColors.pharmaSurface.withValues(alpha: 0.9),
+                    color: AppColors.pharmaSurface.withValues(alpha: 0.92),
                     border: Border(
                       top: BorderSide(color: AppColors.goldBorder.withValues(alpha: 0.3)),
                     ),
@@ -898,49 +898,57 @@ class _PosPageState extends State<PosPage> {
   //  SECTION 9 : MODE DE PAIEMENT
   // ══════════════════════════════════════════
   Widget _buildPaymentMode(String locale) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('MODE DE PAIEMENT',
-            style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: AppColors.pharmaMuted,
-                letterSpacing: 0.6)),
-        const SizedBox(height: 6),
-        Row(
-          children: [
-            Expanded(
-                child: _PaymentChip(
-              icon: Icons.payments_rounded,
-              label: 'Espèces',
-              selected: _paymentMode == 'cash',
-              onTap: () => setState(() => _paymentMode = 'cash'),
-              selectedColor: const Color(0xFF00C96B),
-            )),
-            const SizedBox(width: 6),
-            Expanded(
-                child: _PaymentChip(
-              icon: Icons.credit_card,
-              label: 'Visa',
-              selected: _paymentMode == 'visa',
-              onTap: () => setState(() => _paymentMode = 'visa'),
-              logo: _buildVisaLogo(_paymentMode == 'visa'),
-              selectedColor: const Color(0xFF1A1F71),
-            )),
-            const SizedBox(width: 6),
-            Expanded(
-                child: _PaymentChip(
-              icon: Icons.credit_card,
-              label: 'Mastercard',
-              selected: _paymentMode == 'mastercard',
-              onTap: () => setState(() => _paymentMode = 'mastercard'),
-              logo: _buildMastercardLogo(),
-              selectedColor: const Color(0xFFD4760A),
-            )),
-          ],
-        ),
-      ],
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppColors.pharmaSurface.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.goldBorder.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('MODE DE PAIEMENT',
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.pharmaMuted,
+                  letterSpacing: 0.6)),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                  child: _PaymentChip(
+                icon: Icons.payments_rounded,
+                label: 'Espèces',
+                selected: _paymentMode == 'cash',
+                onTap: () => setState(() => _paymentMode = 'cash'),
+                selectedColor: const Color(0xFF00C96B),
+              )),
+              const SizedBox(width: 6),
+              Expanded(
+                  child: _PaymentChip(
+                icon: Icons.credit_card,
+                label: 'Visa',
+                selected: _paymentMode == 'visa',
+                onTap: () => setState(() => _paymentMode = 'visa'),
+                logo: _buildVisaLogo(_paymentMode == 'visa'),
+                selectedColor: const Color(0xFF1A1F71),
+              )),
+              const SizedBox(width: 6),
+              Expanded(
+                  child: _PaymentChip(
+                icon: Icons.credit_card,
+                label: 'Mastercard',
+                selected: _paymentMode == 'mastercard',
+                onTap: () => setState(() => _paymentMode = 'mastercard'),
+                logo: _buildMastercardLogo(),
+                selectedColor: const Color(0xFFD4760A),
+              )),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
