@@ -151,6 +151,7 @@ class _WebsitePageState extends State<WebsitePage> {
         ],
       ),
       body: PharmaBackground(
+        networkImage: 'https://pharma-plus.github.io/assets/assets/images/background.png',
         child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
