@@ -173,7 +173,7 @@ class _CamerasPageState extends State<CamerasPage> {
         ],
       ),
       body: PharmaBackground(
-        networkImage: 'https://pharma-plus.github.io/assets/assets/images/background.png',
+        assetImage: 'assets/images/background.png',
         child: _buildBody()),
     );
   }

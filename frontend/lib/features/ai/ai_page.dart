@@ -110,7 +110,7 @@ class _AiPageState extends State<AiPage> {
           leading: const ShellBackButton(),
           title: Text(S.t('pharmaAi', locale))),
       body: PharmaBackground(
-        networkImage: 'https://pharma-plus.github.io/assets/assets/images/background.png',
+        assetImage: 'assets/images/background.png',
         child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

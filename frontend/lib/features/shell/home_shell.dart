@@ -91,7 +91,7 @@ class _HomeShellState extends State<HomeShell> {
       builder: (context, shellIndex, _) => Scaffold(
         backgroundColor: Colors.transparent,
         body: PharmaBackground(
-          networkImage: 'https://pharma-plus.github.io/assets/assets/images/background.png',
+          assetImage: 'assets/images/background.png',
           child: SafeArea(
             child: Theme(
               data: Theme.of(context).copyWith(
