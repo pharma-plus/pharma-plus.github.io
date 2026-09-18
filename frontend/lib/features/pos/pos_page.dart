@@ -1131,7 +1131,6 @@ class _PosPageState extends State<PosPage> {
             const SizedBox(width: 8),
             // Paiement
             Expanded(
-              flex: 2,
               child: GradientButton(
                 label: canPay
                     ? 'Payer ${Fmt.money(t.total)} MAD'
