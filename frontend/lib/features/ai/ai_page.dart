@@ -6,6 +6,7 @@ import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
+import '../../core/widgets/pharma_background.dart';
 import '../shell/shell_nav.dart';
 
 class AiPage extends StatefulWidget {
@@ -108,7 +109,8 @@ class _AiPageState extends State<AiPage> {
       appBar: AppBar(
           leading: const ShellBackButton(),
           title: Text(S.t('pharmaAi', locale))),
-      body: _loading
+      body: PharmaBackground(
+        child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? Center(
@@ -208,6 +210,7 @@ class _AiPageState extends State<AiPage> {
                     ),
                   ],
                 ),
+      ),
     );
   }
 

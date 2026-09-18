@@ -8,6 +8,7 @@ import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
+import '../../core/widgets/pharma_background.dart';
 import '../../core/widgets/status_chip.dart';
 import '../shell/shell_nav.dart';
 
@@ -106,7 +107,8 @@ class _PrescriptionsPageState extends State<PrescriptionsPage> {
         icon: const Icon(Icons.note_add_outlined),
         label: Text(S.t('newPrescription', locale)),
       ),
-      body: Column(
+      body: PharmaBackground(
+        child: Column(
         children: [
           SizedBox(
             height: 48,
@@ -247,6 +249,7 @@ class _PrescriptionsPageState extends State<PrescriptionsPage> {
                           ),
           ),
         ],
+      ),
       ),
     );
   }

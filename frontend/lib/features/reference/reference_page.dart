@@ -7,6 +7,7 @@ import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
+import '../../core/widgets/pharma_background.dart';
 import '../shell/shell_nav.dart';
 
 class ReferencePage extends StatefulWidget {
@@ -149,7 +150,8 @@ class _ReferencePageState extends State<ReferencePage> {
           ),
         ],
       ),
-      body: Column(
+      body: PharmaBackground(
+        child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
@@ -250,6 +252,7 @@ class _ReferencePageState extends State<ReferencePage> {
           const SizedBox(height: 4),
           Expanded(child: _buildList()),
         ],
+      ),
       ),
     );
   }

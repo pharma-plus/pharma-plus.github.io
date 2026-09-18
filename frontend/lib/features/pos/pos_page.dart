@@ -430,7 +430,16 @@ class _PosPageState extends State<PosPage> {
                             ),
                           ),
                           // ── Boutons fixes en bas de la colonne droite ──
-                          _buildActions(locale),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: AppColors.pharmaSurface.withValues(alpha: 0.92),
+                              border: Border(
+                                top: BorderSide(color: AppColors.goldBorder.withValues(alpha: 0.3)),
+                              ),
+                            ),
+                            child: _buildActions(locale),
+                          ),
                         ],
                       ),
                     ),

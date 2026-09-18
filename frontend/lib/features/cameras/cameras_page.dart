@@ -6,6 +6,7 @@ import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/glass_card.dart';
+import '../../core/widgets/pharma_background.dart';
 import '../shell/shell_nav.dart';
 
 class CamerasPage extends StatefulWidget {
@@ -171,7 +172,7 @@ class _CamerasPageState extends State<CamerasPage> {
           ),
         ],
       ),
-      body: _buildBody(),
+      body: PharmaBackground(child: _buildBody()),
     );
   }
 

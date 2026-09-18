@@ -7,6 +7,7 @@ import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
+import '../../core/widgets/pharma_background.dart';
 import '../shell/shell_nav.dart';
 
 /// Boîte de réception des alertes et messages attribués à l'utilisateur.
@@ -117,7 +118,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
           IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
         ],
       ),
-      body: _loading
+      body: PharmaBackground(
+        child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? Center(child: Text(_error!))
@@ -197,6 +199,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                         },
                       ),
                     ),
+      ),
     );
   }
 }
