@@ -1,6 +1,7 @@
 // PMG-POS-REAL
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -324,8 +325,14 @@ class _PosPanelState extends State<PosPanel> {
     } else {
       pay = PaymentResult.card(amount: _totals.total, cardType: 'mastercard');
     }
-    widget.onPrefilled?.call(
-        _cart.values.toList(), _discount, _discountPercent, pay.received ?? pay.amount);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(pay.method == 'card'
+          ? 'Vente enregistrée · Carte ${pay.cardType ?? ''}'
+          : _change > 0
+              ? 'Vente enregistrée · Monnaie : ${Fmt.money(_change)} MAD'
+              : 'Vente enregistrée')),
+    );
+    _clearCart();
   }
 
   bool get _cashSufficient => _received >= _totals.total || _paymentMode != 'cash';
@@ -531,19 +538,21 @@ class _PosPanelState extends State<PosPanel> {
         if (!_cart.isEmpty)
           Container(
             margin: const EdgeInsets.only(bottom: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
             decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.03),
+                color: Colors.white.withValues(alpha: 0.04),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
+                border: Border.all(color: const Color(0xFFC9A24B).withValues(alpha: 0.3))),
             child: Row(children: [
-              Icon(Icons.person_outline_rounded,
-                  size: 16, color: Colors.white.withValues(alpha: 0.5)),
-              const SizedBox(width: 6),
-              Expanded(
+              const Icon(Icons.person_outline_rounded,
+                  size: 16, color: Color(0xFFE9C873)),
+              const SizedBox(width: 8),
+              const Expanded(
                 child: Text('Client comptoir',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 11)),
+                    style: TextStyle(color: Colors.white70, fontSize: 11.5, fontWeight: FontWeight.w600)),
               ),
+              Icon(Icons.keyboard_arrow_down_rounded,
+                  size: 16, color: Colors.white.withValues(alpha: 0.4)),
             ]),
           ),
         // ── 6) REMISE + TVA ──
@@ -755,28 +764,13 @@ class _PosPanelState extends State<PosPanel> {
               ),
               const SizedBox(width: 4),
               Expanded(
-                child: _PaymentModeBtn(
+                  child: _PaymentModeBtn(
                   child: SizedBox(
-                    width: 42,
-                    height: 26,
-                    child: Stack(alignment: Alignment.center, children: [
-                      Positioned(
-                          left: 6,
-                          child: Container(
-                              width: 18,
-                              height: 18,
-                              decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Color(0xFFEB001B)))),
-                      Positioned(
-                          right: 6,
-                          child: Container(
-                              width: 18,
-                              height: 18,
-                              decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Color(0xFFF79E1B)))),
-                    ]),
+                    width: 44,
+                    height: 28,
+                    child: CustomPaint(
+                      painter: _MastercardPainter(),
+                    ),
                   ),
                   selected: _paymentMode == 'mastercard',
                   selectedColor: const Color(0xFFD4760A),
@@ -1183,4 +1177,33 @@ class _CatalogRow extends StatelessWidget {
       ]),
     );
   }
+}
+
+/// Peintre pour le logo Mastercard (deux cercles se chevauchant).
+class _MastercardPainter extends CustomPainter {
+  @override
+  void paint(Canvas c, Size s) {
+    final cx = s.width / 2, cy = s.height / 2;
+    final r = s.height * 0.38;
+    // Ombre portée
+    c.drawCircle(
+        Offset(cx - r * 0.55, cy), r + 1,
+        Paint()..color = const Color(0x30000000)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2));
+    c.drawCircle(
+        Offset(cx + r * 0.55, cy), r + 1,
+        Paint()..color = const Color(0x30000000)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2));
+    // Cercle gauche (rouge)
+    c.drawCircle(Offset(cx - r * 0.55, cy), r,
+        Paint()..shader = ui.Gradient.radial(
+            Offset(cx - r * 0.55 - 3, cy - 3), r,
+            [const Color(0xFFFF4D4D), const Color(0xFFEB001B)]));
+    // Cercle droit (orange)
+    c.drawCircle(Offset(cx + r * 0.55, cy), r,
+        Paint()..shader = ui.Gradient.radial(
+            Offset(cx + r * 0.55 - 3, cy - 3), r,
+            [const Color(0xFFFFC733), const Color(0xFFF79E1B)]));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
 }

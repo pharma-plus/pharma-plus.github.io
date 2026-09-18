@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:ui' as ui;
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/models/medication.dart';
@@ -908,42 +909,27 @@ class _PosPageState extends State<PosPage> {
 
   Widget _buildVisaLogo() {
     return Container(
-      width: 36,
-      height: 22,
+      width: 40,
+      height: 24,
       decoration: BoxDecoration(
         color: const Color(0xFF1A1F71),
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(4),
       ),
       alignment: Alignment.center,
       child: const Text('VISA',
           style: TextStyle(
               color: Colors.white,
-              fontSize: 8,
+              fontSize: 10,
               fontWeight: FontWeight.w900,
-              letterSpacing: 1)),
+              letterSpacing: 1.2)),
     );
   }
 
   Widget _buildMastercardLogo() {
     return SizedBox(
-      width: 36,
-      height: 22,
-      child: Stack(alignment: Alignment.center, children: [
-        Positioned(
-            left: 4,
-            child: Container(
-                width: 14,
-                height: 14,
-                decoration: const BoxDecoration(
-                    shape: BoxShape.circle, color: Color(0xFFEB001B)))),
-        Positioned(
-            right: 4,
-            child: Container(
-                width: 14,
-                height: 14,
-                decoration: const BoxDecoration(
-                    shape: BoxShape.circle, color: Color(0xFFF79E1B)))),
-      ]),
+      width: 40,
+      height: 24,
+      child: CustomPaint(painter: _MastercardLogoPainter()),
     );
   }
 
@@ -1336,7 +1322,7 @@ class _PaymentChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
           color: selected
               ? AppColors.emerald.withValues(alpha: 0.15)
@@ -1348,21 +1334,24 @@ class _PaymentChip extends StatelessWidget {
           ),
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             if (logo != null) ...[
               logo!,
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
             ] else ...[
               Icon(icon,
-                  size: 22,
+                  size: 20,
                   color: selected
                       ? AppColors.emerald
                       : Colors.white.withValues(alpha: 0.6)),
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
             ],
             Text(label,
+                textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: FontWeight.w800,
                     color: selected
                         ? AppColors.emerald
@@ -1505,10 +1494,35 @@ class _ActionButton extends StatelessWidget {
                      fontWeight: FontWeight.w800,
                      color: enabled
                          ? Colors.white.withValues(alpha: 0.9)
-                         : Colors.white.withValues(alpha: 0.25))),
+                          : Colors.white.withValues(alpha: 0.25))),
           ],
         ),
       ),
     );
   }
+}
+
+class _MastercardLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas c, Size s) {
+    final cx = s.width / 2, cy = s.height / 2;
+    final r = s.height * 0.38;
+    c.drawCircle(
+        Offset(cx - r * 0.55, cy), r + 1,
+        Paint()..color = const Color(0x30000000)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2));
+    c.drawCircle(
+        Offset(cx + r * 0.55, cy), r + 1,
+        Paint()..color = const Color(0x30000000)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2));
+    c.drawCircle(Offset(cx - r * 0.55, cy), r,
+        Paint()..shader = ui.Gradient.radial(
+            Offset(cx - r * 0.55 - 3, cy - 3), r,
+            [const Color(0xFFFF4D4D), const Color(0xFFEB001B)]));
+    c.drawCircle(Offset(cx + r * 0.55, cy), r,
+        Paint()..shader = ui.Gradient.radial(
+            Offset(cx + r * 0.55 - 3, cy - 3), r,
+            [const Color(0xFFFFC733), const Color(0xFFF79E1B)]));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
 }
