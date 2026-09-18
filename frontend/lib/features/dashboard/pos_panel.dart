@@ -56,13 +56,13 @@ class _PosPanelState extends State<PosPanel> {
   List<String> _heldIds = [];
   double _discount = 0;
   bool _discountPercent = true;
-bool _searching = false;
-   Timer? _debounce;
-   String _paymentMode = 'cash'; // cash | visa | mastercard
-   double _received = 0;
-   final _receivedCtrl = TextEditingController();
+  bool _searching = false;
+  Timer? _debounce;
+  String _paymentMode = 'cash'; // cash | visa | mastercard
+  double _received = 0;
+  final _receivedCtrl = TextEditingController();
 
-   static const _kHeldKey = 'pmg_pos_held_sales';
+  static const _kHeldKey = 'pmg_pos_held_sales';
 
   /// Mots-clés de recherche réels par catégorie (filtre API du catalogue).
   static const Map<String, String> _catQueries = {
@@ -92,8 +92,6 @@ bool _searching = false;
   void initState() {
     super.initState();
     _loadHeld();
-    // Catalogue chargé dès l'ouverture du mini-POS (comme le POS complet) :
-    // l'encart n'est JAMAIS vide — il affiche les produits dès l'arrivée.
     _doSearch(_search.text.trim());
   }
 
@@ -106,8 +104,6 @@ bool _searching = false;
     super.dispose();
   }
 
-  // ---- Totaux : service centralisé, aucun calcul local dupliqué ----
-  // Convention HT + TVA ajoutée = même moteur que le POS complet.
   SaleTotals get _totals => calculateSaleTotalExcl(
         [
           for (final m in _cart.values)
@@ -120,12 +116,9 @@ bool _searching = false;
         discountIsPercent: _discountPercent,
       );
 
-  // ---- Recherche catalogue (API réelle, debouncée) ----
   void _onSearchChanged(String query) {
     _debounce?.cancel();
     if (query.trim().isEmpty) {
-      // Champ vidé -> on réaffiche tout le catalogue (jamais vide)
-      // comme le POS complet. Identique à l'init.
       _doSearch('');
       return;
     }
@@ -164,7 +157,6 @@ bool _searching = false;
     final q = _catQueries[kind] ?? '';
     if (q.isNotEmpty &&
         _search.text.trim().toLowerCase() == q.trim().toLowerCase()) {
-      // Re-tap sur la classe active -> revenir a TOUT le catalogue.
       _search.text = '';
       _doSearch('');
       return;
@@ -199,10 +191,11 @@ bool _searching = false;
         _qty.clear();
         _discount = 0;
         _discountCtrl.clear();
+        _received = 0;
+        _receivedCtrl.clear();
+        _paymentMode = 'cash';
       });
 
-  /// Scan code-barres : ouvre la caméra tablette/smartphone, cherche le
-  /// produit via l'API et l'ajoute au panier.
   Future<void> _scanBarcode() async {
     final result = await BarcodeScannerSheet.show(context, title: 'Scanner produit');
     if (result == null || !mounted) return;
@@ -226,7 +219,6 @@ bool _searching = false;
     });
   }
 
-  // ---- Ventes suspendues : persistance locale réelle ----
   Future<void> _loadHeld() async {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
@@ -244,9 +236,7 @@ bool _searching = false;
               0, (s, it) => s + (((it as Map)['qty'] as num?)?.toInt() ?? 0));
         }
       });
-    } catch (_) {
-      // Contenu local illisible : ignoré proprement.
-    }
+    } catch (_) {}
   }
 
   Future<void> _hold() async {
@@ -290,8 +280,6 @@ bool _searching = false;
       }
     }
     if (held == null) return;
-    // Capture non nulle pour utilisation à l'intérieur de setState
-    // (la promotion de type ne traverse pas les closures Dart).
     final Map<String, dynamic> h = held;
     final items = (h['items'] as List? ?? const [])
         .whereType<Map<String, dynamic>>()
@@ -321,39 +309,37 @@ bool _searching = false;
 
   String _fmt(double v) => Fmt.money(v);
 
-  /// Paiement multi-modes : ouvre la feuille complète (Espèces · Carte ·
-  /// Tiers payant) pour le mini-POS du dashboard.
-Future<void> _pay() async {
-     if (_cart.isEmpty) {
-       widget.onCheckout();
-       return;
-     }
-     PaymentResult pay;
-     if (_paymentMode == 'cash') {
-       if (!_cashSufficient) return;
-       pay = PaymentResult.cash(
-           amount: _totals.total, received: _received, change: _change);
-     } else if (_paymentMode == 'visa') {
-       pay = PaymentResult.card(amount: _totals.total, cardType: 'visa');
-     } else {
-       pay = PaymentResult.card(amount: _totals.total, cardType: 'mastercard');
-     }
-     widget.onPrefilled?.call(
-         _cart.values.toList(), _discount, _discountPercent, pay.received ?? pay.amount);
-   }
+  void _pay() {
+    if (_cart.isEmpty) {
+      widget.onCheckout();
+      return;
+    }
+    PaymentResult pay;
+    if (_paymentMode == 'cash') {
+      if (!_cashSufficient) return;
+      pay = PaymentResult.cash(
+          amount: _totals.total, received: _received, change: _change);
+    } else if (_paymentMode == 'visa') {
+      pay = PaymentResult.card(amount: _totals.total, cardType: 'visa');
+    } else {
+      pay = PaymentResult.card(amount: _totals.total, cardType: 'mastercard');
+    }
+    widget.onPrefilled?.call(
+        _cart.values.toList(), _discount, _discountPercent, pay.received ?? pay.amount);
+  }
 
-   void _setReceived(String v) =>
-       setState(() => _received = double.tryParse(v.replaceAll(',', '.')) ?? 0);
+  bool get _cashSufficient => _received >= _totals.total || _paymentMode != 'cash';
+  double get _change => (_received > _totals.total) ? _received - _totals.total : 0;
 
-   void _quickReceived(double v) {
-     final next = v == _totals.total ? v : _received + v;
-     _receivedCtrl.text =
-         next == next.roundToDouble() ? next.round().toString() : next.toStringAsFixed(2);
-     setState(() => _received = next);
-   }
+  void _setReceived(String v) =>
+      setState(() => _received = double.tryParse(v.replaceAll(',', '.')) ?? 0);
 
-   bool get _cashSufficient => _received >= _totals.total || _paymentMode != 'cash';
-   double get _change => (_received > _totals.total) ? _received - _totals.total : 0;
+  void _quickReceived(double v) {
+    final next = v == _totals.total ? v : _received + v;
+    _receivedCtrl.text =
+        next == next.roundToDouble() ? next.round().toString() : next.toStringAsFixed(2);
+    setState(() => _received = next);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -384,7 +370,7 @@ Future<void> _pay() async {
         ),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        // ── 1) Recherche produit RÉELLE ──
+        // ── 1) RECHERCHE ──
         Container(
           height: 38,
           decoration: BoxDecoration(
@@ -419,7 +405,7 @@ Future<void> _pay() async {
           ]),
         ),
         const SizedBox(height: 6),
-        // ── 1b) Scanner sous la barre de recherche ──
+        // ── 2) SCANNER ──
         SizedBox(
           width: double.infinity,
           child: InkWell(
@@ -452,7 +438,7 @@ Future<void> _pay() async {
           ),
         ),
         const SizedBox(height: 6),
-        // ── 3) Catégories : GRILLE 2×4 COMPACTE ──
+        // ── 3) CATÉGORIES 3D ──
         LayoutBuilder(builder: (context, cons) {
           const gap = 6.0;
           const tileH = 48.0;
@@ -481,60 +467,86 @@ Future<void> _pay() async {
           );
         }),
         const SizedBox(height: 6),
-        // ── 4) CATALOGUE PRODUITS ──
+        // ── 4) TABLEAU UNIQUE (header + panier + catalogue) ──
+        const _RowHeader(),
+        const SizedBox(height: 4),
         Expanded(
-          child: ListView(
-            shrinkWrap: false,
-            padding: EdgeInsets.zero,
-            children: [
-              if (_results.isNotEmpty) ...[
-                const _RowHeader(),
-                const SizedBox(height: 4),
-                ..._results.values.map((m) => _CatalogRow(
-                      name: m.name,
-                      dosage: m.dosage,
-                      price: m.priceSale,
-                      qty: _qty[m.id] ?? 0,
-                      onPlus: () => _add(m),
-                      onMinus: () => _bump(m.id, -1),
-                    )),
-              ],
-              if (!_cart.isEmpty) ...[
-                const _RowHeader(),
-                const SizedBox(height: 4),
-                ..._cart.values.map((m) => _CartRow(
-                      name: m.name,
-                      qty: _qty[m.id] ?? 1,
-                      lineTotal: m.priceSale * (_qty[m.id] ?? 1),
-                      onMinus: () => _bump(m.id, -1),
-                      onPlus: () => _bump(m.id, 1),
-                      onDelete: () => _bump(m.id, -(_qty[m.id] ?? 1)),
-                    )),
-              ],
-              if (_cart.isEmpty && _heldIds.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                ..._heldIds.map((id) => Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: _PanelButton(
-                          label: 'Reprendre (${_heldQty[id] ?? 0} art.)',
-                          icon: Icons.unarchive_rounded,
-                          color: const Color(0xFF2A7A5A),
-                          onTap: () => _resume(id)),
-                    )),
-              ],
-              if (_cart.isEmpty && _heldIds.isEmpty)
-                const Center(
-                    child: Padding(
-                  padding: EdgeInsets.only(top: 16),
-                  child: Text('Aucun produit',
-                      style: TextStyle(
-                          color: Colors.white, fontSize: 11)),
-                )),
-            ],
-          ),
+          child: _cart.isEmpty && _results.isEmpty
+              ? Center(
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    if (_heldIds.isNotEmpty)
+                      for (final id in _heldIds)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: _PanelButton(
+                              label: 'Reprendre (${_heldQty[id] ?? 0} art.)',
+                              icon: Icons.unarchive_rounded,
+                              color: const Color(0xFF2A7A5A),
+                              onTap: () => _resume(id)),
+                        ),
+                    Text('Recherchez un médicament',
+                        style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.35),
+                            fontSize: 10)),
+                  ]))
+              : ListView(
+                  shrinkWrap: false,
+                  children: [
+                    for (final m in _cart.values)
+                      _CartRow(
+                        name: m.name,
+                        qty: _qty[m.id] ?? 1,
+                        lineTotal: m.priceSale * (_qty[m.id] ?? 1),
+                        onMinus: () => _bump(m.id, -1),
+                        onPlus: () => _bump(m.id, 1),
+                        onDelete: () => _bump(m.id, -(_qty[m.id] ?? 1)),
+                      ),
+                    if (_results.isNotEmpty)
+                      for (final m in _results.values)
+                        InkWell(
+                          onTap: () => _add(m),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                            child: Row(children: [
+                              const Icon(Icons.add_circle_outline_rounded,
+                                  size: 13, color: AppColors.emeraldLight),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                    '${m.name}${m.dosage != null ? ' · ${m.dosage}' : ''}',
+                                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(color: Colors.white, fontSize: 10.5)),
+                              ),
+                              Text(_fmt(m.priceSale),
+                                  style: const TextStyle(
+                                      color: Color(0xFFE9C873), fontSize: 10.5, fontWeight: FontWeight.w800)),
+                            ]),
+                          ),
+                        ),
+                  ],
+                ),
         ),
         const SizedBox(height: 4),
-        // ── 6) Remise + TVA + Total (bas du panier) ──
+        // ── 5) CLIENT COMPTOIR ──
+        if (!_cart.isEmpty)
+          Container(
+            margin: const EdgeInsets.only(bottom: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+            decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.03),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
+            child: Row(children: [
+              Icon(Icons.person_outline_rounded,
+                  size: 16, color: Colors.white.withValues(alpha: 0.5)),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text('Client comptoir',
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 11)),
+              ),
+            ]),
+          ),
+        // ── 6) REMISE + TVA ──
         if (!_cart.isEmpty)
           Row(children: [
             SizedBox(
@@ -620,60 +632,162 @@ Future<void> _pay() async {
                           fontWeight: FontWeight.w900)),
                 ]),
           ),
-        // ── 7) MODE DE PAIEMENT INLINE ──
-        if (!_cart.isEmpty) ...[
-          Row(
-            children: [
-              Expanded(child: _PaymentChip(label: 'Espèces', selected: _paymentMode == 'cash', onTap: () => setState(() => _paymentMode = 'cash'))),
-              const SizedBox(width: 4),
-              Expanded(child: _PaymentChip(label: 'Visa', selected: _paymentMode == 'visa', onTap: () => setState(() => _paymentMode = 'visa'))),
-              const SizedBox(width: 4),
-              Expanded(child: _PaymentChip(label: 'MC', selected: _paymentMode == 'mastercard', onTap: () => setState(() => _paymentMode = 'mastercard'))),
-            ],
-          ),
-          const SizedBox(height: 4),
-          if (_paymentMode == 'cash') ...[
-            TextField(
-              controller: _receivedCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d{0,2}'))],
-              onChanged: _setReceived,
-              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
-              decoration: InputDecoration(
-                hintText: '0,00',
-                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.25), fontSize: 18),
-                fillColor: Colors.white.withValues(alpha: 0.04),
-                filled: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.goldBorder)),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.goldBorder)),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.pharmaGold)),
-              ),
+        // ── 7) PAIEMENT (montant reçu — espèces uniquement) ──
+        if (!_cart.isEmpty && _paymentMode == 'cash') ...[
+          const SizedBox(height: 6),
+          TextField(
+            controller: _receivedCtrl,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d{0,2}'))],
+            onChanged: _setReceived,
+            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
+            decoration: InputDecoration(
+              hintText: '0,00',
+              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.25), fontSize: 18),
+              fillColor: Colors.white.withValues(alpha: 0.04),
+              filled: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.goldBorder)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.goldBorder)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.pharmaGold)),
             ),
+          ),
+          const SizedBox(height: 6),
+          Row(children: [
+            _QuickPayBtn(label: '+20', onTap: () => _quickReceived(20)),
+            const SizedBox(width: 4),
+            _QuickPayBtn(label: '+50', onTap: () => _quickReceived(50)),
+            const SizedBox(width: 4),
+            _QuickPayBtn(label: '+100', onTap: () => _quickReceived(100)),
+            const SizedBox(width: 4),
+            _QuickPayBtn(label: 'Exact', onTap: () {
+              _receivedCtrl.text = _totals.total == _totals.total.roundToDouble()
+                  ? _totals.total.round().toString()
+                  : _totals.total.toStringAsFixed(2);
+              setState(() => _received = _totals.total);
+            }),
+          ]),
+          if (_received > 0) ...[
             const SizedBox(height: 6),
-            Row(children: [
-              _QuickPayBtn(label: '+20', onTap: () => _quickReceived(20)),
-              const SizedBox(width: 4),
-              _QuickPayBtn(label: '+50', onTap: () => _quickReceived(50)),
-              const SizedBox(width: 4),
-              _QuickPayBtn(label: '+100', onTap: () => _quickReceived(100)),
-              const SizedBox(width: 4),
-              _QuickPayBtn(label: 'Exact', onTap: () { _receivedCtrl.text = _totals.total.round().toString(); setState(() => _received = _totals.total); }),
-            ]),
-            if (_received > 0)
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: _cashSufficient ? AppColors.emerald.withValues(alpha: 0.1) : AppColors.danger.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: _cashSufficient ? AppColors.emerald : AppColors.danger)),
-                child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text(_cashSufficient ? 'MONNAIE' : 'RESTE À PAYER', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: _cashSufficient ? AppColors.emerald : AppColors.danger)),
-                  Text('${Fmt.money(_cashSufficient ? _change : _totals.total - _received)} MAD', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: _cashSufficient ? AppColors.emerald : AppColors.danger)),
-                ]),
-              ),
-            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                  color: _cashSufficient
+                      ? AppColors.emerald.withValues(alpha: 0.1)
+                      : AppColors.danger.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                      color: _cashSufficient ? AppColors.emerald : AppColors.danger)),
+              child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(_cashSufficient ? 'MONNAIE' : 'RESTE A PAYER',
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: _cashSufficient
+                                ? AppColors.emerald
+                                : AppColors.danger)),
+                    Text(
+                        '${Fmt.money(_cashSufficient ? _change : _totals.total - _received)} MAD',
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            color: _cashSufficient
+                                ? AppColors.emerald
+                                : AppColors.danger)),
+                  ]),
+            ),
           ],
         ],
+        // ── 8) MODE DE PAIEMENT (3 boutons avec logos) ──
+        if (!_cart.isEmpty) ...[
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: _PaymentModeBtn(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.payments_rounded,
+                          size: 16,
+                          color: _paymentMode == 'cash'
+                              ? AppColors.emerald
+                              : Colors.white.withValues(alpha: 0.5)),
+                      const SizedBox(width: 5),
+                      Text('Especes',
+                          style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                              color: _paymentMode == 'cash'
+                                  ? AppColors.emerald
+                                  : Colors.white.withValues(alpha: 0.6))),
+                    ],
+                  ),
+                  selected: _paymentMode == 'cash',
+                  selectedColor: AppColors.emerald,
+                  onTap: () => setState(() => _paymentMode = 'cash'),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: _PaymentModeBtn(
+                  child: Container(
+                    width: 42,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1F71),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text('VISA',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.2)),
+                  ),
+                  selected: _paymentMode == 'visa',
+                  selectedColor: const Color(0xFF1A1F71),
+                  onTap: () => setState(() => _paymentMode = 'visa'),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: _PaymentModeBtn(
+                  child: SizedBox(
+                    width: 42,
+                    height: 26,
+                    child: Stack(alignment: Alignment.center, children: [
+                      Positioned(
+                          left: 6,
+                          child: Container(
+                              width: 18,
+                              height: 18,
+                              decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Color(0xFFEB001B)))),
+                      Positioned(
+                          right: 6,
+                          child: Container(
+                              width: 18,
+                              height: 18,
+                              decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Color(0xFFF79E1B)))),
+                    ]),
+                  ),
+                  selected: _paymentMode == 'mastercard',
+                  selectedColor: const Color(0xFFD4760A),
+                  onTap: () => setState(() => _paymentMode = 'mastercard'),
+                ),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 6),
-        // ── 8) Actions : Vider / Suspendre / Paiement ──
+        // ── 9) 3 BOUTONS — Vider / Suspendre / Paiement ──
         Row(children: [
           Expanded(
               child: _PanelButton(
@@ -774,7 +888,7 @@ class _RowHeader extends StatelessWidget {
       Expanded(child: Text('PRODUIT', style: style)),
       SizedBox(
           width: 86,
-          child: Text('QTÉ', textAlign: TextAlign.center, style: style)),
+          child: Text('QTE', textAlign: TextAlign.center, style: style)),
       SizedBox(
           width: 68,
           child: Text('TOTAL', textAlign: TextAlign.right, style: style)),
@@ -783,7 +897,7 @@ class _RowHeader extends StatelessWidget {
   }
 }
 
-/// Tuile de catégorie 3D pour le mini-POS — délègue au painter [PosCategoryTile].
+/// Tuile de catégorie 3D pour le mini-POS.
 class _CatChip extends StatelessWidget {
   final String name;
   final bool selected;
@@ -836,50 +950,72 @@ class _PanelButton extends StatelessWidget {
   }
 }
 
-class _PaymentChip extends StatelessWidget {
-   final String label;
-   final bool selected;
-   final VoidCallback onTap;
-   const _PaymentChip({required this.label, this.selected = false, required this.onTap});
-   @override
-   Widget build(BuildContext context) {
-     return GestureDetector(
-       onTap: onTap,
-       child: AnimatedContainer(
-         duration: const Duration(milliseconds: 150),
-         padding: const EdgeInsets.symmetric(vertical: 8),
-         decoration: BoxDecoration(
-           color: selected ? AppColors.emerald.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.03),
-           borderRadius: BorderRadius.circular(8),
-           border: Border.all(color: selected ? AppColors.emerald : Colors.white.withValues(alpha: 0.08), width: selected ? 1.6 : 0.8),
-         ),
-         child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: selected ? AppColors.emerald : Colors.white.withValues(alpha: 0.6))),
-       ),
-     );
-   }
- }
+/// Bouton de mode de paiement avec logo custom.
+class _PaymentModeBtn extends StatelessWidget {
+  final Widget child;
+  final bool selected;
+  final Color selectedColor;
+  final VoidCallback onTap;
+  const _PaymentModeBtn({
+    required this.child,
+    required this.selected,
+    required this.selectedColor,
+    required this.onTap,
+  });
 
- class _QuickPayBtn extends StatelessWidget {
-   final String label;
-   final VoidCallback onTap;
-   const _QuickPayBtn({required this.label, required this.onTap});
-   @override
-   Widget build(BuildContext context) {
-     return Expanded(
-       child: GestureDetector(
-         onTap: onTap,
-         child: Container(
-           padding: const EdgeInsets.symmetric(vertical: 6),
-           decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.04), borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
-           child: Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white70)),
-         ),
-       ),
-     );
-   }
- }
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? selectedColor.withValues(alpha: 0.15)
+              : Colors.white.withValues(alpha: 0.03),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+              color: selected
+                  ? selectedColor
+                  : Colors.white.withValues(alpha: 0.08),
+              width: selected ? 1.6 : 0.8),
+        ),
+        child: child,
+      ),
+    );
+  }
+}
 
- /// Ligne du panier : nom · contrôles quantité · total ligne · suppression.
- class _CartRow extends StatelessWidget {
+class _QuickPayBtn extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _QuickPayBtn({required this.label, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
+          child: Text(label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white70)),
+        ),
+      ),
+    );
+  }
+}
+
+/// Ligne du panier : nom · contrôles quantité · total ligne · suppression.
+class _CartRow extends StatelessWidget {
   final String name;
   final int qty;
   final double lineTotal;
