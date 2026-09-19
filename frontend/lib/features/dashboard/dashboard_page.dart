@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/models/medication.dart';
 import '../../core/services/api_client.dart';
+import '../../core/services/app_guards.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/calculations.dart';
@@ -28,6 +29,8 @@ import '../prescriptions/prescriptions_page.dart';
 import '../purchases/purchases_page.dart';
 import '../reference/reference_page.dart';
 import '../reports/reports_page.dart';
+import '../audit/audit_page.dart';
+import '../returns/returns_page.dart';
 import '../scanner/scanner_page.dart';
 import '../settings/settings_page.dart';
 import '../stock/stock_page.dart';
@@ -205,7 +208,13 @@ class _DashboardPageState extends State<DashboardPage> {
   void _push(Widget page) =>
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
 
-  void _onLogout() => context.read<AuthStore>().signOut();
+  Future<void> _onLogout() async {
+    // Déconnexion RÉELLE avec confirmation humaine (jamais par accident).
+    if (await confirmSignOut(context)) {
+      if (!mounted) return;
+      await context.read<AuthStore>().signOut();
+    }
+  }
 
   void _onMenuSelect(int index) {
     switch (index) {
@@ -1172,6 +1181,8 @@ class _ModulesMenuDialog extends StatelessWidget {
   static const _entries = <(IconData, String, String, Widget)>[
     (Icons.receipt_long_outlined, 'Ordonnances', 'Saisie et délivrance',
         PrescriptionsPage()),
+    (Icons.fact_check_outlined, 'Audit', 'Inventaire et caisse', AuditPage()),
+    (Icons.keyboard_return_rounded, 'Retours', 'Retours produits', ReturnsPage()),
     (Icons.fact_check_outlined, 'Pointage', 'Présences équipe',
         AttendancePage()),
     (Icons.account_balance_wallet_outlined, 'Comptabilité',

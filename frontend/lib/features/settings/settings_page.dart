@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/api_list.dart';
+import '../../core/services/app_guards.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/services/receipt_pdf.dart';
 import '../../core/services/sync_engine.dart';
@@ -325,7 +326,11 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: 16),
           OutlinedButton.icon(
-            onPressed: () => auth.signOut(),
+            onPressed: () async {
+              if (await confirmSignOut(context)) {
+                await auth.signOut();
+              }
+            },
             icon: const Icon(Icons.logout, color: AppColors.danger),
             label: Text(S.t('logout', locale),
                 style: const TextStyle(color: AppColors.danger)),

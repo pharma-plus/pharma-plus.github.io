@@ -6,6 +6,7 @@ import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
+import '../../core/utils/order_status.dart';
 import '../../core/widgets/barcode_scanner.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
@@ -215,8 +216,8 @@ class _OrderList extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       StatusChip(
-                        label: '${o['status']}',
-                        color: statusColor('${o['status']}'),
+                        label: orderStatusLabel('${o['status']}'),
+                        color: orderStatusColor('${o['status']}'),
                       ),
                       const SizedBox(height: 6),
                       Text(
@@ -662,8 +663,8 @@ class _OrderDetailState extends State<_OrderDetail> {
                         fontSize: 18, fontWeight: FontWeight.w800)),
                 const SizedBox(width: 10),
                 StatusChip(
-                    label: order['status'].toString(),
-                    color: statusColor('${order['status']}')),
+                    label: orderStatusLabel('${order['status']}'),
+                    color: orderStatusColor('${order['status']}')),
               ],
             ),
             const SizedBox(height: 8),
@@ -759,6 +760,14 @@ class _ReceiveFormState extends State<_ReceiveForm> {
   final Map<String, TextEditingController> _qty = {};
   final Map<String, TextEditingController> _lot = {};
   final Map<String, TextEditingController> _expiry = {};
+  // Produits SUPPLÉMENTAIRES (non prévus dans la commande).
+  final List<Map<String, dynamic>> _extras = [];
+  final List<TextEditingController> _extraQty = [];
+  final List<TextEditingController> _extraLot = [];
+  final List<TextEditingController> _extraExpiry = [];
+  // Anti-doublon de scan : un même code ignoré < 1.2 s.
+  String? _lastCode;
+  DateTime _lastScanAt = DateTime.fromMillisecondsSinceEpoch(0);
   bool _saving = false;
 
   List<Map<String, dynamic>> get _items =>
@@ -766,10 +775,135 @@ class _ReceiveFormState extends State<_ReceiveForm> {
           .whereType<Map<String, dynamic>>()
           .toList();
 
+  double _num(dynamic v) => double.tryParse('$v') ?? 0;
+
+  String _fmt(double v) =>
+      v.truncateToDouble() == v ? v.toInt().toString() : '$v';
+
+  /// RESTE à recevoir pour une ligne (commandé − déjà reçu).
+  double _remaining(Map<String, dynamic> item) {
+    final r = _num(item['quantity_ordered']) - _num(item['quantity_received']);
+    return r <= 0 ? 0 : r;
+  }
+
+  TextEditingController _qtyCtrl(Map<String, dynamic> item) =>
+      _qty.putIfAbsent('${item['id']}', () {
+        final rem = _remaining(item);
+        return TextEditingController(text: rem > 0 ? _fmt(rem) : '0');
+      });
+
+  void _toast(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  /// SCAN : identifie le produit dans la base PHARMA+ et augmente la
+  /// quantité reçue de sa ligne (jamais au-delà du reste à recevoir).
+  Future<void> _scan() async {
+    final result = await BarcodeScannerSheet.show(context,
+        title: 'Scanner produit (réception)');
+    if (result == null || !mounted) return;
+    final code = result.code.trim();
+    if (code.isEmpty) return;
+    final now = DateTime.now();
+    if (code == _lastCode &&
+        now.difference(_lastScanAt).inMilliseconds < 1200) {
+      _toast('Scan identique ignoré (protection anti-doublon)');
+      return;
+    }
+    _lastCode = code;
+    _lastScanAt = now;
+
+    final lookup = await ApiClient.instance
+        .get('/catalog/medications/barcode/${Uri.encodeComponent(code)}');
+    if (!mounted) return;
+    if (!lookup.success || lookup.data == null) {
+      // PRODUIT NON TROUVÉ → création dans le catalogue central.
+      await _createUnknownProduct(code);
+      return;
+    }
+    final med = lookup.data;
+    Map<String, dynamic>? match;
+    for (final it in _items) {
+      if ('${it['medication_id']}' == '${med['id']}') {
+        match = it;
+        break;
+      }
+    }
+    if (match == null) {
+      // Produit connu mais non prévu : PRODUIT SUPPLÉMENTAIRE.
+      await _proposeExtra(Map<String, dynamic>.from(med as Map));
+      return;
+    }
+    final item = match;
+    final rem = _remaining(item);
+    if (rem <= 0) {
+      _toast('${med['name']} : déjà entièrement reçu.');
+      return;
+    }
+    final cur =
+        double.tryParse(_qtyCtrl(item).text.replaceAll(',', '.')) ?? 0;
+    if (cur >= rem) {
+      _toast('${med['name']} : déjà compté à $cur pour un reste de $rem.');
+      return;
+    }
+    setState(() => _qtyCtrl(item).text = _fmt((cur + 1).clamp(0, rem)));
+    _toast('${med['name']} — reçu : ${_qtyCtrl(item).text} / $rem');
+  }
+
+  /// Ajout d'un produit supplémentaire (commandé = reçu d'office côté API).
+  Future<void> _proposeExtra(Map<String, dynamic> med) async {
+    final add = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Produit supplémentaire'),
+        content: Text(
+            '${med['name']} n\u2019est pas prévu dans cette commande. '
+            'L\u2019ajouter à la réception ?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Annuler')),
+          FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Ajouter')),
+        ],
+      ),
+    );
+    if (add != true || !mounted) return;
+    setState(() {
+      _extras.add(Map<String, dynamic>.from(med));
+      _extraQty.add(TextEditingController(text: '1'));
+      _extraLot.add(TextEditingController());
+      _extraExpiry.add(TextEditingController());
+    });
+  }
+
+  /// Produit inconnu : création d'une VRAIE fiche dans le catalogue
+  /// central (POST /catalog/medications), puis association à la réception.
+  Future<void> _createUnknownProduct(String code) async {
+    final created = await showDialog<bool>(
+      context: context,
+      builder: (context) => _UnknownProductDialog(barcode: code),
+    );
+    if (created != true || !mounted) return;
+    final lookup = await ApiClient.instance
+        .get('/catalog/medications/barcode/${Uri.encodeComponent(code)}');
+    if (!mounted) return;
+    if (lookup.success && lookup.data != null) {
+      await _proposeExtra(
+          Map<String, dynamic>.from(lookup.data as Map));
+    } else {
+      _toast(
+          'Produit créé dans le catalogue. Relancez le scan pour l\u2019associer.');
+    }
+  }
+
   Future<void> _save() async {
     final payload = <Map<String, dynamic>>[];
     for (final item in _items) {
-      final qty = double.tryParse(_qty['${item['id']}']?.text ?? '') ?? 0;
+      final qty =
+          double.tryParse(_qtyCtrl(item).text.replaceAll(',', '.')) ?? 0;
       if (qty <= 0) continue;
       payload.add({
         'medication_id': item['medication_id'],
@@ -778,7 +912,27 @@ class _ReceiveFormState extends State<_ReceiveForm> {
         'expiry_date': _expiry['${item['id']}']?.text,
       });
     }
-    if (payload.isEmpty) return;
+    for (var i = 0; i < _extras.length; i++) {
+      final q = double.tryParse(_extraQty[i].text.replaceAll(',', '.')) ?? 0;
+      if (q <= 0) continue;
+      payload.add({
+        'medication_id': _extras[i]['id'],
+        'quantity': q,
+        'lot_number': _extraLot[i].text.trim(),
+        'expiry_date': _extraExpiry[i].text,
+        'cost_price': _num(_extras[i]['price_purchase']),
+      });
+    }
+    if (payload.isEmpty) {
+      _toast('Indiquez au moins une quantité reçue.');
+      return;
+    }
+    final missingLot = payload.any((p) =>
+        '${p['lot_number']}'.trim().isEmpty || p['expiry_date'] == null);
+    if (missingLot) {
+      _toast('Numéro de lot et date de péremption obligatoires.');
+      return;
+    }
     setState(() => _saving = true);
     final result = await ApiClient.instance.post(
       '/purchases/orders/${widget.order['id']}/receive',
@@ -812,73 +966,40 @@ class _ReceiveFormState extends State<_ReceiveForm> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('${S.t('receive', locale)} — ${widget.order['number']}',
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 12),
-              for (final item in _items)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('${item['medication_name']}',
-                          style: const TextStyle(fontWeight: FontWeight.w700)),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _qty.putIfAbsent(
-                                  '${item['id']}',
-                                  () => TextEditingController(
-                                      text: '${item['quantity_ordered']}')),
-                              keyboardType: TextInputType.number,
-                              decoration: InputDecoration(
-                                  labelText: S.t('receiveQty', locale),
-                                  isDense: true),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextField(
-                              controller: _lot.putIfAbsent('${item['id']}',
-                                  () => TextEditingController()),
-                              decoration: InputDecoration(
-                                  labelText: S.t('lotNumber', locale),
-                                  isDense: true),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextField(
-                              controller: _expiry.putIfAbsent('${item['id']}',
-                                  () => TextEditingController()),
-                              readOnly: true,
-                              decoration: InputDecoration(
-                                  labelText: S.t('expiryDate', locale),
-                                  isDense: true),
-                              onTap: () async {
-                                final picked = await showDatePicker(
-                                  context: context,
-                                  initialDate: DateTime.now()
-                                      .add(const Duration(days: 180)),
-                                  firstDate: DateTime(2020),
-                                  lastDate: DateTime(2040),
-                                );
-                                if (picked != null) {
-                                  _expiry['${item['id']}']!.text =
-                                      picked.toIso8601String().split('T').first;
-                                }
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+              Row(children: [
+                Expanded(
+                  child: Text(
+                      '${S.t('receive', locale)} — ${widget.order['number']}',
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w800)),
                 ),
+                IconButton(
+                  tooltip: 'Scanner produit',
+                  onPressed: _scan,
+                  icon: const Icon(Icons.qr_code_scanner_rounded,
+                      color: AppColors.pharmaGold),
+                ),
+              ]),
+              const SizedBox(height: 4),
+              Text(
+                  'Quantité pré-remplie = RESTE à recevoir. Un scan incrémente '
+                  'de 1. Aucun stock n\u2019est modifié avant la validation.',
+                  style: TextStyle(
+                      fontSize: 11.5,
+                      color: Colors.white.withValues(alpha: 0.5))),
+              const SizedBox(height: 12),
+              for (final item in _items) _buildLine(item, locale),
+              if (_extras.isNotEmpty) ...[
+                const Divider(height: 20),
+                const Text('Produits supplémentaires',
+                    style: TextStyle(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 8),
+                for (var i = 0; i < _extras.length; i++)
+                  _buildExtraLine(i, locale),
+              ],
+              const SizedBox(height: 8),
               GradientButton(
-                label: S.t('confirm', locale),
+                label: 'Valider la réception',
                 icon: Icons.check,
                 loading: _saving,
                 onPressed: _save,
@@ -889,4 +1010,248 @@ class _ReceiveFormState extends State<_ReceiveForm> {
       ),
     );
   }
+
+  Widget _buildLine(Map<String, dynamic> item, String locale) {
+    final ordered = _num(item['quantity_ordered']);
+    final received = _num(item['quantity_received']);
+    final rem = _remaining(item);
+    final done = rem <= 0;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Opacity(
+        opacity: done ? 0.55 : 1,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${item['medication_name']}',
+                style: const TextStyle(fontWeight: FontWeight.w700)),
+            Text('Commandé ${_fmt(ordered)} · Déjà reçu ${_fmt(received)}'
+                ' · Reste ${_fmt(rem)}',
+                style:
+                    const TextStyle(fontSize: 11.5, color: Colors.white54)),
+            const SizedBox(height: 6),
+            Row(children: [
+              Expanded(
+                child: TextField(
+                  controller: _qtyCtrl(item),
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                      labelText: S.t('receiveQty', locale), isDense: true),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: _lot.putIfAbsent(
+                      '${item['id']}', () => TextEditingController()),
+                  decoration: InputDecoration(
+                      labelText: S.t('lotNumber', locale), isDense: true),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: _expiry.putIfAbsent(
+                      '${item['id']}', () => TextEditingController()),
+                  readOnly: true,
+                  decoration: InputDecoration(
+                      labelText: S.t('expiryDate', locale), isDense: true),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate:
+                          DateTime.now().add(const Duration(days: 180)),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2040),
+                    );
+                    if (picked != null) {
+                      _expiry['${item['id']}']!.text =
+                          picked.toIso8601String().split('T').first;
+                    }
+                  },
+                ),
+              ),
+            ]),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExtraLine(int i, String locale) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Expanded(
+              child: Text('${_extras[i]['name']}',
+                  style: const TextStyle(fontWeight: FontWeight.w700)),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, size: 18),
+              onPressed: () => setState(() {
+                _extras.removeAt(i);
+                _extraQty.removeAt(i);
+                _extraLot.removeAt(i);
+                _extraExpiry.removeAt(i);
+              }),
+            ),
+          ]),
+          Row(children: [
+            Expanded(
+              child: TextField(
+                controller: _extraQty[i],
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                    labelText: S.t('receiveQty', locale), isDense: true),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextField(
+                controller: _extraLot[i],
+                decoration: InputDecoration(
+                    labelText: S.t('lotNumber', locale), isDense: true),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextField(
+                controller: _extraExpiry[i],
+                readOnly: true,
+                decoration: InputDecoration(
+                    labelText: S.t('expiryDate', locale), isDense: true),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now().add(const Duration(days: 180)),
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2040),
+                  );
+                  if (picked != null) {
+                    _extraExpiry[i].text =
+                        picked.toIso8601String().split('T').first;
+                  }
+                },
+              ),
+            ),
+          ]),
+        ],
+      ),
+    );
+  }
 }
+/// PRODUIT NON TROUVÉ → création d'une fiche RÉELLE dans le catalogue
+/// central (POST /catalog/medications), code-barres prérempli.
+class _UnknownProductDialog extends StatefulWidget {
+  final String barcode;
+  const _UnknownProductDialog({required this.barcode});
+
+  @override
+  State<_UnknownProductDialog> createState() => _UnknownProductDialogState();
+}
+
+class _UnknownProductDialogState extends State<_UnknownProductDialog> {
+  final _name = TextEditingController();
+  final _dci = TextEditingController();
+  final _purchase = TextEditingController();
+  final _sale = TextEditingController();
+  final _tva = TextEditingController(text: '20');
+  bool _saving = false;
+  String? _error;
+
+  Future<void> _create() async {
+    if (_name.text.trim().isEmpty || _saving) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    final r = await ApiClient.instance.post('/catalog/medications', body: {
+      'name': _name.text.trim(),
+      'dci': _dci.text.trim().isEmpty ? null : _dci.text.trim(),
+      'barcode_ean13': widget.barcode,
+      'price_purchase':
+          double.tryParse(_purchase.text.replaceAll(',', '.')) ?? 0,
+      'price_sale': double.tryParse(_sale.text.replaceAll(',', '.')) ?? 0,
+      'tva_rate': double.tryParse(_tva.text.replaceAll(',', '.')) ?? 20,
+      'is_parapharmacie': false,
+    });
+    if (!mounted) return;
+    if (r.success) {
+      Navigator.pop(context, true);
+    } else {
+      setState(() {
+        _saving = false;
+        _error = r.error?.readableMessage ?? 'Erreur de création';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Produit non trouvé'),
+      content: SingleChildScrollView(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text('Code-barres : ${widget.barcode}',
+              style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          const SizedBox(height: 4),
+          const Text(
+              'Ce produit n\u2019existe pas dans le catalogue PHARMA+. '
+              'Créez sa fiche (catalogue central unique) pour l\u2019associer '
+              'à la réception.',
+              style: TextStyle(fontSize: 12.5)),
+          const SizedBox(height: 12),
+          TextField(
+              controller: _name,
+              decoration: const InputDecoration(labelText: 'Nom du produit *')),
+          const SizedBox(height: 10),
+          TextField(
+              controller: _dci,
+              decoration: const InputDecoration(labelText: 'DCI')),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(
+              child: TextField(
+                  controller: _purchase,
+                  keyboardType: TextInputType.number,
+                  decoration:
+                      const InputDecoration(labelText: 'Prix achat')),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextField(
+                  controller: _sale,
+                  keyboardType: TextInputType.number,
+                  decoration:
+                      const InputDecoration(labelText: 'Prix vente *')),
+            ),
+          ]),
+          const SizedBox(height: 10),
+          TextField(
+              controller: _tva,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'TVA (%)')),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            Text(_error!,
+                style:
+                    const TextStyle(color: AppColors.danger, fontSize: 12)),
+          ],
+        ]),
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler')),
+        FilledButton(
+            onPressed: _saving ? null : _create,
+            child: const Text('Créer un nouveau produit')),
+      ],
+    );
+  }
+}
+
+

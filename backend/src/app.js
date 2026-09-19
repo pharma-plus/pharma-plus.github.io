@@ -23,6 +23,7 @@ import { reportsRouter } from './modules/reports/index.js';
 import { prescriptionsRouter } from './modules/prescriptions/index.js';
 import { employeesRouter } from './modules/employees/index.js';
 import { attendanceRouter } from './modules/attendance/index.js';
+import { inventoryRouter } from './modules/inventory/index.js';
 import { accountingRouter } from './modules/accounting/index.js';
 import { notificationsRouter } from './modules/notifications/index.js';
 import { backupsRouter } from './modules/backups/index.js';
@@ -69,6 +70,7 @@ export function createApp() {
   api.use('/prescriptions', prescriptionsRouter);
   api.use('/employees', employeesRouter);
   api.use('/attendance', attendanceRouter);
+  api.use('/inventory', inventoryRouter);
   api.use('/accounting', accountingRouter);
   api.use('/notifications', notificationsRouter);
   api.use('/backups', backupsRouter);

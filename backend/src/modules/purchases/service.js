@@ -168,8 +168,27 @@ export const purchasesService = {
 
       let allReceived = true;
       for (const item of items) {
-        const oi = orderItems.find((o) => o.medication_id === item.medication_id);
-        if (!oi) throw new NotFoundError(`Article de commande introuvable : ${item.medication_id}`);
+        let oi = orderItems.find((o) => o.medication_id === item.medication_id);
+        if (!oi) {
+          // PRODUIT SUPPLÉMENTAIRE (non prévu dans la commande) : on l'ajoute
+          // comme ligne d'ordre "reçue d'office" (commandé = reçu) afin de
+          // conserver la traçabilité commande ↔ réception ↔ mouvement.
+          const med = await client.query(
+            'SELECT id FROM medications WHERE id = $1 AND pharmacy_id = $2',
+            [item.medication_id, pharmacyId],
+          );
+          if (!med.rows[0]) throw new NotFoundError(`Médicament introuvable : ${item.medication_id}`);
+          const inserted = await client.query(
+            `INSERT INTO purchase_order_items (purchase_order_id, pharmacy_id, medication_id,
+                                                quantity_ordered, quantity_received, unit_cost,
+                                                tax_rate, discount_percent)
+             VALUES ($1,$2,$3,$4,0,$5,$6,0) RETURNING *`,
+            [orderId, pharmacyId, item.medication_id, item.quantity,
+             item.cost_price ?? 0, item.tva_rate ?? 20],
+          );
+          oi = inserted.rows[0];
+          orderItems.push(oi);
+        }
         if (Number(oi.quantity_received) + Number(item.quantity) > Number(oi.quantity_ordered)) {
           throw new AppError(
             `Réception trop importante pour ${item.medication_id} (déjà reçu : ${oi.quantity_received})`,

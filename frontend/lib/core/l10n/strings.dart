@@ -128,6 +128,7 @@ class S {
       'purchaseOrders': 'Commandes',
       'newOrder': 'Nouvelle commande',
       'receptions': 'Réceptions',
+      'audit': 'Audit',
       'orderNumber': 'N°',
       'supplier': 'Fournisseur',
       'branch': 'Succursale',

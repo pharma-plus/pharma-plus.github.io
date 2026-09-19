@@ -4,13 +4,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/l10n/strings.dart';
+import 'core/models/user.dart';
 import 'core/services/auth_store.dart';
 import 'core/theme/colors.dart';
 import 'core/widgets/pharma_logo.dart';
 import 'core/widgets/pharma_background.dart';
 import 'features/auth/login_page.dart';
+import 'core/services/app_guards.dart';
+import 'features/audit/employee_space_page.dart';
 import 'features/shell/home_shell.dart';
 import 'features/super_admin/super_admin_portal.dart';
+
 
 /// Aiguillage : Splash → Connexion / Dashboard / Erreur d'init.
 class RootGate extends StatelessWidget {
@@ -31,11 +35,39 @@ class RootGate extends StatelessWidget {
         }
         if (!auth.isAuthenticated) return const LoginPage();
         if (auth.user?.isSuperAdmin == true) return const SuperAdminPortal();
-        return const HomeShell();
+        // Bouton retour Android / tentative de fermeture PC :
+        // sous-page ouverte -> retour logique ; page racine -> dialogue.
+        // La navigation interne ne ferme JAMAIS l'application.
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, _) async {
+            if (didPop) return;
+            final nav = Navigator.of(context);
+            if (nav.canPop()) {
+              nav.pop();
+              return;
+            }
+            await confirmQuitApp(context);
+          },
+          child: _isPrivilegedUser(auth.user)
+              ? const HomeShell()
+              : const EmployeeSpacePage(),
+        );
       },
     );
   }
 }
+
+/// Personnel de direction : pharmacien / admin / gestionnaire (permissions
+/// de gestion) -> shell complet. Employes, caissiers et assistants ->
+/// Espace Employe (interface simplifiee selon leurs permissions).
+bool _isPrivilegedUser(User? user) =>
+    user != null &&
+    (user.hasPermission('employees:view') ||
+        user.hasPermission('users:view') ||
+        user.hasPermission('purchases:edit') ||
+        user.hasPermission('accounting:view') ||
+        user.hasPermission('settings:view'));
 
 class _SplashScreen extends StatefulWidget {
   const _SplashScreen();
