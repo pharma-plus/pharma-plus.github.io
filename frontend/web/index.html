@@ -35,40 +35,87 @@
   <link rel="manifest" href="manifest.json">
   <style>
     html, body { margin: 0; padding: 0; background: #03100D; }
+    /* ============================================================
+       ÉCRAN DE CHARGEMENT PHARMA+ — conforme maquette :
+       logo officiel complet + « Bienvenue » or + sous-titre +
+       VRAIE barre de progression animée (HTML/CSS/JS, 0→100 %).
+       La progression n'est PAS une image : elle évolue réellement.
+       ============================================================ */
     #pmg-loading {
       position: fixed; inset: 0; z-index: 9999;
       display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 22px;
+      align-items: center; justify-content: center; gap: 0;
       background:
-        radial-gradient(circle at 50% 42%, rgba(0, 201, 107, 0.10), transparent 62%),
+        radial-gradient(circle at 50% 38%, rgba(0, 201, 107, 0.10), transparent 62%),
         linear-gradient(150deg, #03100D 0%, #061A15 50%, #020B08 100%);
-    }
-    #pmg-loading .pmg-mark {
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      font-size: 34px; font-weight: 900; letter-spacing: 2px;
-      color: #F1D58A;
-      text-shadow: 0 0 26px rgba(214, 168, 79, 0.45);
+      text-align: center;
+    }
+    #pmg-loading .pmg-logo {
+      width: min(58vw, 220px); height: auto;
+      display: block; margin: 0 auto;
+      animation: pmg-in 0.9s ease-out both;
+    }
+    #pmg-loading .pmg-welcome {
+      margin-top: 18px;
+      font-size: 26px; font-weight: 800;
+      color: #E9C873;
+      letter-spacing: 0.3px;
+      animation: pmg-in 0.9s ease-out 0.15s both;
     }
     #pmg-loading .pmg-sub {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      font-size: 12px; letter-spacing: 0.4px;
+      margin-top: 6px;
+      font-size: 12.5px; letter-spacing: 0.4px;
       color: #9BAEA7;
+      animation: pmg-in 0.9s ease-out 0.25s both;
     }
-    #pmg-loading .pmg-spinner {
-      width: 38px; height: 38px; border-radius: 50%;
-      border: 4px solid rgba(214, 168, 79, 0.22);
-      border-top-color: #D6A84F;
-      animation: pmg-spin 0.9s linear infinite;
+    /* Barre de progression RÉELLE — jamais une image. */
+    #pmg-loading .pmg-progress-row {
+      margin-top: 26px;
+      display: flex; align-items: center; gap: 12px;
+      animation: pmg-in 0.9s ease-out 0.35s both;
     }
-    @keyframes pmg-spin { to { transform: rotate(360deg); } }
+    #pmg-loading .pmg-track {
+      width: min(60vw, 300px); height: 7px;
+      border-radius: 50px;
+      background: rgba(255, 255, 255, 0.10);
+      border: 1px solid rgba(47, 181, 99, 0.45);
+      overflow: hidden;
+    }
+    #pmg-loading .pmg-fill {
+      width: 0%; height: 100%;
+      border-radius: 50px;
+      background: linear-gradient(90deg, #1E8F4E, #43D97C);
+      transition: width 0.35s ease-in-out;
+    }
+    #pmg-loading .pmg-pct {
+      width: 44px; text-align: right;
+      font-size: 13.5px; font-weight: 800;
+      color: #43D97C; letter-spacing: 0.5px;
+    }
+    #pmg-loading .pmg-loadtext {
+      margin-top: 14px;
+      font-size: 12px; color: rgba(255, 255, 255, 0.42);
+    }
+    @keyframes pmg-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: none; }
+    }
   </style>
 </head>
 <body>
   <!-- Écran de chargement PHARMA+ (masqué une fois Flutter initialisé) -->
   <div id="pmg-loading">
-    <div class="pmg-mark">PHARMA+</div>
+    <img class="pmg-logo" src="assets/assets/branding/pharma-logo-full.png"
+         alt="PHARMA+ — Gestion intelligente de votre pharmacie"
+         onerror="this.style.display='none'">
+    <div class="pmg-welcome">Bienvenue</div>
     <div class="pmg-sub">Gestion intelligente de votre pharmacie</div>
-    <div class="pmg-spinner"></div>
+    <div class="pmg-progress-row">
+      <div class="pmg-track"><div class="pmg-fill" id="pmg-fill"></div></div>
+      <div class="pmg-pct" id="pmg-pct">0%</div>
+    </div>
+    <div class="pmg-loadtext">Chargement en cours...</div>
   </div>
   <!--
     You can customize the "flutter_bootstrap.js" script.
@@ -80,17 +127,41 @@
   -->
   <script src="flutter_bootstrap.js?v=73d91f9" async></script>
   <script>
-    // Supprime l'écran de chargement dès que le premier frame Flutter est rendu.
-    window.addEventListener('flutter-first-frame', function () {
+    // ---- Progression RÉELLE de la barre (0 → 100 %) ----
+    // La barre avance par paliers tant que Flutter charge ; elle atteint
+    // 100 % au premier frame Flutter, puis l'écran est retiré. Ce n'est
+    // PAS une image ni une boucle décorative : le pourcentage évolue.
+    (function () {
+      var fill = document.getElementById('pmg-fill');
+      var pct = document.getElementById('pmg-pct');
       var el = document.getElementById('pmg-loading');
-      if (el) el.parentNode && el.parentNode.removeChild(el);
-    });
-    // Sécurité anti-blocage : retire le loader au bout de 15 s quoi qu'il
-    // arrive, afin qu'il ne puisse jamais masquer l'application.
-    setTimeout(function () {
-      var el = document.getElementById('pmg-loading');
-      if (el) el.parentNode && el.parentNode.removeChild(el);
-    }, 15000);
+      var value = 0;
+      var done = false;
+      function render(v) {
+        value = Math.max(0, Math.min(100, v));
+        if (fill) fill.style.width = value + '%';
+        if (pct) pct.textContent = Math.round(value) + '%';
+      }
+      // Paliers : rapide au début, puis ralentit vers ~90 % en attente
+      // du premier frame Flutter (la vraie fin de chargement).
+      var timer = setInterval(function () {
+        if (done) return;
+        var step = value < 40 ? 4 : value < 70 ? 2 : value < 90 ? 0.7 : 0;
+        if (step > 0) render(value + step);
+      }, 120);
+      function finish() {
+        if (done) return;
+        done = true;
+        clearInterval(timer);
+        render(100);
+        setTimeout(function () {
+          if (el && el.parentNode) el.parentNode.removeChild(el);
+        }, 450);
+      }
+      window.addEventListener('flutter-first-frame', finish);
+      // Anti-blocage : jamais plus de 15 s d'écran de chargement.
+      setTimeout(finish, 15000);
+    })();
   </script>
 </body>
 </html>
