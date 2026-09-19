@@ -33,6 +33,9 @@
 
   <title>PHARMA+ — Gestion de pharmacie</title>
   <link rel="manifest" href="manifest.json">
+  <!-- Préchargement des ressources visibles du splash (logo webp 262 Ko au lieu du png 1 Mo) -->
+  <link rel="preload" as="image" href="assets/assets/branding/pharma-logo-full.webp" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/assets/images/background.webp">
   <style>
     html, body { margin: 0; padding: 0; background: #03100D; }
     /* ============================================================
@@ -107,8 +110,9 @@
 <body>
   <!-- Écran de chargement PHARMA+ (masqué une fois Flutter initialisé) -->
   <div id="pmg-loading">
-    <img class="pmg-logo" src="assets/assets/branding/pharma-logo-full.png"
+    <img class="pmg-logo" src="assets/assets/branding/pharma-logo-full.webp"
          alt="PHARMA+ — Gestion intelligente de votre pharmacie"
+         decoding="async" fetchpriority="high"
          onerror="this.style.display='none'">
     <div class="pmg-welcome">Bienvenue</div>
     <div class="pmg-sub">Gestion intelligente de votre pharmacie</div>
