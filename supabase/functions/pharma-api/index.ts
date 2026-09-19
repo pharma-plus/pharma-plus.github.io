@@ -1211,6 +1211,583 @@ await sbAuth.auth.signInWithPassword({ email, password });
     }
   }
 
+  /* ==== PORTAGE BACKEND NODE — PURCHASES/RECEIVE (1/3) ==== */
+  let mm: RegExpMatchArray | null;
+  mm = path.match(/^purchases\/orders\/([0-9a-f-]{36})\/receive$/i);
+  if (mm && req.method === "POST") {
+    const orderId = mm[1];
+    const body = await req.json().catch(() => ({}) as any);
+    const items: any[] = Array.isArray(body.items) ? body.items : [];
+    const branchId = body.branchId ?? body.branch_id;
+    if (!branchId || !items.length)
+      return json(
+        { error: { code: "VALIDATION", message: "branchId + items requis" } },
+        400,
+      );
+    const { data: order } = await sb
+      .from("purchase_orders")
+      .select("*")
+      .eq("id", orderId)
+      .eq("pharmacy_id", pid)
+      .maybeSingle();
+    if (!order)
+      return json(
+        { error: { code: "NOT_FOUND", message: "Commande introuvable" } },
+        404,
+      );
+    if (order.status === "cancelled")
+      return json(
+        { error: { code: "CANCELLED", message: "Commande annulée" } },
+        409,
+      );
+
+    // Utilisateur connecté (sub du JWT) → public.users (même pattern que /sales).
+    const payloadR = jwtPayload(req);
+    const authEmailR = (payloadR?.email as string) ?? "";
+    let userIdR: string | null = null;
+    if (authEmailR) {
+      const { data: u } = await sb
+        .from("users")
+        .select("id")
+        .ilike("email", authEmailR)
+        .maybeSingle();
+      userIdR = u?.id ?? null;
+    }
+
+    const { data: numData, error: numErr } = await sb.rpc("fn_next_number", {
+      p_pharmacy_id: pid,
+      p_prefix: "RCP",
+    });
+    const number = (numData as unknown as string) ?? `RCP-${Date.now()}`;
+    if (numErr) console.error("[receive] next_number:", numErr.message);
+
+    const { data: reception, error: recErr } = await sb
+      .from("purchase_receptions")
+      .insert({
+        pharmacy_id: pid,
+        order_id: orderId,
+        branch_id: branchId,
+        number,
+        notes: body.notes ?? null,
+        received_by: userIdR,
+      })
+      .select()
+      .single();
+    if (recErr)
+      return json(
+        { error: { code: "RECEPTION_FAILED", message: recErr.message } },
+        400,
+      );
+
+    const medIds = [...new Set(items.map((i: any) => i.medication_id))];
+    const { data: oiRows } = await sb
+      .from("purchase_order_items")
+      .select("*")
+      .eq("purchase_order_id", orderId)
+      .in("medication_id", medIds);
+
+    for (const it of items) {
+      let oi = (oiRows ?? []).find(
+        (o: any) => o.medication_id === it.medication_id,
+      );
+      if (!oi) {
+        // PRODUIT SUPPLÉMENTAIRE (non prévu) : ligne d'ordre créée
+        // commandé = reçu, pour garder la traçabilité complète.
+        const { data: created, error: oiErr } = await sb
+          .from("purchase_order_items")
+          .insert({
+            purchase_order_id: orderId,
+            pharmacy_id: pid,
+            medication_id: it.medication_id,
+            quantity_ordered: Number(it.quantity),
+            quantity_received: 0,
+            unit_cost: Number(it.cost_price ?? 0),
+            tax_rate: Number(it.tva_rate ?? 20),
+            discount_percent: 0,
+          })
+          .select()
+          .single();
+        if (oiErr)
+          return json(
+            { error: { code: "EXTRA_ITEM_FAILED", message: oiErr.message } },
+            400,
+          );
+        oi = created;
+      }
+      const already = Number(oi.quantity_received ?? 0);
+      if (already + Number(it.quantity) > Number(oi.quantity_ordered)) {
+        return json(
+          {
+            error: {
+              code: "OVER_RECEIPT",
+              message: `Réception trop importante pour ${it.medication_id} (déjà reçu : ${already})`,
+            },
+          },
+          409,
+        );
+      }
+
+      // Lot existant ou création.
+      const lotNumber = String(it.lot_number ?? "").trim();
+      let lotId: string | null = null;
+      if (lotNumber) {
+        const { data: existingLot } = await sb
+          .from("lots")
+          .select("id")
+          .eq("pharmacy_id", pid)
+          .eq("medication_id", it.medication_id)
+          .ilike("lot_number", lotNumber)
+          .maybeSingle();
+        if (existingLot) {
+          lotId = existingLot.id;
+        } else {
+          const { data: newLot, error: lotErr } = await sb
+            .from("lots")
+            .insert({
+              pharmacy_id: pid,
+              medication_id: it.medication_id,
+              supplier_id: order.supplier_id,
+              lot_number: lotNumber,
+              expiry_date: it.expiry_date ?? null,
+              cost_price: Number(it.cost_price ?? oi.unit_cost ?? 0),
+            })
+            .select("id")
+            .single();
+          if (lotErr)
+            return json(
+              { error: { code: "LOT_FAILED", message: lotErr.message } },
+              400,
+            );
+          lotId = newLot.id;
+        }
+      }
+
+      const { error: riErr } = await sb
+        .from("purchase_reception_items")
+        .insert({
+          pharmacy_id: pid,
+          reception_id: reception.id,
+          order_item_id: oi.id,
+          medication_id: it.medication_id,
+          lot_id: lotId,
+          quantity: Number(it.quantity),
+          expiry_date: it.expiry_date ?? null,
+          cost_price: Number(it.cost_price ?? oi.unit_cost ?? 0),
+        });
+      if (riErr)
+        return json(
+          { error: { code: "RECEPTION_ITEM_FAILED", message: riErr.message } },
+          400,
+        );
+
+      await sb
+        .from("purchase_order_items")
+        .update({ quantity_received: already + Number(it.quantity) })
+        .eq("id", oi.id);
+
+      // Mouvement de stock RÉEL (le trigger met à jour stock_balances).
+      await sb.from("stock_movements").insert({
+        pharmacy_id: pid,
+        branch_id: branchId,
+        medication_id: it.medication_id,
+        lot_id: lotId,
+        movement_type: "purchase_receipt",
+        quantity: Number(it.quantity),
+        unit_cost: Number(it.cost_price ?? oi.unit_cost ?? 0),
+        reference_type: "purchase_reception",
+        reference_id: reception.id,
+        user_id: userIdR,
+        notes: `Réception ${number}`,
+      });
+    }
+
+    // Statut de la commande : received / partial.
+    const { data: allItems } = await sb
+      .from("purchase_order_items")
+      .select("quantity_ordered, quantity_received")
+      .eq("purchase_order_id", orderId);
+    const fully = (allItems ?? []).every(
+      (o: any) => Number(o.quantity_received) >= Number(o.quantity_ordered),
+    );
+    const anyRec = (allItems ?? []).some(
+      (o: any) => Number(o.quantity_received) > 0,
+    );
+    const newStatus = fully ? "received" : anyRec ? "partial" : order.status;
+    await sb
+      .from("purchase_orders")
+      .update({ status: newStatus, received_date: new Date().toISOString() })
+      .eq("id", orderId);
+    return json({
+      data: { id: reception.id, number, order_status: newStatus },
+    });
+  }
+
+  /* ==== PORTAGE — DÉTAIL COMMANDE (avec items) ==== */
+  mm = path.match(/^purchases\/orders\/([0-9a-f-]{36})$/i);
+  if (mm && req.method === "GET") {
+    const { data: order } = await sb
+      .from("purchase_orders")
+      .select(
+        "*, suppliers(name), branches(name), users(first_name, last_name)",
+      )
+      .eq("id", mm[1])
+      .eq("pharmacy_id", pid)
+      .maybeSingle();
+    if (!order)
+      return json(
+        { error: { code: "NOT_FOUND", message: "Commande introuvable" } },
+        404,
+      );
+    const { data: items } = await sb
+      .from("purchase_order_items")
+      .select("*, medications(name)")
+      .eq("purchase_order_id", mm[1]);
+    const { data: receptions } = await sb
+      .from("purchase_receptions")
+      .select("id, number, received_at")
+      .eq("order_id", mm[1]);
+    const o: any = order;
+    return json({
+      data: {
+        ...o,
+        supplier_name: o.suppliers?.name ?? null,
+        branch_name: o.branches?.name ?? null,
+        created_by_name: o.users
+          ? `${o.users.first_name ?? ""} ${o.users.last_name ?? ""}`.trim()
+          : null,
+        items: (items ?? []).map((i: any) => ({
+          ...i,
+          medication_name: i.medications?.name ?? null,
+        })),
+        receptions: receptions ?? [],
+      },
+    });
+  }
+
+  /* ==== PORTAGE — AUDIT STOCK (sessions) ==== */
+  if (path === "inventory/sessions" && req.method === "GET") {
+    const { data } = await sb
+      .from("inventory_sessions")
+      .select("*, branches(name)")
+      .eq("pharmacy_id", pid)
+      .order("started_at", { ascending: false })
+      .limit(50);
+    return json({ data: data ?? [] });
+  }
+
+  if (path === "inventory/sessions" && req.method === "POST") {
+    const bodyI = await req.json().catch(() => ({}) as any);
+    const branchIdI = bodyI.branchId ?? bodyI.branch_id;
+    if (!branchIdI)
+      return json(
+        { error: { code: "VALIDATION", message: "branchId requis" } },
+        400,
+      );
+    const payloadI = jwtPayload(req);
+    const authEmailI = (payloadI?.email as string) ?? "";
+    let userIdI: string | null = null;
+    if (authEmailI) {
+      const { data: u } = await sb
+        .from("users")
+        .select("id")
+        .ilike("email", authEmailI)
+        .maybeSingle();
+      userIdI = u?.id ?? null;
+    }
+    const { data: session, error: sErr } = await sb
+      .from("inventory_sessions")
+      .insert({
+        pharmacy_id: pid,
+        branch_id: branchIdI,
+        started_by: userIdI,
+        notes: bodyI.notes ?? null,
+      })
+      .select()
+      .single();
+    if (sErr)
+      return json(
+        { error: { code: "SESSION_FAILED", message: sErr.message } },
+        400,
+      );
+    if (bodyI.withItems !== false) {
+      // Instantané du stock SYSTÈME (comptage initial = quantité système).
+      const { data: balances } = await sb
+        .from("stock_balances")
+        .select("medication_id, lot_id, quantity")
+        .eq("pharmacy_id", pid)
+        .eq("branch_id", branchIdI)
+        .gt("quantity", 0);
+      const rows = (balances ?? []).map((b: any) => ({
+        pharmacy_id: pid,
+        session_id: session.id,
+        medication_id: b.medication_id,
+        lot_id: b.lot_id,
+        system_qty: Number(b.quantity),
+        counted_qty: Number(b.quantity),
+      }));
+      if (rows.length) await sb.from("inventory_items").insert(rows);
+    }
+    return json({ data: { id: session.id } });
+  }
+
+  mm = path.match(/^inventory\/sessions\/([0-9a-f-]{36})$/i);
+  if (mm && req.method === "GET") {
+    const { data: session } = await sb
+      .from("inventory_sessions")
+      .select("*, branches(name)")
+      .eq("id", mm[1])
+      .eq("pharmacy_id", pid)
+      .maybeSingle();
+    if (!session)
+      return json(
+        { error: { code: "NOT_FOUND", message: "Session introuvable" } },
+        404,
+      );
+    const { data: items } = await sb
+      .from("inventory_items")
+      .select(
+        "*, medications(name, barcode_ean13, price_sale), lots(lot_number, expiry_date, cost_price)",
+      )
+      .eq("session_id", mm[1]);
+    return json({
+      data: {
+        ...(session as any),
+        branch_name: (session as any).branches?.name ?? null,
+        items: (items ?? []).map((it: any) => {
+          const gap = Number(it.counted_qty) - Number(it.system_qty);
+          const cost = Number(it.lots?.cost_price ?? 0);
+          return {
+            ...it,
+            medication_name: it.medications?.name ?? null,
+            lot_number: it.lots?.lot_number ?? null,
+            expiry_date: it.lots?.expiry_date ?? null,
+            gap,
+            gap_value: gap * cost,
+          };
+        }),
+      },
+    });
+  }
+
+  mm = path.match(/^inventory\/sessions\/([0-9a-f-]{36})\/count$/i);
+  if (mm && req.method === "POST") {
+    const bodyCnt = await req.json().catch(() => ({}) as any);
+    const { error } = await sb
+      .from("inventory_items")
+      .update({ counted_qty: Number(bodyCnt.countedQty ?? 0) })
+      .eq("id", bodyCnt.itemId)
+      .eq("pharmacy_id", pid)
+      .eq("is_adjusted", false);
+    if (error)
+      return json(
+        { error: { code: "COUNT_FAILED", message: error.message } },
+        400,
+      );
+    return json({ data: { id: bodyCnt.itemId } });
+  }
+
+  mm = path.match(/^inventory\/sessions\/([0-9a-f-]{36})\/close$/i);
+  if (mm && req.method === "POST") {
+    // Validation pharmacien : permission inventory:approve exigée
+    // (super admin ou profil sans rôle → autorisé, comme le backend Node).
+    const payloadC = jwtPayload(req);
+    const authEmailC = (payloadC?.email as string) ?? "";
+    let userIdC: string | null = null;
+    let allowedC = true;
+    if (authEmailC) {
+      const { data: u } = await sb
+        .from("users")
+        .select("id, role_id, is_super_admin")
+        .ilike("email", authEmailC)
+        .maybeSingle();
+      userIdC = u?.id ?? null;
+      if (u && !u.is_super_admin && u.role_id) {
+        const { data: perms } = await sb
+          .from("role_permissions")
+          .select("permission_code")
+          .eq("role_id", u.role_id);
+        const set = new Set((perms ?? []).map((p: any) => p.permission_code));
+        allowedC = set.has("inventory:approve");
+      }
+    }
+    if (!allowedC)
+      return json(
+        {
+          error: {
+            code: "FORBIDDEN",
+            message: "Permission inventory:approve requise (pharmacien).",
+          },
+        },
+        403,
+      );
+
+    const { data: sessionC } = await sb
+      .from("inventory_sessions")
+      .select("*")
+      .eq("id", mm[1])
+      .eq("pharmacy_id", pid)
+      .maybeSingle();
+    if (!sessionC)
+      return json(
+        { error: { code: "NOT_FOUND", message: "Session introuvable" } },
+        404,
+      );
+    if (sessionC.status !== "open")
+      return json(
+        { error: { code: "CLOSED", message: "Session déjà clôturée" } },
+        409,
+      );
+    const { data: gaps } = await sb
+      .from("inventory_items")
+      .select("*, lots(cost_price)")
+      .eq("session_id", mm[1])
+      .eq("is_adjusted", false);
+    let corrections = 0;
+    for (const it of gaps ?? []) {
+      const diff = Number(it.counted_qty) - Number(it.system_qty);
+      if (diff === 0) continue;
+      await sb.from("stock_movements").insert({
+        pharmacy_id: pid,
+        branch_id: sessionC.branch_id,
+        medication_id: it.medication_id,
+        lot_id: it.lot_id,
+        movement_type: diff > 0 ? "inventory_in" : "inventory_out",
+        quantity: Math.abs(diff),
+        unit_cost: Number(it.lots?.cost_price ?? 0),
+        reference_type: "inventory_session",
+        reference_id: sessionC.id,
+        user_id: userIdC,
+        notes: "Correction inventaire validée",
+      });
+      await sb
+        .from("inventory_items")
+        .update({ is_adjusted: true })
+        .eq("id", it.id);
+      corrections++;
+    }
+    const bodyC = await req.json().catch(() => ({}) as any);
+    await sb
+      .from("inventory_sessions")
+      .update({
+        status: "closed",
+        closed_by: userIdC,
+        closed_at: new Date().toISOString(),
+        notes: bodyC.notes ?? sessionC.notes,
+      })
+      .eq("id", sessionC.id);
+    return json({ data: { corrections } });
+  }
+
+  /* ==== PORTAGE — AUDIT CAISSE ==== */
+  if (path === "inventory/cash-expected" && req.method === "GET") {
+    const urlE = new URL(req.url);
+    const day =
+      urlE.searchParams.get("date") ?? new Date().toISOString().slice(0, 10);
+    const { data: sales } = await sb
+      .from("sales")
+      .select("id, total")
+      .eq("pharmacy_id", pid)
+      .eq("status", "completed")
+      .gte("sale_date", `${day}T00:00:00`)
+      .lte("sale_date", `${day}T23:59:59`);
+    const ids = (sales ?? []).map((s: any) => s.id);
+    const agg = {
+      salesTotal: 0,
+      paymentsCash: 0,
+      paymentsCard: 0,
+      paymentsOther: 0,
+    };
+    agg.salesTotal = (sales ?? []).reduce(
+      (t: number, s: any) => t + Number(s.total ?? 0),
+      0,
+    );
+    if (ids.length) {
+      const { data: pays } = await sb
+        .from("payments")
+        .select("method, amount")
+        .in("sale_id", ids);
+      for (const p of pays ?? []) {
+        const a = Number(p.amount ?? 0);
+        if (p.method === "cash") agg.paymentsCash += a;
+        else if (p.method === "card") agg.paymentsCard += a;
+        else agg.paymentsOther += a;
+      }
+    }
+    return json({ data: { date: day, ...agg } });
+  }
+
+  if (path === "inventory/cash-audits" && req.method === "GET") {
+    const { data, error } = await sb
+      .from("cash_audits")
+      .select("*, branches(name), users(first_name, last_name)")
+      .eq("pharmacy_id", pid)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (error) {
+      return json(
+        {
+          error: {
+            code: "CASH_AUDITS_TABLE_MISSING",
+            message:
+              "Table cash_audits absente : exécutez database/schema/940_cash_audits.sql dans le SQL Editor Supabase.",
+          },
+        },
+        400,
+      );
+    }
+    return json({ data: data ?? [] });
+  }
+
+  if (path === "inventory/cash-audits" && req.method === "POST") {
+    const bodyK = await req.json().catch(() => ({}) as any);
+    const branchIdK = bodyK.branchId ?? bodyK.branch_id;
+    if (!branchIdK)
+      return json(
+        { error: { code: "VALIDATION", message: "branchId requis" } },
+        400,
+      );
+    const payloadK = jwtPayload(req);
+    const authEmailK = (payloadK?.email as string) ?? "";
+    let userIdK: string | null = null;
+    if (authEmailK) {
+      const { data: u } = await sb
+        .from("users")
+        .select("id")
+        .ilike("email", authEmailK)
+        .maybeSingle();
+      userIdK = u?.id ?? null;
+    }
+    const expectedCash = Number(bodyK.expectedCash ?? 0);
+    const countedCash = Number(bodyK.countedCash ?? 0);
+    const difference = countedCash - expectedCash;
+    const { error } = await sb.from("cash_audits").insert({
+      pharmacy_id: pid,
+      branch_id: branchIdK,
+      expected_cash: expectedCash,
+      counted_cash: countedCash,
+      difference,
+      sales_total: Number(bodyK.salesTotal ?? 0),
+      payments_cash: Number(bodyK.paymentsCash ?? 0),
+      payments_card: Number(bodyK.paymentsCard ?? 0),
+      payments_other: Number(bodyK.paymentsOther ?? 0),
+      notes: bodyK.notes ?? null,
+      user_id: userIdK,
+    });
+    if (error) {
+      return json(
+        {
+          error: {
+            code: "CASH_AUDITS_TABLE_MISSING",
+            message:
+              "Table cash_audits absente : exécutez database/schema/940_cash_audits.sql dans le SQL Editor Supabase.",
+          },
+        },
+        400,
+      );
+    }
+    return json({ data: { difference } });
+  }
+
   /* ===========================================================
      PUBLIC WEBSITE — blog post by slug
      =========================================================== */
