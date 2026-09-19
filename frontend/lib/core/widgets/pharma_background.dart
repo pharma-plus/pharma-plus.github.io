@@ -38,7 +38,7 @@ class PharmaBackground extends StatelessWidget {
       );
     } else if (kIsWeb) {
       bg = Image.network(
-        'images/pharma_background.png',
+        'assets/assets/images/background.webp',
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => Image.network(
           'images/pharma_login_background.jpg',
@@ -49,7 +49,7 @@ class PharmaBackground extends StatelessWidget {
       );
     } else {
       bg = Image.asset(
-        'assets/images/pharma_background.png',
+        'assets/images/background.webp',
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) =>
             const ColoredBox(color: Color(0xFF07130F)),
