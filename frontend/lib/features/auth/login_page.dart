@@ -10,7 +10,6 @@ import '../../core/models/user.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
-import '../../core/widgets/pharma_background.dart';
 import '../../core/widgets/pharma_logo.dart';
 import 'two_factor_page.dart';
 
@@ -146,113 +145,51 @@ class _LoginPageState extends State<LoginPage>
 
   @override
   Widget build(BuildContext context) {
-    final isSplit = MediaQuery.of(context).size.width >= 1080;
-    if (isSplit) {
-      // Maquette desktop : scène pharmacie à gauche, formulaire à droite.
-      return Scaffold(
-        body: Stack(
-          children: [
-            FadeTransition(
-              opacity: _fade,
-              child: SlideTransition(
-                position: _slide,
-                child: _buildSplit(),
-              ),
-            ),
-            const _ThemeToggle(),
-          ],
-        ),
-      );
-    }
-
-    final isWide = MediaQuery.of(context).size.width >= 900;
+    final isSplit = MediaQuery.of(context).size.width >= 760;
 
     return Scaffold(
-      body: PharmaBackground(
-        overlayOpacity: 0.45,
-        assetImage: !isWide ? 'assets/images/background.webp' : null,
-        child: Stack(
-          children: [
-            SafeArea(
-              child: FadeTransition(
-                opacity: _fade,
-                child: SlideTransition(
-                  position: _slide,
-                  child: isWide ? _buildWideCard() : _buildMobileCard(),
+      backgroundColor: const Color(0xFF010503),
+      body: Stack(
+        children: [
+          // Grande carte arrondie contenant scène + formulaire (maquette).
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Container(
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF092019),
+                  borderRadius: BorderRadius.circular(26),
+                  border: Border.all(
+                    color: const Color(0xFF2FB563).withValues(alpha: 0.20),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.55),
+                      blurRadius: 34,
+                      offset: const Offset(0, 18),
+                    ),
+                  ],
+                ),
+                child: FadeTransition(
+                  opacity: _fade,
+                  child: SlideTransition(
+                    position: _slide,
+                    child: isSplit ? _buildSplit() : _buildMobile(),
+                  ),
                 ),
               ),
             ),
-            const _ThemeToggle(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWideCard() {
-    // Carte calée vers le haut : une seule vue à l'ouverture, sans défilement.
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(26, 20, 26, 18),
-            decoration: BoxDecoration(
-              color: const Color(0xFF041C18).withValues(alpha: 0.96),
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: const Color(0xFFD7AE4F),
-                width: 1.4,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.45),
-                  blurRadius: 30,
-                  offset: const Offset(0, 18),
-                ),
-              ],
-            ),
-            child: _buildForm(),
           ),
-        ),
+          const _ThemeToggle(),
+        ],
       ),
     );
   }
 
-  Widget _buildMobileCard() {
-    // Calée vers le haut pour rester lisible sans défilement.
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(14, 20, 14, 14),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 440),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
-            decoration: BoxDecoration(
-              color: const Color(0xFF041C18).withValues(alpha: 0.96),
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: const Color(0xFFD7AE4F),
-                width: 1.4,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.45),
-                  blurRadius: 26,
-                  offset: const Offset(0, 14),
-                ),
-              ],
-            ),
-            child: _buildForm(),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Maquette desktop : à gauche la grande scène pharmacie premium (zone
-  /// de marque), à droite la carte de connexion PHARMA+.
+  /// Maquette desktop / tablette : scène pharmacie à gauche (avec courbe or),
+  /// formulaire à droite. 100 % identique à l'image 1.
   Widget _buildSplit() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -263,31 +200,43 @@ class _LoginPageState extends State<LoginPage>
         ),
         Expanded(
           flex: 9,
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF03100D).withValues(alpha: 0.97),
-              border: const Border(
-                left: BorderSide(
-                  color: AppColors.goldBorderStrong,
-                  width: 1,
-                ),
-              ),
-            ),
-            padding: const EdgeInsets.fromLTRB(40, 30, 40, 18),
-            alignment: Alignment.topCenter,
-            child: SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 440),
-                child: _buildForm(splitLayout: true),
-              ),
-            ),
-          ),
+          child: _buildFormPanel(),
         ),
       ],
     );
   }
 
-  /// Grande scène pharmacie premium — image, logo, PHARMA+, tagline.
+  /// Maquette smartphone : formulaire seul, centré, sur le panneau sombre.
+  Widget _buildMobile() {
+    return _buildFormPanel();
+  }
+
+  /// Panneau droit : contenu du formulaire, centré verticalement.
+  Widget _buildFormPanel() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 30, vertical: 24),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  child: _buildForm(),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Scène pharmacie premium — conforme maquette : double « PHARMA+ »,
+  /// tagline, ornement or et les 3 atouts (Sécurisé / Performant / Support),
+  /// plus la grande courbe dorée qui sépare l'image du formulaire.
   Widget _buildScene() {
     return Stack(
       fit: StackFit.expand,
@@ -311,33 +260,113 @@ class _LoginPageState extends State<LoginPage>
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                const Color(0xFF02100C).withValues(alpha: 0.82),
-                const Color(0xFF03100D).withValues(alpha: 0.60),
-                const Color(0xFF06251D).withValues(alpha: 0.85),
+                const Color(0xFF02100C).withValues(alpha: 0.80),
+                const Color(0xFF03100D).withValues(alpha: 0.55),
+                const Color(0xFF06251D).withValues(alpha: 0.88),
               ],
             ),
           ),
         ),
-        const Center(
+        // Courbe dorée le long du bord droit de la scène (maquette).
+        const Positioned.fill(
+          child: IgnorePointer(
+            child: CustomPaint(painter: _GoldCurvePainter()),
+          ),
+        ),
+        Center(
           child: Padding(
-            padding: EdgeInsets.all(28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Logo officiel complet : le nom PHARMA+ et la signature
-                // sont deja dans l'asset — aucun texte répété en dessous.
-                PharmaFullLogo(width: 360),
-                SizedBox(height: 16),
-                Text(
-                  'PHARMACIE PREMIUM',
-                  style: TextStyle(
-                    color: AppColors.pharmaGold,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 3.4,
+            padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 28),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'PHARMA+',
+                    style: TextStyle(
+                      color: Color(0xFFE9C873),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 2.6,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 2),
+                  RichText(
+                    text: const TextSpan(
+                      children: [
+                        TextSpan(
+                          text: 'PHARMA',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 38,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        TextSpan(
+                          text: '+',
+                          style: TextStyle(
+                            color: Color(0xFFE9C873),
+                            fontSize: 38,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Gestion intelligente de votre pharmacie',
+                    style: TextStyle(
+                      color: Color(0xFFDCE7E2),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _goldLine(26),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 10),
+                        child: Text(
+                          '✦',
+                          style: TextStyle(
+                            color: Color(0xFFE9C873),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      _goldLine(26),
+                    ],
+                  ),
+                  const SizedBox(height: 30),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _sceneFeature(
+                        icon: Icons.shield_outlined,
+                        title: 'Sécurisé',
+                        subtitle: 'Vos données sont protégées',
+                      ),
+                      const SizedBox(width: 26),
+                      _sceneFeature(
+                        icon: Icons.trending_up,
+                        title: 'Performant',
+                        subtitle: 'Gestion rapide et efficace',
+                      ),
+                      const SizedBox(width: 26),
+                      _sceneFeature(
+                        icon: Icons.person_outline,
+                        title: 'Support',
+                        subtitle: 'Accompagnement dédié',
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -345,62 +374,117 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-  Widget _buildForm({bool splitLayout = false}) {
+  Widget _goldLine(double width) {
+    return Container(
+      width: width,
+      height: 1,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFFE9C873).withValues(alpha: 0.0),
+            const Color(0xFFE9C873).withValues(alpha: 0.9),
+            const Color(0xFFE9C873).withValues(alpha: 0.0),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _sceneFeature({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: const Color(0xFFE9C873), size: 26),
+        const SizedBox(height: 6),
+        Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          subtitle,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: const Color(0xFFDCE7E2).withValues(alpha: 0.72),
+            fontSize: 10.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildForm() {
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (splitLayout) ...[
-            const SizedBox(height: 2),
-            const Center(child: PharmaFullLogo(width: 185)),
-            const SizedBox(height: 14),
-            const Center(
-              child: Text(
-                'Bienvenue',
-                style: TextStyle(
-                  color: Color(0xFFE9C873),
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                ),
+          const SizedBox(height: 2),
+          const Center(child: PharmaPlusLogo(size: 72)),
+          const SizedBox(height: 10),
+          const Center(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'PHARMA',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                  TextSpan(
+                    text: '+',
+                    style: TextStyle(
+                      color: Color(0xFFE9C873),
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 4),
-            const Center(
-              child: Text(
-                'Connectez-vous à votre espace',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70, fontSize: 13.5),
+          ),
+          const SizedBox(height: 4),
+          const Center(
+            child: Text(
+              'Gestion intelligente de votre pharmacie',
+              style: TextStyle(
+                color: Color(0xFF8FA39A),
+                fontSize: 11.5,
               ),
             ),
-            const SizedBox(height: 16),
-          ] else ...[
-            const SizedBox(height: 2),
-            const Center(child: PharmaFullLogo(width: 205)),
-            const SizedBox(height: 12),
-            const Center(
-              child: Text(
-                'Bienvenue',
-                style: TextStyle(
-                  color: Color(0xFFE9C873),
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                ),
+          ),
+          const SizedBox(height: 18),
+          const Center(
+            child: Text(
+              'Bienvenue',
+              style: TextStyle(
+                color: Color(0xFFE9C873),
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 4),
-            const Center(
-              child: Text(
-                'Connectez-vous à votre espace professionnel',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 13.5,
-                ),
-              ),
+          ),
+          const SizedBox(height: 5),
+          const Center(
+            child: Text(
+              'Connectez-vous à votre espace professionnel',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white, fontSize: 13),
             ),
-            const SizedBox(height: 16),
-          ],
+          ),
+          const SizedBox(height: 22),
           TextFormField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
@@ -408,8 +492,8 @@ class _LoginPageState extends State<LoginPage>
             textInputAction: TextInputAction.next,
             style: const TextStyle(color: Colors.white, fontSize: 16),
             decoration: _fieldDecoration(
-              hintText: 'Nom d\'utilisateur',
-              icon: Icons.person_outline,
+              hintText: 'Email professionnel',
+              icon: Icons.mail_outline,
             ),
             validator: (value) {
               final text = value?.trim() ?? '';
@@ -484,7 +568,7 @@ class _LoginPageState extends State<LoginPage>
                 child: const Text(
                   'Mot de passe oublié ?',
                   style: TextStyle(
-                    color: AppColors.emeraldLight,
+                    color: Color(0xFFE9C873),
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
@@ -496,69 +580,153 @@ class _LoginPageState extends State<LoginPage>
             const SizedBox(height: 8),
             _ErrorBanner(message: _error!),
           ],
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed: _loading ? null : _submit,
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFD7AE4F),
-              foregroundColor: const Color(0xFF07201B),
-              minimumSize: const Size.fromHeight(50),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+          const SizedBox(height: 16),
+          // Bouton or dégradé maquette : texte centré + flèche à droite.
+          DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFFB4881F),
+                  Color(0xFFE9C873),
+                  Color(0xFFC9A24B),
+                ],
               ),
             ),
-            icon: _loading
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Color(0xFF07201B),
+            child: FilledButton(
+              onPressed: _loading ? null : _submit,
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                foregroundColor: const Color(0xFF123527),
+                minimumSize: const Size.fromHeight(50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  if (_loading)
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFF123527),
+                      ),
+                    )
+                  else
+                    const Text(
+                      'SE CONNECTER',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14.5,
+                        letterSpacing: 0.6,
+                      ),
                     ),
-                  )
-                : const Icon(Icons.login_rounded),
-            label: const Text(
-              'SE CONNECTER',
-              style: TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 16,
-                letterSpacing: 0.4,
+                  const Positioned(
+                    right: 16,
+                    child: Icon(Icons.arrow_forward, size: 18),
+                  ),
+                ],
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          const Center(
-            child: Text(
-              'ou',
-              style: TextStyle(
-                color: Colors.white38,
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
+          const SizedBox(height: 18),
+          // Séparateur « ou continuez avec » (maquette).
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 1,
+                  color: Colors.white.withValues(alpha: 0.16),
+                ),
               ),
-            ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  'ou continuez avec',
+                  style: TextStyle(
+                    color: Color(0xFF8FA39A),
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  height: 1,
+                  color: Colors.white.withValues(alpha: 0.16),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: _loading ? null : _submit,
+          const SizedBox(height: 14),
+          // Bouton Google (maquette).
+          OutlinedButton(
+            onPressed: _loading ? null : _showGoogleInfo,
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.white,
-              side: BorderSide(color: Colors.white.withValues(alpha: 0.28)),
+              backgroundColor: const Color(0xFF0B1410).withValues(alpha: 0.6),
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.25)),
               minimumSize: const Size.fromHeight(46),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
-            icon: const Icon(Icons.pin_outlined),
-            label: const Text(
-              'Connexion avec code PIN',
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 15,
-              ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CustomPaint(
+                  painter: _GoogleLogoPainter(),
+                  size: Size(18, 18),
+                ),
+                SizedBox(width: 10),
+                Text(
+                  'Continuer avec Google',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14.5,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 20),
+          // Pied : connexion sécurisée (maquette).
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.lock_outline,
+                color: Color(0xFFE9C873),
+                size: 13,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Connexion sécurisée avec chiffrement 256-bit SSL',
+                style: TextStyle(
+                  color: const Color(0xFF8FA39A).withValues(alpha: 0.85),
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
         ],
+      ),
+    );
+  }
+
+  void _showGoogleInfo() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Color(0xFF123527),
+        content: Text(
+          'La connexion Google sera disponible prochainement. '
+          'Utilisez votre email professionnel.',
+          style: TextStyle(color: Colors.white),
+        ),
       ),
     );
   }
@@ -656,5 +824,97 @@ class _ErrorBanner extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Grande courbe dorée verticale — sépare la scène pharmacie du formulaire,
+/// exactement comme sur la maquette (arc léger, dégradé or + halo).
+class _GoldCurvePainter extends CustomPainter {
+  const _GoldCurvePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final x = size.width - 56.0;
+    const bulge = 62.0;
+    final path = Path()
+      ..moveTo(x, -12)
+      ..cubicTo(
+        x + bulge, size.height * 0.30,
+        x + bulge, size.height * 0.70,
+        x, size.height + 12,
+      );
+
+    final shader = const LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [
+        Color(0xFF8A6A1F),
+        Color(0xFFF2D68A),
+        Color(0xFFE9C873),
+        Color(0xFF8A6A1F),
+      ],
+    ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    // Halo doux.
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 7
+        ..color = const Color(0xFFE9C873).withValues(alpha: 0.18)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+    );
+    // Trait principal.
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..shader = shader,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Logo Google « G » officiel (4 couleurs), dessiné en vectoriel.
+class _GoogleLogoPainter extends CustomPainter {
+  const _GoogleLogoPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width * 0.40;
+    final stroke = size.width * 0.30;
+
+    Paint arc(Color color) => Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..color = color;
+
+    final box = Rect.fromCircle(center: center, radius: radius);
+
+    // Bleu : arc droit + barre horizontale.
+    canvas.drawArc(box, -0.785, 1.35, false, arc(const Color(0xFF4285F4)));
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(
+          center.dx,
+          center.dy - stroke / 2,
+          radius,
+          stroke,
+        ),
+        Radius.circular(stroke / 2),
+      ),
+      arc(const Color(0xFF4285F4))..style = PaintingStyle.fill,
+    );
+    // Vert : bas. / Jaune : gauche. / Rouge : haut.
+    canvas.drawArc(box, 0.65, 1.05, false, arc(const Color(0xFF34A853)));
+    canvas.drawArc(box, 1.85, 1.15, false, arc(const Color(0xFFFBBC05)));
+    canvas.drawArc(box, 3.05, 1.25, false, arc(const Color(0xFFEA4335)));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
