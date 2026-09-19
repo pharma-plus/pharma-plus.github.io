@@ -173,33 +173,55 @@ class _SplashScreenState extends State<_SplashScreen>
                         ),
                       ]),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Bienvenue',
-                        style: TextStyle(
-                          color: Color(0xFFE9C873),
-                          fontSize: 26,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        'dans votre pharmacie',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.82),
-                          fontSize: 14.5,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Gestion intelligente de votre pharmacie',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.55),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                      const SizedBox(height: 30),
+                      // « Bienvenue dans votre pharmacie » — une ligne sur
+                      // PC/tablette, deux lignes sur smartphone (maquette).
+                      // Responsive : on laisse le texte se replier tout seul
+                      // grace a un layout adaptable (largeur disponible).
+                      LayoutBuilder(builder: (context, box) {
+                        const gold = Color(0xFFE9C873);
+                        const welcome = TextSpan(
+                          text: 'Bienvenue ',
+                          style: TextStyle(
+                            color: gold,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        );
+                        const rest = TextSpan(
+                          text: 'dans votre pharmacie',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        );
+                        final wide = box.maxWidth >= 420;
+                        const oneLine = TextSpan(children: [welcome, rest]);
+                        final twoLines = Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Text('Bienvenue',
+                                style: TextStyle(
+                                  color: gold,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w800,
+                                )),
+                            SizedBox(height: 4),
+                            Text('dans votre pharmacie',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w600,
+                                )),
+                          ],
+                        );
+                        return wide
+                            ? FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text.rich(oneLine))
+                            : twoLines;
+                      }),
+                      const SizedBox(height: 26),
                       const _SplashProgressBar(),
                       const SizedBox(height: 14),
                       Text(
@@ -258,16 +280,23 @@ class _SplashProgressBarState extends State<_SplashProgressBar>
       builder: (context, _) {
         // Pourcentage dynamique affiché : 0% → 1% → … → 100%.
         final pct = (_controller.value * 100).round();
-        return Column(
+        // Barre verte (maquette) : largeur adaptative — 60 % de l'écran,
+        // bornée entre 240 px (smartphone) et 360 px (PC/tablette).
+        final barWidth =
+            (MediaQuery.of(context).size.width * 0.60).clamp(240.0, 360.0);
+        return Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 220,
-              height: 6,
+              width: barWidth,
+              height: 7,
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(50),
-                border: Border.all(color: AppColors.goldBorder, width: 1),
+                border: Border.all(
+                    color: const Color(0xFF2FB563).withValues(alpha: 0.45),
+                    width: 1),
               ),
               child: FractionallySizedBox(
                 alignment: Alignment.centerLeft,
@@ -276,8 +305,8 @@ class _SplashProgressBarState extends State<_SplashProgressBar>
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [
-                        AppColors.pharmaGold,
-                        AppColors.pharmaGoldLight,
+                        Color(0xFF1E8F4E),
+                        Color(0xFF43D97C),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(50),
@@ -285,14 +314,18 @@ class _SplashProgressBarState extends State<_SplashProgressBar>
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              '$pct%',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.75),
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.8,
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 44,
+              child: Text(
+                '$pct%',
+                textAlign: TextAlign.right,
+                style: const TextStyle(
+                  color: Color(0xFF43D97C),
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
           ],
