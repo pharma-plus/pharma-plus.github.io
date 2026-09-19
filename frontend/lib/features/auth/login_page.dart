@@ -446,7 +446,7 @@ class _LoginPageState extends State<LoginPage>
                   TextSpan(
                     text: '+',
                     style: TextStyle(
-                      color: Color(0xFFE9C873),
+                      color: Color(0xFF2FB563),
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
                     ),
