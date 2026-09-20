@@ -294,6 +294,14 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
           const SizedBox(height: 16),
+          _Section(
+            title: 'Fiscalité — TVA',
+            child: _TvaSection(
+              pharmacy: _pharmacy,
+              onSaved: _loadPharmacy,
+            ),
+          ),
+          const SizedBox(height: 16),
           _PrintingSection(pharmacyName: auth.user?.pharmacyName ?? 'PHARMA+'),
           const SizedBox(height: 16),
           GlassCard(
@@ -1007,5 +1015,141 @@ class _PrintingSectionState extends State<_PrintingSection> {
         ),
       ]),
     );
+  }
+}
+
+/* ==================== FISCALITÉ — TAUX DE TVA PAR DÉFAUT ==================== */
+
+/// Paramètres → Fiscalité → TVA (section 22 du cahier des charges).
+/// Les taux par défaut sont configurables et stockés dans
+/// pharmacies.settings.tva (merge JSONB, PUT /pharmacies/me, settings:edit).
+/// Le taux effectif de chaque vente reste celui du produit, sauvegardé
+/// dans la transaction : changer ces défauts ne modifie JAMAIS l'historique.
+class _TvaSection extends StatefulWidget {
+  final Map<String, dynamic>? pharmacy;
+  final VoidCallback onSaved;
+  const _TvaSection({required this.pharmacy, required this.onSaved});
+
+  @override
+  State<_TvaSection> createState() => _TvaSectionState();
+}
+
+class _TvaSectionState extends State<_TvaSection> {
+  final _medication = TextEditingController();
+  final _parapharmacie = TextEditingController();
+  final _other = TextEditingController();
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    final tva = (widget.pharmacy?['settings'] is Map
+            ? (widget.pharmacy!['settings'] as Map)['tva']
+            : null) as Map?;
+    _medication.text = '${_rate(tva?['medication'], 16)}';
+    _parapharmacie.text = '${_rate(tva?['parapharmacie'], 20)}';
+    _other.text = '${_rate(tva?['other'], 20)}';
+  }
+
+  @override
+  void dispose() {
+    _medication.dispose();
+    _parapharmacie.dispose();
+    _other.dispose();
+    super.dispose();
+  }
+
+  double _rate(dynamic v, double def) => double.tryParse('$v') ?? def;
+
+  Future<void> _save() async {
+    if (_saving) return;
+    final med = double.tryParse(_medication.text.replaceAll(',', '.'));
+    final par = double.tryParse(_parapharmacie.text.replaceAll(',', '.'));
+    final other = double.tryParse(_other.text.replaceAll(',', '.'));
+    if (med == null || par == null || other == null ||
+        med < 0 || par < 0 || other < 0 || med > 100 || par > 100 || other > 100) {
+      setState(() => _error = 'Taux invalides (0 à 100 attendus).');
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    final r = await ApiClient.instance.put('/pharmacies/me', body: {
+      'settings': {
+        'tva': {
+          'medication': med,
+          'parapharmacie': par,
+          'other': other,
+        },
+      },
+    });
+    if (!mounted) return;
+    setState(() => _saving = false);
+    if (r.success) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Taux de TVA par défaut enregistrés. '
+              'Les ventes existantes restent inchangées.')));
+      widget.onSaved();
+    } else {
+      setState(() =>
+          _error = r.error?.readableMessage ?? 'Erreur d\u2019enregistrement');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Expanded(
+          child: TextField(
+            controller: _medication,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+                labelText: 'Médicaments (%)', suffixText: '%'),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: TextField(
+            controller: _parapharmacie,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+                labelText: 'Parapharmacie (%)', suffixText: '%'),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: TextField(
+            controller: _other,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+                labelText: 'Autre (%)', suffixText: '%'),
+          ),
+        ),
+      ]),
+      const SizedBox(height: 8),
+      Text(
+        'Taux par défaut utilisés lors de la création de produits. '
+        'Le taux réellement appliqué à chaque vente reste celui du produit, '
+        'sauvegardé dans la transaction — l\u2019historique fiscal ne change jamais.',
+        style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+      ),
+      if (_error != null) ...[
+        const SizedBox(height: 8),
+        Text(_error!,
+            style: const TextStyle(color: AppColors.danger, fontSize: 12)),
+      ],
+      const SizedBox(height: 10),
+      Align(
+        alignment: Alignment.centerRight,
+        child: FilledButton.icon(
+          onPressed: _saving ? null : _save,
+          icon: const Icon(Icons.save_rounded, size: 18),
+          label: Text(_saving ? 'Enregistrement…' : 'Enregistrer'),
+        ),
+      ),
+    ]);
   }
 }
