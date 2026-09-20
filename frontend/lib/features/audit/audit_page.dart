@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
@@ -10,14 +10,15 @@ import '../../core/widgets/barcode_scanner.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../shell/shell_nav.dart';
+import '../catalog/unknown_product_dialog.dart';
 
 /// ============================================================
-/// MODULE AUDIT PHARMA+ — accessible via MENU > Autres modules.
-/// Onglet 1 — Audit STOCK : stock système vs stock physique,
-///            écart + valeur de l'écart. AUCUNE correction auto :
+/// MODULE AUDIT PHARMA+ â€” accessible via MENU > Autres modules.
+/// Onglet 1 â€” Audit STOCK : stock systÃ¨me vs stock physique,
+///            Ã©cart + valeur de l'Ã©cart. AUCUNE correction auto :
 ///            le pharmacien valide explicitement (inventory:approve).
-/// Onglet 2 — Audit CAISSE : attendu (paiements réels du jour)
-///            vs compté, écart, historique. Aucune écriture auto.
+/// Onglet 2 â€” Audit CAISSE : attendu (paiements rÃ©els du jour)
+///            vs comptÃ©, Ã©cart, historique. Aucune Ã©criture auto.
 /// ============================================================
 class AuditPage extends StatefulWidget {
   const AuditPage({super.key});
@@ -129,7 +130,7 @@ class _StockAuditTabState extends State<StockAuditTab> {
     final branchId = await showDialog<String>(
       context: context,
       builder: (context) => SimpleDialog(
-        title: const Text('Succursale à auditer'),
+        title: const Text('Succursale Ã  auditer'),
         children: [
           for (final b in _branches)
             SimpleDialogOption(
@@ -155,7 +156,7 @@ class _StockAuditTabState extends State<StockAuditTab> {
     await _open('${r.data?['id']}');
   }
 
-  /// Scan réel (mode simple) : identifie le produit, incrémente sa quantité comptée.
+  /// Scan rÃ©el (mode simple) : identifie le produit, incrÃ©mente sa quantitÃ© comptÃ©e.
   Future<void> _scan() async {
     final result = await BarcodeScannerSheet.show(context,
         title: 'Scanner produit (audit)');
@@ -163,18 +164,18 @@ class _StockAuditTabState extends State<StockAuditTab> {
     await _processScan(result);
   }
 
-  /// SCAN CONTINU : l'écran caméra reste ouvert, chaque lecture compte +1
+  /// SCAN CONTINU : l'Ã©cran camÃ©ra reste ouvert, chaque lecture compte +1
   /// sur la ligne correspondante (inventaire de rayon entier sans interruption).
   Future<void> _scanContinuous() async {
     await BarcodeScannerSheet.showContinuous(context,
         title: 'Scan continu (audit)',
         onScan: (result) => _processScan(result, continuous: true));
     if (!mounted) return;
-    await _open('${_openSession?['id']}'); // rafraîchir les compteurs
+    await _open('${_openSession?['id']}'); // rafraÃ®chir les compteurs
   }
 
   /// Traitement d'une lecture de scan (mode simple ou continu).
-  /// Anti-doublon : un même code ignoré s'il est rescanné < 1.2 s.
+  /// Anti-doublon : un mÃªme code ignorÃ© s'il est rescannÃ© < 1.2 s.
   Future<void> _processScan(ScanResult result, {bool continuous = false}) async {
     final code = result.lookupCode;
     if (code.isEmpty || !mounted) return;
@@ -183,7 +184,7 @@ class _StockAuditTabState extends State<StockAuditTab> {
         now.difference(_lastScanAt).inMilliseconds < 1200) {
       if (!continuous) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Scan identique ignoré (protection anti-doublon)')));
+            content: Text('Scan identique ignorÃ© (protection anti-doublon)')));
       }
       return;
     }
@@ -195,12 +196,12 @@ class _StockAuditTabState extends State<StockAuditTab> {
         .get('/catalog/medications/barcode/${Uri.encodeComponent(code)}');
     if (!mounted) return;
     if (!lookup.success || lookup.data == null) {
-      // Produit inconnu : JAMAIS de création automatique (anti-doublon).
+      // Produit inconnu : JAMAIS de crÃ©ation automatique (anti-doublon).
       if (continuous) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(
-                'Produit non reconnu ($code) — utilisez le scan simple '
-                'pour le créer ou l\u2019associer.')));
+                'Produit non reconnu ($code) â€” utilisez le scan simple '
+                'pour le crÃ©er ou l\u2019associer.')));
       } else {
         await _showUnknownProductDialog(code);
       }
@@ -213,7 +214,7 @@ class _StockAuditTabState extends State<StockAuditTab> {
     if (rows.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
-              'Produit trouvé (${med['name']}) mais absent de la session d\'audit en cours.')));
+              'Produit trouvÃ© (${med['name']}) mais absent de la session d\'audit en cours.')));
       return;
     }
     final row = rows.first;
@@ -225,8 +226,8 @@ class _StockAuditTabState extends State<StockAuditTab> {
     if (!mounted) return;
     if (r.success) {
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${med['name']} — compté : $newQty')));
-      // En mode continu, mise à jour locale immédiate (pas de reload complet).
+          SnackBar(content: Text('${med['name']} â€” comptÃ© : $newQty')));
+      // En mode continu, mise Ã  jour locale immÃ©diate (pas de reload complet).
       if (continuous) {
         setState(() => row['counted_qty'] = newQty);
       } else {
@@ -238,16 +239,20 @@ class _StockAuditTabState extends State<StockAuditTab> {
     }
   }
 
-  /// Produit NON TROUVÉ : proposer la création d'une vraie fiche dans le
-  /// catalogue (base centrale unique), avec le code-barres scanné.
+  /// Produit NON TROUVÃ‰ : module unifiÃ© (rechercher / associer / crÃ©er /
+  /// annuler â€” jamais de doublon automatique).
   Future<void> _showUnknownProductDialog(String code) async {
-    await showDialog<bool>(
-      context: context,
-      builder: (context) => _NewProductDialog(barcode: code),
-    );
+    final med = await showUnknownProductDialog(context, barcode: code);
+    if (!mounted) return;
+    if (med != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              'Â« ${med['name']} Â» ${med['barcode_ean13'] != null ? 'associÃ© au code ${med['barcode_ean13']}' : 'crÃ©Ã©'} â€” '
+              'relancez le scan pour le compter.')));
+    }
   }
 
-  /// Validation du pharmacien : corrige les écarts via de VRAIS mouvements.
+  /// Validation du pharmacien : corrige les Ã©carts via de VRAIS mouvements.
   Future<void> _validate() async {
     final session = _openSession;
     if (session == null || _busy) return;
@@ -258,9 +263,9 @@ class _StockAuditTabState extends State<StockAuditTab> {
       builder: (context) => AlertDialog(
         title: const Text('Valider la correction du stock ?'),
         content: Text(
-            '$gaps écart(s) détecté(s). Des mouvements réels (entrée/sortie) '
-            'seront enregistrés pour chaque écart. Le stock ne sera modifié '
-            'qu\'après cette validation.'),
+            '$gaps Ã©cart(s) dÃ©tectÃ©(s). Des mouvements rÃ©els (entrÃ©e/sortie) '
+            'seront enregistrÃ©s pour chaque Ã©cart. Le stock ne sera modifiÃ© '
+            'qu\'aprÃ¨s cette validation.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -280,7 +285,7 @@ class _StockAuditTabState extends State<StockAuditTab> {
     if (r.success) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
-              'Audit validé — ${r.data?['corrections'] ?? 0} correction(s) enregistrée(s)')));
+              'Audit validÃ© â€” ${r.data?['corrections'] ?? 0} correction(s) enregistrÃ©e(s)')));
       setState(() {
         _openSession = null;
         _items = [];
@@ -316,12 +321,12 @@ class _StockAuditTabState extends State<StockAuditTab> {
           const Text('Aucun audit de stock en cours',
               style: TextStyle(fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
-          Text('Comparez le stock système au stock physique.',
+          Text('Comparez le stock systÃ¨me au stock physique.',
               style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.6), fontSize: 12.5)),
           const SizedBox(height: 16),
           GradientButton(
-              label: 'Démarrer un inventaire',
+              label: 'DÃ©marrer un inventaire',
               icon: Icons.play_arrow_rounded,
               loading: _busy,
               onPressed: _startSession),
@@ -335,8 +340,8 @@ class _StockAuditTabState extends State<StockAuditTab> {
         child: Row(children: [
           Expanded(
             child: Text(
-              '${_openSession?['branch_name'] ?? ''} · '
-              '${_items.length} produits · $gaps écart(s)',
+              '${_openSession?['branch_name'] ?? ''} Â· '
+              '${_items.length} produits Â· $gaps Ã©cart(s)',
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
           ),
@@ -396,7 +401,7 @@ class _StockAuditTabState extends State<StockAuditTab> {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontWeight: FontWeight.w800)),
                       Text(
-                          'Lot ${it['lot_number'] ?? '—'} · Système : ${Fmt.number(sys)}',
+                          'Lot ${it['lot_number'] ?? 'â€”'} Â· SystÃ¨me : ${Fmt.number(sys)}',
                           style: TextStyle(
                               fontSize: 11.5,
                               color: Colors.white.withValues(alpha: 0.55))),
@@ -447,8 +452,8 @@ class _GapChip extends StatelessWidget {
       children: [
         Text(
           gap == 0
-              ? 'Égal'
-              : 'Écart ${gap > 0 ? '+' : ''}${Fmt.number(gap, decimals: isInt ? 0 : 2)}',
+              ? 'Ã‰gal'
+              : 'Ã‰cart ${gap > 0 ? '+' : ''}${Fmt.number(gap, decimals: isInt ? 0 : 2)}',
           style: TextStyle(
             fontWeight: FontWeight.w900,
             color: gap == 0
@@ -547,7 +552,7 @@ class _CashAuditTabState extends State<CashAuditTab> {
     if (r.success) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
-              'Audit caisse enregistré — écart : ${Fmt.money(_num(r.data?['difference']))} MAD')));
+              'Audit caisse enregistrÃ© â€” Ã©cart : ${Fmt.money(_num(r.data?['difference']))} MAD')));
       _counted.clear();
       _notes.clear();
       await _load();
@@ -658,13 +663,13 @@ class _CashAuditView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Contrôle de caisse du jour',
+                  const Text('ContrÃ´le de caisse du jour',
                       style:
                           TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
                   const SizedBox(height: 4),
                   Text(
-                      'Attendu calculé sur les VRAIS paiements enregistrés '
-                      '(aucune écriture financière modifiée).',
+                      'Attendu calculÃ© sur les VRAIS paiements enregistrÃ©s '
+                      '(aucune Ã©criture financiÃ¨re modifiÃ©e).',
                       style: TextStyle(
                           fontSize: 11.5,
                           color: Colors.white.withValues(alpha: 0.55))),
@@ -679,15 +684,15 @@ class _CashAuditView extends StatelessWidget {
                     onChanged: onBranch,
                   ),
                   const SizedBox(height: 10),
-                  cashRow('Ventes système',
+                  cashRow('Ventes systÃ¨me',
                       Fmt.money(double.tryParse('${expected?['salesTotal']}') ?? 0)),
-                  cashRow('Paiements espèces',
+                  cashRow('Paiements espÃ¨ces',
                       Fmt.money(double.tryParse('${expected?['paymentsCash']}') ?? 0)),
                   cashRow('Paiements carte',
                       Fmt.money(double.tryParse('${expected?['paymentsCard']}') ?? 0)),
                   cashRow('Autres paiements',
                       Fmt.money(double.tryParse('${expected?['paymentsOther']}') ?? 0)),
-                  cashRow('CAISSE SYSTÈME (attendu espèces)',
+                  cashRow('CAISSE SYSTÃˆME (attendu espÃ¨ces)',
                       Fmt.money(expectedCash),
                       bold: true),
                   const SizedBox(height: 10),
@@ -696,14 +701,14 @@ class _CashAuditView extends StatelessWidget {
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(
-                        labelText: 'Montant réellement compté (MAD)'),
+                        labelText: 'Montant rÃ©ellement comptÃ© (MAD)'),
                     onChanged: onCounted,
                   ),
                   const SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('ÉCART',
+                      const Text('Ã‰CART',
                           style: TextStyle(fontWeight: FontWeight.w800)),
                       Text(
                         '${diff >= 0 ? '+' : ''}${Fmt.money(diff)} MAD',
@@ -758,7 +763,7 @@ class _HistoryList extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Center(
-                child: Text('Aucun audit enregistré',
+                child: Text('Aucun audit enregistrÃ©',
                     style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.5)))),
           )
@@ -775,12 +780,12 @@ class _HistoryList extends StatelessWidget {
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   title: Text(
-                      '${h['branch_name'] ?? ''} · ${Fmt.shortDate(DateTime.tryParse('${h['audit_date']}'))}',
+                      '${h['branch_name'] ?? ''} Â· ${Fmt.shortDate(DateTime.tryParse('${h['audit_date']}'))}',
                       style: const TextStyle(fontWeight: FontWeight.w700)),
                   subtitle: Text(
-                      'Attendu : ${Fmt.money(double.tryParse('${h['expected_cash']}') ?? 0)} · '
-                      'Compté : ${Fmt.money(double.tryParse('${h['counted_cash']}') ?? 0)}'
-                      '${'${h['user_name'] ?? ''}'.isNotEmpty ? ' · ${h['user_name']}' : ''}'),
+                      'Attendu : ${Fmt.money(double.tryParse('${h['expected_cash']}') ?? 0)} Â· '
+                      'ComptÃ© : ${Fmt.money(double.tryParse('${h['counted_cash']}') ?? 0)}'
+                      '${'${h['user_name'] ?? ''}'.isNotEmpty ? ' Â· ${h['user_name']}' : ''}'),
                   trailing: Text('${d >= 0 ? '+' : ''}${Fmt.money(d)} MAD',
                       style: TextStyle(
                           fontWeight: FontWeight.w900,
@@ -797,117 +802,4 @@ class _HistoryList extends StatelessWidget {
     );
   }
 }
-
-/* ==================== PRODUIT NON TROUVÉ → CRÉATION ==================== */
-
-/// Création d'une fiche produit RÉELLE dans le catalogue central
-/// (POST /catalog/medications) — jamais dans une base parallèle.
-class _NewProductDialog extends StatefulWidget {
-  final String barcode;
-  const _NewProductDialog({required this.barcode});
-
-  @override
-  State<_NewProductDialog> createState() => _NewProductDialogState();
-}
-
-class _NewProductDialogState extends State<_NewProductDialog> {
-  final _name = TextEditingController();
-  final _dci = TextEditingController();
-  final _purchase = TextEditingController();
-  final _sale = TextEditingController();
-  final _tva = TextEditingController(text: '20');
-  bool _saving = false;
-  String? _error;
-
-  Future<void> _create() async {
-    if (_name.text.trim().isEmpty || _saving) return;
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
-    final r = await ApiClient.instance.post('/catalog/medications', body: {
-      'name': _name.text.trim(),
-      'dci': _dci.text.trim().isEmpty ? null : _dci.text.trim(),
-      'barcode_ean13': widget.barcode,
-      'price_purchase':
-          double.tryParse(_purchase.text.replaceAll(',', '.')) ?? 0,
-      'price_sale': double.tryParse(_sale.text.replaceAll(',', '.')) ?? 0,
-      'tva_rate': double.tryParse(_tva.text.replaceAll(',', '.')) ?? 20,
-      'is_parapharmacie': false,
-    });
-    if (!mounted) return;
-    if (r.success) {
-      Navigator.pop(context, true);
-    } else {
-      setState(() {
-        _saving = false;
-        _error = r.error?.readableMessage ?? 'Erreur de création';
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Produit non trouvé'),
-      content: SingleChildScrollView(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text('Code-barres : ${widget.barcode}',
-              style: const TextStyle(fontSize: 12, color: Colors.grey)),
-          const SizedBox(height: 4),
-          const Text(
-              'Ce produit n\'existe pas dans le catalogue PHARMA+. '
-              'Créez sa fiche (catalogue central unique) pour le compter.',
-              style: TextStyle(fontSize: 12.5)),
-          const SizedBox(height: 12),
-          TextField(
-              controller: _name,
-              decoration: const InputDecoration(labelText: 'Nom du produit *')),
-          const SizedBox(height: 10),
-          TextField(
-              controller: _dci,
-              decoration: const InputDecoration(labelText: 'DCI')),
-          const SizedBox(height: 10),
-          Row(children: [
-            Expanded(
-              child: TextField(
-                  controller: _purchase,
-                  keyboardType: TextInputType.number,
-                  decoration:
-                      const InputDecoration(labelText: 'Prix achat')),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: TextField(
-                  controller: _sale,
-                  keyboardType: TextInputType.number,
-                  decoration:
-                      const InputDecoration(labelText: 'Prix vente *')),
-            ),
-          ]),
-          const SizedBox(height: 10),
-          TextField(
-              controller: _tva,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'TVA (%)')),
-          if (_error != null) ...[
-            const SizedBox(height: 8),
-            Text(_error!,
-                style:
-                    const TextStyle(color: AppColors.danger, fontSize: 12)),
-          ],
-        ]),
-      ),
-      actions: [
-        TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler')),
-        FilledButton(
-            onPressed: _saving ? null : _create,
-            child: const Text('Créer un nouveau produit')),
-      ],
-    );
-  }
-}
-
 

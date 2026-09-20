@@ -277,10 +277,27 @@ export const catalogService = {
   },
 
   async findBarcode(pharmacyId, barcode) {
+    // Tolérance de format : EAN-8, UPC-12, EAN-13, GTIN-14 (DataMatrix GS1).
+    // On normalise en supprimant les zéros de tête des deux côtés, ce qui
+    // permet de matcher un GTIN-14 « 03451234567890 » vers l'EAN-13 stocké.
+    const raw = String(barcode ?? '').trim();
+    if (!raw) return null;
+    const variants = new Set([raw]);
+    const strip = (s) => s.replace(/^0+/, '') || s;
+    variants.add(strip(raw));
+    if (/^\d{13}$/.test(raw) && raw.startsWith('0')) {
+      variants.add(raw.slice(1)); // EAN-13 à zéro de tête → UPC-12
+    }
+    const list = [...variants];
     const { rows } = await query(
       `${MEDICATION_SELECT} FROM medications m
-        WHERE m.barcode_ean13 = $1 AND m.pharmacy_id = $2 LIMIT 1`,
-      [barcode, pharmacyId],
+        WHERE m.pharmacy_id = $1
+          AND (m.barcode_ean13 = ANY($2::text[])
+               OR LPAD(m.barcode_ean13, 14, '0') = ANY($2::text[])
+               OR LPAD(m.barcode_ean13, 13, '0') = ANY($2::text[]))
+        ORDER BY (m.barcode_ean13 = ANY($2::text[])) DESC
+        LIMIT 1`,
+      [pharmacyId, list],
     );
     return rows[0] ?? null;
   },

@@ -18,7 +18,7 @@ const medicationSchema = {
   presentation: Joi.string().max(150).allow(null, ''),
   photo_url: Joi.string().max(500).allow(null, ''),
   leaflet_url: Joi.string().max(500).allow(null, ''),
-  barcode_ean13: Joi.string().pattern(/^\d{13}$/).allow(null, ''),
+  barcode_ean13: Joi.string().pattern(/^\d{8,14}$/).allow(null, ''),
   category_id: Joi.string().uuid().allow(null),
   family_id: Joi.string().uuid().allow(null),
   laboratory_id: Joi.string().uuid().allow(null),
