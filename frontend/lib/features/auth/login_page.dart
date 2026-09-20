@@ -407,43 +407,9 @@ class _LoginPageState extends State<LoginPage>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 2),
-          const Center(child: PharmaPlusLogo(size: 72)),
-          const SizedBox(height: 10),
-          const Center(
-            child: Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(
-                    text: 'PHARMA',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                  TextSpan(
-                    text: '+',
-                    style: TextStyle(
-                      color: Color(0xFF2FB563),
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Center(
-            child: Text(
-              'Gestion intelligente de votre pharmacie',
-              style: TextStyle(
-                color: Color(0xFF8FA39A),
-                fontSize: 11.5,
-              ),
-            ),
-          ),
+          // Bloc de marque officiel complet (symbole + PHARMA+ + signature),
+          // identique au splash / dashboard. Les textes sont DÉJÀ dans l'image.
+          const Center(child: PharmaFullLogo(width: 230)),
           const SizedBox(height: 18),
           const Center(
             child: Text(
