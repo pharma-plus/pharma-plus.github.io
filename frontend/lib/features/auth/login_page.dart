@@ -318,34 +318,85 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
+  /// Card atout : dorée avec effet 3D (dégradé or, liseré clair en haut,
+  /// ombre portée profonde dessous pour le relief).
   Widget _sceneFeature({
     required IconData icon,
     required String title,
     required String subtitle,
   }) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: const Color(0xFFE9C873), size: 26),
-        const SizedBox(height: 6),
-        Text(
-          title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12.5,
-            fontWeight: FontWeight.w700,
-          ),
+    return Container(
+      width: 132,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        // Dégradé or vertical : sombre en haut -> clair au centre -> sombre,
+        // pour donner l'illusion d'un volume bombé éclairé au milieu.
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          stops: [0.0, 0.45, 1.0],
+          colors: [
+            Color(0xFF8A6A1F),
+            Color(0xFFF0D68A),
+            Color(0xFFA87F24),
+          ],
         ),
-        const SizedBox(height: 2),
-        Text(
-          subtitle,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: const Color(0xFFDCE7E2).withValues(alpha: 0.72),
-            fontSize: 10.5,
+        // Liseré clair en haut (arête éclairée) + bord or sombre.
+        border: Border.all(color: const Color(0xFF6E5212), width: 1),
+        boxShadow: const [
+          // Ombre portée : la card « flotte » au-dessus du sol.
+          BoxShadow(
+            color: Color(0xB2000000),
+            blurRadius: 10,
+            offset: Offset(0, 6),
           ),
-        ),
-      ],
+          // Lueur dorée diffuse autour de la card.
+          BoxShadow(
+            color: Color(0x55E9C873),
+            blurRadius: 14,
+            offset: Offset(0, 0),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF123527).withValues(alpha: 0.85),
+              border: Border.all(
+                color: const Color(0xFFFFF3CE).withValues(alpha: 0.8),
+                width: 1,
+              ),
+            ),
+            child: Icon(icon, color: const Color(0xFFFFF3CE), size: 20),
+          ),
+          const SizedBox(height: 7),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Color(0xFF3A2A05),
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.3,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFF5C4410),
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              height: 1.2,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
