@@ -203,16 +203,28 @@ class _PosPanelState extends State<PosPanel> {
 
   Future<void> _scanBarcode() async {
     final result = await BarcodeScannerSheet.show(context, title: 'Scanner produit');
-    if (result == null || !mounted) return;
-    final code = result.lookupCode;
-    if (code.isEmpty) return;
+    if (result != null) await _addScanned(result);
+  }
+
+  /// SCAN CONTINU (panier Dashboard) : chaque lecture ajoute +1 au panier.
+  Future<void> _scanContinuous() async {
+    await BarcodeScannerSheet.showContinuous(context,
+        title: 'Scan continu (panier)',
+        onScan: (result) => _addScanned(result, continuous: true));
+  }
+
+  Future<void> _addScanned(ScanResult scanned, {bool continuous = false}) async {
+    final code = scanned.lookupCode;
+    if (code.isEmpty || !mounted) return;
     final apiResult = await ApiClient.instance.get(
       '/catalog/medications/barcode/${Uri.encodeComponent(code)}',
     );
     if (!mounted) return;
     if (!apiResult.success || apiResult.data == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Code inconnu : $code')));
+      if (!continuous) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Code inconnu : $code')));
+      }
       return;
     }
     final med = apiResult.data;
@@ -428,14 +440,44 @@ class _PosPanelState extends State<PosPanel> {
           ]),
         ),
         const SizedBox(height: 6),
-        // ── 2) SCANNER ──
-        SizedBox(
-          width: double.infinity,
-          child: InkWell(
-            onTap: _scanBarcode,
+        // ── 2) SCANNER (simple + continu) ──
+        Row(children: [
+          Expanded(
+            child: InkWell(
+              onTap: _scanBarcode,
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1A4A32), Color(0xFF0E2A1C)],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                      color: const Color(0xFFC9A24B).withValues(alpha: 0.4)),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.qr_code_scanner_rounded,
+                        color: Color(0xFFE9C873), size: 15),
+                    SizedBox(width: 6),
+                    Text('Scanner un produit',
+                        style: TextStyle(
+                            color: Color(0xFFE9C873),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          InkWell(
+            onTap: _scanContinuous,
             borderRadius: BorderRadius.circular(10),
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFF1A4A32), Color(0xFF0E2A1C)],
@@ -444,22 +486,19 @@ class _PosPanelState extends State<PosPanel> {
                 border: Border.all(
                     color: const Color(0xFFC9A24B).withValues(alpha: 0.4)),
               ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.qr_code_scanner_rounded,
-                      color: Color(0xFFE9C873), size: 15),
-                  SizedBox(width: 6),
-                  Text('Scanner un produit',
-                      style: TextStyle(
-                          color: Color(0xFFE9C873),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700)),
-                ],
-              ),
+              child: const Row(children: [
+                Icon(Icons.all_inclusive_rounded,
+                    color: Color(0xFFE9C873), size: 15),
+                SizedBox(width: 4),
+                Text('Continu',
+                    style: TextStyle(
+                        color: Color(0xFFE9C873),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700)),
+              ]),
             ),
           ),
-        ),
+        ]),
         const SizedBox(height: 6),
         // ── 3) CATÉGORIES 3D ──
         LayoutBuilder(builder: (context, cons) {
