@@ -267,6 +267,10 @@ class _PrescriptionFormState extends State<_PrescriptionForm> {
   final _patient = TextEditingController();
   final _doctor = TextEditingController();
   final _notes = TextEditingController();
+  // Provenance de l'ordonnance (section 13) : manuelle, photo caméra, PDF.
+  // Le fichier lui-même n'est pas envoyé sans moteur OCR configuré :
+  // seule la PROVENANCE est historisée (traçabilité, source réel de l'API).
+  String _source = 'manual';
   List<Map<String, dynamic>> _medications = [];
   final List<_RxLine> _lines = [];
   bool _loading = true;
@@ -300,7 +304,7 @@ class _PrescriptionFormState extends State<_PrescriptionForm> {
         'patientName': patient,
         'doctorName': _doctor.text.trim().isEmpty ? null : _doctor.text.trim(),
         'notes': _notes.text.trim().isEmpty ? null : _notes.text.trim(),
-        'source': 'manual',
+        'source': _source,
         'items': _lines
             .map((l) => {
                   'medicationId': l.medicationId,
@@ -356,6 +360,37 @@ class _PrescriptionFormState extends State<_PrescriptionForm> {
                       decoration:
                           InputDecoration(labelText: S.t('doctorName', locale)),
                     ),
+                    const SizedBox(height: 12),
+                    // ── Provenance de l'ordonnance ──
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(
+                            value: 'manual',
+                            icon: Icon(Icons.edit_outlined, size: 18),
+                            label: Text('Manuelle')),
+                        ButtonSegment(
+                            value: 'camera',
+                            icon: Icon(Icons.photo_camera_outlined, size: 18),
+                            label: Text('Photo')),
+                        ButtonSegment(
+                            value: 'pdf',
+                            icon: Icon(Icons.picture_as_pdf_outlined, size: 18),
+                            label: Text('PDF')),
+                      ],
+                      selected: {_source},
+                      onSelectionChanged: (s) =>
+                          setState(() => _source = s.first),
+                    ),
+                    if (_source != 'manual')
+                      const Padding(
+                        padding: EdgeInsets.only(top: 6),
+                        child: Text(
+                          'Ordonnance document scanné/importé : vérifiez '
+                          'chaque médicament ci-dessous avant validation — '
+                          'la saisie reste manuelle tant qu\u2019aucun moteur '
+                          'OCR n\u2019est configuré.',
+                          style: TextStyle(fontSize: 11, color: Colors.orange)),
+                      ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: _notes,

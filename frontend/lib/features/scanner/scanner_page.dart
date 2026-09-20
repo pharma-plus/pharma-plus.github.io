@@ -3,6 +3,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../core/models/medication.dart';
 import '../../core/services/api_client.dart';
+import '../../core/services/gs1_parser.dart';
 import '../../core/theme/colors.dart';
 import '../pos/pos_page.dart';
 import '../shell/shell_nav.dart';
@@ -63,7 +64,9 @@ class _ScannerPageState extends State<ScannerPage> {
   }
 
   Future<void> _handleCode(String raw) async {
-    final code = raw.trim();
+    // Moteur unique : normalisation GS1 (GTIN DataMatrix) avant recherche.
+    final gs1 = Gs1Parser.parse(raw.trim());
+    final code = (gs1.gtin ?? raw).trim();
     if (code.isEmpty || _busy || code == _lastCode) return;
     _lastCode = code;
     setState(() => _busy = true);
