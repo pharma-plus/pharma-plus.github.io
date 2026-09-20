@@ -195,16 +195,16 @@ class _LoginPageState extends State<LoginPage>
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Fond : image complète (courbe et fond sombre déjà intégrés).
+        // Fond : image JPEG légère (courbe et fond sombre déjà intégrés).
         kIsWeb
             ? Image.network(
-                'images/pharma_login_full.png',
+                'images/pharma_login_full.jpg',
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) =>
                     const ColoredBox(color: Color(0xFF03100D)),
               )
             : Image.asset(
-                'assets/images/pharma_login_full.png',
+                'assets/images/pharma_login_full.jpg',
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) =>
                     const ColoredBox(color: Color(0xFF03100D)),
@@ -281,12 +281,13 @@ class _LoginPageState extends State<LoginPage>
   }
 
   /// Contenu de la scène pharmacie (l'image de fond est dans _buildSplit) :
-  /// les 3 atouts (Sécurisé / Performant / Support) ancrés EN BAS de l'image.
+  /// les 3 atouts (Sécurisé / Performant / Support) décalés à gauche,
+  /// centrés verticalement sur l'image.
   Widget _buildScene() {
     return Align(
-      alignment: Alignment.bottomCenter,
+      alignment: Alignment.centerLeft,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(36, 0, 36, 34),
+        padding: const EdgeInsets.fromLTRB(48, 0, 8, 0),
         child: FittedBox(
           fit: BoxFit.scaleDown,
           child: Row(
