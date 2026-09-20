@@ -21,7 +21,7 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -47,6 +47,12 @@ class _LoginPageState extends State<LoginPage>
     curve: Curves.easeOut,
   ));
 
+  /// Lumière animée qui descend le long de la courbe or (haut → bas, en boucle).
+  late final AnimationController _shimmer = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 3200),
+  )..repeat();
+
   @override
   void initState() {
     super.initState();
@@ -57,6 +63,7 @@ class _LoginPageState extends State<LoginPage>
   @override
   void dispose() {
     _controller.dispose();
+    _shimmer.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -188,19 +195,62 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-  /// Maquette desktop / tablette : scène pharmacie à gauche (avec courbe or),
-  /// formulaire à droite. 100 % identique à l'image 1.
+  /// Maquette desktop / tablette : l'image de fond remplit TOUTE la carte
+  /// (scène + formulaire, jusqu'à la ligne de séparation), le formulaire est
+  /// un panneau translucide par-dessus, la courbe or les sépare.
   Widget _buildSplit() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Stack(
+      fit: StackFit.expand,
       children: [
-        Expanded(
-          flex: 11,
-          child: _buildScene(),
+        // Fond : scène pharmacie (comptoir centré) sur toute la carte.
+        kIsWeb
+            ? Image.network(
+                'images/pharma_login_background.jpg',
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) =>
+                    const ColoredBox(color: Color(0xFF03100D)),
+              )
+            : Image.asset(
+                'assets/images/pharma_login_background.jpg',
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) =>
+                    const ColoredBox(color: Color(0xFF03100D)),
+              ),
+        // Voile dégradé : scène visible à gauche, assombri vers la droite
+        // pour que le fond continue derrière le formulaire jusqu'à la courbe.
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                const Color(0xFF02100C).withValues(alpha: 0.30),
+                const Color(0xFF03100D).withValues(alpha: 0.45),
+                const Color(0xFF03100D).withValues(alpha: 0.80),
+              ],
+            ),
+          ),
         ),
-        Expanded(
-          flex: 9,
-          child: _buildFormPanel(),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              flex: 11,
+              child: _buildScene(),
+            ),
+            Expanded(
+              flex: 9,
+              child: _buildFormPanel(),
+            ),
+          ],
+        ),
+        // Courbe dorée animée à la frontière scène / formulaire (maquette).
+        Positioned.fill(
+          child: IgnorePointer(
+            child: CustomPaint(
+              painter: _GoldCurvePainter(shimmer: _shimmer),
+            ),
+          ),
         ),
       ],
     );
@@ -211,9 +261,27 @@ class _LoginPageState extends State<LoginPage>
     return _buildFormPanel();
   }
 
-  /// Panneau droit : contenu du formulaire, centré verticalement.
+  /// Panneau droit : carte translucide (comme la maquette) — le fond de la
+  /// scène continue derrière lui jusqu'à la courbe dorée.
   Widget _buildFormPanel() {
-    return LayoutBuilder(
+    return Container(
+      margin: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF2FB563).withValues(alpha: 0.22),
+          width: 1,
+        ),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF0A2B1F).withValues(alpha: 0.92),
+            const Color(0xFF04160F).withValues(alpha: 0.94),
+          ],
+        ),
+      ),
+      child: LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
           child: ConstrainedBox(
@@ -231,49 +299,14 @@ class _LoginPageState extends State<LoginPage>
           ),
         );
       },
+      ),
     );
   }
 
-  /// Scène pharmacie premium — conforme maquette : double « PHARMA+ »,
-  /// tagline, ornement or et les 3 atouts (Sécurisé / Performant / Support),
-  /// plus la grande courbe dorée qui sépare l'image du formulaire.
+  /// Contenu de la scène pharmacie (l'image de fond est dans _buildSplit) :
+  /// double « PHARMA+ », tagline, ornement or et les 3 atouts.
   Widget _buildScene() {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        kIsWeb
-            ? Image.network(
-                'images/pharma_login_background.jpg',
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) =>
-                    const ColoredBox(color: Color(0xFF03100D)),
-              )
-            : Image.asset(
-                'assets/images/pharma_login_background.webp',
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) =>
-                    const ColoredBox(color: Color(0xFF03100D)),
-              ),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                const Color(0xFF02100C).withValues(alpha: 0.80),
-                const Color(0xFF03100D).withValues(alpha: 0.55),
-                const Color(0xFF06251D).withValues(alpha: 0.88),
-              ],
-            ),
-          ),
-        ),
-        // Courbe dorée le long du bord droit de la scène (maquette).
-        const Positioned.fill(
-          child: IgnorePointer(
-            child: CustomPaint(painter: _GoldCurvePainter()),
-          ),
-        ),
-        Center(
+    return Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 28),
             child: FittedBox(
@@ -369,8 +402,6 @@ class _LoginPageState extends State<LoginPage>
               ),
             ),
           ),
-        ),
-      ],
     );
   }
 
@@ -826,14 +857,18 @@ class _ErrorBanner extends StatelessWidget {
   }
 }
 
-/// Grande courbe dorée verticale — sépare la scène pharmacie du formulaire,
-/// exactement comme sur la maquette (arc léger, dégradé or + halo).
+/// Grande courbe dorée verticale — sépare la scène pharmacie du formulaire.
+/// Version maquette élargie : trait plus large, halo doux, et une lumière
+/// qui descend le long de la courbe (haut → bas) en boucle.
 class _GoldCurvePainter extends CustomPainter {
-  const _GoldCurvePainter();
+  const _GoldCurvePainter({this.shimmer});
+
+  final Animation<double>? shimmer;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final x = size.width - 56.0;
+    // Frontière scène / formulaire (flex 11 / 9 => 55 %).
+    final x = size.width * 0.55 - 26.0;
     const bulge = 62.0;
     final path = Path()
       ..moveTo(x, -12)
@@ -854,27 +889,64 @@ class _GoldCurvePainter extends CustomPainter {
       ],
     ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
 
-    // Halo doux.
+    // Halo large (ligne élargie vs maquette).
     canvas.drawPath(
       path,
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 7
-        ..color = const Color(0xFFE9C873).withValues(alpha: 0.18)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+        ..strokeWidth = 12
+        ..color = const Color(0xFFE9C873).withValues(alpha: 0.16)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
     );
-    // Trait principal.
+    // Corps doré élargi.
     canvas.drawPath(
       path,
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2
+        ..strokeWidth = 4
         ..shader = shader,
     );
+    // Cœur clair.
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6
+        ..color = const Color(0xFFFFF3CE).withValues(alpha: 0.85),
+    );
+
+    // Lumière animée qui descend du haut vers le bas le long de la courbe.
+    final shimmer = this.shimmer;
+    if (shimmer != null) {
+      final metric = path.computeMetrics().first;
+      final window = metric.length * 0.22;
+      final start = (metric.length + 2 * window) * shimmer.value - window;
+      final a = start.clamp(0.0, metric.length).toDouble();
+      final b = (start + window).clamp(0.0, metric.length).toDouble();
+      if (b > a) {
+        final beam = metric.extractPath(a, b);
+        canvas.drawPath(
+          beam,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 9
+            ..color = const Color(0xFFFFE9A8).withValues(alpha: 0.50)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 9),
+        );
+        canvas.drawPath(
+          beam,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 3
+            ..color = const Color(0xFFFFF7DC).withValues(alpha: 0.95),
+        );
+      }
+    }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _GoldCurvePainter oldDelegate) =>
+      oldDelegate.shimmer?.value != shimmer?.value;
 }
 
 /// Logo Google « G » officiel (4 couleurs), dessiné en vectoriel.
