@@ -47,12 +47,6 @@ class _LoginPageState extends State<LoginPage>
     curve: Curves.easeOut,
   ));
 
-  /// Lumière animée qui descend le long de la courbe or (haut → bas, en boucle).
-  late final AnimationController _shimmer = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 3200),
-  )..repeat();
-
   @override
   void initState() {
     super.initState();
@@ -63,7 +57,6 @@ class _LoginPageState extends State<LoginPage>
   @override
   void dispose() {
     _controller.dispose();
-    _shimmer.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -195,42 +188,27 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-  /// Maquette desktop / tablette : l'image de fond remplit TOUTE la carte
-  /// (scène + formulaire, jusqu'à la ligne de séparation), le formulaire est
-  /// un panneau translucide par-dessus, la courbe or les sépare.
+  /// Maquette desktop / tablette : l'image complète fournie (scène + courbe or
+  /// + panneau vert sombre, tout inclus) remplit TOUTE la carte. On pose
+  /// dessus uniquement le contenu : cards à gauche, formulaire à droite.
   Widget _buildSplit() {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Fond : scène pharmacie (comptoir centré) sur toute la carte.
+        // Fond : image complète (courbe et fond sombre déjà intégrés).
         kIsWeb
             ? Image.network(
-                'images/pharma_login_background.jpg',
+                'images/pharma_login_full.png',
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) =>
                     const ColoredBox(color: Color(0xFF03100D)),
               )
             : Image.asset(
-                'assets/images/pharma_login_background.jpg',
+                'assets/images/pharma_login_full.png',
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) =>
                     const ColoredBox(color: Color(0xFF03100D)),
               ),
-        // Voile dégradé : scène visible à gauche, assombri vers la droite
-        // pour que le fond continue derrière le formulaire jusqu'à la courbe.
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                const Color(0xFF02100C).withValues(alpha: 0.30),
-                const Color(0xFF03100D).withValues(alpha: 0.45),
-                const Color(0xFF03100D).withValues(alpha: 0.80),
-              ],
-            ),
-          ),
-        ),
         Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -240,20 +218,9 @@ class _LoginPageState extends State<LoginPage>
             ),
             Expanded(
               flex: 9,
-              child: _buildFormPanel(),
+              child: _buildFormPanel(transparent: true),
             ),
           ],
-        ),
-        // Courbe dorée animée à la frontière scène / formulaire (maquette).
-        // ClipRect : la courbe ne doit jamais déborder sur les côtés de la carte.
-        Positioned.fill(
-          child: IgnorePointer(
-            child: ClipRect(
-              child: CustomPaint(
-                painter: _GoldCurvePainter(shimmer: _shimmer),
-              ),
-            ),
-          ),
         ),
       ],
     );
@@ -264,31 +231,33 @@ class _LoginPageState extends State<LoginPage>
     return _buildFormPanel();
   }
 
-  /// Panneau droit : carte translucide (comme la maquette) — le fond de la
-  /// scène continue derrière lui jusqu'à la courbe dorée.
-  Widget _buildFormPanel() {
+  /// Panneau droit : sur desktop, transparent (l'image de fond fournit déjà le
+  /// panneau vert sombre et la courbe) ; sur mobile, carte translucide sombre.
+  Widget _buildFormPanel({bool transparent = false}) {
     return Container(
-      // Collé à la courbe à gauche (pas de jour) — la photo de fond continue
-      // derrière le panneau translucide jusqu'à la ligne animée.
-      margin: const EdgeInsets.fromLTRB(0, 12, 12, 12),
-      decoration: BoxDecoration(
-        borderRadius: const BorderRadius.horizontal(
-          left: Radius.zero,
-          right: Radius.circular(20),
-        ),
-        border: Border.all(
-          color: const Color(0xFF2FB563).withValues(alpha: 0.22),
-          width: 1,
-        ),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF0A2B1F).withValues(alpha: 0.78),
-            const Color(0xFF04160F).withValues(alpha: 0.88),
-          ],
-        ),
-      ),
+      margin: transparent
+          ? EdgeInsets.zero
+          : const EdgeInsets.fromLTRB(0, 12, 12, 12),
+      decoration: transparent
+          ? null
+          : BoxDecoration(
+              borderRadius: const BorderRadius.horizontal(
+                left: Radius.zero,
+                right: Radius.circular(20),
+              ),
+              border: Border.all(
+                color: const Color(0xFF2FB563).withValues(alpha: 0.22),
+                width: 1,
+              ),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF0A2B1F),
+                  Color(0xFF04160F),
+                ],
+              ),
+            ),
       child: LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
@@ -561,8 +530,8 @@ class _LoginPageState extends State<LoginPage>
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: Stack(
-                alignment: Alignment.center,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (_loading)
                     const SizedBox(
@@ -573,7 +542,7 @@ class _LoginPageState extends State<LoginPage>
                         color: Color(0xFF123527),
                       ),
                     )
-                  else
+                  else ...[
                     const Text(
                       'SE CONNECTER',
                       style: TextStyle(
@@ -582,10 +551,9 @@ class _LoginPageState extends State<LoginPage>
                         letterSpacing: 0.6,
                       ),
                     ),
-                  const Positioned(
-                    right: 16,
-                    child: Icon(Icons.arrow_forward, size: 18),
-                  ),
+                    const SizedBox(width: 12),
+                    const Icon(Icons.arrow_forward, size: 18),
+                  ],
                 ],
               ),
             ),
@@ -782,100 +750,6 @@ class _ErrorBanner extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Grande courbe dorée verticale — sépare la scène pharmacie du formulaire.
-/// Version maquette élargie : trait plus large, halo doux, et une lumière
-/// qui descend le long de la courbe (haut → bas) en boucle.
-class _GoldCurvePainter extends CustomPainter {
-  const _GoldCurvePainter({this.shimmer});
-
-  final Animation<double>? shimmer;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Frontière scène / formulaire (flex 11 / 9 => 55 %).
-    // La courbe longe le bord gauche du panneau formulaire et bombée vers la
-    // DROITE uniquement : elle ne déborde jamais sur l'image de la scène.
-    final x = size.width * 0.55 + 2.0;
-    const bulge = 34.0;
-    final path = Path()
-      ..moveTo(x, -4)
-      ..cubicTo(
-        x + bulge, size.height * 0.30,
-        x + bulge, size.height * 0.70,
-        x, size.height + 4,
-      );
-
-    final shader = const LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [
-        Color(0xFF8A6A1F),
-        Color(0xFFF2D68A),
-        Color(0xFFE9C873),
-        Color(0xFF8A6A1F),
-      ],
-    ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-
-    // Halo large (ligne élargie vs maquette).
-    canvas.drawPath(
-      path,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 12
-        ..color = const Color(0xFFE9C873).withValues(alpha: 0.16)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
-    );
-    // Corps doré élargi.
-    canvas.drawPath(
-      path,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 4
-        ..shader = shader,
-    );
-    // Cœur clair.
-    canvas.drawPath(
-      path,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.6
-        ..color = const Color(0xFFFFF3CE).withValues(alpha: 0.85),
-    );
-
-    // Lumière animée qui descend du haut vers le bas le long de la courbe.
-    final shimmer = this.shimmer;
-    if (shimmer != null) {
-      final metric = path.computeMetrics().first;
-      final window = metric.length * 0.22;
-      final start = (metric.length + 2 * window) * shimmer.value - window;
-      final a = start.clamp(0.0, metric.length).toDouble();
-      final b = (start + window).clamp(0.0, metric.length).toDouble();
-      if (b > a) {
-        final beam = metric.extractPath(a, b);
-        canvas.drawPath(
-          beam,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 9
-            ..color = const Color(0xFFFFE9A8).withValues(alpha: 0.50)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 9),
-        );
-        canvas.drawPath(
-          beam,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 3
-            ..color = const Color(0xFFFFF7DC).withValues(alpha: 0.95),
-        );
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _GoldCurvePainter oldDelegate) =>
-      oldDelegate.shimmer?.value != shimmer?.value;
 }
 
 /// Logo Google « G » officiel (4 couleurs), dessiné en vectoriel.
