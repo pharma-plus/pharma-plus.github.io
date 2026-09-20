@@ -12,8 +12,6 @@ import '../../core/services/offline_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/calculations.dart';
 import '../../core/utils/format.dart';
-import '../../core/widgets/glass_card.dart';
-import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/barcode_scanner.dart';
 import '../shell/shell_nav.dart';
 import '../dashboard/pos_category_grid.dart';
@@ -80,7 +78,9 @@ class _PosPageState extends State<PosPage> {
     _searchMedications('');
     final items = widget.initialItems;
     if (items != null && items.isNotEmpty) {
-      for (final m in items) _cart.add(m);
+      for (final m in items) {
+        _cart.add(m);
+      }
       if (widget.initialDiscount > 0) {
         _cart.globalDiscountPercent = widget.initialDiscountIsPercent
             ? widget.initialDiscount
@@ -191,8 +191,22 @@ class _PosPageState extends State<PosPage> {
 
   Future<void> _scan() async {
     final code = await BarcodeScannerSheet.show(context, title: 'Scanner produit');
-    if (code == null || code.lookupCode.trim().isEmpty) return;
-    final lookup = code.lookupCode.trim();
+    if (code != null) await _addScannedToCart(code);
+  }
+
+  /// SCAN CONTINU POS : l'écran caméra reste ouvert, chaque lecture ajoute
+  /// le produit au panier (encaissement rapide d'un caddy entier).
+  Future<void> _scanContinuous() async {
+    await BarcodeScannerSheet.showContinuous(context,
+        title: 'Scan continu (panier)',
+        onScan: (result) => _addScannedToCart(result, continuous: true));
+  }
+
+  /// Ajout au panier d'un produit scanné (mode simple ou continu).
+  Future<void> _addScannedToCart(ScanResult scanned,
+      {bool continuous = false}) async {
+    final lookup = scanned.lookupCode.trim();
+    if (lookup.isEmpty || !mounted) return;
     final result = await ApiClient.instance.get(
       '/catalog/medications/barcode/${Uri.encodeComponent(lookup)}',
     );
@@ -200,7 +214,10 @@ class _PosPageState extends State<PosPage> {
     final medication = result.data;
     if (!result.success || medication == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(S.t('unknownBarcode', context.read<AuthStore>().locale))),
+        SnackBar(
+            content: Text(continuous
+                ? 'Produit non reconnu ($lookup) — ignoré.'
+                : S.t('unknownBarcode', context.read<AuthStore>().locale))),
       );
       return;
     }
@@ -208,6 +225,13 @@ class _PosPageState extends State<PosPage> {
       final medMap = medication is Map ? Map<String, dynamic>.from(medication) : <String, dynamic>{};
       _cart.add(Medication.fromJson(medMap));
     });
+    if (continuous) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          duration: const Duration(seconds: 1),
+          content: Text(
+              '+ ${medication is Map ? medication['name'] : 'Produit'} — panier : ${_cart.lines.length} ligne(s)')));
+    }
   }
 
   // ──────────────── PAYMENT + CHECKOUT ────────────────
@@ -541,14 +565,44 @@ class _PosPageState extends State<PosPage> {
           ),
         ),
         const SizedBox(height: 8),
-        // ── Scanner sous la barre ──
-        SizedBox(
-          width: double.infinity,
-          child: InkWell(
-            onTap: _scan,
+        // ── Scanner sous la barre (simple + continu) ──
+        Row(children: [
+          Expanded(
+            child: InkWell(
+              onTap: _scan,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1A4A32), Color(0xFF0E2A1C)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.goldBorder),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.qr_code_scanner_rounded,
+                        color: Color(0xFFE9C873), size: 20),
+                    SizedBox(width: 8),
+                    Text('Scanner un produit',
+                        style: TextStyle(
+                            color: Color(0xFFE9C873),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          InkWell(
+            onTap: _scanContinuous,
             borderRadius: BorderRadius.circular(12),
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              padding:
+                  const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFF1A4A32), Color(0xFF0E2A1C)],
@@ -556,22 +610,19 @@ class _PosPageState extends State<PosPage> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.goldBorder),
               ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.qr_code_scanner_rounded,
-                      color: Color(0xFFE9C873), size: 20),
-                  SizedBox(width: 8),
-                  Text('Scanner un produit',
-                      style: TextStyle(
-                          color: Color(0xFFE9C873),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700)),
-                ],
-              ),
+              child: const Row(children: [
+                Icon(Icons.all_inclusive_rounded,
+                    color: Color(0xFFE9C873), size: 20),
+                SizedBox(width: 6),
+                Text('Continu',
+                    style: TextStyle(
+                        color: Color(0xFFE9C873),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700)),
+              ]),
             ),
           ),
-        ),
+        ]),
       ],
     );
   }
@@ -580,7 +631,7 @@ class _PosPageState extends State<PosPage> {
   //  SECTION 3 : CATÉGORIES 3D (PosCategoryTile glyphs)
   // ══════════════════════════════════════════
   Widget _buildCategoriesGrid(String locale, {double aspectRatio = 1.0}) {
-    final cats = PosCategoriesGrid.categories;
+    const cats = PosCategoriesGrid.categories;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -626,7 +677,6 @@ class _PosPageState extends State<PosPage> {
   //  SECTION 4 : TABLEAU PRODUIT / QTÉ / TOTAL
   // ══════════════════════════════════════════
   Widget _buildResultsTable(String locale) {
-    final t = _totals;
     if (_cart.isEmpty && _results.isEmpty && !_searching) {
       return Container(
         padding: const EdgeInsets.all(24),
@@ -1128,7 +1178,6 @@ class _PosPageState extends State<PosPage> {
   //  SECTION 11 : ACTIONS
   // ══════════════════════════════════════════
   Widget _buildActions(String locale) {
-    final t = _totals;
     final canPay = !_cart.isEmpty &&
         !_checkout &&
         (_paymentMode != 'cash' || _cashSufficient);
