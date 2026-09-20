@@ -281,13 +281,13 @@ class _LoginPageState extends State<LoginPage>
   }
 
   /// Contenu de la scène pharmacie (l'image de fond est dans _buildSplit) :
-  /// les 3 atouts (Sécurisé / Performant / Support) décalés à gauche,
-  /// centrés verticalement sur l'image.
+  /// les 3 atouts (Sécurisé / Performant / Support) en BAS de l'image,
+  /// au niveau du bas du comptoir, alignés à gauche.
   Widget _buildScene() {
     return Align(
-      alignment: Alignment.centerLeft,
+      alignment: Alignment.bottomLeft,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(48, 0, 8, 0),
+        padding: const EdgeInsets.fromLTRB(48, 0, 8, 26),
         child: FittedBox(
           fit: BoxFit.scaleDown,
           child: Row(
