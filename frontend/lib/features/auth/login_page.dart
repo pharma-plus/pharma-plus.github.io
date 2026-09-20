@@ -245,10 +245,13 @@ class _LoginPageState extends State<LoginPage>
           ],
         ),
         // Courbe dorée animée à la frontière scène / formulaire (maquette).
+        // ClipRect : la courbe ne doit jamais déborder sur les côtés de la carte.
         Positioned.fill(
           child: IgnorePointer(
-            child: CustomPaint(
-              painter: _GoldCurvePainter(shimmer: _shimmer),
+            child: ClipRect(
+              child: CustomPaint(
+                painter: _GoldCurvePainter(shimmer: _shimmer),
+              ),
             ),
           ),
         ),
@@ -265,9 +268,14 @@ class _LoginPageState extends State<LoginPage>
   /// scène continue derrière lui jusqu'à la courbe dorée.
   Widget _buildFormPanel() {
     return Container(
-      margin: const EdgeInsets.all(12),
+      // Collé à la courbe à gauche (pas de jour) — la photo de fond continue
+      // derrière le panneau translucide jusqu'à la ligne animée.
+      margin: const EdgeInsets.fromLTRB(0, 12, 12, 12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: const BorderRadius.horizontal(
+          left: Radius.zero,
+          right: Radius.circular(20),
+        ),
         border: Border.all(
           color: const Color(0xFF2FB563).withValues(alpha: 0.22),
           width: 1,
@@ -276,8 +284,8 @@ class _LoginPageState extends State<LoginPage>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF0A2B1F).withValues(alpha: 0.92),
-            const Color(0xFF04160F).withValues(alpha: 0.94),
+            const Color(0xFF0A2B1F).withValues(alpha: 0.78),
+            const Color(0xFF04160F).withValues(alpha: 0.88),
           ],
         ),
       ),
@@ -304,118 +312,37 @@ class _LoginPageState extends State<LoginPage>
   }
 
   /// Contenu de la scène pharmacie (l'image de fond est dans _buildSplit) :
-  /// double « PHARMA+ », tagline, ornement or et les 3 atouts.
+  /// les 3 atouts (Sécurisé / Performant / Support) ancrés EN BAS de l'image.
   Widget _buildScene() {
-    return Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 28),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'PHARMA+',
-                    style: TextStyle(
-                      color: Color(0xFFE9C873),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 2.6,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  RichText(
-                    text: const TextSpan(
-                      children: [
-                        TextSpan(
-                          text: 'PHARMA',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 38,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                        TextSpan(
-                          text: '+',
-                          style: TextStyle(
-                            color: Color(0xFFE9C873),
-                            fontSize: 38,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Gestion intelligente de votre pharmacie',
-                    style: TextStyle(
-                      color: Color(0xFFDCE7E2),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _goldLine(26),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 10),
-                        child: Text(
-                          '✦',
-                          style: TextStyle(
-                            color: Color(0xFFE9C873),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      _goldLine(26),
-                    ],
-                  ),
-                  const SizedBox(height: 30),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _sceneFeature(
-                        icon: Icons.shield_outlined,
-                        title: 'Sécurisé',
-                        subtitle: 'Vos données sont protégées',
-                      ),
-                      const SizedBox(width: 26),
-                      _sceneFeature(
-                        icon: Icons.trending_up,
-                        title: 'Performant',
-                        subtitle: 'Gestion rapide et efficace',
-                      ),
-                      const SizedBox(width: 26),
-                      _sceneFeature(
-                        icon: Icons.person_outline,
-                        title: 'Support',
-                        subtitle: 'Accompagnement dédié',
-                      ),
-                    ],
-                  ),
-                ],
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(36, 0, 36, 34),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _sceneFeature(
+                icon: Icons.shield_outlined,
+                title: 'Sécurisé',
+                subtitle: 'Vos données sont protégées',
               ),
-            ),
+              const SizedBox(width: 26),
+              _sceneFeature(
+                icon: Icons.trending_up,
+                title: 'Performant',
+                subtitle: 'Gestion rapide et efficace',
+              ),
+              const SizedBox(width: 26),
+              _sceneFeature(
+                icon: Icons.person_outline,
+                title: 'Support',
+                subtitle: 'Accompagnement dédié',
+              ),
+            ],
           ),
-    );
-  }
-
-  Widget _goldLine(double width) {
-    return Container(
-      width: width,
-      height: 1,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFFE9C873).withValues(alpha: 0.0),
-            const Color(0xFFE9C873).withValues(alpha: 0.9),
-            const Color(0xFFE9C873).withValues(alpha: 0.0),
-          ],
         ),
       ),
     );
@@ -868,14 +795,16 @@ class _GoldCurvePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     // Frontière scène / formulaire (flex 11 / 9 => 55 %).
-    final x = size.width * 0.55 - 26.0;
-    const bulge = 62.0;
+    // La courbe longe le bord gauche du panneau formulaire et bombée vers la
+    // DROITE uniquement : elle ne déborde jamais sur l'image de la scène.
+    final x = size.width * 0.55 + 2.0;
+    const bulge = 34.0;
     final path = Path()
-      ..moveTo(x, -12)
+      ..moveTo(x, -4)
       ..cubicTo(
         x + bulge, size.height * 0.30,
         x + bulge, size.height * 0.70,
-        x, size.height + 12,
+        x, size.height + 4,
       );
 
     final shader = const LinearGradient(
