@@ -204,7 +204,7 @@ class _PosPanelState extends State<PosPanel> {
   Future<void> _scanBarcode() async {
     final result = await BarcodeScannerSheet.show(context, title: 'Scanner produit');
     if (result == null || !mounted) return;
-    final code = result.code.trim();
+    final code = result.lookupCode;
     if (code.isEmpty) return;
     final apiResult = await ApiClient.instance.get(
       '/catalog/medications/barcode/${Uri.encodeComponent(code)}',

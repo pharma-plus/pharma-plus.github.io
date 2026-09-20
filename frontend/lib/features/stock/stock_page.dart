@@ -63,7 +63,7 @@ class _StockPageState extends State<StockPage> {
     final result = await BarcodeScannerSheet.show(
         context, title: 'Scanner produit pour stock');
     if (result == null || !mounted) return;
-    final code = result.code.trim();
+    final code = result.lookupCode;
     if (code.isEmpty) return;
     final apiResult = await ApiClient.instance.get(
       '/catalog/medications/barcode/${Uri.encodeComponent(code)}',

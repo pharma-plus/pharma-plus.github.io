@@ -99,7 +99,7 @@ class _PurchasesPageState extends State<PurchasesPage>
     final result = await BarcodeScannerSheet.show(
         context, title: 'Scanner produit pour réception');
     if (result == null || !mounted) return;
-    final code = result.code.trim();
+    final code = result.lookupCode;
     if (code.isEmpty) return;
     final apiResult = await ApiClient.instance.get(
       '/catalog/medications/barcode/${Uri.encodeComponent(code)}',
@@ -803,7 +803,7 @@ class _ReceiveFormState extends State<_ReceiveForm> {
     final result = await BarcodeScannerSheet.show(context,
         title: 'Scanner produit (réception)');
     if (result == null || !mounted) return;
-    final code = result.code.trim();
+    final code = result.lookupCode;
     if (code.isEmpty) return;
     final now = DateTime.now();
     if (code == _lastCode &&

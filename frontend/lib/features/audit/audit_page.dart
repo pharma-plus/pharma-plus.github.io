@@ -161,7 +161,7 @@ class _StockAuditTabState extends State<StockAuditTab> {
     final result = await BarcodeScannerSheet.show(context,
         title: 'Scanner produit (audit)');
     if (result == null || !mounted) return;
-    final code = result.code.trim();
+    final code = result.lookupCode;
     if (code.isEmpty) return;
     final now = DateTime.now();
     if (code == _lastScannedCode &&

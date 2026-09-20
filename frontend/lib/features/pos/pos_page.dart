@@ -191,9 +191,10 @@ class _PosPageState extends State<PosPage> {
 
   Future<void> _scan() async {
     final code = await BarcodeScannerSheet.show(context, title: 'Scanner produit');
-    if (code == null || code.code.trim().isEmpty) return;
+    if (code == null || code.lookupCode.trim().isEmpty) return;
+    final lookup = code.lookupCode.trim();
     final result = await ApiClient.instance.get(
-      '/catalog/medications/barcode/${Uri.encodeComponent(code.code.trim())}',
+      '/catalog/medications/barcode/${Uri.encodeComponent(lookup)}',
     );
     if (!mounted) return;
     final medication = result.data;
