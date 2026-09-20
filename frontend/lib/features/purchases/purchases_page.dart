@@ -797,18 +797,33 @@ class _ReceiveFormState extends State<_ReceiveForm> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  /// SCAN : identifie le produit dans la base PHARMA+ et augmente la
-  /// quantité reçue de sa ligne (jamais au-delà du reste à recevoir).
+  /// SCAN (mode simple) : un scan, retour immédiat.
   Future<void> _scan() async {
     final result = await BarcodeScannerSheet.show(context,
         title: 'Scanner produit (réception)');
     if (result == null || !mounted) return;
+    await _processScan(result);
+  }
+
+  /// SCAN CONTINU : l'écran caméra reste ouvert, chaque lecture incrémente
+  /// la ligne correspondante (réception de 50 produits sans rouvrir le scan).
+  Future<void> _scanContinuous() async {
+    await BarcodeScannerSheet.showContinuous(context,
+        title: 'Scan continu (réception)',
+        onScan: (result) => _processScan(result, continuous: true));
+    if (!mounted) return;
+    setState(() {}); // rafraîchir l'UI après fermeture du scan continu
+  }
+
+  /// Traitement d'une lecture : identifie le produit, incrémente la quantité
+  /// reçue (jamais au-delà du reste) et pré-remplit lot/expiration GS1.
+  Future<void> _processScan(ScanResult result, {bool continuous = false}) async {
     final code = result.lookupCode;
-    if (code.isEmpty) return;
+    if (code.isEmpty || !mounted) return;
     final now = DateTime.now();
     if (code == _lastCode &&
         now.difference(_lastScanAt).inMilliseconds < 1200) {
-      _toast('Scan identique ignoré (protection anti-doublon)');
+      if (!continuous) _toast('Scan identique ignoré (protection anti-doublon)');
       return;
     }
     _lastCode = code;
@@ -818,8 +833,13 @@ class _ReceiveFormState extends State<_ReceiveForm> {
         .get('/catalog/medications/barcode/${Uri.encodeComponent(code)}');
     if (!mounted) return;
     if (!lookup.success || lookup.data == null) {
-      // PRODUIT NON TROUVÉ → création dans le catalogue central.
-      await _createUnknownProduct(code);
+      // PRODUIT NON TROUVÉ : jamais de création automatique (anti-doublon).
+      if (continuous) {
+        _toast('Produit non reconnu ($code) — utilisez le scan simple '
+            'pour le créer ou l\u2019associer.');
+      } else {
+        await _createUnknownProduct(code);
+      }
       return;
     }
     final med = lookup.data;
@@ -831,8 +851,13 @@ class _ReceiveFormState extends State<_ReceiveForm> {
       }
     }
     if (match == null) {
-      // Produit connu mais non prévu : PRODUIT SUPPLÉMENTAIRE.
-      await _proposeExtra(Map<String, dynamic>.from(med as Map));
+      if (continuous) {
+        _toast('${med['name']} : supplémentaire — utilisez le scan simple '
+            'pour l\u2019ajouter à la réception.');
+      } else {
+        // Produit connu mais non prévu : PRODUIT SUPPLÉMENTAIRE.
+        await _proposeExtra(Map<String, dynamic>.from(med as Map));
+      }
       return;
     }
     final item = match;
@@ -847,7 +872,18 @@ class _ReceiveFormState extends State<_ReceiveForm> {
       _toast('${med['name']} : déjà compté à $cur pour un reste de $rem.');
       return;
     }
-    setState(() => _qtyCtrl(item).text = _fmt((cur + 1).clamp(0, rem)));
+    setState(() {
+      _qtyCtrl(item).text = _fmt((cur + 1).clamp(0, rem));
+      // Données GS1 extraites (DataMatrix) : pré-remplir lot / expiration.
+      if (result.gs1.lot != null && result.gs1.lot!.isNotEmpty) {
+        _lot.putIfAbsent('${item['id']}', () => TextEditingController())
+            .text = result.gs1.lot!;
+      }
+      if (result.gs1.expiry != null && result.gs1.expiry!.isNotEmpty) {
+        _expiry.putIfAbsent('${item['id']}', () => TextEditingController())
+            .text = result.gs1.expiry!;
+      }
+    });
     _toast('${med['name']} — reçu : ${_qtyCtrl(item).text} / $rem');
   }
 
@@ -972,6 +1008,12 @@ class _ReceiveFormState extends State<_ReceiveForm> {
                       '${S.t('receive', locale)} — ${widget.order['number']}',
                       style: const TextStyle(
                           fontSize: 18, fontWeight: FontWeight.w800)),
+                ),
+                IconButton(
+                  tooltip: 'Scan continu (réception)',
+                  onPressed: _scanContinuous,
+                  icon: const Icon(Icons.all_inclusive_rounded,
+                      color: AppColors.pharmaGold),
                 ),
                 IconButton(
                   tooltip: 'Scanner produit',

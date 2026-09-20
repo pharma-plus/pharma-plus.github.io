@@ -155,19 +155,36 @@ class _StockAuditTabState extends State<StockAuditTab> {
     await _open('${r.data?['id']}');
   }
 
-  /// Scan réel : identifie le produit, incrémente sa quantité comptée.
-  /// Anti-doublon : un même code ignoré s'il est rescanné < 1.2 s.
+  /// Scan réel (mode simple) : identifie le produit, incrémente sa quantité comptée.
   Future<void> _scan() async {
     final result = await BarcodeScannerSheet.show(context,
         title: 'Scanner produit (audit)');
     if (result == null || !mounted) return;
+    await _processScan(result);
+  }
+
+  /// SCAN CONTINU : l'écran caméra reste ouvert, chaque lecture compte +1
+  /// sur la ligne correspondante (inventaire de rayon entier sans interruption).
+  Future<void> _scanContinuous() async {
+    await BarcodeScannerSheet.showContinuous(context,
+        title: 'Scan continu (audit)',
+        onScan: (result) => _processScan(result, continuous: true));
+    if (!mounted) return;
+    await _open('${_openSession?['id']}'); // rafraîchir les compteurs
+  }
+
+  /// Traitement d'une lecture de scan (mode simple ou continu).
+  /// Anti-doublon : un même code ignoré s'il est rescanné < 1.2 s.
+  Future<void> _processScan(ScanResult result, {bool continuous = false}) async {
     final code = result.lookupCode;
-    if (code.isEmpty) return;
+    if (code.isEmpty || !mounted) return;
     final now = DateTime.now();
     if (code == _lastScannedCode &&
         now.difference(_lastScanAt).inMilliseconds < 1200) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Scan identique ignoré (protection anti-doublon)')));
+      if (!continuous) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Scan identique ignoré (protection anti-doublon)')));
+      }
       return;
     }
     _lastScannedCode = code;
@@ -178,7 +195,15 @@ class _StockAuditTabState extends State<StockAuditTab> {
         .get('/catalog/medications/barcode/${Uri.encodeComponent(code)}');
     if (!mounted) return;
     if (!lookup.success || lookup.data == null) {
-      await _showUnknownProductDialog(code);
+      // Produit inconnu : JAMAIS de création automatique (anti-doublon).
+      if (continuous) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                'Produit non reconnu ($code) — utilisez le scan simple '
+                'pour le créer ou l\u2019associer.')));
+      } else {
+        await _showUnknownProductDialog(code);
+      }
       return;
     }
     final med = lookup.data;
@@ -201,7 +226,12 @@ class _StockAuditTabState extends State<StockAuditTab> {
     if (r.success) {
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${med['name']} — compté : $newQty')));
-      await _open('${row['session_id']}');
+      // En mode continu, mise à jour locale immédiate (pas de reload complet).
+      if (continuous) {
+        setState(() => row['counted_qty'] = newQty);
+      } else {
+        await _open('${row['session_id']}');
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(r.error?.readableMessage ?? 'Erreur de comptage')));
@@ -310,6 +340,11 @@ class _StockAuditTabState extends State<StockAuditTab> {
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
           ),
+          IconButton(
+              tooltip: 'Scan continu (audit)',
+              onPressed: _scanContinuous,
+              icon: const Icon(Icons.all_inclusive_rounded,
+                  color: AppColors.pharmaGold)),
           IconButton(
               tooltip: 'Scanner produit',
               onPressed: _scan,
