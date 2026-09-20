@@ -132818,9 +132818,9 @@ $3(a,b,c){return B.AI},
 $S:156}
 A.KA.prototype={
 D(a){var s=this.c
-return A.a_L("assets/branding/pharma-logo-icon-512.png",null,B.dt,B.mI,s,"PHARMA+",s)}}
+return A.a_L("assets/branding/pharma-logo-icon-512.webp",null,B.dt,B.mI,s,"PHARMA+",s)}}
 A.rW.prototype={
-D(a){return A.a_L("assets/branding/pharma-logo-full.png",null,B.dt,B.mI,null,"PHARMA+ \u2014 Gestion intelligente de votre pharmacie",this.c)}}
+D(a){return A.a_L("assets/branding/pharma-logo-full.webp",null,B.dt,B.mI,null,"PHARMA+ \u2014 Gestion intelligente de votre pharmacie",this.c)}}
 A.a6B.prototype={
 D(a){var s,r=null,q=A.P(a),p=A.b([new A.bH(0,B.ax,B.al.S(0.45),B.fD,14)],t.V),o=t.p
 p=A.b([A.aF(r,A.cQ(this.c,B.eW,r,22),B.I,r,r,new A.av(r,r,r,r,p,B.hX,B.cv),r,44,r,r,r,r,44),B.e6],o)

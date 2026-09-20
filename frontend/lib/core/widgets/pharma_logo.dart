@@ -14,8 +14,8 @@ class PharmaPlusLogo extends StatelessWidget {
   final bool showText;
 
   /// Chemin de l'asset officiel (symbole seul, fond transparent).
-  /// Version 512 px : poids optimisé (265 Ko) pour sidebar/login/header.
-  static const String assetPath = 'assets/branding/pharma-logo-icon-512.png';
+  /// Variante WebP 53 Ko (vs 259 Ko PNG) — rendu identique, chargement rapide.
+  static const String assetPath = 'assets/branding/pharma-logo-icon-512.webp';
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +45,9 @@ class PharmaFullLogo extends StatelessWidget {
   final double width;
 
   /// Asset officiel complet (fond transparent, ratio préservé).
-  static const String assetPath = 'assets/branding/pharma-logo-full.png';
+  /// Variante WebP 257 Ko (vs 1 Mo PNG) — le PNG reste réservé au PDF
+  /// (receipt_pdf.dart) car la génération de ticket requiert le PNG.
+  static const String assetPath = 'assets/branding/pharma-logo-full.webp';
 
   @override
   Widget build(BuildContext context) {
