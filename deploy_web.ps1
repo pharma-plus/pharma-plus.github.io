@@ -19,7 +19,7 @@ foreach ($f in $files) {
   if (Test-Path $p) { Copy-Item -Path $p -Destination $root -Force }
 }
 
-foreach ($dir in @('assets','canvaskit','icons')) {
+foreach ($dir in @('assets','canvaskit','icons','images')) {
   $from = Join-Path $src $dir
   if (Test-Path $from) {
     Copy-Item -Path $from -Destination $root -Recurse -Force
