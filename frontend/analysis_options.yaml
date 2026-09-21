@@ -11,3 +11,7 @@ analyzer:
     strict-casts: true
   errors:
     invalid_annotation_target: ignore
+  exclude:
+    # Fichiers web-only (dart:html / dart:js_util) via conditional import :
+    # l'analyse hôte (Windows) ne peut pas les résoudre ; le build web compile.
+    - lib/core/services/ocr_service_web.dart

@@ -11,6 +11,7 @@ import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/pharma_background.dart';
 import '../../core/widgets/status_chip.dart';
 import '../shell/shell_nav.dart';
+import 'prescription_ocr_dialog.dart';
 
 /// Ordonnances : saisie, suivi et délivrance.
 class PrescriptionsPage extends StatefulWidget {
@@ -294,6 +295,22 @@ class _PrescriptionFormState extends State<_PrescriptionForm> {
     });
   }
 
+  /// OCR d'ordonnance (sections 13–15) : lecture image locale, texte
+  /// modifiable, correspondances catalogue confirmées une à une par le
+  /// pharmacien. Aucune ligne n'est ajoutée automatiquement.
+  Future<void> _runOcr() async {
+    final picked = await openPrescriptionOcr(context, medications: _medications);
+    if (!mounted || picked == null || picked.isEmpty) return;
+    setState(() {
+      for (final med in picked) {
+        final line = _RxLine()
+          ..medicationId = '${med['id']}'
+          ..dosage = '${med['dosage'] ?? ''}';
+        _lines.add(line);
+      }
+    });
+  }
+
   Future<void> _save() async {
     final patient = _patient.text.trim();
     if (patient.isEmpty || _lines.isEmpty) return;
@@ -391,6 +408,14 @@ class _PrescriptionFormState extends State<_PrescriptionForm> {
                           'OCR n\u2019est configuré.',
                           style: TextStyle(fontSize: 11, color: Colors.orange)),
                       ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: _runOcr,
+                      icon: const Icon(Icons.document_scanner_outlined,
+                          size: 18, color: AppColors.pharmaGold),
+                      label: const Text('Lecture OCR de l\u2019ordonnance '
+                          '(photo/import, traitement local)'),
+                    ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: _notes,
