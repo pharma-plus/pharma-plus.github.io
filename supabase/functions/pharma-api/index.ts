@@ -1045,10 +1045,26 @@ await sbAuth.auth.signInWithPassword({ email, password });
       const medIds = [...new Set(items.map((i: any) => i.medication_id))];
       const { data: meds } = await sb
         .from("medications")
-        .select("id, name, price_purchase, price_sale, tva_rate")
+        .select("id, name, price_purchase, price_sale, tva_rate, is_parapharmacie")
         .eq("pharmacy_id", pid)
         .in("id", medIds);
       const medMap = new Map((meds ?? []).map((m: any) => [m.id, m]));
+
+      // Taux TVA par défaut de la pharmacie (Paramètres → Fiscalité) :
+      // appliqué uniquement quand le produit n'a pas de taux propre.
+      const { data: pharmacyRow } = await sb
+        .from("pharmacies")
+        .select("settings")
+        .eq("id", pid)
+        .maybeSingle();
+      const tvaDefaults = (pharmacyRow?.settings as any)?.tva ?? {};
+      const defaultTvaFor = (med: any): number => {
+        const t = Number(med?.tva_rate ?? 0);
+        if (t > 0) return t;
+        const isPara = med?.is_parapharmacie === true;
+        const fallback = isPara ? tvaDefaults.parapharmacie : tvaDefaults.medication;
+        return Number(fallback ?? 20) || 20;
+      };
 
       // Lots disponibles par médicament (FIFO : péremption la plus proche),
       // via les balances de stock de la succursale.
@@ -1089,7 +1105,7 @@ await sbAuth.auth.signInWithPassword({ email, password });
         const gross = unitPrice * qty;
         const discountAmt = gross * (discountPct / 100);
         const net = gross - discountAmt;
-        const tvaRate = Number(med.tva_rate ?? 0) || 0;
+        const tvaRate = defaultTvaFor(med);
         const tvaAmt = net * (tvaRate / 100);
         const cost = Number(med.price_purchase ?? 0) * qty;
         subtotal += net;
@@ -1126,6 +1142,43 @@ await sbAuth.auth.signInWithPassword({ email, password });
         number = `POS-${Date.now()}`;
       }
 
+      // Idempotence hors-ligne : le client fournit un identifiant unique de
+      // vente. Si elle existe déjà (rejeu réseau), on renvoie la vente
+      // existante SANS recréer (jamais de double transaction).
+      const clientSaleId: string | null =
+        (body.clientSaleId ?? body.client_sale_id ?? null) || null;
+      if (clientSaleId) {
+        const { data: existingSale } = await sb
+          .from("sales")
+          .select("id, number, total")
+          .eq("pharmacy_id", pid)
+          .eq("client_sale_id", clientSaleId)
+          .maybeSingle();
+        if (existingSale) {
+          return json({
+            data: {
+              id: existingSale.id,
+              number: existingSale.number,
+              total: existingSale.total,
+              lineCount,
+              duplicate: true,
+            },
+          });
+        }
+      }
+
+      // Session de caisse ouverte sur cette succursale : chaque vente est
+      // automatiquement rattachée à la session courante (journal de caisse).
+      const { data: openSession } = await sb
+        .from("cash_sessions")
+        .select("id")
+        .eq("pharmacy_id", pid)
+        .eq("branch_id", branchId)
+        .eq("status", "OUVERTE")
+        .order("opened_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
       // 1) Vente
       const { data: sale, error: saleErr } = await sb
         .from("sales")
@@ -1145,6 +1198,8 @@ await sbAuth.auth.signInWithPassword({ email, password });
           paid_amount: Number(paidAmount.toFixed(2)),
           change_amount: Number(changeAmount.toFixed(2)),
           payment_method: paymentMethod,
+          cash_session_id: openSession?.id ?? null,
+          client_sale_id: clientSaleId,
           notes,
         })
         .select()
@@ -1194,6 +1249,7 @@ await sbAuth.auth.signInWithPassword({ email, password });
           status: "completed",
           received_by: userId,
           reference: p.reference ?? null,
+          card_type: p.cardType ?? p.card_type ?? null,
         });
       }
 
@@ -1676,6 +1732,335 @@ await sbAuth.auth.signInWithPassword({ email, password });
       })
       .eq("id", sessionC.id);
     return json({ data: { corrections } });
+  }
+
+  /* ===========================================================
+     CAISSE — sessions (ouverture / journal / fermeture / écart)
+     =========================================================== */
+  if (path === "cash-sessions/open" && req.method === "GET") {
+    const branchQ = (url.searchParams.get("branchId") ?? "").toLowerCase();
+    let q = sb
+      .from("cash_sessions")
+      .select("*, branches(name), users(first_name, last_name)")
+      .eq("pharmacy_id", pid)
+      .eq("status", "OUVERTE")
+      .order("opened_at", { ascending: false })
+      .limit(1);
+    if (branchQ) q = q.eq("branch_id", branchQ);
+    const { data: sess } = await q.maybeSingle();
+    if (!sess) return json({ data: null });
+    const { data: salesRows } = await sb
+      .from("sales")
+      .select("id, total, payment_method")
+      .eq("cash_session_id", sess.id);
+    const saleIds = (salesRows ?? []).map((s: any) => s.id);
+    let payRows: any[] = [];
+    if (saleIds.length) {
+      const { data: pr } = await sb
+        .from("payments")
+        .select("method, card_type, amount")
+        .in("sale_id", saleIds);
+      payRows = pr ?? [];
+    }
+    const { data: events } = await sb
+      .from("cash_session_events")
+      .select("event_type, amount, method, note, created_at")
+      .eq("session_id", sess.id)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    const sum = (arr: any[], f: (x: any) => boolean) =>
+      arr.filter(f).reduce((s: number, x: any) => s + Number(x.amount ?? 0), 0);
+    const cashSales = sum(payRows, (p) => p.method === "cash");
+    const visa = sum(payRows, (p) => p.method === "card" && (p.card_type ?? "").toLowerCase() === "visa");
+    const mastercard = sum(payRows, (p) => p.method === "card" && (p.card_type ?? "").toLowerCase() === "mastercard");
+    const other = sum(payRows, (p) => p.method !== "cash" && p.method !== "card");
+    const entries = sum(events ?? [], (e) => e.event_type === "entry");
+    const exits = sum(events ?? [], (e) => e.event_type === "exit");
+    const refunds = sum(events ?? [], (e) => e.event_type === "refund");
+    const expected =
+      Number(sess.initial_cash ?? 0) + cashSales + entries - exits - refunds;
+    return json({
+      data: {
+        session: sess,
+        salesCount: (salesRows ?? []).length,
+        salesTotal: (salesRows ?? []).reduce((s: number, x: any) => s + Number(x.total ?? 0), 0),
+        cashSales: Number(cashSales.toFixed(2)),
+        cardVisa: Number(visa.toFixed(2)),
+        cardMastercard: Number(mastercard.toFixed(2)),
+        otherPayments: Number(other.toFixed(2)),
+        entries: Number(entries.toFixed(2)),
+        exits: Number(exits.toFixed(2)),
+        refunds: Number(refunds.toFixed(2)),
+        expectedCash: Number(expected.toFixed(2)),
+        events: events ?? [],
+      },
+    });
+  }
+
+  if (path === "cash-sessions" && req.method === "POST") {
+    const bodyCS = await req.json().catch(() => ({}) as any);
+    const branchCS = bodyCS.branchId ?? bodyCS.branch_id;
+    if (!branchCS)
+      return json({ error: { code: "VALIDATION", message: "branchId requis" } }, 400);
+    const payloadCS = jwtPayload(req);
+    const authEmailCS = (payloadCS?.email as string) ?? "";
+    let userIdCS: string | null = null;
+    if (authEmailCS) {
+      const { data: u } = await sb.from("users").select("id").ilike("email", authEmailCS).maybeSingle();
+      userIdCS = u?.id ?? null;
+    }
+    const { data: numCS } = await sb.rpc("fn_next_number", {
+      p_pharmacy: pid,
+      p_prefix: "CAISSE",
+    });
+    const { data: sess, error: eCS } = await sb
+      .from("cash_sessions")
+      .insert({
+        pharmacy_id: pid,
+        branch_id: branchCS,
+        user_id: userIdCS,
+        number: numCS ?? `CAISSE-${Date.now()}`,
+        initial_cash: Number(bodyCS.initialCash ?? 0),
+        notes: bodyCS.notes ?? null,
+      })
+      .select()
+      .single();
+    if (eCS) return json({ error: { code: "SESSION_FAILED", message: eCS.message } }, 400);
+    await sb.from("audit_logs").insert({
+      pharmacy_id: pid,
+      user_id: userIdCS,
+      action: "cash_session_open",
+      module: "cash",
+      entity: "cash_sessions",
+      entity_id: sess.id,
+      new_values: { initial_cash: Number(bodyCS.initialCash ?? 0) },
+    });
+    return json({ data: sess });
+  }
+
+  mm = path.match(/^cash-sessions\/([0-9a-f-]{36})\/events$/i);
+  if (mm && req.method === "POST") {
+    const bodyE = await req.json().catch(() => ({}) as any);
+    const type = String(bodyE.eventType ?? bodyE.event_type ?? "");
+    if (!["entry", "exit", "refund", "correction"].includes(type))
+      return json(
+        { error: { code: "VALIDATION", message: "Type d'événement invalide" } },
+        400,
+      );
+    const payloadE = jwtPayload(req);
+    const authEmailE = (payloadE?.email as string) ?? "";
+    let userIdE: string | null = null;
+    if (authEmailE) {
+      const { data: u } = await sb.from("users").select("id").ilike("email", authEmailE).maybeSingle();
+      userIdE = u?.id ?? null;
+    }
+    const { data: ev, error: evErr } = await sb
+      .from("cash_session_events")
+      .insert({
+        pharmacy_id: pid,
+        session_id: mm[1],
+        event_type: type,
+        amount: Number(bodyE.amount ?? 0),
+        method: bodyE.method ?? "cash",
+        note: bodyE.note ?? null,
+        user_id: userIdE,
+      })
+      .select()
+      .single();
+    if (evErr) return json({ error: { code: "EVENT_FAILED", message: evErr.message } }, 400);
+    return json({ data: ev });
+  }
+
+  mm = path.match(/^cash-sessions\/([0-9a-f-]{36})\/close$/i);
+  if (mm && req.method === "POST") {
+    const bodyX = await req.json().catch(() => ({}) as any);
+    const counted = Number(bodyX.countedCash ?? bodyX.counted_cash ?? 0);
+    const payloadX = jwtPayload(req);
+    const authEmailX = (payloadX?.email as string) ?? "";
+    let userIdX: string | null = null;
+    if (authEmailX) {
+      const { data: u } = await sb.from("users").select("id").ilike("email", authEmailX).maybeSingle();
+      userIdX = u?.id ?? null;
+    }
+    const { data: sessX } = await sb
+      .from("cash_sessions")
+      .select("*")
+      .eq("id", mm[1])
+      .eq("pharmacy_id", pid)
+      .maybeSingle();
+    if (!sessX) return json({ error: { code: "NOT_FOUND", message: "Session introuvable" } }, 404);
+    if (sessX.status !== "OUVERTE")
+      return json({ error: { code: "CLOSED", message: "Caisse déjà fermée" } }, 409);
+
+    const { data: salesRows } = await sb
+      .from("sales")
+      .select("id, total, payment_method")
+      .eq("cash_session_id", sessX.id);
+    const saleIds = (salesRows ?? []).map((s: any) => s.id);
+    let payRows: any[] = [];
+    if (saleIds.length) {
+      const { data: pr } = await sb
+        .from("payments")
+        .select("method, card_type, amount")
+        .in("sale_id", saleIds);
+      payRows = pr ?? [];
+    }
+    const { data: eventsX } = await sb
+      .from("cash_session_events")
+      .select("event_type, amount")
+      .eq("session_id", sessX.id);
+    const sumX = (arr: any[], f: (x: any) => boolean) =>
+      arr.filter(f).reduce((s: number, x: any) => s + Number(x.amount ?? 0), 0);
+    const cashSales = sumX(payRows, (p) => p.method === "cash");
+    const visa = sumX(payRows, (p) => p.method === "card" && (p.card_type ?? "").toLowerCase() === "visa");
+    const mastercard = sumX(payRows, (p) => p.method === "card" && (p.card_type ?? "").toLowerCase() === "mastercard");
+    const other = sumX(payRows, (p) => p.method !== "cash" && p.method !== "card");
+    const entriesX = sumX(eventsX ?? [], (e) => e.event_type === "entry");
+    const exitsX = sumX(eventsX ?? [], (e) => e.event_type === "exit");
+    const refundsX = sumX(eventsX ?? [], (e) => e.event_type === "refund");
+    const expected =
+      Number(sessX.initial_cash ?? 0) + cashSales + entriesX - exitsX - refundsX;
+    const diff = Number((counted - expected).toFixed(2));
+
+    const { data: closed, error: cErr } = await sb
+      .from("cash_sessions")
+      .update({
+        status: "FERMEE",
+        closed_at: new Date().toISOString(),
+        closed_by: userIdX,
+        expected_cash: Number(expected.toFixed(2)),
+        counted_cash: Number(counted.toFixed(2)),
+        difference: diff,
+        totals_cash: Number(cashSales.toFixed(2)),
+        totals_card_visa: Number(visa.toFixed(2)),
+        totals_card_mastercard: Number(mastercard.toFixed(2)),
+        totals_other: Number(other.toFixed(2)),
+        notes: bodyX.notes ?? sessX.notes,
+      })
+      .eq("id", sessX.id)
+      .select()
+      .single();
+    if (cErr) return json({ error: { code: "CLOSE_FAILED", message: cErr.message } }, 400);
+
+    // Historique : audit caisse attendu vs compté (table existante).
+    await sb.from("cash_audits").insert({
+      pharmacy_id: pid,
+      branch_id: sessX.branch_id,
+      expected_cash: Number(expected.toFixed(2)),
+      counted_cash: Number(counted.toFixed(2)),
+      difference: diff,
+      sales_total: (salesRows ?? []).reduce((s: number, x: any) => s + Number(x.total ?? 0), 0),
+      payments_cash: Number(cashSales.toFixed(2)),
+      payments_card: Number((visa + mastercard).toFixed(2)),
+      payments_other: Number(other.toFixed(2)),
+      notes: `Fermeture caisse ${sessX.number ?? ""}`.trim(),
+      user_id: userIdX,
+      cash_session_id: sessX.id,
+    });
+    await sb.from("audit_logs").insert({
+      pharmacy_id: pid,
+      user_id: userIdX,
+      action: "cash_session_close",
+      module: "cash",
+      entity: "cash_sessions",
+      entity_id: sessX.id,
+      old_values: { status: "OUVERTE" },
+      new_values: { status: "FERMEE", expected, counted, difference: diff },
+    });
+    return json({ data: closed });
+  }
+
+  /* ===========================================================
+     MAINTENANCE — réinitialisations contrôlées (Paramètres)
+     Niveau "full" volontairement NON automatisé : intervention
+     manuelle exigée pour ne jamais détruire par erreur.
+     =========================================================== */
+  if (path === "maintenance/reset" && req.method === "POST") {
+    const bodyM = await req.json().catch(() => ({}) as any);
+    const level = String(bodyM.level ?? "");
+    const confirmation = String(bodyM.confirmation ?? "");
+    if (confirmation !== "REINITIALISER")
+      return json(
+        { error: { code: "VALIDATION", message: "Confirmation invalide (tapez REINITIALISER)" } },
+        400,
+      );
+    const payloadM = jwtPayload(req);
+    const authEmailM = (payloadM?.email as string) ?? "";
+    let userIdM: string | null = null;
+    let allowedM = false;
+    if (authEmailM) {
+      const { data: u } = await sb
+        .from("users")
+        .select("id, role_id, is_super_admin")
+        .ilike("email", authEmailM)
+        .maybeSingle();
+      userIdM = u?.id ?? null;
+      if (u && (u.is_super_admin || !u.role_id)) allowedM = true;
+      else if (u?.role_id) {
+        const { data: perms } = await sb
+          .from("role_permissions")
+          .select("permission_code")
+          .eq("role_id", u.role_id);
+        allowedM = (perms ?? []).some((p: any) => p.permission_code === "settings:edit");
+      }
+    }
+    if (!allowedM)
+      return json(
+        { error: { code: "FORBIDDEN", message: "Permission settings:edit requise" } },
+        403,
+      );
+
+    if (level === "test_sales") {
+      // Supprime UNIQUEMENT les ventes marquées 'VENTE-TEST' en notes.
+      const { data: testSales } = await sb
+        .from("sales")
+        .select("id")
+        .eq("pharmacy_id", pid)
+        .ilike("notes", "VENTE-TEST%");
+      const ids = (testSales ?? []).map((s: any) => s.id);
+      if (ids.length) {
+        await sb.from("stock_movements").delete().in("reference_id", ids);
+        await sb.from("payments").delete().in("sale_id", ids);
+        await sb.from("sales").delete().in("id", ids);
+      }
+      await sb.from("audit_logs").insert({
+        pharmacy_id: pid,
+        user_id: userIdM,
+        action: "maintenance_reset_test_sales",
+        module: "maintenance",
+        entity: "sales",
+        new_values: { deleted: ids.length },
+      });
+      return json({ data: { level, deletedSales: ids.length } });
+    }
+    if (level === "stock_zero") {
+      // Quantités de stock à zéro SANS supprimer les références.
+      const { data: upd, error: uErr } = await sb
+        .from("stock_balances")
+        .update({ quantity: 0 })
+        .eq("pharmacy_id", pid)
+        .select("id");
+      await sb.from("audit_logs").insert({
+        pharmacy_id: pid,
+        user_id: userIdM,
+        action: "maintenance_reset_stock",
+        module: "maintenance",
+        entity: "stock_balances",
+        new_values: { zeroed: upd?.length ?? 0 },
+      });
+      if (uErr) return json({ error: { code: "RESET_FAILED", message: uErr.message } }, 400);
+      return json({ data: { level, zeroed: upd?.length ?? 0 } });
+    }
+    return json(
+      {
+        error: {
+          code: "VALIDATION",
+          message:
+            "Niveau non supporté. Réinitialisation complète : intervention manuelle requise (protection volontaire).",
+        },
+      },
+      400,
+    );
   }
 
   /* ==== PORTAGE — AUDIT CAISSE ==== */

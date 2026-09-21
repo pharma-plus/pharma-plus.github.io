@@ -96,6 +96,27 @@ class _CatalogPageState extends State<CatalogPage> {
         text: medication != null ? '${medication.priceSale}' : '');
     final minStock = TextEditingController(
         text: medication != null ? '${medication.minStock}' : '');
+    final dosage = TextEditingController(text: medication?.dosage ?? '');
+    final form = TextEditingController(text: medication?.form ?? '');
+    final presentation =
+        TextEditingController(text: medication?.presentation ?? '');
+    final laboratory =
+        TextEditingController(text: medication?.laboratoryName ?? '');
+    final therapeuticClass =
+        TextEditingController(text: medication?.therapeuticClass ?? '');
+    // TVA : taux du produit, sinon défaut Paramètres → Fiscalité
+    // (medicament / parapharmacie) selon le mode actif.
+    double tvaRate = medication?.tvaRate ?? 0;
+    if (tvaRate <= 0) {
+      final pharmacy = await ApiClient.instance.get('/pharmacies/me');
+      final settings = (pharmacy.data is Map)
+          ? ((pharmacy.data as Map)['settings'] as Map?)
+          : null;
+      final tva = settings?['tva'] as Map?;
+      tvaRate = (tva?[_paraMode ? 'parapharmacie' : 'medication'] as num?)?.toDouble() ??
+          (_paraMode ? 20 : 16);
+    }
+    final tva = TextEditingController(text: '$tvaRate');
     String? selectedZone = medication?.shelfLocation;
     final locale = context.read<AuthStore>().locale;
 
@@ -170,6 +191,35 @@ class _CatalogPageState extends State<CatalogPage> {
                   keyboardType: TextInputType.number,
                   decoration:
                       const InputDecoration(labelText: 'Stock minimum')),
+              const SizedBox(height: 10),
+              TextField(
+                  controller: dosage,
+                  decoration: const InputDecoration(labelText: 'Dosage')),
+              const SizedBox(height: 10),
+              TextField(
+                  controller: form,
+                  decoration: const InputDecoration(labelText: 'Forme')),
+              const SizedBox(height: 10),
+              TextField(
+                  controller: presentation,
+                  decoration: const InputDecoration(labelText: 'Présentation')),
+              const SizedBox(height: 10),
+              TextField(
+                  controller: laboratory,
+                  decoration:
+                      const InputDecoration(labelText: 'Laboratoire / Fabricant')),
+              const SizedBox(height: 10),
+              TextField(
+                  controller: therapeuticClass,
+                  decoration:
+                      const InputDecoration(labelText: 'Classe thérapeutique')),
+              const SizedBox(height: 10),
+              TextField(
+                  controller: tva,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                      labelText: 'Taux TVA (%)',
+                      helperText: 'Défaut : Paramètres → Fiscalité')),
             ],
           ),
         ),
@@ -196,6 +246,16 @@ class _CatalogPageState extends State<CatalogPage> {
         'min_stock': double.tryParse(minStock.text) ?? 0,
         'shelf_location': selectedZone,
         'is_parapharmacie': _paraMode,
+        'dosage': dosage.text.trim().isEmpty ? null : dosage.text.trim(),
+        'form': form.text.trim().isEmpty ? null : form.text.trim(),
+        'presentation':
+            presentation.text.trim().isEmpty ? null : presentation.text.trim(),
+        'laboratory_name':
+            laboratory.text.trim().isEmpty ? null : laboratory.text.trim(),
+        'therapeutic_class': therapeuticClass.text.trim().isEmpty
+            ? null
+            : therapeuticClass.text.trim(),
+        'tva_rate': double.tryParse(tva.text) ?? 20,
       });
       if (mounted) _showResult(result.success, result.error?.message ?? 'Créé');
       return result.success;
@@ -209,6 +269,16 @@ class _CatalogPageState extends State<CatalogPage> {
       'price_sale': double.tryParse(sale.text),
       'min_stock': double.tryParse(minStock.text),
       'shelf_location': selectedZone,
+      'dosage': dosage.text.trim().isEmpty ? null : dosage.text.trim(),
+      'form': form.text.trim().isEmpty ? null : form.text.trim(),
+      'presentation':
+          presentation.text.trim().isEmpty ? null : presentation.text.trim(),
+      'laboratory_name':
+          laboratory.text.trim().isEmpty ? null : laboratory.text.trim(),
+      'therapeutic_class': therapeuticClass.text.trim().isEmpty
+          ? null
+          : therapeuticClass.text.trim(),
+      'tva_rate': double.tryParse(tva.text) ?? 20,
     });
     if (mounted) {
       _showResult(result.success, result.error?.message ?? 'Enregistré');

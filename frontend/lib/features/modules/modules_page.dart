@@ -12,6 +12,7 @@ import '../catalog/catalog_page.dart';
 import '../customers/customers_page.dart';
 import '../dashboard/dashboard_page.dart';
 import '../employees/employees_page.dart';
+import '../stock/inventory_page.dart';
 import '../pos/pos_page.dart';
 import '../prescriptions/prescriptions_page.dart';
 import '../purchases/purchases_page.dart';
@@ -95,6 +96,10 @@ class ModulesPage extends StatelessWidget {
           icon: Icons.videocam_outlined,
           label: S.t('cameras', locale),
           builder: (_) => const CamerasPage()),
+      _ModuleTile(
+          icon: Icons.inventory_2_outlined,
+          label: 'Inventaire',
+          builder: (_) => const InventoryPage()),
       _ModuleTile(
           icon: Icons.settings_outlined,
           label: S.t('settings', locale),

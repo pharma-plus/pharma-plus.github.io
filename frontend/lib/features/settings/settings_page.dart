@@ -304,6 +304,11 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 16),
           _PrintingSection(pharmacyName: auth.user?.pharmacyName ?? 'PHARMA+'),
           const SizedBox(height: 16),
+          _Section(
+            title: 'Maintenance — Réinitialisation',
+            child: _MaintenanceSection(),
+          ),
+          const SizedBox(height: 16),
           GlassCard(
             child: Column(
               children: [
@@ -1151,5 +1156,141 @@ class _TvaSectionState extends State<_TvaSection> {
         ),
       ),
     ]);
+  }
+}
+
+/// ============================================================
+/// MAINTENANCE — Réinitialisations contrôlées (Phase 21).
+/// · Ventes de test : supprime UNIQUEMENT les ventes marquées
+///   'VENTE-TEST' (jamais les ventes réelles).
+/// · Stock à zéro : quantités remises à 0, références conservées.
+/// · Réinitialisation complète : volontairement NON automatisée
+///   (protection des données de production).
+/// Double confirmation : case cochée + texte REINITIALISER.
+/// ============================================================
+class _MaintenanceSection extends StatefulWidget {
+  @override
+  State<_MaintenanceSection> createState() => _MaintenanceSectionState();
+}
+
+class _MaintenanceSectionState extends State<_MaintenanceSection> {
+  bool _busy = false;
+
+  Future<void> _confirmAndRun(String level, String title, String description,
+      String consequence) async {
+    final checkedCtrl = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title, style: const TextStyle(color: Colors.white)),
+        backgroundColor: AppColors.pharmaSurface,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(description,
+                style: const TextStyle(color: Colors.white70, fontSize: 13)),
+            const SizedBox(height: 10),
+            Text('Conséquence : $consequence',
+                style: const TextStyle(color: AppColors.danger, fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: checkedCtrl,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Tapez REINITIALISER pour confirmer',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Annuler')),
+          FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+              onPressed: () =>
+                  Navigator.pop(context, checkedCtrl.text.trim() == 'REINITIALISER'),
+              child: const Text('Réinitialiser')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    setState(() => _busy = true);
+    final r = await ApiClient.instance.post('/maintenance/reset',
+        body: {'level': level, 'confirmation': 'REINITIALISER'});
+    if (!mounted) return;
+    setState(() => _busy = false);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(r.success
+          ? 'Réinitialisation effectuée : ${r.data}'
+          : (r.error?.readableMessage ?? 'Échec')),
+      backgroundColor: r.success ? AppColors.success : AppColors.danger,
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Réinitialisation opérationnelle (données de démonstration/test '
+          'uniquement). Le référentiel médicaments, les comptes, les '
+          'paramètres et la structure Supabase ne sont JAMAIS touchés.',
+          style: TextStyle(fontSize: 12, color: Colors.white70),
+        ),
+        const SizedBox(height: 12),
+        ListTile(
+          enabled: !_busy,
+          leading: const Icon(Icons.receipt_long_rounded,
+              color: AppColors.warning),
+          title: const Text('Ventes de test',
+              style: TextStyle(color: Colors.white, fontSize: 14)),
+          subtitle: const Text(
+              'Supprime uniquement les ventes marquées VENTE-TEST',
+              style: TextStyle(fontSize: 12, color: Colors.white60)),
+          onTap: () => _confirmAndRun(
+              'test_sales',
+              'Réinitialisation des ventes de test',
+              'Recherche toutes les ventes marquées "VENTE-TEST" en notes.',
+              'Ces ventes, leurs paiements et leurs mouvements de stock seront définitivement supprimés.'),
+        ),
+        const Divider(height: 1),
+        ListTile(
+          enabled: !_busy,
+          leading: const Icon(Icons.inventory_2_outlined,
+              color: AppColors.warning),
+          title: const Text('Stock à zéro',
+              style: TextStyle(color: Colors.white, fontSize: 14)),
+          subtitle: const Text(
+              'Met toutes les quantités de stock à 0 (références conservées)',
+              style: TextStyle(fontSize: 12, color: Colors.white60)),
+          onTap: () => _confirmAndRun(
+              'stock_zero',
+              'Réinitialisation du stock',
+              'Toutes les quantités de stock de la pharmacie seront mises à 0.',
+              'Les références médicaments, le référentiel et le catalogue sont conservés.'),
+        ),
+        const Divider(height: 1),
+        ListTile(
+          enabled: false,
+          leading:
+              const Icon(Icons.dangerous_rounded, color: AppColors.danger),
+          title: const Text('Réinitialisation complète',
+              style: TextStyle(color: Colors.white60, fontSize: 14)),
+          subtitle: const Text(
+              'Volontairement non automatisée — intervention manuelle requise',
+              style: TextStyle(fontSize: 12, color: Colors.white54)),
+        ),
+        if (_busy)
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Center(
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Color(0xFFE9C873))),
+          ),
+      ],
+    );
   }
 }

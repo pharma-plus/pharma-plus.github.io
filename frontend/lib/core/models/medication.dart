@@ -22,6 +22,10 @@ class Medication {
   final String? parentCategoryName;
   /// Emplacement physique : identifiant de zone du Plan 3D (ex: 'meds').
   final String? shelfLocation;
+  /// Laboratoire / fabricant (texte libre, saisie pharmacien).
+  final String? laboratoryName;
+  /// Classe thérapeutique (texte libre, saisie pharmacien).
+  final String? therapeuticClass;
 
   const Medication({
     required this.id,
@@ -45,6 +49,8 @@ class Medication {
     this.categoryName,
     this.parentCategoryName,
     this.shelfLocation,
+    this.laboratoryName,
+    this.therapeuticClass,
   });
 
   /// Zone du Plan 3D où se trouve le médicament (dérivée de `shelfLocation`).
@@ -78,6 +84,10 @@ class Medication {
         categoryName: json['category_name'] as String?,
         parentCategoryName: json['parent_category_name'] as String?,
         shelfLocation: json['shelf_location'] as String?,
+        laboratoryName: json['laboratory_name'] as String? ??
+            json['laboratoryName'] as String?,
+        therapeuticClass: json['therapeutic_class'] as String? ??
+            json['therapeuticClass'] as String?,
         stockQuantity: json['stock_quantity'] != null
             ? _d(json['stock_quantity'])
             : (json['stock'] != null ? _d(json['stock']) : null),

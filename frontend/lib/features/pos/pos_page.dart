@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
@@ -7,6 +8,7 @@ import '../../core/models/medication.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
+import '../../core/services/cash_session_service.dart';
 import '../../core/services/receipt_pdf.dart';
 import '../../core/services/offline_store.dart';
 import '../../core/theme/colors.dart';
@@ -286,9 +288,16 @@ class _PosPageState extends State<PosPage> {
       final pay = payment ??
           PaymentResult.cash(
               amount: _cart.total, received: _cart.total, change: 0);
-      final result = await ApiClient.instance.post('/sales', body: {
+      // Identifiant unique de vente (idempotence hors-ligne) : le serveur
+      // refuse tout doublon → une vente n'est JAMAIS enregistrée 2 fois.
+      final clientSaleId =
+          '${DateTime.now().millisecondsSinceEpoch}-${math.Random().nextInt(1 << 32)}'
+              .hashCode
+              .toString();
+      final saleBody = <String, dynamic>{
         'branchId': _branchId,
         'saleType': 'pos',
+        'clientSaleId': clientSaleId,
         'items': _cart.lines.map((l) => l.toPayload()).toList(),
         if (_cart.globalDiscountPercent > 0)
           'discount_percent': _cart.globalDiscountPercent,
@@ -296,7 +305,9 @@ class _PosPageState extends State<PosPage> {
           'discount_amount': _cart.globalDiscountFixed,
         if (_customerId != null) 'customerId': _customerId,
         'payments': [pay.toPayload()],
-      });
+      };
+      final result =
+          await ApiClient.instance.post('/sales', body: saleBody);
       if (result.success) {
         final change = pay.change ??
             calculateChange(received: pay.amount, total: _cart.total);
@@ -332,21 +343,14 @@ class _PosPageState extends State<PosPage> {
           );
         }
       } else if (result.error?.code == 'NETWORK_ERROR') {
+        // File hors-ligne : vente COMPLÈTE (articles + remise + paiement),
+        // jamais perdue, rejeu idempotent grâce à clientSaleId.
         await OfflineStore.instance.savePendingSale(
-          'sale-${DateTime.now().millisecondsSinceEpoch}',
-          {
-            'branchId': _branchId,
-            'items': _cart.lines.map((l) => l.toPayload()).toList(),
-            'payments': [pay.toPayload()],
-          },
+          'sale-$clientSaleId',
+          saleBody,
         );
         await OfflineStore.instance.enqueue(
-            method: 'POST',
-            path: '/sales',
-            body: {
-              'branchId': _branchId,
-              'items': _cart.lines.map((l) => l.toPayload()).toList(),
-            });
+            method: 'POST', path: '/sales', body: saleBody);
         _cart.clear();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -365,6 +369,256 @@ class _PosPageState extends State<PosPage> {
 
   // ──────────────── BUILD ────────────────
 
+  // ──────────────── CAISSE : sessions (phases 9-12) ────────────────
+  Future<void> _showCaisseDialog() async {
+    if (_branchId == null) return;
+    final summary =
+        await CashSessionService.openSession(branchId: _branchId);
+    if (!mounted) return;
+    if (summary == null) {
+      await _openCashSessionDialog();
+    } else {
+      await _cashSessionManagerDialog(summary);
+    }
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _openCashSessionDialog() async {
+    final ctrl = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.pharmaSurface,
+        title: const Text('Ouverture de caisse',
+            style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+                'Crée une session unique (numéro, date, utilisateur, statut OUVERTE).',
+                style: TextStyle(color: Colors.white70, fontSize: 12)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: ctrl,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Montant initial (MAD)',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Annuler')),
+          FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Ouvrir')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final initial = double.tryParse(ctrl.text) ?? 0;
+    final done = await CashSessionService.open(
+        branchId: _branchId!, initialCash: initial);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(done ? 'Caisse ouverte · $initial MAD' : "Échec d'ouverture"),
+        backgroundColor: done ? AppColors.success : AppColors.danger,
+      ));
+    }
+  }
+
+  Widget _cashRow(String label, String value, {bool bold = false}) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label,
+                style: TextStyle(
+                    color: Colors.white70,
+                    fontWeight: bold ? FontWeight.w800 : null)),
+            Text(value,
+                style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: bold ? FontWeight.w800 : FontWeight.w600)),
+          ],
+        ),
+      );
+
+  Future<void> _cashSessionManagerDialog(Map<String, dynamic> summary) async {
+    final session = summary['session'] as Map<String, dynamic>;
+    final sessionId = session['id'] as String;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.pharmaSurface,
+        title: Text('Caisse ${session['number'] ?? ''}',
+            style: const TextStyle(color: Colors.white)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _cashRow('Ventes', '${summary['salesCount']}'),
+              _cashRow('Total ventes', '${summary['salesTotal']} MAD'),
+              _cashRow('Espèces', '${summary['cashSales']} MAD'),
+              _cashRow('Visa', '${summary['cardVisa']} MAD'),
+              _cashRow('Mastercard', '${summary['cardMastercard']} MAD'),
+              _cashRow('Autres', '${summary['otherPayments']} MAD'),
+              _cashRow('Entrées', '${summary['entries']} MAD'),
+              _cashRow('Sorties', '${summary['exits']} MAD'),
+              _cashRow('Remboursements', '${summary['refunds']} MAD'),
+              const Divider(),
+              _cashRow('Espèces théoriques',
+                  '${summary['expectedCash']} MAD',
+                  bold: true),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Fermer la fenêtre')),
+          TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _cashEventDialog(sessionId, 'entry');
+              },
+              child: const Text('Entrée')),
+          TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _cashEventDialog(sessionId, 'exit');
+              },
+              child: const Text('Sortie')),
+          FilledButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _closeCashSessionDialog(summary);
+              },
+              child: const Text('Fermer la caisse')),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _cashEventDialog(String sessionId, String type) async {
+    final amountCtrl = TextEditingController();
+    final noteCtrl = TextEditingController();
+    final label = type == 'entry' ? 'Entrée de caisse' : 'Sortie de caisse';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.pharmaSurface,
+        title: Text(label, style: const TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: amountCtrl,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              decoration: const InputDecoration(labelText: 'Montant (MAD)'),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: noteCtrl,
+              decoration:
+                  const InputDecoration(labelText: 'Note (optionnel)'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Annuler')),
+          FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Enregistrer')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final amount = double.tryParse(amountCtrl.text) ?? 0;
+    if (amount <= 0) return;
+    final done = await CashSessionService.addEvent(
+      sessionId: sessionId,
+      eventType: type,
+      amount: amount,
+      note: noteCtrl.text.trim().isEmpty ? null : noteCtrl.text.trim(),
+    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(done ? '$label enregistrée' : 'Échec enregistrement'),
+        backgroundColor: done ? AppColors.success : AppColors.danger,
+      ));
+    }
+  }
+
+  Future<void> _closeCashSessionDialog(Map<String, dynamic> summary) async {
+    final session = summary['session'] as Map<String, dynamic>;
+    final sessionId = session['id'] as String;
+    final expected = (summary['expectedCash'] as num?)?.toDouble() ?? 0;
+    final ctrl = TextEditingController(text: expected.toStringAsFixed(2));
+    double diff = 0;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: AppColors.pharmaSurface,
+          title: const Text('Fermeture de caisse',
+              style: TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _cashRow(
+                  'Espèces théoriques', '${expected.toStringAsFixed(2)} MAD'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: ctrl,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                onChanged: (v) {
+                  final counted = double.tryParse(v) ?? 0;
+                  setState(() => diff = counted - expected);
+                },
+                decoration: const InputDecoration(
+                    labelText: 'Espèces comptées (MAD)'),
+              ),
+              const SizedBox(height: 12),
+              _cashRow('ÉCART (réel − théorique)',
+                  '${diff >= 0 ? '+' : ''}${diff.toStringAsFixed(2)} MAD',
+                  bold: true),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Annuler')),
+            FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Clôturer')),
+          ],
+        ),
+      ),
+    );
+    if (ok != true) return;
+    final counted = double.tryParse(ctrl.text) ?? 0;
+    final result = await CashSessionService.close(
+        sessionId: sessionId, countedCash: counted);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(result != null
+            ? 'Caisse fermée · Écart : ${result['difference']} MAD (historisé)'
+            : 'Échec de fermeture'),
+        backgroundColor:
+            result != null ? AppColors.success : AppColors.danger,
+      ));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
@@ -374,6 +628,12 @@ class _PosPageState extends State<PosPage> {
         leading: const ShellBackButton(),
         title: Text(S.t('pos', locale)),
         actions: [
+          IconButton(
+            tooltip: 'Caisse',
+            icon: const Icon(Icons.point_of_sale_rounded,
+                color: Color(0xFFE9C873)),
+            onPressed: _branchId == null ? null : _showCaisseDialog,
+          ),
           if (_branches.isNotEmpty)
             DropdownButton<String>(
               value: _branchId,
