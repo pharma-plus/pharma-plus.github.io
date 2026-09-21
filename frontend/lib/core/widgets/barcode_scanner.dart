@@ -57,7 +57,7 @@ class BarcodeScannerSheet extends StatefulWidget {
 
   /// Ouvre le scanner en mode CONTINU : chaque scan déclenche [onScan].
   /// L'écran se ferme via « Terminer » (retourne le nombre de scans).
-  static Future<int> showContinuous(
+  static Future<int?> showContinuous(
     BuildContext context, {
     String title = 'Scan continu',
     required void Function(ScanResult result) onScan,
