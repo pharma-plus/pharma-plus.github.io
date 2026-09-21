@@ -150,6 +150,15 @@ class _CatalogPageState extends State<CatalogPage> {
                 onChanged: (v) => selectedZone = v,
               ),
               const SizedBox(height: 10),
+              // Prix d'achat : champ REQUIS par la logique existante
+              // (price_purchase déjà envoyé à l'API mais non éditable
+              // auparavant → la valeur partait toujours à 0).
+              TextField(
+                  controller: purchase,
+                  keyboardType: TextInputType.number,
+                  decoration:
+                      const InputDecoration(labelText: "Prix d'achat (DH)")),
+              const SizedBox(height: 10),
               TextField(
                   controller: sale,
                   keyboardType: TextInputType.number,
