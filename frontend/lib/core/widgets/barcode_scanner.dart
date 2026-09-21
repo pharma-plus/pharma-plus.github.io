@@ -106,6 +106,23 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet> {
         detectionSpeed: DetectionSpeed.unrestricted,
         facing: CameraFacing.back,
         autoStart: false,
+        // Lecteur professionnel : TOUS les formats codes-barres
+        // (1D pharmacie + 2D), pas seulement le QR.
+        formats: const [
+          BarcodeFormat.ean13,
+          BarcodeFormat.ean8,
+          BarcodeFormat.upcA,
+          BarcodeFormat.upcE,
+          BarcodeFormat.code128,
+          BarcodeFormat.code39,
+          BarcodeFormat.code93,
+          BarcodeFormat.codabar,
+          BarcodeFormat.itf,
+          BarcodeFormat.dataMatrix,
+          BarcodeFormat.pdf417,
+          BarcodeFormat.aztec,
+          BarcodeFormat.qrCode,
+        ],
       );
       // Small delay to ensure widget tree is ready
       await Future.delayed(const Duration(milliseconds: 200));
@@ -347,7 +364,7 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet> {
                         left: 0,
                         right: 0,
                         child: Text(
-                          'Placez le code-barres ou QR dans le cadre',
+                          'Lecture pro : EAN-13 · EAN-8 · UPC · Code128 · Code39 · DataMatrix · QR',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.7),

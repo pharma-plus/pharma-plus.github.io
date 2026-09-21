@@ -8,6 +8,7 @@ import '../../core/services/api_list.dart';
 import '../floor_plan/pharmacy_plan_page.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
+import '../../core/widgets/barcode_scanner.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
 import '../shell/shell_nav.dart';
@@ -115,9 +116,28 @@ class _CatalogPageState extends State<CatalogPage> {
                   controller: dci,
                   decoration: const InputDecoration(labelText: 'DCI')),
               const SizedBox(height: 10),
+              // Code-barres + lecteur intégré (bouton scanner pro).
               TextField(
                   controller: barcode,
-                  decoration: const InputDecoration(labelText: 'EAN-13')),
+                  decoration: InputDecoration(
+                    labelText: 'Code-barres (EAN-13)',
+                    suffixIcon: IconButton(
+                      tooltip: 'Scanner le code-barres',
+                      icon: const Icon(
+                        Icons.qr_code_scanner_rounded,
+                        color: AppColors.emeraldLight,
+                      ),
+                      onPressed: () async {
+                        final r = await BarcodeScannerSheet.show(
+                          context,
+                          title: 'Scanner le code-barres du médicament',
+                        );
+                        if (r != null) {
+                          barcode.text = r.lookupCode;
+                        }
+                      },
+                    ),
+                  )),
               DropdownButtonFormField<String>(
                 initialValue: selectedZone,
                 decoration: InputDecoration(labelText: S.t('zone', locale)),
