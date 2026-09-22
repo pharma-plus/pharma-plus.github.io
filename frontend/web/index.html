@@ -130,12 +130,25 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
-  <script src="flutter_bootstrap.js?v=73d91f9" async></script>
   <script>
-    // ---- Progression RÉELLE de la barre (0 → 100 %) ----
-    // La barre avance par paliers tant que Flutter charge ; elle atteint
-    // 100 % au premier frame Flutter, puis l'écran est retiré. Ce n'est
-    // PAS une image ni une boucle décorative : le pourcentage évolue.
+    // Purge ancien service worker + caches stale au chargement
+    try {
+      if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+        navigator.serviceWorker.getRegistrations().then(function (regs) {
+          regs.forEach(function (r) { r.unregister(); });
+        }).catch(function () {});
+      }
+    } catch (e) {}
+    try {
+      if (caches && caches.keys) {
+        caches.keys().then(function (names) {
+          names.forEach(function (n) { caches.delete(n); });
+        }).catch(function () {});
+      }
+    } catch (e) {}
+  </script>
+  <script src="flutter_bootstrap.js?v=259" async></script>
+  <script>
     (function () {
       var fill = document.getElementById('pmg-fill');
       var pct = document.getElementById('pmg-pct');
@@ -147,8 +160,6 @@
         if (fill) fill.style.width = value + '%';
         if (pct) pct.textContent = Math.round(value) + '%';
       }
-      // Paliers : rapide au début, puis ralentit vers ~90 % en attente
-      // du premier frame Flutter (la vraie fin de chargement).
       var timer = setInterval(function () {
         if (done) return;
         var step = value < 40 ? 4 : value < 70 ? 2 : value < 90 ? 0.7 : 0;
@@ -164,31 +175,9 @@
         }, 450);
       }
       window.addEventListener('flutter-first-frame', finish);
-      // Anti-blocage : si Flutter n'a pas peint son premier frame au bout de
-      // 15 s, on NE MASQUE PLUS l'écran de chargement silencieusement (c'était
-      // la cause de l'écran vert pétrole vide sur Mac : DOM splash retiré,
-      // canvas Flutter jamais peint). On affiche un bouton de secours et on
-      // purge tout service worker périmé qui servirait un vieux build.
-      setTimeout(function () {
-        if (done) return;
-        try {
-          if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
-            navigator.serviceWorker.getRegistrations().then(function (regs) {
-              regs.forEach(function (r) { r.unregister(); });
-            }).catch(function () {});
-          }
-        } catch (e) {}
-        var lt = el ? el.querySelector('.pmg-loadtext') : null;
-        if (lt) lt.textContent = 'Le chargement prend plus de temps que prévu.';
-        var btn = document.createElement('button');
-        btn.textContent = 'Recharger la page';
-        btn.style.cssText = 'margin-top:14px;padding:12px 26px;border-radius:50px;' +
-          'border:1px solid rgba(233,200,115,0.8);background:#E9C873;color:#07201B;' +
-          'font-size:14px;font-weight:800;cursor:pointer;';
-        btn.onclick = function () { window.location.reload(); };
-        btn.id = 'pmg-reload-btn';
-        if (el && !document.getElementById('pmg-reload-btn')) el.appendChild(btn);
-      }, 15000);
+      // Fallback absolu : même si flutter-first-frame ne se déclenche jamais
+      // (Mac Safari), on retire le splash après 10s pour révéler le canvas Flutter.
+      setTimeout(finish, 10000);
     })();
   </script>
 </body>
