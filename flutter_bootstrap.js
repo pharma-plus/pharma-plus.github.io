@@ -35,4 +35,4 @@ if (!window._flutter) {
 }
 _flutter.buildConfig = {"engineRevision":"83675ed27633283e7fc296c8bca22e841224c096","builds":[{"compileTarget":"dart2js","renderer":"html","mainJsPath":"main.dart.js"}]};
 
-_flutter.loader.load();
+_flutter.loader.load({config:{renderer:'html'}});

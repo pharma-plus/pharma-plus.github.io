@@ -108,6 +108,19 @@
   </style>
 </head>
 <body>
+  <!-- Bloquer WebGL AVANT Flutter : force Canvas2D (fix Safari Mac context lost) -->
+  <script>
+    (function(){
+      var origGetContext = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function(type, attrs) {
+        if (type === 'webgl' || type === 'webgl2' || type === 'experimental-webgl') {
+          console.log('[PHARMA+] WebGL bloqué pour ' + type + ' — fallback Canvas2D');
+          return null;
+        }
+        return origGetContext.call(this, type, attrs);
+      };
+    })();
+  </script>
   <!-- Écran de chargement PHARMA+ (masqué une fois Flutter initialisé) -->
   <div id="pmg-loading">
     <img class="pmg-logo" src="assets/assets/branding/pharma-logo-full.webp"
