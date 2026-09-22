@@ -13,6 +13,7 @@ import 'package:printing/printing.dart';
 import '../../core/services/api_client.dart';
 import '../../core/widgets/barcode_scanner.dart' as scanner;
 import '../../core/theme/colors.dart';
+import '../shell/shell_nav.dart';
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
@@ -249,6 +250,7 @@ class _InventoryPageState extends State<InventoryPage> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
+        leading: const ShellBackButton(),
         title: const Text('Inventaire physique'),
         actions: [
           IconButton(

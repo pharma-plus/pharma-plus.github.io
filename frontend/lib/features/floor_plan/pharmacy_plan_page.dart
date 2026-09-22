@@ -292,7 +292,7 @@ class _Header extends StatelessWidget {
         children: [
           // â† HOME : retour toujours visible, sortie garantie de la page
           // (navigation interne + bouton retour navigateur fonctionnels).
-          const BackArrowButton(),
+          const ShellBackButton(),
           const SizedBox(width: 2),
           Container(
             width: 44,

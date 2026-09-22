@@ -7,6 +7,7 @@ import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/glass_card.dart';
+import '../shell/shell_nav.dart';
 
 class TwoFactorPage extends StatefulWidget {
   final String token;
@@ -59,7 +60,9 @@ class _TwoFactorPageState extends State<TwoFactorPage> {
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
     return Scaffold(
-      appBar: AppBar(title: Text(S.t('twoFactorTitle', locale))),
+      appBar: AppBar(
+        leading: const ShellBackButton(),
+        title: Text(S.t('twoFactorTitle', locale))),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
