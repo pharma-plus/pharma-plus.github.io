@@ -131,6 +131,30 @@
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
   <script>
+    // Diagnostic : tracage du chargement Flutter
+    window.__pharmaLog = [];
+    function _pharmaLog(msg) {
+      window.__pharmaLog.push(new Date().toISOString().slice(11,19) + ' ' + msg);
+      console.log('[PHARMA+] ' + msg);
+    }
+    _pharmaLog('index.html charged');
+    // Verifier si flutter_bootstrap.js charge
+    var origAppend = document.head.appendChild.bind(document.head);
+    document.head.appendChild = function(node) {
+      if (node.tagName === 'SCRIPT' && node.src && node.src.indexOf('flutter_bootstrap') !== -1) {
+        _pharmaLog('flutter_bootstrap.js detected: ' + node.src);
+        node.addEventListener('error', function() { _pharmaLog('ERROR: flutter_bootstrap.js failed to load'); });
+        node.addEventListener('load', function() { _pharmaLog('flutter_bootstrap.js loaded OK'); });
+      }
+      if (node.tagName === 'SCRIPT' && node.src && node.src.indexOf('main.dart') !== -1) {
+        _pharmaLog('main.dart.js detected: ' + node.src);
+        node.addEventListener('error', function() { _pharmaLog('ERROR: main.dart.js failed to load'); });
+        node.addEventListener('load', function() { _pharmaLog('main.dart.js loaded OK'); });
+      }
+      return origAppend(node);
+    };
+  </script>
+  <script>
     // Purge ancien service worker + caches stale au chargement
     try {
       if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
@@ -147,7 +171,7 @@
       }
     } catch (e) {}
   </script>
-  <script src="flutter_bootstrap.js?v=259" async></script>
+  <script src="flutter_bootstrap.js?v=260" async></script>
   <script>
     (function () {
       var fill = document.getElementById('pmg-fill');
@@ -175,9 +199,18 @@
         }, 450);
       }
       window.addEventListener('flutter-first-frame', finish);
-      // Fallback absolu : même si flutter-first-frame ne se déclenche jamais
-      // (Mac Safari), on retire le splash après 10s pour révéler le canvas Flutter.
       setTimeout(finish, 10000);
+      // Diag : après 15s, si on voit toujours l'écran vert,
+      // afficher un message d'aide
+      setTimeout(function () {
+        if (done) return;
+        var diag = document.createElement('div');
+        diag.style.cssText = 'position:fixed;bottom:20px;left:20px;right:20px;padding:16px;' +
+          'background:rgba(0,0,0,0.85);color:#fff;font:13px/1.4 monospace;border-radius:12px;z-index:99999;';
+        diag.textContent = 'PHARMA+ diagnostic: Flutter first-frame non détecté après 15s. ' +
+          'Vérifiez la console (F12) pour les erreurs.';
+        document.body.appendChild(diag);
+      }, 15000);
     })();
   </script>
 </body>

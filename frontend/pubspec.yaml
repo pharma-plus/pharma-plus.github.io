@@ -31,6 +31,9 @@ dependencies:
   # Scanner de code-barres / QR
   mobile_scanner: ^5.2.3
 
+  # Son de confirmation scanner (beep)
+  audioplayers: ^6.1.0
+
   # PDF (factures)
   pdf: ^3.11.0
   printing: ^5.13.2
@@ -54,3 +57,4 @@ flutter:
   assets:
     - assets/images/
     - assets/branding/
+    - assets/beep.wav

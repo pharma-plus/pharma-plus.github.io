@@ -8,7 +8,11 @@ import 'core/services/page_reload.dart';
 import 'core/theme/app_theme.dart';
 
 Future<void> main() async {
+  // ignore: avoid_print
+  print('[PHARMA+] main() demarre');
   WidgetsFlutterBinding.ensureInitialized();
+  // ignore: avoid_print
+  print('[PHARMA+] WidgetsFlutterBinding OK');
 
   // ---- Diagnostic global (web release inclus) ----
   // En mode release, une exception pendant le build d'un widget remplace la

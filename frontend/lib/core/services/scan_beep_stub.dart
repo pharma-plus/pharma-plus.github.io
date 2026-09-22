@@ -1,6 +1,12 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/services.dart';
 
+final _player = AudioPlayer()..setVolume(1.0);
+
 Future<void> playBeep() async {
-  try { await HapticFeedback.mediumImpact(); } catch (_) {}
-  try { await SystemSound.play(SystemSoundType.alert); } catch (_) {}
+  try { await HapticFeedback.heavyImpact(); } catch (_) {}
+  try {
+    await _player.stop();
+    await _player.play(AssetSource('beep.wav'));
+  } catch (_) {}
 }
