@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../services/barcode_engine.dart'
     if (dart.library.html) '../services/barcode_engine_web.dart'
     as engine;
 import '../services/gs1_parser.dart';
+import '../services/scan_beep.dart';
 import '../theme/colors.dart';
 
 /// Résultat du scan : code brut + format détecté + données GS1 extraites.
@@ -186,6 +186,7 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet>
     if (!mounted) return;
     final result = ScanResult(code, BarcodeFormat.unknown,
         gs1: Gs1Parser.parse(code));
+    playScanBeep();
     if (!_continuous) {
       engine.stopBarcodeCamera();
       Navigator.of(context).pop(result);
@@ -215,6 +216,7 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet>
       if (raw == null || raw.trim().isEmpty) continue;
       final result =
           ScanResult(raw.trim(), bar.format, gs1: Gs1Parser.parse(raw));
+      playScanBeep();
       if (!_continuous) {
         Navigator.of(context).pop(result);
         return;
@@ -233,10 +235,7 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet>
     });
 
     // Retour haptique + son (best effort, silencieux si non supporté).
-    HapticFeedback.mediumImpact();
-    try {
-      SystemSound.play(SystemSoundType.alert);
-    } catch (_) {}
+    playScanBeep();
 
     setState(() {
       _count++;
