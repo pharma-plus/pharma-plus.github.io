@@ -319,10 +319,7 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet>
                 SizedBox.shrink(),
               ],
       ),
-      body: GestureDetector(
-        onTap: () => initScanAudio(),
-        behavior: HitTestBehavior.translucent,
-        child: Column(
+      body: Column(
         children: [
           // ── Bandeau scan continu : compteur + dernière lecture ──
           if (_continuous)
@@ -475,7 +472,6 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet>
             ),
           ),
         ],
-      ),
       ),
     );
   }
