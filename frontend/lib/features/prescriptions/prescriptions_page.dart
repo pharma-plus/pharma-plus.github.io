@@ -362,10 +362,6 @@ class _PrescriptionFormState extends State<_PrescriptionForm> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(S.t('newPrescription', locale),
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 16),
                     TextField(
                       controller: _patient,
                       decoration: InputDecoration(
@@ -426,9 +422,6 @@ class _PrescriptionFormState extends State<_PrescriptionForm> {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Text(S.t('itemsRequired', locale),
-                            style:
-                                const TextStyle(fontWeight: FontWeight.w700)),
                         const Spacer(),
                         TextButton.icon(
                           onPressed: () =>

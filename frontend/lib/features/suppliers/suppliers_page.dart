@@ -302,13 +302,6 @@ class _SupplierFormState extends State<_SupplierForm> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                  widget.supplier == null
-                      ? S.t('newSupplier', locale)
-                      : '${widget.supplier!['name']}',
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 16),
               TextField(
                   controller: _name,
                   decoration:

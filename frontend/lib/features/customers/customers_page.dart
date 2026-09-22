@@ -319,13 +319,6 @@ class _CustomerFormState extends State<_CustomerForm> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                  widget.customer == null
-                      ? S.t('newCustomer', locale)
-                      : '${widget.customer!['name']}',
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 16),
               TextField(
                   controller: _name,
                   decoration:

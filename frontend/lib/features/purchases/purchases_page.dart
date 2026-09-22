@@ -379,10 +379,6 @@ class _OrderFormState extends State<_OrderForm> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(S.t('newOrder', locale),
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       initialValue: _supplierId,
                       decoration: InputDecoration(
@@ -438,9 +434,6 @@ class _OrderFormState extends State<_OrderForm> {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Text(S.t('itemsRequired', locale),
-                            style:
-                                const TextStyle(fontWeight: FontWeight.w700)),
                         const Spacer(),
                         TextButton.icon(
                           onPressed: _addLine,
@@ -995,12 +988,6 @@ class _ReceiveFormState extends State<_ReceiveForm> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(children: [
-                Expanded(
-                  child: Text(
-                      '${S.t('receive', locale)} â€” ${widget.order['number']}',
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w800)),
-                ),
                 IconButton(
                   tooltip: 'Scan continu (rÃ©ception)',
                   onPressed: _scanContinuous,
@@ -1014,20 +1001,10 @@ class _ReceiveFormState extends State<_ReceiveForm> {
                       color: AppColors.pharmaGold),
                 ),
               ]),
-              const SizedBox(height: 4),
-              Text(
-                  'QuantitÃ© prÃ©-remplie = RESTE Ã  recevoir. Un scan incrÃ©mente '
-                  'de 1. Aucun stock n\u2019est modifiÃ© avant la validation.',
-                  style: TextStyle(
-                      fontSize: 11.5,
-                      color: Colors.white.withValues(alpha: 0.5))),
               const SizedBox(height: 12),
               for (final item in _items) _buildLine(item, locale),
               if (_extras.isNotEmpty) ...[
                 const Divider(height: 20),
-                const Text('Produits supplÃ©mentaires',
-                    style: TextStyle(fontWeight: FontWeight.w800)),
-                const SizedBox(height: 8),
                 for (var i = 0; i < _extras.length; i++)
                   _buildExtraLine(i, locale),
               ],

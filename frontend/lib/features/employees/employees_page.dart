@@ -399,13 +399,6 @@ class _EmployeeFormState extends State<_EmployeeForm> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                  widget.employee == null
-                      ? S.t('newEmployee', locale)
-                      : '${widget.employee!['first_name']} ${widget.employee!['last_name']}',
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(

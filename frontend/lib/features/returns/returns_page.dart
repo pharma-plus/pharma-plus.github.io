@@ -251,15 +251,6 @@ class _ReturnFormState extends State<_ReturnForm> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text('Retour — ${widget.sale['number'] ?? ''}',
-                style:
-                    const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 4),
-            Text('La quantité retournée ne peut pas dépasser la quantité vendue.',
-                style: TextStyle(
-                    fontSize: 11.5,
-                    color: Colors.white.withValues(alpha: 0.5))),
-            const SizedBox(height: 14),
             if (_loading)
               const CircularProgressIndicator()
             else if (_error != null)
