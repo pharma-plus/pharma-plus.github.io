@@ -28,13 +28,13 @@ class RootGate extends StatelessWidget {
           return const _SplashScreen();
         }
         if (auth.initError) {
-          return _InitErrorScreen(
+          return _withPopScope(_InitErrorScreen(
             onRetry: auth.retryInit,
             onContinue: auth.continueToLogin,
-          );
+          ));
         }
-        if (!auth.isAuthenticated) return const LoginPage();
-        if (auth.user?.isSuperAdmin == true) return const SuperAdminPortal();
+        if (!auth.isAuthenticated) return _withPopScope(const LoginPage());
+        if (auth.user?.isSuperAdmin == true) return _withPopScope(const SuperAdminPortal());
         // Bouton retour Android / tentative de fermeture PC :
         // sous-page ouverte -> retour logique ; page racine -> dialogue.
         // La navigation interne ne ferme JAMAIS l'application.
@@ -56,6 +56,20 @@ class RootGate extends StatelessWidget {
       },
     );
   }
+}
+
+/// Enveloppe toute page racine avec PopScope pour gérer le bouton retour Android.
+Widget _withPopScope(Widget child) {
+  return Builder(
+    builder: (context) => PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        await confirmQuitApp(context);
+      },
+      child: child,
+    ),
+  );
 }
 
 /// Personnel de direction : pharmacien / admin / gestionnaire (permissions

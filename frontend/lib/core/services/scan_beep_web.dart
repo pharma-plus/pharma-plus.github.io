@@ -3,21 +3,35 @@ import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 
 /// Beep web via Web Audio API — sine 1200 Hz, 150 ms, vol 1.0.
-/// Compatible Safari iOS/macOS : AudioContext doit être créé dans un user gesture.
+/// Safari iOS exige que AudioContext soit créé dans un user gesture direct.
+/// On crée le contexte au premier appel de playBeep() (depuis un callback
+/// caméra, pas un user gesture) — Safari le suspend, mais on peut le
+/// reprendre au prochain tap utilisateur via initWebAudio().
 JSObject? _audioCtx;
 
-/// Appeler une fois lors de l'ouverture du scanner (dans un user gesture).
+/// Appeler lors d'un user gesture (tap écran scanner) pour activer l'audio.
+/// Si le contexte existe déjà mais est suspendu, on le reprend.
 void initWebAudio() {
   try {
-    _audioCtx = globalContext.callMethod(
-      'Function'.toJS,
-      'return new(window.AudioContext||window.webkitAudioContext)()'.toJS,
-    ) as JSObject?;
+    if (_audioCtx == null) {
+      _audioCtx = globalContext.callMethod(
+        'Function'.toJS,
+        'return new(window.AudioContext||window.webkitAudioContext)()'.toJS,
+      ) as JSObject?;
+    }
+    final ctx = _audioCtx;
+    if (ctx != null) {
+      final state = ctx.getProperty('state'.toJS)?.dartify() as String?;
+      if (state == 'suspended') {
+        ctx.callMethod('resume'.toJS);
+      }
+    }
   } catch (_) {}
 }
 
 Future<void> playBeep() async {
   try {
+    // Créer si nécessaire (même si suspendu, on essaie quand même)
     if (_audioCtx == null) initWebAudio();
     final ctx = _audioCtx;
     if (ctx == null) return;
@@ -25,7 +39,6 @@ Future<void> playBeep() async {
     final state = ctx.getProperty('state'.toJS)?.dartify() as String?;
     if (state == 'suspended') {
       ctx.callMethod('resume'.toJS);
-      await Future<void>.delayed(const Duration(milliseconds: 80));
     }
 
     final osc = ctx.callMethod('createOscillator'.toJS) as JSObject;

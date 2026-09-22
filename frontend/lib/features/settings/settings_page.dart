@@ -442,10 +442,19 @@ class _UsersTile extends StatelessWidget {
     return Column(
       children: [
         if (error != null)
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child:
-                Text(error!, style: const TextStyle(color: AppColors.danger)),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.danger.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
+            ),
+            child: Row(children: [
+              const Icon(Icons.error_outline_rounded, size: 16, color: AppColors.danger),
+              const SizedBox(width: 8),
+              Expanded(child: Text(error!, style: const TextStyle(color: AppColors.danger, fontSize: 12))),
+            ]),
           ),
         if (loading)
           const Center(child: CircularProgressIndicator())
@@ -534,9 +543,20 @@ class _AuditTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
     if (error != null) {
-      return Padding(
-          padding: const EdgeInsets.all(12),
-          child: Text(error!, style: const TextStyle(color: AppColors.danger)));
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: AppColors.danger.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
+        ),
+        child: Row(children: [
+          const Icon(Icons.error_outline_rounded, size: 16, color: AppColors.danger),
+          const SizedBox(width: 8),
+          Expanded(child: Text(error!, style: const TextStyle(color: AppColors.danger, fontSize: 12))),
+        ]),
+      );
     }
     if (loading) return const Center(child: CircularProgressIndicator());
     if (entries.isEmpty) {
@@ -626,8 +646,18 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
                   InputDecoration(labelText: S.t('confirmPassword', l))),
           if (_err != null) ...[
             const SizedBox(height: 8),
-            Text(_err!,
-                style: const TextStyle(color: AppColors.danger, fontSize: 12)),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.danger.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(children: [
+                const Icon(Icons.error_outline_rounded, size: 14, color: AppColors.danger),
+                const SizedBox(width: 6),
+                Expanded(child: Text(_err!, style: const TextStyle(color: AppColors.danger, fontSize: 11))),
+              ]),
+            ),
           ],
         ],
       ),
@@ -722,9 +752,18 @@ class _PharmacyEditDialogState extends State<_PharmacyEditDialog> {
                 decoration: InputDecoration(labelText: S.t('email', l))),
             if (_err != null) ...[
               const SizedBox(height: 8),
-              Text(_err!,
-                  style:
-                      const TextStyle(color: AppColors.danger, fontSize: 12)),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.danger.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.error_outline_rounded, size: 14, color: AppColors.danger),
+                  const SizedBox(width: 6),
+                  Expanded(child: Text(_err!, style: const TextStyle(color: AppColors.danger, fontSize: 11))),
+                ]),
+              ),
             ],
           ],
         ),
@@ -841,9 +880,18 @@ class _AddUserDialogState extends State<_AddUserDialog> {
             ),
             if (_err != null) ...[
               const SizedBox(height: 8),
-              Text(_err!,
-                  style:
-                      const TextStyle(color: AppColors.danger, fontSize: 12)),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.danger.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.error_outline_rounded, size: 14, color: AppColors.danger),
+                  const SizedBox(width: 6),
+                  Expanded(child: Text(_err!, style: const TextStyle(color: AppColors.danger, fontSize: 11))),
+                ]),
+              ),
             ],
           ],
         ),
@@ -1143,8 +1191,18 @@ class _TvaSectionState extends State<_TvaSection> {
       ),
       if (_error != null) ...[
         const SizedBox(height: 8),
-        Text(_error!,
-            style: const TextStyle(color: AppColors.danger, fontSize: 12)),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppColors.danger.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(children: [
+            const Icon(Icons.error_outline_rounded, size: 14, color: AppColors.danger),
+            const SizedBox(width: 6),
+            Expanded(child: Text(_error!, style: const TextStyle(color: AppColors.danger, fontSize: 11))),
+          ]),
+        ),
       ],
       const SizedBox(height: 10),
       Align(

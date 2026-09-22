@@ -105,7 +105,6 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet>
   @override
   void initState() {
     super.initState();
-    initScanAudio(); // Init audio dans le user gesture d'ouverture
     _startCamera();
   }
 
@@ -320,7 +319,10 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet>
                 SizedBox.shrink(),
               ],
       ),
-      body: Column(
+      body: GestureDetector(
+        onTap: () => initScanAudio(),
+        behavior: HitTestBehavior.translucent,
+        child: Column(
         children: [
           // ── Bandeau scan continu : compteur + dernière lecture ──
           if (_continuous)
@@ -473,6 +475,7 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet>
             ),
           ),
         ],
+      ),
       ),
     );
   }
