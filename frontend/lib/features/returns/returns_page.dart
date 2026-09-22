@@ -263,7 +263,7 @@ class _ReturnFormState extends State<_ReturnForm> {
             if (_loading)
               const CircularProgressIndicator()
             else if (_error != null)
-              Text(_error!, style: const TextStyle(color: AppColors.danger))
+              Text(_error!, style: const TextStyle(color: Colors.white70))
             else
               ..._items.map((it) {
                 final sold = _num(it['quantity']);

@@ -15,8 +15,7 @@ class ShellNav {
 }
 
 /// Bouton retour universel des sous-pages :
-/// · flèche retour (arrow_back_ios_new) qui pop la sous-page ;
-/// · si aucune sous-page dans la pile, retour au Tableau de bord.
+/// · icone maison qui retourne au Tableau de bord.
 class ShellBackButton extends StatelessWidget {
   const ShellBackButton({super.key});
 
@@ -24,6 +23,33 @@ class ShellBackButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return IconButton(
       icon: const Icon(Icons.home_rounded),
+      tooltip: 'Retour',
+      onPressed: () {
+        final rootNav = Navigator.of(context, rootNavigator: true);
+        if (rootNav.canPop()) {
+          rootNav.pop();
+        } else {
+          final localNav = Navigator.of(context);
+          if (localNav.canPop()) {
+            localNav.pop();
+          } else {
+            ShellNav.goHome();
+          }
+        }
+      },
+    );
+  }
+}
+
+/// Bouton flèche retour pour les sous-sous-pages (pages poussées).
+/// Pop la page en cours pour revenir à la page précédente.
+class BackArrowButton extends StatelessWidget {
+  const BackArrowButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
       tooltip: 'Retour',
       onPressed: () {
         final rootNav = Navigator.of(context, rootNavigator: true);

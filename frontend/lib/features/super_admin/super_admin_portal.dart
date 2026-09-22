@@ -187,7 +187,7 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
                 : _error != null
                     ? Center(
                         child: Text(_error!,
-                            style: const TextStyle(color: AppColors.danger)))
+                            style: const TextStyle(color: Colors.white70)))
                     : _pharmacies.isEmpty
                         ? Center(child: Text(S.t('noPharmacies', locale)))
                         : ListView.builder(
@@ -585,7 +585,7 @@ class _PharmacyDetailState extends State<_PharmacyDetail> {
             if (_loading)
               const Center(child: CircularProgressIndicator())
             else if (_error != null)
-              Text(_error!, style: const TextStyle(color: AppColors.danger))
+              Text(_error!, style: const TextStyle(color: Colors.white70))
             else if (_stats != null)
               Expanded(
                 child: ListView(

@@ -625,7 +625,7 @@ class _PosPageState extends State<PosPage> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        leading: const ShellBackButton(),
+        leading: const BackArrowButton(),
         title: Text(S.t('pos', locale)),
         actions: [
           IconButton(

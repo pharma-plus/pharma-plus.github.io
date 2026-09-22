@@ -152,7 +152,7 @@ class _OcrDialogState extends State<_OcrDialog> {
                       const SizedBox(height: 8),
                       Text(_error!,
                           style: const TextStyle(
-                              color: AppColors.danger, fontSize: 12)),
+                              color: Colors.white70, fontSize: 12)),
                     ],
                     const SizedBox(height: 10),
                     TextField(

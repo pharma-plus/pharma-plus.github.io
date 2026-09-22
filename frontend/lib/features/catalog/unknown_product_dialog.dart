@@ -214,7 +214,7 @@ class _UnknownProductDialogState extends State<UnknownProductDialog> {
                 const SizedBox(height: 8),
                 Text(_error!,
                     style: const TextStyle(
-                        color: AppColors.danger, fontSize: 12)),
+                        color: Colors.white70, fontSize: 12)),
               ],
             ],
           ),

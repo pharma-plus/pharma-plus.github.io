@@ -266,7 +266,7 @@ class _InventoryPageState extends State<InventoryPage> {
           : _error != null
               ? Center(
                   child: Text(_error!,
-                      style: const TextStyle(color: AppColors.danger)))
+                      style: const TextStyle(color: Colors.white70)))
               : _sessions.isEmpty
                   ? const Center(
                       child: Text('Aucun inventaire. Démarrez une session.',

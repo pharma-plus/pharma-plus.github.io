@@ -136,7 +136,7 @@ class _ScannerPageState extends State<ScannerPage> {
                                     child: Text(_errorMsg,
                                         textAlign: TextAlign.center,
                                         style: const TextStyle(
-                                            color: Colors.redAccent,
+                                            color: Colors.white70,
                                             fontSize: 10)),
                                   ),
                                 const SizedBox(height: 12),

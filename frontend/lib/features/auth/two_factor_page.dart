@@ -110,7 +110,7 @@ class _TwoFactorPageState extends State<TwoFactorPage> {
                       _error!,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                          color: AppColors.danger, fontWeight: FontWeight.w600),
+                          color: Colors.white70, fontWeight: FontWeight.w600),
                     ),
                   ],
                   const SizedBox(height: 24),
