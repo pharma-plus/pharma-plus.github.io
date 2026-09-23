@@ -594,7 +594,7 @@ class _PosPanelState extends State<PosPanel> {
         ),
         const SizedBox(height: 4),
         // ── 5) CLIENT COMPTOIR ──
-        if (!_cart.isEmpty)
+        if (_cart.isNotEmpty)
           Container(
             margin: const EdgeInsets.only(bottom: 4),
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
@@ -642,7 +642,7 @@ class _PosPanelState extends State<PosPanel> {
             ),
           ),
         // ── 6) REMISE + TVA ──
-        if (!_cart.isEmpty)
+        if (_cart.isNotEmpty)
           Row(children: [
             SizedBox(
               width: 80,
@@ -696,9 +696,9 @@ class _PosPanelState extends State<PosPanel> {
                     color: Colors.white.withValues(alpha: 0.4),
                     fontSize: 9.5)),
           ]),
-        if (!_cart.isEmpty)
+        if (_cart.isNotEmpty)
           const SizedBox(height: 4),
-        if (!_cart.isEmpty)
+        if (_cart.isNotEmpty)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
@@ -728,7 +728,7 @@ class _PosPanelState extends State<PosPanel> {
                 ]),
           ),
         // ── 7) PAIEMENT (montant reçu — espèces uniquement) ──
-        if (!_cart.isEmpty && _paymentMode == 'cash') ...[
+        if (_cart.isNotEmpty && _paymentMode == 'cash') ...[
           const SizedBox(height: 6),
           TextField(
             controller: _receivedCtrl,
@@ -796,12 +796,15 @@ class _PosPanelState extends State<PosPanel> {
           ],
         ],
         // ── 8) MODE DE PAIEMENT (3 boutons avec logos) ──
-        if (!_cart.isEmpty) ...[
+        if (_cart.isNotEmpty) ...[
           const SizedBox(height: 6),
           Row(
             children: [
               Expanded(
                 child: _PaymentModeBtn(
+                  selected: _paymentMode == 'cash',
+                  selectedColor: AppColors.emerald,
+                  onTap: () => setState(() => _paymentMode = 'cash'),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -820,14 +823,14 @@ class _PosPanelState extends State<PosPanel> {
                                   : Colors.white.withValues(alpha: 0.6))),
                     ],
                   ),
-                  selected: _paymentMode == 'cash',
-                  selectedColor: AppColors.emerald,
-                  onTap: () => setState(() => _paymentMode = 'cash'),
                 ),
               ),
               const SizedBox(width: 4),
               Expanded(
                 child: _PaymentModeBtn(
+                  selected: _paymentMode == 'visa',
+                  selectedColor: const Color(0xFF1A1F71),
+                  onTap: () => setState(() => _paymentMode = 'visa'),
                   child: Container(
                     width: 42,
                     height: 26,
@@ -843,14 +846,14 @@ class _PosPanelState extends State<PosPanel> {
                             fontWeight: FontWeight.w900,
                             letterSpacing: 1.2)),
                   ),
-                  selected: _paymentMode == 'visa',
-                  selectedColor: const Color(0xFF1A1F71),
-                  onTap: () => setState(() => _paymentMode = 'visa'),
                 ),
               ),
               const SizedBox(width: 4),
               Expanded(
                   child: _PaymentModeBtn(
+                  selected: _paymentMode == 'mastercard',
+                  selectedColor: const Color(0xFFD4760A),
+                  onTap: () => setState(() => _paymentMode = 'mastercard'),
                   child: SizedBox(
                     width: 44,
                     height: 28,
@@ -858,9 +861,6 @@ class _PosPanelState extends State<PosPanel> {
                       painter: _MastercardPainter(),
                     ),
                   ),
-                  selected: _paymentMode == 'mastercard',
-                  selectedColor: const Color(0xFFD4760A),
-                  onTap: () => setState(() => _paymentMode = 'mastercard'),
                 ),
               ),
             ],
@@ -1195,101 +1195,6 @@ class _CartRow extends StatelessWidget {
             onTap: onDelete,
             child: const Icon(Icons.close_rounded,
                 size: 14, color: Color(0xFFB3372F))),
-      ]),
-    );
-  }
-}
-
-/// Ligne monétaire des totaux.
-class _MoneyRow extends StatelessWidget {
-  final String label;
-  final String value;
-  const _MoneyRow(this.label, this.value);
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 1.5),
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text(label,
-            style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7), fontSize: 10.5)),
-        Text(value,
-            style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11.5,
-                fontWeight: FontWeight.w700)),
-      ]),
-    );
-  }
-}
-
-/// Ligne du catalogue : nom · contrôles quantité · prix.
-class _CatalogRow extends StatelessWidget {
-  final String name;
-  final String? dosage;
-  final double price;
-  final int qty;
-  final VoidCallback onPlus;
-  final VoidCallback onMinus;
-  const _CatalogRow({
-    required this.name,
-    this.dosage,
-    required this.price,
-    required this.qty,
-    required this.onPlus,
-    required this.onMinus,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 5),
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-      decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.03),
-          borderRadius: BorderRadius.circular(9),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.06))),
-      child: Row(children: [
-        Expanded(
-          child: Text('${name}${dosage != null ? ' · $dosage' : ''}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600)),
-        ),
-        SizedBox(
-          width: 86,
-          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            InkWell(
-                onTap: onMinus,
-                child: const Icon(Icons.remove_circle_outline_rounded,
-                    size: 15, color: Color(0xFF7BEBA4))),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 7),
-              child: Text('$qty',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800)),
-            ),
-            InkWell(
-                onTap: onPlus,
-                child: const Icon(Icons.add_circle_outline_rounded,
-                    size: 15, color: Color(0xFF7BEBA4))),
-          ]),
-        ),
-        SizedBox(
-          width: 62,
-          child: Text(Fmt.money(price),
-              textAlign: TextAlign.right,
-              style: const TextStyle(
-                  color: Color(0xFFE9C873),
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w800)),
-        ),
-        const SizedBox(width: 6),
       ]),
     );
   }

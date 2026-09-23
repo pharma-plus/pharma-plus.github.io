@@ -208,7 +208,7 @@ class _SettingsPageState extends State<SettingsPage> {
           available: true, onTap: () => _openTool('tva')),
       _CardDef('cardTickets', Icons.confirmation_number_outlined,
           available: true, onTap: () => _openTool('tickets')),
-      _CardDef('cardPayments', Icons.payments_outlined,
+      const _CardDef('cardPayments', Icons.payments_outlined,
           available: false), // ⛔ MANQUANT : aucun module paiements branché
       _CardDef('cardPrinters', Icons.print_outlined,
           available: true, onTap: () => _openTool('printers')),
@@ -222,7 +222,7 @@ class _SettingsPageState extends State<SettingsPage> {
           available: true, onTap: () => ShellNav.index.value = 5),
       _CardDef('sync', Icons.cloud_sync_outlined,
           available: true, onTap: () => _openTool('sync')),
-      _CardDef('cardBackup', Icons.backup_outlined,
+      const _CardDef('cardBackup', Icons.backup_outlined,
           available: false), // ⛔ MANQUANT : pas de sauvegarde dédiée
       _CardDef('reports', Icons.bar_chart_outlined,
           available: true, onTap: () => ShellNav.index.value = 9),
@@ -232,7 +232,7 @@ class _SettingsPageState extends State<SettingsPage> {
               MaterialPageRoute(builder: (_) => const AiPage()))),
       _CardDef('cardAppearance', Icons.palette_outlined,
           available: true, onTap: () => _openTool('appearance')),
-      _CardDef('cardDevices', Icons.devices_outlined,
+      const _CardDef('cardDevices', Icons.devices_outlined,
           available: false), // ⛔ MANQUANT : pas de gestion d'appareils
       _CardDef('notifications', Icons.notifications_outlined,
           available: true,
@@ -293,8 +293,10 @@ class _SettingsPageState extends State<SettingsPage> {
         const SizedBox(height: 20),
         OutlinedButton.icon(
           onPressed: () async {
+            final auth = context.read<AuthStore>();
             if (await confirmSignOut(context)) {
-              await context.read<AuthStore>().signOut();
+              if (!mounted) return;
+              await auth.signOut();
             }
           },
           icon: const Icon(Icons.logout, color: AppColors.danger),
@@ -1647,13 +1649,13 @@ class _MaintenanceSectionState extends State<_MaintenanceSection> {
               'Les références médicaments, le référentiel et le catalogue sont conservés.'),
         ),
         const Divider(height: 1),
-        ListTile(
+        const ListTile(
           enabled: false,
           leading:
-              const Icon(Icons.dangerous_rounded, color: AppColors.danger),
-          title: const Text('Réinitialisation complète',
+              Icon(Icons.dangerous_rounded, color: AppColors.danger),
+          title: Text('Réinitialisation complète',
               style: TextStyle(color: Colors.white60, fontSize: 14)),
-          subtitle: const Text(
+          subtitle: Text(
               'Volontairement non automatisée — intervention manuelle requise',
               style: TextStyle(fontSize: 12, color: Colors.white54)),
         ),

@@ -62,7 +62,9 @@ class PharmaBackground extends StatelessWidget {
       children: [
         bg,
         if (!customImage)
-          ColoredBox(color: Color(0xFF00110A).withValues(alpha: overlayOpacity)),
+          ColoredBox(
+              color:
+                  const Color(0xFF00110A).withValues(alpha: overlayOpacity)),
         child,
       ],
     );

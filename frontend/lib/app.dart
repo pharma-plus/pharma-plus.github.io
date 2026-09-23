@@ -211,9 +211,9 @@ class _SplashScreenState extends State<_SplashScreen>
                         );
                         final wide = box.maxWidth >= 420;
                         const oneLine = TextSpan(children: [welcome, rest]);
-                        final twoLines = Column(
+                        const twoLines = Column(
                           mainAxisSize: MainAxisSize.min,
-                          children: const [
+                          children: [
                             Text('Bienvenue',
                                 style: TextStyle(
                                   color: gold,
@@ -230,7 +230,7 @@ class _SplashScreenState extends State<_SplashScreen>
                           ],
                         );
                         return wide
-                            ? FittedBox(
+                            ? const FittedBox(
                                 fit: BoxFit.scaleDown,
                                 child: Text.rich(oneLine))
                             : twoLines;

@@ -500,7 +500,7 @@ class _PaymentSheetState extends State<PaymentSheet>
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.pharmaGold.withValues(alpha: 0.4))),
             child: Row(children: [
-              Icon(Icons.health_and_safety_rounded,
+              const Icon(Icons.health_and_safety_rounded,
                   color: AppColors.pharmaGold, size: 22),
               const SizedBox(width: 10),
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -511,7 +511,7 @@ class _PaymentSheetState extends State<PaymentSheet>
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.8)),
                 Text('${Fmt.money(_creditAmount)} MAD',
-                    style: TextStyle(
+                    style: const TextStyle(
                         color: AppColors.pharmaGold,
                         fontSize: 19,
                         fontWeight: FontWeight.w900)),

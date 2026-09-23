@@ -219,7 +219,7 @@ class _InventoryPageState extends State<InventoryPage> {
       build: (context) => [
         pw.Text('INVENTAIRE PHYSIQUE — ${d['branch_name'] ?? ''}',
             style:
-                pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                const pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
         pw.Text('Session ${d['id']} · ${d['started_at']} · ${d['status']}',
             style: const pw.TextStyle(fontSize: 10)),
         pw.SizedBox(height: 10),
@@ -236,7 +236,8 @@ class _InventoryPageState extends State<InventoryPage> {
                         : '${i['gap'] ?? 0}',
                   ])
               .toList(),
-          headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+          headerStyle:
+              const pw.TextStyle(fontWeight: pw.FontWeight.bold),
           cellAlignment: pw.Alignment.centerLeft,
         ),
       ],

@@ -126,7 +126,7 @@ class _HomeShellState extends State<HomeShell> {
                   elevation: 0,
                   scrolledUnderElevation: 0,
                 ),
-                inputDecorationTheme: InputDecorationThemeData(
+                inputDecorationTheme: const InputDecorationThemeData(
                   filled: true,
                   fillColor: Colors.transparent,
                 ),

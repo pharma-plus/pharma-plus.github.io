@@ -124,6 +124,7 @@ class _CatalogPageState extends State<CatalogPage> {
     }
     final tva = TextEditingController(text: '$tvaRate');
     String? selectedZone = medication?.shelfLocation;
+    if (!mounted) return false;
     final locale = context.read<AuthStore>().locale;
 
     final saved = await showDialog<bool>(

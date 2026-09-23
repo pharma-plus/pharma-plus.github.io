@@ -4,13 +4,11 @@ import 'dart:js_interop_unsafe';
 
 /// Beep web — méthode universelle compatible Safari iOS, Chrome, Firefox.
 /// Utilise un <audio> avec WAV généré en base64 (pas de user gesture requis).
-JSObject? _lastAudio;
 
 Future<void> playBeep() async {
   try {
     final audio = _createBeepAudio();
     if (audio == null) return;
-    _lastAudio = audio;
     audio.callMethod('play'.toJS);
   } catch (_) {}
 }
