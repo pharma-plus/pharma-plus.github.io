@@ -268,6 +268,14 @@ class _PrescriptionFormState extends State<_PrescriptionForm> {
   final _patient = TextEditingController();
   final _doctor = TextEditingController();
   final _notes = TextEditingController();
+
+  @override
+  void dispose() {
+    _patient.dispose();
+    _doctor.dispose();
+    _notes.dispose();
+    super.dispose();
+  }
   // Provenance de l'ordonnance (section 13) : manuelle, photo caméra, PDF.
   // Le fichier lui-même n'est pas envoyé sans moteur OCR configuré :
   // seule la PROVENANCE est historisée (traçabilité, source réel de l'API).

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:provider/provider.dart';
@@ -45,6 +46,8 @@ class _PosPageState extends State<PosPage> {
   List<Medication> _results = [];
   bool _searching = false;
   bool _checkout = false;
+  Timer? _searchDebounce;
+  int _emptyReloads = 0;
   List<Map<String, dynamic>> _branches = [];
   String? _branchId;
   List<Map<String, dynamic>> _customers = [];
@@ -97,7 +100,21 @@ class _PosPageState extends State<PosPage> {
   void dispose() {
     _search.dispose();
     _receivedCtrl.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
+  }
+
+  /// Recherche avec debounce (350 ms) : sans lui, chaque frappe = 1 requête
+  /// API (ancien comportement : flood réseau + jank sur bas de gamme).
+  void _onSearchChanged(String query) {
+    _searchDebounce?.cancel();
+    if (query.trim().isEmpty) {
+      _emptyReloads = 0;
+      _searchMedications('');
+      return;
+    }
+    _searchDebounce =
+        Timer(const Duration(milliseconds: 350), () => _searchMedications(query));
   }
 
   // ──────────────── DATA ────────────────
@@ -168,10 +185,16 @@ class _PosPageState extends State<PosPage> {
         .toList();
     _applyFilter();
     if (mounted) setState(() => _searching = false);
+    // Rechargement « cata vide » borné : max 3 tentatives, sinon boucle
+    // infinie (1 req/1,2 s à vie si le catalogue est réellement vide).
     if (query.trim().isEmpty && _catalog.isEmpty && result.success) {
+      if (_emptyReloads >= 3) return;
+      _emptyReloads++;
       await Future.delayed(const Duration(milliseconds: 1200));
       if (!mounted) return;
       if (_catalog.isEmpty && !_searching) _searchMedications('');
+    } else if (_catalog.isNotEmpty) {
+      _emptyReloads = 0;
     }
   }
 
@@ -794,7 +817,7 @@ class _PosPageState extends State<PosPage> {
         // ── Barre de recherche pleine largeur ──
         TextField(
           controller: _search,
-          onChanged: _searchMedications,
+          onChanged: _onSearchChanged,
           style: const TextStyle(color: Colors.white, fontSize: 13),
           decoration: InputDecoration(
             hintText: S.t('search', locale),

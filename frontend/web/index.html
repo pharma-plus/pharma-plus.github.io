@@ -110,11 +110,15 @@
 <body>
   <!-- Bloquer WebGL AVANT Flutter : force Canvas2D (fix Safari Mac context lost) -->
   <script>
+    // Blocage WebGL UNIQUEMENT Safari/macOS (fix « context lost ») :
+    // ne pas pénaliser Chrome/Firefox/Edge qui gèrent WebGL correctement.
     (function(){
+      var isSafari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
+      var isMac = navigator.platform && navigator.platform.indexOf('Mac') === 0;
+      if (!(isSafari && isMac)) return;
       var origGetContext = HTMLCanvasElement.prototype.getContext;
       HTMLCanvasElement.prototype.getContext = function(type, attrs) {
         if (type === 'webgl' || type === 'webgl2' || type === 'experimental-webgl') {
-          console.log('[PHARMA+] WebGL bloqué pour ' + type + ' — fallback Canvas2D');
           return null;
         }
         return origGetContext.call(this, type, attrs);
@@ -143,30 +147,6 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
-  <script>
-    // Diagnostic : tracage du chargement Flutter
-    window.__pharmaLog = [];
-    function _pharmaLog(msg) {
-      window.__pharmaLog.push(new Date().toISOString().slice(11,19) + ' ' + msg);
-      console.log('[PHARMA+] ' + msg);
-    }
-    _pharmaLog('index.html charged');
-    // Verifier si flutter_bootstrap.js charge
-    var origAppend = document.head.appendChild.bind(document.head);
-    document.head.appendChild = function(node) {
-      if (node.tagName === 'SCRIPT' && node.src && node.src.indexOf('flutter_bootstrap') !== -1) {
-        _pharmaLog('flutter_bootstrap.js detected: ' + node.src);
-        node.addEventListener('error', function() { _pharmaLog('ERROR: flutter_bootstrap.js failed to load'); });
-        node.addEventListener('load', function() { _pharmaLog('flutter_bootstrap.js loaded OK'); });
-      }
-      if (node.tagName === 'SCRIPT' && node.src && node.src.indexOf('main.dart') !== -1) {
-        _pharmaLog('main.dart.js detected: ' + node.src);
-        node.addEventListener('error', function() { _pharmaLog('ERROR: main.dart.js failed to load'); });
-        node.addEventListener('load', function() { _pharmaLog('main.dart.js loaded OK'); });
-      }
-      return origAppend(node);
-    };
-  </script>
   <script>
     // Purge ancien service worker + caches stale au chargement
     try {
@@ -213,17 +193,6 @@
       }
       window.addEventListener('flutter-first-frame', finish);
       setTimeout(finish, 10000);
-      // Diag : après 15s, si on voit toujours l'écran vert,
-      // afficher un message d'aide
-      setTimeout(function () {
-        if (done) return;
-        var diag = document.createElement('div');
-        diag.style.cssText = 'position:fixed;bottom:20px;left:20px;right:20px;padding:16px;' +
-          'background:rgba(0,0,0,0.85);color:#fff;font:13px/1.4 monospace;border-radius:12px;z-index:99999;';
-        diag.textContent = 'PHARMA+ diagnostic: Flutter first-frame non détecté après 15s. ' +
-          'Vérifiez la console (F12) pour les erreurs.';
-        document.body.appendChild(diag);
-      }, 15000);
     })();
   </script>
 </body>

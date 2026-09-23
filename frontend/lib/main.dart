@@ -8,11 +8,7 @@ import 'core/services/page_reload.dart';
 import 'core/theme/app_theme.dart';
 
 Future<void> main() async {
-  // ignore: avoid_print
-  print('[PHARMA+] main() demarre');
   WidgetsFlutterBinding.ensureInitialized();
-  // ignore: avoid_print
-  print('[PHARMA+] WidgetsFlutterBinding OK');
 
   // ---- Diagnostic global (web release inclus) ----
   // En mode release, une exception pendant le build d'un widget remplace la
@@ -21,14 +17,12 @@ Future<void> main() async {
   // à diagnostiquer. On affiche désormais une erreur visible + bouton
   // Recharger, ET on journalise l'erreur dans la console JS.
   FlutterError.onError = (details) {
-    // ignore: avoid_print
-    print('[PHARMA+] Erreur Flutter: ${details.exception}'
+    debugPrint('[PHARMA+] Erreur Flutter: ${details.exception}'
         '\n${details.stack ?? ''}');
     FlutterError.presentError(details);
   };
   ErrorWidget.builder = (details) {
-    // ignore: avoid_print
-    print('[PHARMA+] Erreur de rendu: ${details.exception}'
+    debugPrint('[PHARMA+] Erreur de rendu: ${details.exception}'
         '\n${details.stack ?? ''}');
     return _BootErrorScreen(
       title: 'Une erreur est survenue',
@@ -122,16 +116,24 @@ class PharmaGoldApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AuthStore>(
-      builder: (context, auth, _) {
-        final rtl = auth.locale == 'ar';
+    // Selector plutôt que Consumer : seul un changement de themeMode ou de
+    // locale ne reconstruit plus MaterialApp — les changements d'état
+    // d'authentification (login → dashboard) sont gérés par le Consumer
+    // interne de RootGate, et évitent un rebuild complet de l'arbre.
+    return Selector<AuthStore, ({ThemeMode themeMode, String locale})>(
+      selector: (_, auth) =>
+          (themeMode: auth.themeMode, locale: auth.locale),
+      builder: (context, values, _) {
+        final themeMode = values.themeMode;
+        final locale = values.locale;
+        final rtl = locale == 'ar';
         return MaterialApp(
           title: 'PHARMA+',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
-          themeMode: auth.themeMode,
-          locale: Locale(auth.locale),
+          themeMode: themeMode,
+          locale: Locale(locale),
           supportedLocales: const [Locale('fr'), Locale('ar'), Locale('en')],
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,

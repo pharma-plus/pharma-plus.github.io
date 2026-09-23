@@ -302,6 +302,13 @@ class _OrderFormState extends State<_OrderForm> {
   bool _saving = false;
 
   @override
+  void dispose() {
+    _expected.dispose();
+    _notes.dispose();
+    super.dispose();
+  }
+
+  @override
   void initState() {
     super.initState();
     _load();
@@ -775,6 +782,17 @@ class _ReceiveFormState extends State<_ReceiveForm> {
   String? _lastCode;
   DateTime _lastScanAt = DateTime.fromMillisecondsSinceEpoch(0);
   bool _saving = false;
+
+  @override
+  void dispose() {
+    for (final c in _qty.values) { c.dispose(); }
+    for (final c in _lot.values) { c.dispose(); }
+    for (final c in _expiry.values) { c.dispose(); }
+    for (final c in _extraQty) { c.dispose(); }
+    for (final c in _extraLot) { c.dispose(); }
+    for (final c in _extraExpiry) { c.dispose(); }
+    super.dispose();
+  }
 
   List<Map<String, dynamic>> get _items =>
       (widget.order['items'] as List? ?? const [])

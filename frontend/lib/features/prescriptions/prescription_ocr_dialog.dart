@@ -64,11 +64,19 @@ class _OcrDialogState extends State<_OcrDialog> {
   String _text = '';
   double _confidence = 0;
   final Set<String> _selectedIds = {};
+  late final TextEditingController _textCtrl =
+      TextEditingController(text: _text);
 
   @override
   void initState() {
     super.initState();
     _run();
+  }
+
+  @override
+  void dispose() {
+    _textCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _run() async {
@@ -86,6 +94,7 @@ class _OcrDialogState extends State<_OcrDialog> {
     setState(() {
       _working = false;
       _text = r.text;
+      _textCtrl.text = r.text;
       _confidence = r.confidence;
     });
   }
@@ -156,7 +165,7 @@ class _OcrDialogState extends State<_OcrDialog> {
                     ],
                     const SizedBox(height: 10),
                     TextField(
-                      controller: TextEditingController(text: _text),
+                      controller: _textCtrl,
                       maxLines: 6,
                       onChanged: (v) => _text = v,
                       decoration: const InputDecoration(

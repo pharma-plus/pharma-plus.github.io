@@ -114,13 +114,9 @@ class _SplashScreenState extends State<_SplashScreen>
   @override
   void initState() {
     super.initState();
-    // ignore: avoid_print
-    print('[PHARMA+] _SplashScreenState initState');
     _controller.forward();
     _timer = Timer(const Duration(seconds: 8), () {
       if (!mounted) return;
-      // ignore: avoid_print
-      print('[PHARMA+] Splash 8s timer - forceProceedToLogin');
       final auth = context.read<AuthStore>();
       if (!auth.isInitialized) auth.forceProceedToLogin();
     });

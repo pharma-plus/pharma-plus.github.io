@@ -6,9 +6,15 @@ import 'colors.dart';
 class AppTheme {
   AppTheme._();
 
-  static ThemeData light() => _base(Brightness.light);
+  // Mémoïsation : `ColorScheme.fromSeed` + la trentaine de sous-thèmes
+  // coûtent cher ; sans cache, chaque notifyListeners() du AuthStore
+  // reconstruisait les 2 ThemeData depuis zéro.
+  static final ThemeData _light = _base(Brightness.light);
+  static final ThemeData _dark = _base(Brightness.dark);
 
-  static ThemeData dark() => _base(Brightness.dark);
+  static ThemeData light() => _light;
+
+  static ThemeData dark() => _dark;
 
   static ThemeData _base(Brightness brightness) {
     final isDark = brightness == Brightness.dark;

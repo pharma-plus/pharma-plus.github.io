@@ -18,23 +18,17 @@ import '../accounting/accounting_page.dart';
 import '../ai/ai_page.dart';
 import '../attendance/attendance_page.dart';
 import '../cameras/cameras_page.dart';
-import '../catalog/catalog_page.dart';
-import '../customers/customers_page.dart';
-import '../employees/employees_page.dart';
 import '../floor_plan/pharmacy_plan_page.dart';
 import '../modules/modules_page.dart';
 import '../notifications/notifications_page.dart';
 import '../pos/pos_page.dart';
 import '../prescriptions/prescriptions_page.dart';
-import '../purchases/purchases_page.dart';
 import '../reference/reference_page.dart';
-import '../reports/reports_page.dart';
 import '../audit/audit_page.dart';
 import '../returns/returns_page.dart';
 import '../scanner/scanner_page.dart';
-import '../settings/settings_page.dart';
+import '../shell/shell_nav.dart';
 import '../stock/stock_page.dart';
-import '../suppliers/suppliers_page.dart';
 import '../website/website_page.dart';
 import 'pos_panel.dart';
 
@@ -217,31 +211,33 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   void _onMenuSelect(int index) {
+    // Navigation via ShellNav (IndexedStack) au lieu de push : évite les
+    // doublons de pages (2× requêtes API, pile Navigator qui grossit).
     switch (index) {
       case 1:
-        _push(const PosPage());
+        ShellNav.index.value = 2; // POS
       case 2:
-        _push(const CatalogPage());
+        ShellNav.index.value = 3; // Catalogue
       case 3:
-        _push(const StockPage());
+        ShellNav.index.value = 4; // Stock
       case 4:
-        _push(const SuppliersPage());
+        ShellNav.index.value = 5; // Fournisseurs
       case 5:
-        _push(const PurchasesPage());
+        ShellNav.index.value = 6; // Achats
       case 6:
-        _push(const CustomersPage());
+        ShellNav.index.value = 7; // Clients
       case 7:
-        _push(const EmployeesPage());
+        ShellNav.index.value = 8; // Employés
       case 8:
-        _push(const ReportsPage());
+        ShellNav.index.value = 9; // Rapports
       case 9:
-        _push(const PharmacyPlanPage());
+        ShellNav.index.value = 10; // Plan pharmacie
       case 10:
-        _push(const CamerasPage());
+        _push(const CamerasPage()); // hors shell (pas d'onglet dédié)
       case 11:
-        _push(const ScannerPage());
+        _push(const ScannerPage()); // hors shell
       case 12:
-        _push(const SettingsPage());
+        ShellNav.index.value = 11; // Tableau de contrôle
     }
   }
 
@@ -253,12 +249,17 @@ class _DashboardPageState extends State<DashboardPage> {
       barrierColor: Colors.black54,
       barrierDismissible: true, // clic HORS du menu → fermeture
       builder: (ctx) {
-        return KeyboardListener(
-          focusNode: FocusNode()..requestFocus(),
-          onKeyEvent: (event) {
-            if (event.logicalKey == LogicalKeyboardKey.escape) {
+        // Focus(autofocus) : gère son propre FocusNode (auto-disposé) —
+        // l'ancien FocusNode()..requestFocus() fuyait à chaque ouverture.
+        return Focus(
+          autofocus: true,
+          onKeyEvent: (node, event) {
+            if (event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.escape) {
               Navigator.of(ctx).pop(); // ESC → fermeture
+              return KeyEventResult.handled;
             }
+            return KeyEventResult.ignored;
           },
           child: Dialog(
             alignment: Alignment.centerLeft,
@@ -306,21 +307,22 @@ class _DashboardPageState extends State<DashboardPage> {
   VoidCallback? _kpiTap(int index) {
     switch (index) {
       case 0:
-        return () => _push(const PosPage()); // ventes du jour → POS
+        return () => ShellNav.index.value = 2; // ventes du jour → POS
       case 1:
-        return () => _push(const CatalogPage());
+        return () => ShellNav.index.value = 3; // catalogue
       case 2:
+        // Filtre « stock bas » → paramètre : push conservé (volontaire).
         return () => _push(const StockPage(initialFilter: 'low'));
       case 3:
-        return () => _push(const PurchasesPage());
+        return () => ShellNav.index.value = 6; // achats
       case 4:
-        return () => _push(const SuppliersPage());
+        return () => ShellNav.index.value = 5; // fournisseurs
       case 5:
-        return () => _push(const CustomersPage());
+        return () => ShellNav.index.value = 7; // clients
       case 6:
-        return () => _push(const EmployeesPage());
+        return () => ShellNav.index.value = 8; // employés
       default:
-        return () => _push(const ReportsPage());
+        return () => ShellNav.index.value = 9; // rapports
     }
   }
 
@@ -394,10 +396,10 @@ class _DashboardPageState extends State<DashboardPage> {
                   onMenu: showSidebar ? null : _openMenuDrawer,
                   collapsed: _sidebarCollapsed,
                   onToggleSidebar: _toggleSidebar,
-                  onSearch: () => _push(const CatalogPage()),
+                  onSearch: () => ShellNav.index.value = 3,
                   onScan: () => _push(const ScannerPage()),
                   onNotifications: () => _push(const NotificationsPage()),
-                  onSettings: () => _push(const SettingsPage()),
+                  onSettings: () => ShellNav.index.value = 11,
                   onLogout: _onLogout,
                   notificationCount: _notificationCount,
                 ),

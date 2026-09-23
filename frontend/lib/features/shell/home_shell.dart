@@ -31,6 +31,17 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   bool _syncing = false;
 
+  /// Pages déjà visitées : montées à la demande (lazy) pour éviter
+  /// d'inflammer ~24 requêtes API + 12 initState d'un coup au login.
+  final Set<int> _visited = {0};
+
+  Widget _page(int i) {
+    if (!_visited.contains(i)) return const SizedBox.shrink();
+    // TickerMode coupe les animations (glow POS, horloge…) des pages
+    // non visibles : elles ne tournent plus en arrière-plan à 60 fps.
+    return TickerMode(enabled: i == ShellNav.index.value, child: _pages[i]);
+  }
+
   static const _pages = [
     DashboardPage(),
     ModulesPage(),
@@ -49,7 +60,17 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void initState() {
     super.initState();
-    _kickSync();
+    // Sync différée : on ne la lance pas pendant la première frame qui
+    // charge déjà le dashboard (concurrence réseau inutile).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) _kickSync();
+      });
+    });
+  }
+
+  void _visit(int i) {
+    if (_visited.add(i) && mounted) setState(() {});
   }
 
   Future<void> _kickSync() async {
@@ -88,7 +109,9 @@ class _HomeShellState extends State<HomeShell> {
 
     return ValueListenableBuilder<int>(
       valueListenable: ShellNav.index,
-      builder: (context, shellIndex, _) => Scaffold(
+      builder: (context, shellIndex, _) {
+        _visit(shellIndex);
+        return Scaffold(
         backgroundColor: Colors.transparent,
         body: PharmaBackground(
           assetImage: 'assets/images/background.webp',
@@ -110,7 +133,10 @@ class _HomeShellState extends State<HomeShell> {
               ),
               child: Stack(
                 children: [
-                  IndexedStack(index: shellIndex, children: _pages),
+                  IndexedStack(
+                    index: shellIndex,
+                    children: [for (var i = 0; i < _pages.length; i++) _page(i)],
+                  ),
                   if (_syncing) _SyncBanner(label: S.t('syncing', locale)),
                 ],
               ),
@@ -137,7 +163,8 @@ class _HomeShellState extends State<HomeShell> {
                 labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
               )
             : null,
-      ),
+        );
+      },
     );
   }
 }

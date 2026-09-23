@@ -490,6 +490,13 @@ class _CashAuditTabState extends State<CashAuditTab> {
   String? _error;
 
   @override
+  void dispose() {
+    _counted.dispose();
+    _notes.dispose();
+    super.dispose();
+  }
+
+  @override
   void initState() {
     super.initState();
     _load();

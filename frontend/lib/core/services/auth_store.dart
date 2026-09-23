@@ -112,20 +112,23 @@ class AuthStore extends ChangeNotifier {
   /// Garde-fou : toute l'initialisation est bornée à 12 s maximum.
   Future<void> init() async {
     try {
-      // ignore: avoid_print
-      print('[PHARMA+] AuthStore.init() debute');
+      debugPrint('[PHARMA+] AuthStore.init() debute');
       await _doInit().timeout(const Duration(seconds: 12));
-      // ignore: avoid_print
-      print('[PHARMA+] AuthStore._doInit() termine, isAuthenticated=$isAuthenticated');
+      debugPrint(
+          '[PHARMA+] AuthStore._doInit() termine, isAuthenticated=$isAuthenticated');
     } catch (e) {
       debugPrint('[AuthStore] init error: $e');
       final isMissingPlugin = e is MissingPluginException;
       if (!_forcedLogin && !isMissingPlugin) _initError = true;
     } finally {
-      // ignore: avoid_print
-      print('[PHARMA+] AuthStore.init() finally, _initialized=$_initialized, _forcedLogin=$_forcedLogin');
+      debugPrint('[PHARMA+] AuthStore.init() finally, _initialized=$_initialized, _forcedLogin=$_forcedLogin');
       if (!_forcedLogin) {
         _initialized = true;
+        notifyListeners();
+      } else if (_accessToken != null && _user != null) {
+        // Course 8 s / 12 s : le splash a forcé l'affichage du Login pendant
+        // que _doInit restaurait la session. Sans ce notify, l'utilisateur
+        // restait bloqué sur Login avec un jeton valide. On bascule maintenant.
         notifyListeners();
       }
     }

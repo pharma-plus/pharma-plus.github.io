@@ -8,19 +8,9 @@ import '../accounting/accounting_page.dart';
 import '../ai/ai_page.dart';
 import '../attendance/attendance_page.dart';
 import '../cameras/cameras_page.dart';
-import '../catalog/catalog_page.dart';
-import '../customers/customers_page.dart';
-import '../dashboard/dashboard_page.dart';
-import '../employees/employees_page.dart';
-import '../stock/inventory_page.dart';
-import '../pos/pos_page.dart';
 import '../prescriptions/prescriptions_page.dart';
-import '../purchases/purchases_page.dart';
 import '../reference/reference_page.dart';
-import '../reports/reports_page.dart';
-import '../settings/settings_page.dart';
-import '../stock/stock_page.dart';
-import '../suppliers/suppliers_page.dart';
+import '../stock/inventory_page.dart';
 import '../website/website_page.dart';
 import '../shell/shell_nav.dart';
 
@@ -35,23 +25,23 @@ class ModulesPage extends StatelessWidget {
       _ModuleTile(
           icon: Icons.dashboard_outlined,
           label: S.t('dashboard', locale),
-          builder: (_) => const DashboardPage()),
+          shellIndex: 0),
       _ModuleTile(
           icon: Icons.point_of_sale_outlined,
           label: S.t('pos', locale),
-          builder: (_) => const PosPage()),
+          shellIndex: 2),
       _ModuleTile(
           icon: Icons.medication_outlined,
           label: S.t('catalog', locale),
-          builder: (_) => const CatalogPage()),
+          shellIndex: 3),
       _ModuleTile(
           icon: Icons.inventory_2_outlined,
           label: S.t('stock', locale),
-          builder: (_) => const StockPage()),
+          shellIndex: 4),
       _ModuleTile(
           icon: Icons.people_alt_outlined,
           label: S.t('customers', locale),
-          builder: (_) => const CustomersPage()),
+          shellIndex: 7),
       _ModuleTile(
           icon: Icons.description_outlined,
           label: S.t('prescriptions', locale),
@@ -59,7 +49,7 @@ class ModulesPage extends StatelessWidget {
       _ModuleTile(
           icon: Icons.badge_outlined,
           label: S.t('employees', locale),
-          builder: (_) => const EmployeesPage()),
+          shellIndex: 8),
       _ModuleTile(
           icon: Icons.schedule_outlined,
           label: S.t('attendance', locale),
@@ -67,11 +57,11 @@ class ModulesPage extends StatelessWidget {
       _ModuleTile(
           icon: Icons.shopping_cart_outlined,
           label: S.t('purchases', locale),
-          builder: (_) => const PurchasesPage()),
+          shellIndex: 6),
       _ModuleTile(
           icon: Icons.local_shipping_outlined,
           label: S.t('suppliers', locale),
-          builder: (_) => const SuppliersPage()),
+          shellIndex: 5),
       _ModuleTile(
           icon: Icons.account_balance_outlined,
           label: S.t('accounting', locale),
@@ -79,7 +69,7 @@ class ModulesPage extends StatelessWidget {
       _ModuleTile(
           icon: Icons.bar_chart_outlined,
           label: S.t('reports', locale),
-          builder: (_) => const ReportsPage()),
+          shellIndex: 9),
       _ModuleTile(
           icon: Icons.language_outlined,
           label: S.t('website', locale),
@@ -103,7 +93,7 @@ class ModulesPage extends StatelessWidget {
       _ModuleTile(
           icon: Icons.settings_outlined,
           label: S.t('settings', locale),
-          builder: (_) => const SettingsPage()),
+          shellIndex: 11),
     ];
 
     return Scaffold(
@@ -129,19 +119,33 @@ class ModulesPage extends StatelessWidget {
 class _ModuleTile extends StatelessWidget {
   final IconData icon;
   final String label;
-  final WidgetBuilder builder;
+  final WidgetBuilder? builder;
 
-  const _ModuleTile(
-      {required this.icon, required this.label, required this.builder});
+  /// Index de la page dans le shell : si défini, on change d'onglet au lieu
+  /// de pousser un doublon de page (double appel API, pile Navigator).
+  final int? shellIndex;
+
+  const _ModuleTile({
+    required this.icon,
+    required this.label,
+    this.builder,
+    this.shellIndex,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GlassCard(
       radius: BorderRadius.circular(20),
       onTap: () {
-        final page = builder(context);
+        final si = shellIndex;
+        if (si != null) {
+          ShellNav.index.value = si;
+          return;
+        }
+        final b = builder;
+        if (b == null) return;
         Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => page),
+          MaterialPageRoute(builder: b),
         );
       },
       child: Column(

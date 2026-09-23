@@ -360,6 +360,17 @@ class _PharmacyFormState extends State<_PharmacyForm> {
   final _phone = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _slug.dispose();
+    _city.dispose();
+    _phone.dispose();
+    _email.dispose();
+    _password.dispose();
+    super.dispose();
+  }
   String _license = 'trial';
   bool _saving = false;
 

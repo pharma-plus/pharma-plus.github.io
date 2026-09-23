@@ -91,12 +91,17 @@ dynamic _extractData(dynamic data) {
 /// Certaines plateformes d'hébergement (cold start, maintenance) renvoient
 /// une page HTML au lieu du JSON attendu — on détecte pour réessayer.
 bool _isWakePage(String body) {
-  final t = body.trim().toLowerCase();
-  if (t.startsWith('<!doctype') || t.startsWith('<html')) {
-    return t.contains('waking up') ||
-        t.contains('starting container') ||
-        t.contains('starting pharma') ||
-        t.contains('deploying');
+  // Test d'index sur un échantillon court : évite trim().toLowerCase()
+  // sur des corps de plusieurs Mo à chaque réponse.
+  if (body.isEmpty || body[0] != '<') return false;
+  final head = body.length > 512
+      ? body.substring(0, 512).toLowerCase()
+      : body.toLowerCase();
+  if (head.startsWith('<!doctype') || head.startsWith('<html')) {
+    return body.toLowerCase().contains('waking up') ||
+        body.contains('Starting container') ||
+        body.contains('Starting pharma') ||
+        body.contains('Deploying');
   }
   return false;
 }
@@ -170,15 +175,21 @@ class ApiClient {
   ///  - les erreurs réseau / timeout.
   Future<ApiResult<dynamic>> _send(Future<http.Response> Function() request,
       {bool retried = false}) async {
-    const maxWakeRetries = 10;
-    const wakeDelay = Duration(seconds: 4);
+    // Ancien plafond : 10 × 4 s + timeouts 25 s = jusqu'à ~315-650 s de blocage.
+    // On borne maintenant à 3 tentatives + un délai total maximal de 45 s.
+    const maxWakeRetries = 3;
+    const wakeDelay = Duration(seconds: 2);
+    const wakeDeadline = Duration(seconds: 45);
+    final started = DateTime.now();
     for (int attempt = 0; attempt <= maxWakeRetries; attempt++) {
       try {
         final res = await request().timeout(timeout);
 
         // Conteneur en cours de démarrage : on attend et on réessaie.
         if (_isWakePage(res.body)) {
-          if (attempt < maxWakeRetries) {
+          final expired =
+              DateTime.now().difference(started) > wakeDeadline;
+          if (attempt < maxWakeRetries && !expired) {
             await Future.delayed(wakeDelay);
             continue;
           }

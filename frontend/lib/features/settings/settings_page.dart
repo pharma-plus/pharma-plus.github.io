@@ -73,6 +73,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (r.success) {
       // Non-destructif : accepte data=[...] et data={items/rows:[...]}.
       _roles = ApiList.of(r.data);
+      setState(() {}); // sans ça, les rôles ne s'affichaient jamais seuls
     }
   }
 
@@ -597,6 +598,14 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
   String? _err;
   bool _saving = false;
 
+  @override
+  void dispose() {
+    _cur.dispose();
+    _nv.dispose();
+    _conf.dispose();
+    super.dispose();
+  }
+
   Future<void> _submit() async {
     if (_nv.text != _conf.text) {
       setState(() => _err = S.t('passwordMismatch', widget.locale));
@@ -700,6 +709,16 @@ class _PharmacyEditDialogState extends State<_PharmacyEditDialog> {
     _email = TextEditingController(text: '${p['email'] ?? ''}');
   }
 
+  @override
+  void dispose() {
+    _name.dispose();
+    _address.dispose();
+    _city.dispose();
+    _phone.dispose();
+    _email.dispose();
+    super.dispose();
+  }
+
   Future<void> _submit() async {
     if (_name.text.trim().isEmpty) return;
     setState(() => _saving = true);
@@ -799,6 +818,16 @@ class _AddUserDialogState extends State<_AddUserDialog> {
   String? _roleId;
   String? _err;
   bool _saving = false;
+
+  @override
+  void dispose() {
+    _first.dispose();
+    _last.dispose();
+    _email.dispose();
+    _phone.dispose();
+    _pass.dispose();
+    super.dispose();
+  }
 
   Future<void> _submit() async {
     if (_first.text.trim().isEmpty ||

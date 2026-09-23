@@ -14,7 +14,6 @@ import '../../core/theme/colors.dart';
 import '../../core/utils/calculations.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/barcode_scanner.dart';
-import 'payment_sheet.dart';
 import '../pos/payment_models.dart';
 import 'pos_category_grid.dart';
 
@@ -59,6 +58,7 @@ class _PosPanelState extends State<PosPanel> {
   bool _discountPercent = true;
   bool _searching = false;
   Timer? _debounce;
+  int _emptyReloads = 0;
   String _paymentMode = 'cash'; // cash | visa | mastercard
   double _received = 0;
   final _receivedCtrl = TextEditingController();
@@ -152,8 +152,12 @@ class _PosPanelState extends State<PosPanel> {
       _searching = false;
     });
     if (query.trim().isEmpty && _results.isEmpty && r.success && mounted) {
+      if (_emptyReloads >= 3) return;
+      _emptyReloads++;
       await Future.delayed(const Duration(milliseconds: 1200));
       if (mounted && _results.isEmpty && !_searching) _doSearch('');
+    } else if (_results.isNotEmpty) {
+      _emptyReloads = 0;
     }
   }
 

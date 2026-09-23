@@ -35,6 +35,12 @@ class _CatalogPageState extends State<CatalogPage> {
   late bool _paraMode = widget.parapharmacy;
 
   @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  @override
   void initState() {
     super.initState();
     final q = widget.initialQuery;

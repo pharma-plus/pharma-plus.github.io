@@ -121,8 +121,11 @@ class _LoginPageState extends State<LoginPage>
       await prefs.remove('pmg_email');
     }
 
-    final data = result.data!;
-    if (data is! Map) return;
+    final data = result.data;
+    if (data is! Map) {
+      setState(() => _error = 'Réponse inattendue du serveur. Veuillez réessayer.');
+      return;
+    }
     final map = Map<String, dynamic>.from(data);
     if (map['requireTwoFactor'] == true) {
       if (!mounted) return;

@@ -28,6 +28,12 @@ class ReturnsPage extends StatefulWidget {
 
 class _ReturnsPageState extends State<ReturnsPage> {
   final _search = TextEditingController();
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
   List<Map<String, dynamic>> _sales = [];
   bool _loading = true;
   String? _error;
@@ -181,6 +187,15 @@ class _ReturnFormState extends State<_ReturnForm> {
   bool _loading = true;
   bool _saving = false;
   String? _error;
+
+  @override
+  void dispose() {
+    for (final c in _qty.values) {
+      c.dispose();
+    }
+    _reason.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
