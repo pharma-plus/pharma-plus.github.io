@@ -33,23 +33,25 @@
 
   <title>PHARMA+ — Gestion de pharmacie</title>
   <link rel="manifest" href="manifest.json">
-  <!-- Préchargement logo splash uniquement (fond retiré pour vitesse) -->
+  <!-- Préchargement des ressources visibles du splash (logo + fond) -->
   <link rel="preload" as="image" href="assets/assets/branding/pharma-logo-full.webp" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/assets/images/background.webp">
   <style>
     html, body { margin: 0; padding: 0; background: #03100D; }
     /* ============================================================
        ÉCRAN DE CHARGEMENT PHARMA+ — conforme maquette :
        logo officiel complet + « Bienvenue » or + sous-titre +
        VRAIE barre de progression animée (HTML/CSS/JS, 0→100 %).
-       Fond dégradé pur (pas d'image) → chargement plus rapide.
-       Barre OR + rayons du soleil.
+       Fond image background.webp + barre OR + rayons du soleil.
        ============================================================ */
     #pmg-loading {
       position: fixed; inset: 0; z-index: 9999;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center; gap: 0;
       background:
-        linear-gradient(150deg, #03100D 0%, #061A15 45%, #0A1F18 70%, #020B08 100%);
+        linear-gradient(rgba(3, 16, 13, 0.66), rgba(3, 16, 13, 0.66)),
+        url('assets/assets/images/background.webp') center / cover no-repeat,
+        linear-gradient(150deg, #03100D 0%, #061A15 50%, #020B08 100%);
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       text-align: center;
       overflow: hidden;
