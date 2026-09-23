@@ -10,10 +10,14 @@ import '../../core/services/sync_engine.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/pharma_logo.dart';
+import '../ai/ai_page.dart';
+import '../audit/audit_page.dart';
+import '../notifications/notifications_page.dart';
+import '../scanner/scanner_page.dart';
 import '../shell/shell_nav.dart';
 
-/// Paramètres : profil pharmacie, compte/sécurité, utilisateurs, journal
-/// d'activité, langue, thème, synchronisation et serveur.
+/// Tableau de contrôle : grille de cartes (chargée seule à l'ouverture),
+/// chaque outil ne charge ses données qu'au clic.
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
@@ -23,39 +27,40 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   bool _syncing = false;
+
+  /// Outil actif (null = grille seule, aucun appel API).
+  String? _tool;
+
   Map<String, dynamic>? _pharmacy;
   bool _pharmacyLoading = true;
+  bool _pharmacyLoaded = false;
   List<Map<String, dynamic>> _users = [];
   List<Map<String, dynamic>> _roles = [];
   List<Map<String, dynamic>> _audit = [];
   bool _usersLoading = true;
   bool _auditLoading = true;
+  bool _usersLoaded = false;
+  bool _auditLoaded = false;
   String? _usersError;
   String? _auditError;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadPharmacy();
-    _loadUsers();
-    _loadRoles();
-    _loadAudit();
-  }
-
   Future<void> _loadPharmacy() async {
-    final r =
-        await ApiClient.instance.get('/pharmacies/me');
+    final r = await ApiClient.instance.get('/pharmacies/me');
     if (!mounted) return;
     setState(() {
       final d = r.data;
-      _pharmacy = r.success ? (d is Map<String, dynamic> ? d : (d is Map ? Map<String, dynamic>.from(d) : null)) : null;
+      _pharmacy = r.success
+          ? (d is Map<String, dynamic>
+              ? d
+              : (d is Map ? Map<String, dynamic>.from(d) : null))
+          : null;
       _pharmacyLoading = false;
+      _pharmacyLoaded = true;
     });
   }
 
   Future<void> _loadUsers() async {
-    final r =
-        await ApiClient.instance.get('/users?limit=100');
+    final r = await ApiClient.instance.get('/users?limit=100');
     if (!mounted) return;
     if (r.success) {
       // Non-destructif : accepte data=[...] et data={items/rows:[...]}.
@@ -64,6 +69,7 @@ class _SettingsPageState extends State<SettingsPage> {
       _usersError = r.error?.readableMessage;
     }
     _usersLoading = false;
+    _usersLoaded = true;
     if (mounted) setState(() {});
   }
 
@@ -78,8 +84,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _loadAudit() async {
-    final r =
-        await ApiClient.instance.get('/audit?limit=50');
+    final r = await ApiClient.instance.get('/audit?limit=50');
     if (!mounted) return;
     if (r.success) {
       // Non-destructif : accepte data=[...] et data={items/rows:[...]}.
@@ -88,7 +93,22 @@ class _SettingsPageState extends State<SettingsPage> {
       _auditError = r.error?.readableMessage;
     }
     _auditLoading = false;
+    _auditLoaded = true;
     if (mounted) setState(() {});
+  }
+
+  /// Ouvre un outil : la grille seule ne déclenchait AUCUN appel API ;
+  /// ici on ne charge que ce que l'outil demandé exige, une seule fois.
+  Future<void> _openTool(String key) async {
+    setState(() => _tool = key);
+    final needsPharmacy =
+        key == 'pharmacy' || key == 'users' || key == 'tva';
+    if (needsPharmacy && !_pharmacyLoaded) await _loadPharmacy();
+    if (key == 'users') {
+      if (!_usersLoaded) await _loadUsers();
+      if (_roles.isEmpty) await _loadRoles();
+    }
+    if (key == 'security' && !_auditLoaded) await _loadAudit();
   }
 
   Future<void> _syncNow() async {
@@ -143,90 +163,229 @@ class _SettingsPageState extends State<SettingsPage> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
           leading: const ShellBackButton(),
-          title: Text(S.t('settings', locale))),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // ---- Carte de marque : logo officiel complet PHARMA+ ----
-          GlassCard(
-            child: Row(
-              children: [
-                const PharmaFullLogo(width: 190),
-                const Spacer(),
-                Text('v1.0.0',
-                    style: TextStyle(
-                        fontSize: 11.5,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.45))),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          GlassCard(
-            child: Row(
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: const BoxDecoration(
-                    gradient: AppColors.goldGradient,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      user?.initials ?? '?',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF3E2A00),
-                      ),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(S.t('settings', locale)),
+              Text(
+                S.t('controlCenterSub', locale),
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.6)),
+              ),
+            ],
+          )),
+      body: _tool != null
+          ? _buildToolView(context, locale)
+          : _buildGrid(context, locale, user?.initials ?? '?'),
+    );
+  }
+
+  /// Grille de cartes — seule vue chargée à l'ouverture (zéro appel API).
+  Widget _buildGrid(BuildContext context, String locale, String initials) {
+    final width = MediaQuery.of(context).size.width;
+    final crossAxisCount = width >= 1100
+        ? 5
+        : width >= 800
+            ? 4
+            : width >= 520
+                ? 3
+                : 2;
+
+    final cards = <_CardDef>[
+      _CardDef('cardPharmacy', Icons.local_pharmacy_outlined,
+          available: true, onTap: () => _openTool('pharmacy')),
+      _CardDef('users', Icons.people_alt_outlined,
+          available: true, onTap: () => _openTool('users')),
+      _CardDef('cardSecurity', Icons.lock_outline,
+          available: true, onTap: () => _openTool('security')),
+      _CardDef('tva', Icons.receipt_long_outlined,
+          available: true, onTap: () => _openTool('tva')),
+      _CardDef('cardTickets', Icons.confirmation_number_outlined,
+          available: true, onTap: () => _openTool('tickets')),
+      _CardDef('cardPayments', Icons.payments_outlined,
+          available: false), // ⛔ MANQUANT : aucun module paiements branché
+      _CardDef('cardPrinters', Icons.print_outlined,
+          available: true, onTap: () => _openTool('printers')),
+      _CardDef('cardScanner', Icons.qr_code_scanner,
+          available: true, onTap: () => _openTool('scanner')),
+      _CardDef('cardCash', Icons.point_of_sale_outlined,
+          available: true, onTap: () => _openTool('cash')),
+      _CardDef('stock', Icons.inventory_2_outlined,
+          available: true, onTap: () => ShellNav.index.value = 4),
+      _CardDef('suppliers', Icons.local_shipping_outlined,
+          available: true, onTap: () => ShellNav.index.value = 5),
+      _CardDef('sync', Icons.cloud_sync_outlined,
+          available: true, onTap: () => _openTool('sync')),
+      _CardDef('cardBackup', Icons.backup_outlined,
+          available: false), // ⛔ MANQUANT : pas de sauvegarde dédiée
+      _CardDef('reports', Icons.bar_chart_outlined,
+          available: true, onTap: () => ShellNav.index.value = 9),
+      _CardDef('cardAi', Icons.smart_toy_outlined,
+          available: true,
+          onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const AiPage()))),
+      _CardDef('cardAppearance', Icons.palette_outlined,
+          available: true, onTap: () => _openTool('appearance')),
+      _CardDef('cardDevices', Icons.devices_outlined,
+          available: false), // ⛔ MANQUANT : pas de gestion d'appareils
+      _CardDef('notifications', Icons.notifications_outlined,
+          available: true,
+          onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const NotificationsPage()))),
+      _CardDef('cardMaintenance', Icons.build_outlined,
+          available: true, onTap: () => _openTool('maintenance')),
+      _CardDef('cardReset', Icons.restart_alt_outlined,
+          available: true, onTap: () => _openTool('reset')),
+    ];
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        GlassCard(
+          child: Row(
+            children: [
+              const PharmaFullLogo(width: 170),
+              const Spacer(),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(
+                  gradient: AppColors.goldGradient,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    initials,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF3E2A00),
                     ),
                   ),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(user?.fullName ?? '',
-                          style: const TextStyle(
-                              fontSize: 17, fontWeight: FontWeight.w800)),
-                      Text(user?.email ?? '',
-                          style: TextStyle(
-                              fontSize: 13,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.6))),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
+        ),
+        const SizedBox(height: 16),
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: crossAxisCount,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 1.05,
+          children: [
+            for (final c in cards)
+              _ControlCard(
+                def: c,
+                label: S.t(c.key, locale),
+                unavailableLabel: S.t('notAvailable', locale),
+              ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        OutlinedButton.icon(
+          onPressed: () async {
+            if (await confirmSignOut(context)) {
+              await context.read<AuthStore>().signOut();
+            }
+          },
+          icon: const Icon(Icons.logout, color: AppColors.danger),
+          label: Text(S.t('logout', locale),
+              style: const TextStyle(color: AppColors.danger)),
+        ),
+        const SizedBox(height: 24),
+        const Center(
+          child: Text('PHARMA+  v2.0.0',
+              style: TextStyle(fontSize: 11, color: Colors.grey)),
+        ),
+      ],
+    );
+  }
+
+  /// Vue outil : affichée uniquement après clic sur une carte.
+  Widget _buildToolView(BuildContext context, String locale) {
+    final auth = context.watch<AuthStore>();
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+              tooltip: S.t('backToGrid', locale),
+              onPressed: () => setState(() => _tool = null),
+            ),
+            Text(_toolTitle(locale),
+                style: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.w800)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ..._buildToolContent(locale, auth),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  String _toolTitle(String locale) {
+    switch (_tool) {
+      case 'pharmacy':
+        return S.t('pharmacyProfile', locale);
+      case 'users':
+        return S.t('users', locale);
+      case 'security':
+        return S.t('accountSecurity', locale);
+      case 'tva':
+        return S.t('tva', locale);
+      case 'tickets':
+      case 'printers':
+        return S.t('cardTickets', locale);
+      case 'scanner':
+        return S.t('cardScanner', locale);
+      case 'cash':
+        return S.t('cardCash', locale);
+      case 'sync':
+        return S.t('sync', locale);
+      case 'appearance':
+        return S.t('cardAppearance', locale);
+      case 'maintenance':
+        return S.t('cardMaintenance', locale);
+      case 'reset':
+        return S.t('cardReset', locale);
+      default:
+        return S.t('settings', locale);
+    }
+  }
+
+  List<Widget> _buildToolContent(String locale, AuthStore auth) {
+    switch (_tool) {
+      case 'pharmacy':
+        return [
           _Section(
             title: S.t('pharmacyProfile', locale),
             child: _pharmacyLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
                 : _PharmacyProfileTile(
                     pharmacy: _pharmacy,
                     onSaved: _loadPharmacy,
                   ),
           ),
-          const SizedBox(height: 16),
-          _Section(
-            title: S.t('accountSecurity', locale),
-            child: ListTile(
-              leading: const Icon(Icons.lock_outline, color: AppColors.primary),
-              title: Text(S.t('changePassword', locale)),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: _changePassword,
-            ),
-          ),
-          const SizedBox(height: 16),
+        ];
+      case 'users':
+        return [
           _Section(
             title: S.t('users', locale),
             child: _UsersTile(
@@ -241,6 +400,19 @@ class _SettingsPageState extends State<SettingsPage> {
               },
             ),
           ),
+        ];
+      case 'security':
+        return [
+          _Section(
+            title: S.t('accountSecurity', locale),
+            child: ListTile(
+              leading:
+                  const Icon(Icons.lock_outline, color: AppColors.primary),
+              title: Text(S.t('changePassword', locale)),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _changePassword,
+            ),
+          ),
           const SizedBox(height: 16),
           _Section(
             title: S.t('activityLog', locale),
@@ -250,7 +422,102 @@ class _SettingsPageState extends State<SettingsPage> {
               error: _auditError,
             ),
           ),
-          const SizedBox(height: 16),
+        ];
+      case 'tva':
+        return [
+          _Section(
+            title: 'Fiscalité — TVA',
+            child: _TvaSection(
+              pharmacy: _pharmacy,
+              onSaved: _loadPharmacy,
+            ),
+          ),
+        ];
+      case 'tickets':
+      case 'printers':
+        return [
+          _PrintingSection(
+              pharmacyName: auth.user?.pharmacyName ?? 'PHARMA+'),
+        ];
+      case 'scanner':
+        return [
+          GlassCard(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.qr_code_scanner,
+                      color: AppColors.primary),
+                  title: Text(S.t('cardScanner', locale)),
+                  subtitle: const Text(
+                      'Ouvrir le scanner code-barres produit'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ScannerPage())),
+                ),
+              ],
+            ),
+          ),
+        ];
+      case 'cash':
+        return [
+          GlassCard(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.point_of_sale_outlined,
+                      color: AppColors.primary),
+                  title: Text(S.t('cardCash', locale)),
+                  subtitle: const Text('Ouvrir la caisse et les écritures'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AuditPage())),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.point_of_sale,
+                      color: AppColors.primary),
+                  title: Text(S.t('pos', locale)),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => ShellNav.index.value = 2,
+                ),
+              ],
+            ),
+          ),
+        ];
+      case 'sync':
+        return [
+          GlassCard(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.cloud_sync_outlined,
+                      color: AppColors.primary),
+                  title: Text(S.t('sync', locale)),
+                  subtitle: Text(auth.baseUrl),
+                  trailing: _syncing
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child:
+                              CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.sync),
+                  onTap: _syncNow,
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.dns_outlined,
+                      color: AppColors.primary),
+                  title: Text(S.t('server', locale)),
+                  subtitle: Text(auth.baseUrl),
+                  trailing: const Icon(Icons.edit_outlined),
+                  onTap: _editServerUrl,
+                ),
+              ],
+            ),
+          ),
+        ];
+      case 'appearance':
+        return [
           _Section(
             title: S.t('language', locale),
             child: Wrap(
@@ -294,69 +561,18 @@ class _SettingsPageState extends State<SettingsPage> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          _Section(
-            title: 'Fiscalité — TVA',
-            child: _TvaSection(
-              pharmacy: _pharmacy,
-              onSaved: _loadPharmacy,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _PrintingSection(pharmacyName: auth.user?.pharmacyName ?? 'PHARMA+'),
-          const SizedBox(height: 16),
+        ];
+      case 'maintenance':
+      case 'reset':
+        return [
           _Section(
             title: 'Maintenance — Réinitialisation',
             child: _MaintenanceSection(),
           ),
-          const SizedBox(height: 16),
-          GlassCard(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.cloud_sync_outlined,
-                      color: AppColors.primary),
-                  title: Text(S.t('sync', locale)),
-                  subtitle: Text(auth.baseUrl),
-                  trailing: _syncing
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.sync),
-                  onTap: _syncNow,
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading:
-                      const Icon(Icons.dns_outlined, color: AppColors.primary),
-                  title: Text(S.t('server', locale)),
-                  subtitle: Text(auth.baseUrl),
-                  trailing: const Icon(Icons.edit_outlined),
-                  onTap: _editServerUrl,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: () async {
-              if (await confirmSignOut(context)) {
-                await auth.signOut();
-              }
-            },
-            icon: const Icon(Icons.logout, color: AppColors.danger),
-            label: Text(S.t('logout', locale),
-                style: const TextStyle(color: AppColors.danger)),
-          ),
-          const SizedBox(height: 24),
-          const Center(
-            child: Text('PHARMA+  v2.0.0',
-                style: TextStyle(fontSize: 11, color: Colors.grey)),
-          ),
-        ],
-      ),
-    );
+        ];
+      default:
+        return const [];
+    }
   }
 
   Future<void> _changePassword() async {
@@ -954,6 +1170,77 @@ class _Section extends StatelessWidget {
         ),
         GlassCard(child: child),
       ],
+    );
+  }
+}
+
+/// Définition d'une carte du Tableau de contrôle.
+class _CardDef {
+  final String key;
+  final IconData icon;
+  final bool available;
+  final VoidCallback? onTap;
+  const _CardDef(this.key, this.icon, {required this.available, this.onTap});
+}
+
+/// Carte icône du Tableau de contrôle (design premium or/vert pétrole).
+class _ControlCard extends StatelessWidget {
+  final _CardDef def;
+  final String label;
+  final String unavailableLabel;
+  const _ControlCard({
+    required this.def,
+    required this.label,
+    required this.unavailableLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final unavailable = !def.available;
+    return GlassCard(
+      radius: BorderRadius.circular(18),
+      onTap: () {
+        if (unavailable) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(unavailableLabel)),
+          );
+          return;
+        }
+        def.onTap?.call();
+      },
+      child: Opacity(
+        opacity: unavailable ? 0.45 : 1,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                gradient: AppColors.goldGradient,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.accent.withValues(alpha: 0.35),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Icon(def.icon, color: const Color(0xFF3E2A00), size: 22),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  fontSize: 12.5, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

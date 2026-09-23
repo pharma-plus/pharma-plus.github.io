@@ -798,7 +798,7 @@ class _SidebarState extends State<_Sidebar> {
     (Icons.view_in_ar_outlined, 'Plan 3D'),
     (Icons.videocam_outlined, 'Caméras'),
     (Icons.qr_code_scanner, 'Scanner'),
-    (Icons.settings_outlined, 'Paramètres'),
+    (Icons.settings_outlined, 'Tableau de contrôle'),
   ];
 
   @override
