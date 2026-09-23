@@ -33,27 +33,26 @@
 
   <title>PHARMA+ — Gestion de pharmacie</title>
   <link rel="manifest" href="manifest.json">
-  <!-- Préchargement des ressources visibles du splash (logo webp 262 Ko au lieu du png 1 Mo) -->
+  <!-- Préchargement logo splash uniquement (fond retiré pour vitesse) -->
   <link rel="preload" as="image" href="assets/assets/branding/pharma-logo-full.webp" fetchpriority="high">
-  <link rel="preload" as="image" href="assets/assets/images/background.webp">
   <style>
     html, body { margin: 0; padding: 0; background: #03100D; }
     /* ============================================================
        ÉCRAN DE CHARGEMENT PHARMA+ — conforme maquette :
        logo officiel complet + « Bienvenue » or + sous-titre +
        VRAIE barre de progression animée (HTML/CSS/JS, 0→100 %).
-       La progression n'est PAS une image : elle évolue réellement.
+       Fond dégradé pur (pas d'image) → chargement plus rapide.
+       Barre OR + rayons du soleil.
        ============================================================ */
     #pmg-loading {
       position: fixed; inset: 0; z-index: 9999;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center; gap: 0;
       background:
-        linear-gradient(rgba(3, 16, 13, 0.66), rgba(3, 16, 13, 0.66)),
-        url('assets/assets/images/background.webp') center / cover no-repeat,
-        linear-gradient(150deg, #03100D 0%, #061A15 50%, #020B08 100%);
+        linear-gradient(150deg, #03100D 0%, #061A15 45%, #0A1F18 70%, #020B08 100%);
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       text-align: center;
+      overflow: hidden;
     }
     #pmg-loading .pmg-logo {
       width: min(58vw, 220px); height: auto;
@@ -73,29 +72,71 @@
       color: #9BAEA7;
       animation: pmg-in 0.9s ease-out 0.25s both;
     }
-    /* Barre de progression RÉELLE — jamais une image. */
+    /* Barre de progression RÉELLE — or + rayons du soleil. */
     #pmg-loading .pmg-progress-row {
+      position: relative;
       margin-top: 26px;
       display: flex; align-items: center; gap: 12px;
       animation: pmg-in 0.9s ease-out 0.35s both;
     }
+    #pmg-loading .pmg-sun {
+      position: absolute;
+      left: 50%; top: 50%;
+      width: 220px; height: 220px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      background:
+        conic-gradient(from 0deg,
+          transparent 0deg, rgba(241,213,138,0.14) 8deg, transparent 16deg,
+          transparent 30deg, rgba(214,168,79,0.12) 38deg, transparent 46deg,
+          transparent 60deg, rgba(241,213,138,0.14) 68deg, transparent 76deg,
+          transparent 90deg, rgba(214,168,79,0.12) 98deg, transparent 106deg,
+          transparent 120deg, rgba(241,213,138,0.14) 128deg, transparent 136deg,
+          transparent 150deg, rgba(214,168,79,0.12) 158deg, transparent 166deg,
+          transparent 180deg, rgba(241,213,138,0.14) 188deg, transparent 196deg,
+          transparent 210deg, rgba(214,168,79,0.12) 218deg, transparent 226deg,
+          transparent 240deg, rgba(241,213,138,0.14) 248deg, transparent 256deg,
+          transparent 270deg, rgba(214,168,79,0.12) 278deg, transparent 286deg,
+          transparent 300deg, rgba(241,213,138,0.14) 308deg, transparent 316deg,
+          transparent 330deg, rgba(214,168,79,0.12) 338deg, transparent 346deg,
+          transparent 360deg);
+      border-radius: 50%;
+      mask: radial-gradient(circle, black 0%, transparent 70%);
+      -webkit-mask: radial-gradient(circle, black 0%, transparent 70%);
+      animation: pmg-sun-spin 4.5s linear infinite;
+      opacity: 0.9;
+    }
     #pmg-loading .pmg-track {
+      position: relative; z-index: 1;
       width: min(60vw, 300px); height: 7px;
       border-radius: 50px;
       background: rgba(255, 255, 255, 0.10);
-      border: 1px solid rgba(47, 181, 99, 0.45);
+      border: 1px solid rgba(214, 168, 79, 0.50);
+      box-shadow: 0 0 12px rgba(214, 168, 79, 0.25);
       overflow: hidden;
     }
     #pmg-loading .pmg-fill {
       width: 0%; height: 100%;
       border-radius: 50px;
-      background: linear-gradient(90deg, #1E8F4E, #43D97C);
-      transition: width 0.35s ease-in-out;
+      background: linear-gradient(90deg, #D6A84F, #F1D58A);
+      box-shadow: 0 0 8px rgba(241, 213, 138, 0.55);
+      transition: width 0.28s ease-in-out;
+    }
+    #pmg-loading .pmg-fill::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 40%;
+      background: linear-gradient(90deg,
+        transparent, rgba(255,255,255,0.55), transparent);
+      animation: pmg-shine 1.4s ease-in-out infinite;
     }
     #pmg-loading .pmg-pct {
+      position: relative; z-index: 1;
       width: 44px; text-align: right;
       font-size: 13.5px; font-weight: 800;
-      color: #43D97C; letter-spacing: 0.5px;
+      color: #F1D58A; letter-spacing: 0.5px;
+      text-shadow: 0 0 8px rgba(214, 168, 79, 0.5);
     }
     #pmg-loading .pmg-loadtext {
       margin-top: 14px;
@@ -104,6 +145,13 @@
     @keyframes pmg-in {
       from { opacity: 0; transform: translateY(8px); }
       to   { opacity: 1; transform: none; }
+    }
+    @keyframes pmg-sun-spin {
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+    @keyframes pmg-shine {
+      0%   { left: -40%; }
+      100% { left: 110%; }
     }
   </style>
 </head>
@@ -134,6 +182,7 @@
     <div class="pmg-welcome">Bienvenue</div>
     <div class="pmg-sub">Gestion intelligente de votre pharmacie</div>
     <div class="pmg-progress-row">
+      <div class="pmg-sun" aria-hidden="true"></div>
       <div class="pmg-track"><div class="pmg-fill" id="pmg-fill"></div></div>
       <div class="pmg-pct" id="pmg-pct">0%</div>
     </div>
@@ -164,7 +213,7 @@
       }
     } catch (e) {}
   </script>
-  <script src="flutter_bootstrap.js?v=202609231752" async></script>
+  <script src="flutter_bootstrap.js?v=202609232311" async></script>
   <script>
     (function () {
       var fill = document.getElementById('pmg-fill');
@@ -179,9 +228,9 @@
       }
       var timer = setInterval(function () {
         if (done) return;
-        var step = value < 40 ? 4 : value < 70 ? 2 : value < 90 ? 0.7 : 0;
-        if (step > 0) render(value + step);
-      }, 120);
+        var step = value < 40 ? 7 : value < 70 ? 4 : value < 90 ? 1.5 : 0.8;
+        render(value + step);
+      }, 100);
       function finish() {
         if (done) return;
         done = true;
@@ -189,10 +238,10 @@
         render(100);
         setTimeout(function () {
           if (el && el.parentNode) el.parentNode.removeChild(el);
-        }, 450);
+        }, 400);
       }
       window.addEventListener('flutter-first-frame', finish);
-      setTimeout(finish, 10000);
+      setTimeout(finish, 6000);
     })();
   </script>
 </body>
