@@ -149,6 +149,8 @@ async function proxyToTable(
   const url = new URL(req.url);
   const limit = parseInt(url.searchParams.get("limit") ?? "50", 10);
   const page = parseInt(url.searchParams.get("page") ?? "1", 10);
+  const reserved = new Set(["select", "order", "limit", "offset", "page", "q", "or", "and", "on_conflict"]);
+  const opRe = /^(eq|neq|gt|gte|lt|lte|like|ilike|is|in|cs|cd|sl|sr|nx|ox)\./i;
   let searchQ = "";
   url.searchParams.forEach((v, k) => {
     if (k === "page") {
@@ -157,10 +159,14 @@ async function proxyToTable(
       targetUrl.searchParams.set("limit", v);
     } else if (k === "q") {
       searchQ = v;
-    } else if (k === "hasCredit" || v === "true" || v === "false") {
-      targetUrl.searchParams.set(k, `eq.${v}`);
-    } else {
+    } else if (reserved.has(k)) {
       targetUrl.searchParams.set(k, v);
+    } else if (v === "true" || v === "false" || v === "null") {
+      targetUrl.searchParams.set(k, `eq.${v}`);
+    } else if (opRe.test(v) || k === "id") {
+      targetUrl.searchParams.set(k, v);
+    } else {
+      targetUrl.searchParams.set(k, `eq.${v}`);
     }
   });
   // Convert `q` to PostgREST or/ilike for medication search

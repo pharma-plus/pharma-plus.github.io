@@ -118,7 +118,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _loadPayments() async {
     final pid = _pid;
     final q = StringBuffer('/payments?limit=100&order=received_at.desc');
-    if (pid != null) q.write('&pharmacy_id=$pid');
+    if (pid != null) q.write('&pharmacy_id=eq.$pid');
     final r = await ApiClient.instance.get(q.toString());
     if (!mounted) return;
     if (r.success) {
@@ -135,7 +135,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _loadBackups() async {
     final pid = _pid;
     final q = StringBuffer('/backups?limit=50&order=created_at.desc');
-    if (pid != null) q.write('&pharmacy_id=$pid');
+    if (pid != null) q.write('&pharmacy_id=eq.$pid');
     final r = await ApiClient.instance.get(q.toString());
     if (!mounted) return;
     if (r.success) {
@@ -168,10 +168,10 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _loadDevices() async {
     final pid = _pid;
     final qs = StringBuffer('/user_sessions?limit=50&revoked_at=is.null');
-    if (pid != null) qs.write('&pharmacy_id=$pid');
+    if (pid != null) qs.write('&pharmacy_id=eq.$pid');
     final rs = await ApiClient.instance.get(qs.toString());
     final qc = StringBuffer('/cameras?limit=50');
-    if (pid != null) qc.write('&pharmacy_id=$pid');
+    if (pid != null) qc.write('&pharmacy_id=eq.$pid');
     final rc = await ApiClient.instance.get(qc.toString());
     if (!mounted) return;
     if (rs.success) {
@@ -287,17 +287,19 @@ class _SettingsPageState extends State<SettingsPage> {
   /// Compacte : toutes les icônes visibles en une seule vision.
   Widget _buildGrid(BuildContext context, String locale, String initials) {
     final width = MediaQuery.of(context).size.width;
-    final crossAxisCount = width >= 1400
-        ? 7
-        : width >= 1100
-            ? 6
-            : width >= 900
-                ? 5
-                : width >= 700
-                    ? 4
-                    : width >= 480
-                        ? 3
-                        : 2;
+    final crossAxisCount = width >= 1600
+        ? 8
+        : width >= 1300
+            ? 7
+            : width >= 1100
+                ? 6
+                : width >= 900
+                    ? 5
+                    : width >= 700
+                        ? 4
+                        : width >= 480
+                            ? 3
+                            : 2;
 
     final cards = <_CardDef>[
       _CardDef('cardPharmacy', Icons.local_pharmacy_outlined,
@@ -382,7 +384,7 @@ class _SettingsPageState extends State<SettingsPage> {
           crossAxisCount: crossAxisCount,
           mainAxisSpacing: 10,
           crossAxisSpacing: 10,
-          childAspectRatio: 1.45,
+          childAspectRatio: 1.55,
           children: [
             for (final c in cards)
               _ControlCard(
@@ -1608,8 +1610,8 @@ class _DevicesTile extends StatelessWidget {
   }
 }
 
-/// Carte outil du Tableau de contrôle — style premium illustré
-/// (liseré or, halo vert pétrole, médaillon dégradé, reflet diagonal).
+/// Carte outil du Tableau de contrôle — relief 3D premium
+/// (médaillon extrudé centré, podium lumineux, liseré or, reflet diagonal).
 class _ControlCard extends StatelessWidget {
   final _CardDef def;
   final String label;
@@ -1643,9 +1645,14 @@ class _ControlCard extends StatelessWidget {
             ? const []
             : [
                 BoxShadow(
-                  color: AppColors.accent.withValues(alpha: 0.08),
-                  blurRadius: 14,
-                  offset: const Offset(0, 4),
+                  color: AppColors.accent.withValues(alpha: 0.10),
+                  blurRadius: 16,
+                  offset: const Offset(0, 5),
+                ),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
               ],
       ),
@@ -1666,7 +1673,6 @@ class _ControlCard extends StatelessWidget {
             opacity: unavailable ? 0.4 : 1,
             child: Stack(
               children: [
-                // Reflet diagonal premium
                 Positioned(
                   top: -20,
                   right: -20,
@@ -1686,36 +1692,120 @@ class _ControlCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 6, vertical: 8),
+                // Contenu strictement centré dans la cellule
+                SizedBox.expand(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          gradient: AppColors.goldGradient,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.pharmaGoldLight
-                                .withValues(alpha: 0.65),
-                            width: 1.2,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color:
-                                  AppColors.accent.withValues(alpha: 0.3),
-                              blurRadius: 10,
-                              offset: const Offset(0, 3),
+                      // Médaillon 3D extrudé + podium lumineux
+                      SizedBox(
+                        width: 52,
+                        height: 48,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          clipBehavior: Clip.none,
+                          children: [
+                            // Podium lumineux (ellipse or)
+                            Positioned(
+                              bottom: 0,
+                              child: Container(
+                                width: 40,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  gradient: RadialGradient(
+                                    colors: [
+                                      AppColors.pharmaGold.withValues(
+                                          alpha: 0.55),
+                                      Colors.transparent,
+                                    ],
+                                  ),
+                                  borderRadius: const BorderRadius.all(
+                                      Radius.elliptical(20, 5)),
+                                ),
+                              ),
+                            ),
+                            // Ombre portée du médaillon
+                            Positioned(
+                              bottom: 3,
+                              child: Container(
+                                width: 34,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.45),
+                                  borderRadius: const BorderRadius.all(
+                                      Radius.elliptical(17, 4)),
+                                ),
+                              ),
+                            ),
+                            // Face latérale (extrusion)
+                            Positioned(
+                              top: 5,
+                              right: 8,
+                              child: Transform.translate(
+                                offset: const Offset(2.5, 2.5),
+                                child: Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        Color(0xFF8A6A28),
+                                        Color(0xFF5C4518),
+                                      ],
+                                    ),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: const Color(0xFF3E2A00),
+                                      width: 1,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // Face avant (médaillon or principal)
+                            Positioned(
+                              top: 2,
+                              left: 6,
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  gradient: AppColors.goldGradient,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.pharmaGoldLight
+                                        .withValues(alpha: 0.85),
+                                    width: 1.4,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.accent
+                                          .withValues(alpha: 0.35),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                    // Specular highlight (haut)
+                                    BoxShadow(
+                                      color: Colors.white
+                                          .withValues(alpha: 0.35),
+                                      blurRadius: 3,
+                                      spreadRadius: -1,
+                                      offset: const Offset(-1, -1),
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(def.icon,
+                                    color: const Color(0xFF3E2A00),
+                                    size: 18),
+                              ),
                             ),
                           ],
                         ),
-                        child: Icon(def.icon,
-                            color: const Color(0xFF3E2A00), size: 19),
                       ),
-                      const SizedBox(height: 7),
+                      const SizedBox(height: 6),
                       Text(
                         label,
                         textAlign: TextAlign.center,

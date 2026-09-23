@@ -1,6 +1,7 @@
 // PMG-SPLASH-TUNING
 
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/l10n/strings.dart';
@@ -271,7 +272,7 @@ class _SplashProgressBarState extends State<_SplashProgressBar>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 2400),
+    duration: const Duration(milliseconds: 1800),
   );
 
   @override
@@ -294,39 +295,61 @@ class _SplashProgressBarState extends State<_SplashProgressBar>
       builder: (context, _) {
         // Pourcentage dynamique affiché : 0% → 1% → … → 100%.
         final pct = (_controller.value * 100).round();
-        // Barre verte (maquette) : largeur adaptative — 60 % de l'écran,
-        // bornée entre 240 px (smartphone) et 360 px (PC/tablette).
+        // Barre OR + rayons du soleil (palette champagne) :
         final barWidth =
             (MediaQuery.of(context).size.width * 0.60).clamp(240.0, 360.0);
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: barWidth,
-              height: 7,
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(50),
-                border: Border.all(
-                    color: const Color(0xFF2FB563).withValues(alpha: 0.45),
-                    width: 1),
-              ),
-              child: FractionallySizedBox(
-                alignment: Alignment.centerLeft,
-                widthFactor: _controller.value,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [
-                        Color(0xFF1E8F4E),
-                        Color(0xFF43D97C),
-                      ],
+            Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
+                // Rayons du soleil derrière la barre
+                SizedBox(
+                  width: barWidth + 80,
+                  height: 48,
+                  child: CustomPaint(
+                    painter: _SunRaysPainter(
+                      progress: _controller.value,
+                      color: const Color(0xFFF1D58A),
                     ),
-                    borderRadius: BorderRadius.circular(50),
                   ),
                 ),
-              ),
+                Container(
+                  width: barWidth,
+                  height: 7,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(50),
+                    border: Border.all(
+                        color: const Color(0xFFD6A84F).withValues(alpha: 0.55),
+                        width: 1),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFD6A84F).withValues(alpha: 0.30),
+                        blurRadius: 10,
+                      ),
+                    ],
+                  ),
+                  child: FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: _controller.value,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFFD6A84F),
+                            Color(0xFFF1D58A),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(50),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(width: 12),
             SizedBox(
@@ -335,7 +358,7 @@ class _SplashProgressBarState extends State<_SplashProgressBar>
                 '$pct%',
                 textAlign: TextAlign.right,
                 style: const TextStyle(
-                  color: Color(0xFF43D97C),
+                  color: Color(0xFFF1D58A),
                   fontSize: 13.5,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.5,
@@ -347,6 +370,37 @@ class _SplashProgressBarState extends State<_SplashProgressBar>
       },
     );
   }
+}
+
+/// Rayons du soleil dorés animés derrière la barre de chargement splash.
+class _SunRaysPainter extends CustomPainter {
+  final double progress;
+  final Color color;
+  _SunRaysPainter({required this.progress, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final paint = Paint()
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+    const rayCount = 12;
+    for (var i = 0; i < rayCount; i++) {
+      final angle = (i / rayCount) * 6.28318 + progress * 6.28318;
+      const inner = 22.0;
+      final outer = 26.0 + 10.0 * ((i % 3) + 1) * progress;
+      paint.color = color.withValues(alpha: 0.10 + 0.22 * progress);
+      canvas.drawLine(
+        center + Offset(cos(angle) * inner, sin(angle) * inner),
+        center + Offset(cos(angle) * outer, sin(angle) * outer),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SunRaysPainter old) =>
+      old.progress != progress || old.color != color;
 }
 
 class _InitErrorScreen extends StatelessWidget {

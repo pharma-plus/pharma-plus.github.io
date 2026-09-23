@@ -27,14 +27,21 @@ class ApiResult<T> {
       );
     }
     final err = decoded?['error'];
+    Map<String, dynamic> errMap;
+    if (err is Map) {
+      errMap = Map<String, dynamic>.from(err);
+    } else if (decoded != null &&
+        (decoded['message'] != null || decoded['code'] != null)) {
+      // PostgREST renvoie un objet plat {code, message, details}.
+      errMap = Map<String, dynamic>.from(decoded);
+    } else {
+      errMap = {};
+    }
     return ApiResult._(
       false,
       null,
       null,
-      ApiError.fromMap(
-        err == null ? {} : Map<String, dynamic>.from(err as Map),
-        res.statusCode,
-      ),
+      ApiError.fromMap(errMap, res.statusCode),
       res.statusCode,
     );
   }
