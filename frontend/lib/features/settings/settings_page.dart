@@ -187,15 +187,20 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   /// Grille de cartes — seule vue chargée à l'ouverture (zéro appel API).
+  /// Compacte : toutes les icônes visibles en une seule vision.
   Widget _buildGrid(BuildContext context, String locale, String initials) {
     final width = MediaQuery.of(context).size.width;
-    final crossAxisCount = width >= 1100
-        ? 5
-        : width >= 800
-            ? 4
-            : width >= 520
-                ? 3
-                : 2;
+    final crossAxisCount = width >= 1400
+        ? 7
+        : width >= 1100
+            ? 6
+            : width >= 900
+                ? 5
+                : width >= 700
+                    ? 4
+                    : width >= 480
+                        ? 3
+                        : 2;
 
     final cards = <_CardDef>[
       _CardDef('cardPharmacy', Icons.local_pharmacy_outlined,
@@ -278,9 +283,9 @@ class _SettingsPageState extends State<SettingsPage> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisCount: crossAxisCount,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.05,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 1.45,
           children: [
             for (final c in cards)
               _ControlCard(
@@ -1185,7 +1190,8 @@ class _CardDef {
   const _CardDef(this.key, this.icon, {required this.available, this.onTap});
 }
 
-/// Carte icône du Tableau de contrôle (design premium or/vert pétrole).
+/// Carte outil du Tableau de contrôle — style premium illustré
+/// (liseré or, halo vert pétrole, médaillon dégradé, reflet diagonal).
 class _ControlCard extends StatelessWidget {
   final _CardDef def;
   final String label;
@@ -1199,48 +1205,117 @@ class _ControlCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final unavailable = !def.available;
-    return GlassCard(
-      radius: BorderRadius.circular(18),
-      onTap: () {
-        if (unavailable) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(unavailableLabel)),
-          );
-          return;
-        }
-        def.onTap?.call();
-      },
-      child: Opacity(
-        opacity: unavailable ? 0.45 : 1,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                gradient: AppColors.goldGradient,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.accent.withValues(alpha: 0.35),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Icon(def.icon, color: const Color(0xFF3E2A00), size: 22),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  fontSize: 12.5, fontWeight: FontWeight.w700),
-            ),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.pharmaSurface2.withValues(alpha: 0.95),
+            AppColors.pharmaBg2.withValues(alpha: 0.98),
           ],
+        ),
+        border: Border.all(
+          color: unavailable
+              ? AppColors.dividerDark
+              : AppColors.goldBorderStrong,
+        ),
+        boxShadow: unavailable
+            ? const []
+            : [
+                BoxShadow(
+                  color: AppColors.accent.withValues(alpha: 0.08),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            if (unavailable) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(unavailableLabel)),
+              );
+              return;
+            }
+            def.onTap?.call();
+          },
+          child: Opacity(
+            opacity: unavailable ? 0.4 : 1,
+            child: Stack(
+              children: [
+                // Reflet diagonal premium
+                Positioned(
+                  top: -20,
+                  right: -20,
+                  child: Transform.rotate(
+                    angle: 0.45,
+                    child: Container(
+                      width: 70,
+                      height: 110,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.pharmaGold.withValues(alpha: 0.12),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 6, vertical: 8),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          gradient: AppColors.goldGradient,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.pharmaGoldLight
+                                .withValues(alpha: 0.65),
+                            width: 1.2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color:
+                                  AppColors.accent.withValues(alpha: 0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Icon(def.icon,
+                            color: const Color(0xFF3E2A00), size: 19),
+                      ),
+                      const SizedBox(height: 7),
+                      Text(
+                        label,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          height: 1.15,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.pharmaText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

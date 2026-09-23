@@ -796,7 +796,39 @@ await sbAuth.auth.signInWithPassword({ email, password });
   }
 
   /* ===========================================================
-     CATEGORIES (reference)
+     AUDIT LOGS — journal d'activité (Tableau de contrôle → Sécurité)
+     =========================================================== */
+  if (path === "audit" || path === "/audit") {
+    const url = new URL(req.url);
+    const limit = Math.min(Number(url.searchParams.get("limit") ?? 50) || 50, 200);
+    const { data, error } = await sb
+      .from("audit_logs")
+      .select(
+        "id, action, module, entity, entity_id, created_at, user_id, users(first_name, last_name, email)",
+      )
+      .eq("pharmacy_id", pid)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) return json({ error: { code: "AUDIT_FAILED", message: error.message } }, 400);
+    const rows = (data ?? []).map((r: any) => {
+      const u = Array.isArray(r.users) ? r.users[0] : r.users;
+      return {
+        id: r.id,
+        action: r.action,
+        module: r.module,
+        entity: r.entity,
+        entity_id: r.entity_id,
+        created_at: r.created_at,
+        first_name: u?.first_name ?? null,
+        last_name: u?.last_name ?? null,
+        email: u?.email ?? null,
+      };
+    });
+    return json({ data: rows });
+  }
+
+  /* ===========================================================
+     REFERENCE — categories
      =========================================================== */
   if (path === "reference/categories" || path === "/reference/categories") {
     const { data, error } = await sb.from("reference_categories").select("*").order("name");
