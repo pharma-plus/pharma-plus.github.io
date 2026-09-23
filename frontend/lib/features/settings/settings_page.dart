@@ -8,6 +8,7 @@ import '../../core/services/auth_store.dart';
 import '../../core/services/receipt_pdf.dart';
 import '../../core/services/sync_engine.dart';
 import '../../core/theme/colors.dart';
+import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/pharma_logo.dart';
 import '../ai/ai_page.dart';
@@ -37,12 +38,26 @@ class _SettingsPageState extends State<SettingsPage> {
   List<Map<String, dynamic>> _users = [];
   List<Map<String, dynamic>> _roles = [];
   List<Map<String, dynamic>> _audit = [];
+  List<Map<String, dynamic>> _payments = [];
+  List<Map<String, dynamic>> _backups = [];
+  List<Map<String, dynamic>> _sessions = [];
+  List<Map<String, dynamic>> _cameras = [];
   bool _usersLoading = true;
   bool _auditLoading = true;
   bool _usersLoaded = false;
   bool _auditLoaded = false;
+  bool _paymentsLoaded = false;
+  bool _backupsLoaded = false;
+  bool _devicesLoaded = false;
+  bool _paymentsLoading = true;
+  bool _backupsLoading = true;
+  bool _devicesLoading = true;
+  bool _backupBusy = false;
   String? _usersError;
   String? _auditError;
+  String? _paymentsError;
+  String? _backupsError;
+  String? _devicesError;
 
   Future<void> _loadPharmacy() async {
     final r = await ApiClient.instance.get('/pharmacies/me');
@@ -97,18 +112,100 @@ class _SettingsPageState extends State<SettingsPage> {
     if (mounted) setState(() {});
   }
 
+  String? get _pid =>
+      context.read<AuthStore>().user?.pharmacyId ?? _pharmacy?['id'] as String?;
+
+  Future<void> _loadPayments() async {
+    final pid = _pid;
+    final q = StringBuffer('/payments?limit=100&order=received_at.desc');
+    if (pid != null) q.write('&pharmacy_id=$pid');
+    final r = await ApiClient.instance.get(q.toString());
+    if (!mounted) return;
+    if (r.success) {
+      _payments = ApiList.of(r.data);
+      _paymentsError = null;
+    } else {
+      _paymentsError = r.error?.readableMessage;
+    }
+    _paymentsLoading = false;
+    _paymentsLoaded = true;
+    setState(() {});
+  }
+
+  Future<void> _loadBackups() async {
+    final pid = _pid;
+    final q = StringBuffer('/backups?limit=50&order=created_at.desc');
+    if (pid != null) q.write('&pharmacy_id=$pid');
+    final r = await ApiClient.instance.get(q.toString());
+    if (!mounted) return;
+    if (r.success) {
+      _backups = ApiList.of(r.data);
+      _backupsError = null;
+    } else {
+      _backupsError = r.error?.readableMessage;
+    }
+    _backupsLoading = false;
+    _backupsLoaded = true;
+    setState(() {});
+  }
+
+  Future<void> _createBackup() async {
+    setState(() => _backupBusy = true);
+    final r = await ApiClient.instance.post('/backups',
+        body: {'type': 'manual', 'scope': 'full'});
+    if (!mounted) return;
+    setState(() => _backupBusy = false);
+    final locale = context.read<AuthStore>().locale;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(r.success
+          ? S.t('backupStarted', locale)
+          : (r.error?.readableMessage ?? S.t('loadError', locale))),
+      backgroundColor: r.success ? AppColors.success : AppColors.danger,
+    ));
+    if (r.success) await _loadBackups();
+  }
+
+  Future<void> _loadDevices() async {
+    final pid = _pid;
+    final qs = StringBuffer('/user_sessions?limit=50&revoked_at=is.null');
+    if (pid != null) qs.write('&pharmacy_id=$pid');
+    final rs = await ApiClient.instance.get(qs.toString());
+    final qc = StringBuffer('/cameras?limit=50');
+    if (pid != null) qc.write('&pharmacy_id=$pid');
+    final rc = await ApiClient.instance.get(qc.toString());
+    if (!mounted) return;
+    if (rs.success) {
+      _sessions = ApiList.of(rs.data);
+    } else {
+      _devicesError = rs.error?.readableMessage;
+    }
+    if (rc.success) {
+      _cameras = ApiList.of(rc.data);
+    }
+    _devicesLoading = false;
+    _devicesLoaded = true;
+    setState(() {});
+  }
+
   /// Ouvre un outil : la grille seule ne déclenchait AUCUN appel API ;
   /// ici on ne charge que ce que l'outil demandé exige, une seule fois.
   Future<void> _openTool(String key) async {
     setState(() => _tool = key);
-    final needsPharmacy =
-        key == 'pharmacy' || key == 'users' || key == 'tva';
+    final needsPharmacy = key == 'pharmacy' ||
+        key == 'users' ||
+        key == 'tva' ||
+        key == 'payments' ||
+        key == 'backup' ||
+        key == 'devices';
     if (needsPharmacy && !_pharmacyLoaded) await _loadPharmacy();
     if (key == 'users') {
       if (!_usersLoaded) await _loadUsers();
       if (_roles.isEmpty) await _loadRoles();
     }
     if (key == 'security' && !_auditLoaded) await _loadAudit();
+    if (key == 'payments' && !_paymentsLoaded) await _loadPayments();
+    if (key == 'backup' && !_backupsLoaded) await _loadBackups();
+    if (key == 'devices' && !_devicesLoaded) await _loadDevices();
   }
 
   Future<void> _syncNow() async {
@@ -213,8 +310,8 @@ class _SettingsPageState extends State<SettingsPage> {
           available: true, onTap: () => _openTool('tva')),
       _CardDef('cardTickets', Icons.confirmation_number_outlined,
           available: true, onTap: () => _openTool('tickets')),
-      const _CardDef('cardPayments', Icons.payments_outlined,
-          available: false), // ⛔ MANQUANT : aucun module paiements branché
+      _CardDef('cardPayments', Icons.payments_outlined,
+          available: true, onTap: () => _openTool('payments')),
       _CardDef('cardPrinters', Icons.print_outlined,
           available: true, onTap: () => _openTool('printers')),
       _CardDef('cardScanner', Icons.qr_code_scanner,
@@ -227,8 +324,8 @@ class _SettingsPageState extends State<SettingsPage> {
           available: true, onTap: () => ShellNav.index.value = 5),
       _CardDef('sync', Icons.cloud_sync_outlined,
           available: true, onTap: () => _openTool('sync')),
-      const _CardDef('cardBackup', Icons.backup_outlined,
-          available: false), // ⛔ MANQUANT : pas de sauvegarde dédiée
+      _CardDef('cardBackup', Icons.backup_outlined,
+          available: true, onTap: () => _openTool('backup')),
       _CardDef('reports', Icons.bar_chart_outlined,
           available: true, onTap: () => ShellNav.index.value = 9),
       _CardDef('cardAi', Icons.smart_toy_outlined,
@@ -237,8 +334,8 @@ class _SettingsPageState extends State<SettingsPage> {
               MaterialPageRoute(builder: (_) => const AiPage()))),
       _CardDef('cardAppearance', Icons.palette_outlined,
           available: true, onTap: () => _openTool('appearance')),
-      const _CardDef('cardDevices', Icons.devices_outlined,
-          available: false), // ⛔ MANQUANT : pas de gestion d'appareils
+      _CardDef('cardDevices', Icons.devices_outlined,
+          available: true, onTap: () => _openTool('devices')),
       _CardDef('notifications', Icons.notifications_outlined,
           available: true,
           onTap: () => Navigator.of(context).push(
@@ -361,6 +458,12 @@ class _SettingsPageState extends State<SettingsPage> {
         return S.t('cardCash', locale);
       case 'sync':
         return S.t('sync', locale);
+      case 'payments':
+        return S.t('cardPayments', locale);
+      case 'backup':
+        return S.t('cardBackup', locale);
+      case 'devices':
+        return S.t('cardDevices', locale);
       case 'appearance':
         return S.t('cardAppearance', locale);
       case 'maintenance':
@@ -521,6 +624,63 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ],
             ),
+          ),
+        ];
+      case 'payments':
+        return [
+          _Section(
+            title: S.t('cardPayments', locale),
+            child: _paymentsLoading
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                : _PaymentsTile(
+                    entries: _payments,
+                    error: _paymentsError,
+                    onRefresh: _loadPayments,
+                  ),
+          ),
+        ];
+      case 'backup':
+        return [
+          _Section(
+            title: S.t('cardBackup', locale),
+            child: _backupsLoading
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                : _BackupsTile(
+                    entries: _backups,
+                    error: _backupsError,
+                    busy: _backupBusy,
+                    onCreate: _createBackup,
+                    onRefresh: _loadBackups,
+                  ),
+          ),
+        ];
+      case 'devices':
+        return [
+          _Section(
+            title: S.t('cardDevices', locale),
+            child: _devicesLoading
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                : _DevicesTile(
+                    sessions: _sessions,
+                    cameras: _cameras,
+                    error: _devicesError,
+                    onRefresh: _loadDevices,
+                  ),
           ),
         ];
       case 'appearance':
@@ -1188,6 +1348,264 @@ class _CardDef {
   final bool available;
   final VoidCallback? onTap;
   const _CardDef(this.key, this.icon, {required this.available, this.onTap});
+}
+
+/// Historique des encaissements — table `payments` (réelle).
+class _PaymentsTile extends StatelessWidget {
+  final List<Map<String, dynamic>> entries;
+  final String? error;
+  final Future<void> Function() onRefresh;
+  const _PaymentsTile(
+      {required this.entries, required this.error, required this.onRefresh});
+
+  IconData _methodIcon(String m) => switch (m) {
+        'cash' => Icons.payments_outlined,
+        'card' => Icons.credit_card,
+        'mobile' => Icons.phone_iphone,
+        'credit' => Icons.account_balance_wallet_outlined,
+        _ => Icons.swap_horiz,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = context.watch<AuthStore>().locale;
+    if (error != null) {
+      return Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(children: [
+          Text(error!,
+              style: const TextStyle(color: AppColors.danger, fontSize: 12)),
+          const SizedBox(height: 8),
+          OutlinedButton(onPressed: onRefresh, child: Text(S.t('retry', locale))),
+        ]),
+      );
+    }
+    if (entries.isEmpty) {
+      return Padding(
+          padding: const EdgeInsets.all(14),
+          child: Text(S.t('noData', locale)));
+    }
+    final byMethod = <String, double>{};
+    for (final p in entries) {
+      final m = '${p['method'] ?? 'other'}';
+      byMethod[m] = (byMethod[m] ?? 0) +
+          (double.tryParse('${p['amount'] ?? 0}') ?? 0);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              for (final e in byMethod.entries)
+                Chip(
+                  avatar: Icon(_methodIcon(e.key),
+                      size: 14, color: const Color(0xFF3E2A00)),
+                  label: Text('${e.key} · ${Fmt.money(e.value)}',
+                      style: const TextStyle(fontSize: 11.5)),
+                  visualDensity: VisualDensity.compact,
+                ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        for (final p in entries.take(40))
+          ListTile(
+            dense: true,
+            leading: Icon(_methodIcon('${p['method'] ?? ''}'),
+                size: 18, color: AppColors.info),
+            title: Text(Fmt.money(
+                double.tryParse('${p['amount'] ?? 0}') ?? 0)),
+            subtitle: Text(
+              '${p['method'] ?? ''}${p['card_type'] != null ? ' · ${p['card_type']}' : ''}'
+              '${p['reference'] != null ? ' · ${p['reference']}' : ''}'
+              '${p['received_at'] != null ? ' · ${p['received_at']}' : ''}',
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          ),
+        const Padding(
+          padding: EdgeInsets.all(10),
+          child: Text(
+            'Données issues de la table payments enregistrée à chaque encaissement.',
+            style: TextStyle(fontSize: 11, color: Colors.white54),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Sauvegardes — table `backups` (réelle). L'export dump est délégué
+/// à un worker serveur qui n'existe pas encore dans ce dépôt.
+class _BackupsTile extends StatelessWidget {
+  final List<Map<String, dynamic>> entries;
+  final String? error;
+  final bool busy;
+  final Future<void> Function() onCreate;
+  final Future<void> Function() onRefresh;
+  const _BackupsTile({
+    required this.entries,
+    required this.error,
+    required this.busy,
+    required this.onCreate,
+    required this.onRefresh,
+  });
+
+  Color _statusColor(String s) => switch (s) {
+        'completed' || 'verified' => AppColors.success,
+        'failed' => AppColors.danger,
+        'running' => AppColors.warning,
+        _ => AppColors.info,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = context.watch<AuthStore>().locale;
+    return Column(
+      children: [
+        ListTile(
+          enabled: !busy,
+          leading:
+              const Icon(Icons.backup_outlined, color: AppColors.primary),
+          title: Text(S.t('newBackup', locale)),
+          subtitle: const Text(
+              'Crée un enregistrement de sauvegarde (table backups). '
+              "L'export réel (pg_dump chiffré) est délégué à un worker serveur.",
+              style: TextStyle(fontSize: 11.5)),
+          trailing: busy
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.play_arrow_rounded),
+          onTap: onCreate,
+        ),
+        const Divider(height: 1),
+        ListTile(
+          enabled: false,
+          leading:
+              const Icon(Icons.settings_backup_restore, color: AppColors.danger),
+          title: Text(S.t('restoreBackup', locale)),
+          subtitle: const Text(
+              'Nécessite une approbation backups:approve et le worker de restauration',
+              style: TextStyle(fontSize: 11.5)),
+        ),
+        if (error != null)
+          Padding(
+            padding: const EdgeInsets.all(10),
+            child: Text(error!,
+                style:
+                    const TextStyle(color: AppColors.danger, fontSize: 12)),
+          )
+        else if (entries.isEmpty)
+          Padding(
+              padding: const EdgeInsets.all(14),
+              child: Text(S.t('noData', locale)))
+        else
+          for (final b in entries)
+            ListTile(
+              dense: true,
+              leading: Icon(Icons.history_rounded,
+                  size: 18, color: _statusColor('${b['status'] ?? ''}')),
+              title: Text(
+                  '${b['type'] ?? ''} · ${b['scope'] ?? ''} · ${b['status'] ?? ''}',
+                  style: const TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w600)),
+              subtitle: Text(
+                '${b['created_at'] ?? ''}'
+                '${b['size_bytes'] != null ? ' · ${b['size_bytes']} o' : ''}',
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ),
+      ],
+    );
+  }
+}
+
+/// Appareils — sessions actives (`user_sessions`) + caméras (`cameras`).
+class _DevicesTile extends StatelessWidget {
+  final List<Map<String, dynamic>> sessions;
+  final List<Map<String, dynamic>> cameras;
+  final String? error;
+  final Future<void> Function() onRefresh;
+  const _DevicesTile({
+    required this.sessions,
+    required this.cameras,
+    required this.error,
+    required this.onRefresh,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = context.watch<AuthStore>().locale;
+    if (error != null) {
+      return Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(children: [
+          Text(error!,
+              style: const TextStyle(color: AppColors.danger, fontSize: 12)),
+          const SizedBox(height: 8),
+          OutlinedButton(
+              onPressed: onRefresh, child: Text(S.t('retry', locale))),
+        ]),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (sessions.isEmpty)
+          Padding(
+              padding: const EdgeInsets.all(14),
+              child: Text(S.t('noSessions', locale)))
+        else
+          for (final s in sessions)
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.devices_other, size: 18),
+              title: Text(
+                  '${s['device_name'] ?? 'App'}${s['device_type'] != null ? ' · ${s['device_type']}' : ''}',
+                  style: const TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w600)),
+              subtitle: Text(
+                '${s['ip_address'] ?? ''} · ${s['last_used_at'] ?? s['created_at'] ?? ''}',
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ),
+        if (cameras.isNotEmpty) ...[
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+            child: Text(S.t('cameras', locale),
+                style: const TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w700)),
+          ),
+          for (final c in cameras)
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.videocam_outlined,
+                  size: 18, color: AppColors.info),
+              title: Text('${c['name'] ?? c['id'] ?? 'Caméra'}',
+                  style: const TextStyle(fontSize: 13)),
+              subtitle: Text('${c['location'] ?? ''} · ${c['status'] ?? ''}',
+                  style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            ),
+        ],
+        const Divider(height: 1),
+        const ListTile(
+          dense: true,
+          leading: Icon(Icons.smartphone_outlined, size: 18),
+          title: Text('PHARMA+ · Web',
+              style:
+                  TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          subtitle: Text('Cet appareil · session en cours',
+              style: TextStyle(fontSize: 11, color: Colors.grey)),
+        ),
+      ],
+    );
+  }
 }
 
 /// Carte outil du Tableau de contrôle — style premium illustré

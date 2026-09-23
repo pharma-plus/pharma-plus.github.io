@@ -116,6 +116,7 @@ const TABLE_MAP: Record<string, string> = {
   "/website/blog/posts": "blog_posts",
   "/support/tickets": "support_tickets",
   "/backups": "backups",
+  "/user_sessions": "user_sessions",
 };
 
 function mapTable(raw: string): string | null {
@@ -318,6 +319,27 @@ Deno.serve(async (req) => {
           pharmacy_name: null,
           role_name: "Pharmacien Administrateur",
         };
+      }
+
+      // Enregistre la session / appareil (user_sessions) — non bloquant.
+      try {
+        const dev = (body as any)?.device ?? {};
+        const exp = session?.expires_at
+          ? new Date(session.expires_at).toISOString()
+          : new Date(Date.now() + 3600_000).toISOString();
+        await sb.from("user_sessions").insert({
+          user_id: userProfile.id,
+          pharmacy_id: userProfile.pharmacy_id ?? pid,
+          access_token_hash: String(session?.access_token ?? "").slice(0, 64),
+          refresh_token_hash: String(session?.refresh_token ?? "").slice(0, 64),
+          device_name: dev.name ?? req.headers.get("user-agent")?.slice(0, 120) ?? "App",
+          device_type: dev.type ?? "app",
+          ip_address: (req.headers.get("x-forwarded-for") ?? "").split(",")[0]?.trim() || null,
+          user_agent: dev.userAgent ?? req.headers.get("user-agent")?.slice(0, 200) ?? null,
+          expires_at: exp,
+        });
+      } catch (e) {
+        console.error("[login] user_sessions insert:", String(e));
       }
 
       return json({
@@ -2220,7 +2242,7 @@ await sbAuth.auth.signInWithPassword({ email, password });
      prescriptions, purchases, sales, accounting, attendance, etc.
      =========================================================== */
   const genericMatch = path.match(
-    /^(catalog\/medications|catalog\/categories|catalog\/laboratories|catalog\/families|suppliers|customers|employees|cameras|branches|roles|role_permissions|permissions|users|notifications|prescriptions|pharmacies|purchases\/orders|purchases\/receptions|sales|sale-items|sale-returns|payments|invoices|invoice-items|stock\/adjustments|stock\/balances|stock\/movements|stock\/lots|stock\/transfers|accounting\/accounts|accounting\/journal|accounting\/expense-categories|accounting\/expenses|accounting\/registers|accounting\/closings|attendance\/leaves|attendance\/schedules|reference\/categories|website\/settings|website\/blog\/posts|support\/tickets|backups)(?:\/(.+))?$/,
+    /^(catalog\/medications|catalog\/categories|catalog\/laboratories|catalog\/families|suppliers|customers|employees|cameras|branches|roles|role_permissions|permissions|users|notifications|prescriptions|pharmacies|purchases\/orders|purchases\/receptions|sales|sale-items|sale-returns|payments|invoices|invoice-items|stock\/adjustments|stock\/balances|stock\/movements|stock\/lots|stock\/transfers|accounting\/accounts|accounting\/journal|accounting\/expense-categories|accounting\/expenses|accounting\/registers|accounting\/closings|attendance\/leaves|attendance\/schedules|reference\/categories|website\/settings|website\/blog\/posts|support\/tickets|backups|user_sessions)(?:\/(.+))?$/,
   );
   if (genericMatch) {
     const [, basePath, sub] = genericMatch;
