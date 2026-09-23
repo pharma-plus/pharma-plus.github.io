@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
@@ -21,6 +22,7 @@ class StockPage extends StatefulWidget {
 
 class _StockPageState extends State<StockPage> {
   final _search = TextEditingController();
+  Timer? _debounce;
   List<Map<String, dynamic>> _items = [];
   bool _loading = true;
   String? _error;
@@ -57,6 +59,18 @@ class _StockPageState extends State<StockPage> {
       _items = ApiList.of(result.data);
       _loading = false;
     });
+  }
+
+  void _debouncedLoad() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), _load);
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _search.dispose();
+    super.dispose();
   }
 
   Future<void> _scanAndFind() async {
@@ -291,7 +305,7 @@ class _StockPageState extends State<StockPage> {
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
             child: TextField(
               controller: _search,
-              onChanged: (_) => _load(),
+              onChanged: (_) => _debouncedLoad(),
               style: const TextStyle(color: AppColors.pharmaText),
               decoration: InputDecoration(
                 hintText: S.t('search', locale),

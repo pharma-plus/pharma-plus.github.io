@@ -451,12 +451,24 @@ class _OrderFormState extends State<_OrderForm> {
                         onRemove: () => setState(() => _lines.removeAt(i)),
                       ),
                     const SizedBox(height: 20),
-                    GradientButton(
-                      label: S.t('create', locale),
-                      icon: Icons.check,
-                      loading: _saving,
-                      onPressed: _save,
-                    ),
+                    Row(children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close),
+                          label: Text(S.t('cancel', locale)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: GradientButton(
+                          label: S.t('create', locale),
+                          icon: Icons.check,
+                          loading: _saving,
+                          onPressed: _save,
+                        ),
+                      ),
+                    ]),
                   ],
                 ),
               ),
@@ -1009,12 +1021,24 @@ class _ReceiveFormState extends State<_ReceiveForm> {
                   _buildExtraLine(i, locale),
               ],
               const SizedBox(height: 8),
-              GradientButton(
-                label: 'Valider la rÃ©ception',
-                icon: Icons.check,
-                loading: _saving,
-                onPressed: _save,
-              ),
+              Row(children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                    label: Text(S.t('cancel', locale)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GradientButton(
+                    label: 'Valider la rÃ©ception',
+                    icon: Icons.check,
+                    loading: _saving,
+                    onPressed: _save,
+                  ),
+                ),
+              ]),
             ],
           ),
         ),

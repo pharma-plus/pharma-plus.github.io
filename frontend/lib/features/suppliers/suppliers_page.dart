@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
@@ -21,6 +22,7 @@ class SuppliersPage extends StatefulWidget {
 
 class _SuppliersPageState extends State<SuppliersPage> {
   final _search = TextEditingController();
+  Timer? _debounce;
   List<Map<String, dynamic>> _items = [];
   bool _loading = true;
   String? _error;
@@ -55,6 +57,18 @@ class _SuppliersPageState extends State<SuppliersPage> {
       _items = ApiList.of(result.data);
       _loading = false;
     });
+  }
+
+  void _debouncedLoad() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), _load);
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _search.dispose();
+    super.dispose();
   }
 
   Future<void> _edit(Map<String, dynamic>? supplier) async {
@@ -105,7 +119,7 @@ class _SuppliersPageState extends State<SuppliersPage> {
             padding: const EdgeInsets.all(12),
             child: TextField(
               controller: _search,
-              onChanged: (_) => _load(),
+              onChanged: (_) => _debouncedLoad(),
               decoration: InputDecoration(
                 hintText: S.t('search', locale),
                 prefixIcon: const Icon(Icons.search),
@@ -339,12 +353,24 @@ class _SupplierFormState extends State<_SupplierForm> {
                   decoration:
                       InputDecoration(labelText: S.t('paymentTerms', locale))),
               const SizedBox(height: 20),
-              GradientButton(
-                label: S.t('save', locale),
-                icon: Icons.check,
-                loading: _saving,
-                onPressed: _save,
-              ),
+              Row(children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                    label: Text(S.t('cancel', locale)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GradientButton(
+                    label: S.t('save', locale),
+                    icon: Icons.check,
+                    loading: _saving,
+                    onPressed: _save,
+                  ),
+                ),
+              ]),
             ],
           ),
         ),
