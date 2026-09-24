@@ -546,6 +546,8 @@ class _DashboardPageState extends State<DashboardPage> {
           badgeColor: green),
     ];
     // 4 colonnes sur desktop ; 2 sur les écrans étroits (lisible partout).
+    // Ratio plus haut (cartes plus hautes) → le webp portrait tient
+    // entier et l'illustration 3D se centre dans la case.
     final cols = MediaQuery.of(context).size.width >= 980 ? 4 : 2;
     return GridView.count(
       crossAxisCount: cols,
@@ -553,7 +555,7 @@ class _DashboardPageState extends State<DashboardPage> {
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: compact ? 10 : 12,
       mainAxisSpacing: compact ? 10 : 12,
-      childAspectRatio: compact ? 1.20 : 1.05,
+      childAspectRatio: compact ? 1.0 : 0.95,
       children: [
         for (var i = 0; i < kpis.length; i++)
           _KpiCard(
@@ -655,97 +657,135 @@ class _KpiCardState extends State<_KpiCard> {
                       blurRadius: 18,
                       offset: const Offset(0, 8)),
               ],
-              // Fond photo : visuel EXACT de la maquette (dégradé du carton,
-              // cadre intérieur, illustration 3D sur socle lumineux). Les
-              // textes dynamiques (titre/valeur/tendance) sont superposés
-              // dans la zone claire en haut à gauche, comme sur la maquette.
-              image: DecorationImage(
-                image: AssetImage(def.image),
-                fit: BoxFit.cover,
-                alignment: Alignment.center,
+              // Fond carton (dégradé) — l'illustration webp est gérée
+              // par l'OverflowBox centré juste dessous.
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF1A3326), Color(0xFF0A1A14)],
               ),
             ),
-            // CONTENU TEXTE — aligné sur la maquette : titre + badge en haut,
-            // valeur/sous-titre/tendance dans la moitié haute ; les
-            // illustrations de fond vivent en bas à droite du carton.
             child: LayoutBuilder(builder: (context, box) {
-              final pr = (box.maxWidth * 0.30).clamp(26.0, 92.0);
-              return Padding(
-                padding: EdgeInsets.fromLTRB(14, 11, pr, 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              final w = box.maxWidth;
+              final h = box.maxHeight;
+              return ClipRect(
+                child: Stack(
+                  fit: StackFit.expand,
                   children: [
-                      // Titre vert numéroté + badge
-                      Row(children: [
-                        Expanded(
-                          child: FittedBox(
+                    // Illustration recentrée (image volontairement plus
+                    // grande que la case, ancrée bas → objet au centre).
+                    OverflowBox(
+                      minWidth: w,
+                      maxWidth: w * 1.35,
+                      minHeight: h,
+                      maxHeight: h * 1.7,
+                      alignment: const Alignment(0, 0.8),
+                      child: SizedBox(
+                        width: w * 1.35,
+                        height: h * 1.7,
+                        child: Image.asset(def.image,
+                            fit: BoxFit.cover,
+                            alignment: const Alignment(0, 0.55)),
+                      ),
+                    ),
+                    // Légère vignette haute pour lisibilité des textes
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: 0,
+                      height: h * 0.48,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              const Color(0xFF0E241C).withValues(alpha: 0.92),
+                              const Color(0xFF0E241C).withValues(alpha: 0.0),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 11, 14, 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(children: [
+                            Expanded(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text('$index. ${def.label}',
+                                    maxLines: 1,
+                                    style: const TextStyle(
+                                        color: _titleGreen,
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.8)),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              width: 24,
+                              height: 24,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0B1D13),
+                                borderRadius: BorderRadius.circular(8),
+                                border:
+                                    Border.all(color: const Color(0xFF2A4A38)),
+                              ),
+                              child: Icon(def.badge,
+                                  size: 14, color: def.badgeColor),
+                            ),
+                          ]),
+                          const SizedBox(height: 6),
+                          FittedBox(
                             fit: BoxFit.scaleDown,
                             alignment: Alignment.centerLeft,
-                            child: Text('$index. ${def.label}',
+                            child: Text(def.value,
                                 maxLines: 1,
                                 style: const TextStyle(
-                                    color: _titleGreen,
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w900)),
+                          ),
+                          if (def.sub.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(def.sub,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color:
+                                        Colors.white.withValues(alpha: 0.75),
                                     fontSize: 10.5,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 0.8)),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0B1D13),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFF2A4A38)),
-                          ),
-                          child: Icon(def.badge, size: 14, color: def.badgeColor),
-                        ),
-                      ]),
-                      const SizedBox(height: 10),
-                      // Valeur
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(def.value,
-                            maxLines: 1,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900)),
+                                    fontWeight: FontWeight.w600)),
+                          ],
+                          if (def.trendPct != null) ...[
+                            const SizedBox(height: 3),
+                            Text(def.trendPct!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    color: _titleGreen,
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w800)),
+                            Text(def.trendVs,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color:
+                                        Colors.white.withValues(alpha: 0.70),
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w600)),
+                          ],
+                        ],
                       ),
-                      if (def.sub.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(def.sub,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.75),
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w600)),
-                      ],
-                      const SizedBox(height: 4),
-                      // Tendance réelle uniquement (sinon rien d'inventé).
-                      if (def.trendPct != null) ...[
-                        Text(def.trendPct!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                color: _titleGreen,
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w800)),
-                        Text(def.trendVs,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.70),
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w600)),
-                      ],
-                      const Spacer(),
-                    ],
-                  ),
-                );
+                    ),
+                  ],
+                ),
+              );
             }),
           ),
         ),
