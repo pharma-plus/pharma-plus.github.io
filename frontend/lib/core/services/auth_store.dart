@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
+import '../../features/shell/shell_nav.dart';
 
 /// Gestion centralisée de la session : jetons, utilisateur, base URL,
 /// mode sombre et langue (persistés).
@@ -249,6 +250,8 @@ class AuthStore extends ChangeNotifier {
     _accessToken = null;
     _refreshToken = null;
     _user = null;
+    // Repartir toujours du Dashboard après déconnexion (bouton retour cohérent).
+    ShellNav.index.value = 0;
     await _tokenDelete(_kAccess);
     await _tokenDelete(_kRefresh);
     await _tokenDelete(_kUser);

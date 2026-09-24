@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/services/sync_engine.dart';
+import '../../core/services/system_back_guard.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/responsive.dart';
 import '../../core/widgets/pharma_background.dart';
@@ -60,6 +61,10 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void initState() {
     super.initState();
+    // Retour système smartphone/tablette : une entrée d'historique par onglet
+    // pour reculer Onglet → Dashboard → dialogue de confirmation.
+    ShellNav.index.addListener(_onShellIndexChanged);
+    systemBackNoteShellIndex(ShellNav.index.value);
     // Sync différée : on ne la lance pas pendant la première frame qui
     // charge déjà le dashboard (concurrence réseau inutile).
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -67,6 +72,16 @@ class _HomeShellState extends State<HomeShell> {
         if (mounted) _kickSync();
       });
     });
+  }
+
+  @override
+  void dispose() {
+    ShellNav.index.removeListener(_onShellIndexChanged);
+    super.dispose();
+  }
+
+  void _onShellIndexChanged() {
+    systemBackNoteShellIndex(ShellNav.index.value);
   }
 
   void _visit(int i) {

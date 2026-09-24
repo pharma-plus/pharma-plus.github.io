@@ -12,8 +12,10 @@ import 'core/widgets/pharma_logo.dart';
 import 'core/widgets/pharma_background.dart';
 import 'features/auth/login_page.dart';
 import 'core/services/app_guards.dart';
+import 'core/services/system_back_guard.dart';
 import 'features/audit/employee_space_page.dart';
 import 'features/shell/home_shell.dart';
+import 'features/shell/shell_nav.dart';
 import 'features/super_admin/super_admin_portal.dart';
 
 
@@ -23,10 +25,12 @@ class RootGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Bouton retour système (smartphone / tablette) : armé dès le démarrage.
+    systemBackInit(onBackAtRoot: confirmQuitApp);
     return Consumer<AuthStore>(
       builder: (context, auth, _) {
         if (!auth.isInitialized) {
-          return const _SplashScreen();
+          return _withPopScope(const _SplashScreen());
         }
         if (auth.initError) {
           return _withPopScope(_InitErrorScreen(
@@ -36,9 +40,12 @@ class RootGate extends StatelessWidget {
         }
         if (!auth.isAuthenticated) return _withPopScope(const LoginPage());
         if (auth.user?.isSuperAdmin == true) return _withPopScope(const SuperAdminPortal());
-        // Bouton retour Android / tentative de fermeture PC :
-        // sous-page ouverte -> retour logique ; page racine -> dialogue.
-        // La navigation interne ne ferme JAMAIS l'application.
+        // Bouton retour Android / tablette :
+        // 1) sous-page poussée → pop (recul pas à pas) ;
+        // 2) onglet shell ≠ Dashboard → Dashboard ;
+        // 3) Dashboard → dialogue « Voulez-vous quitter PHARMA+ ? ».
+        // Jamais de fermeture sans confirmation.
+        systemBackAttachContext(context);
         return PopScope(
           canPop: false,
           onPopInvokedWithResult: (didPop, _) async {
@@ -46,6 +53,10 @@ class RootGate extends StatelessWidget {
             final nav = Navigator.of(context);
             if (nav.canPop()) {
               nav.pop();
+              return;
+            }
+            if (ShellNav.index.value != 0) {
+              ShellNav.goHome();
               return;
             }
             await confirmQuitApp(context);
@@ -62,14 +73,17 @@ class RootGate extends StatelessWidget {
 /// Enveloppe toute page racine avec PopScope pour gérer le bouton retour Android.
 Widget _withPopScope(Widget child) {
   return Builder(
-    builder: (context) => PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) async {
-        if (didPop) return;
-        await confirmQuitApp(context);
-      },
-      child: child,
-    ),
+    builder: (context) {
+      systemBackAttachContext(context);
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) async {
+          if (didPop) return;
+          await confirmQuitApp(context);
+        },
+        child: child,
+      );
+    },
   );
 }
 
