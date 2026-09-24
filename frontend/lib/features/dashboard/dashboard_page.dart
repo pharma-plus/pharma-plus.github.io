@@ -32,7 +32,6 @@ import '../stock/stock_page.dart';
 import '../website/website_page.dart';
 import 'pos_panel.dart';
 import 'global_search.dart';
-import 'kpi_art.dart';
 
 /// ============================================================
 /// DASHBOARD PHARMA+ — reconstruction IDENTIQUE à la maquette :
@@ -492,46 +491,49 @@ class _DashboardPageState extends State<DashboardPage> {
           value: Fmt.money(_revenueToday),
           trendPct: pct(_trendRevenueToday),
           trendVs: 'vs hier',
-          art: KpiArt.register,
+          image: 'assets/images/kpi_bg_1.webp',
           badge: Icons.point_of_sale_rounded,
           badgeColor: green),
       _KpiDef(
           label: 'MÉDICAMENTS',
           value: Fmt.number(_medications),
           sub: 'Références actives',
-          art: KpiArt.bottle,
+          image: 'assets/images/kpi_bg_2.webp',
           badge: Icons.medication_rounded,
           badgeColor: green),
       _KpiDef(
           label: 'STOCK FAIBLE',
           value: '$_lowStock',
           sub: 'Produits',
-          art: KpiArt.boxes,
+          image: 'assets/images/kpi_bg_3.webp',
           badge: Icons.warning_amber_rounded,
           badgeColor: amber),
       _KpiDef(
           label: 'COMMANDES',
           value: '$_pendingOrders',
           sub: 'En attente',
-          art: KpiArt.clipboard,
+          image: 'assets/images/kpi_bg_4.webp',
           badge: Icons.fact_check_rounded,
           badgeColor: green),
       _KpiDef(
           label: 'FOURNISSEURS',
           value: Fmt.number(_suppliers),
-          art: KpiArt.truck,
+          sub: 'Fournisseurs',
+          image: 'assets/images/kpi_bg_5.webp',
           badge: Icons.local_shipping_rounded,
           badgeColor: green),
       _KpiDef(
           label: 'CLIENTS',
           value: Fmt.number(_customers),
-          art: KpiArt.people,
+          sub: 'Clients',
+          image: 'assets/images/kpi_bg_6.webp',
           badge: Icons.groups_rounded,
           badgeColor: green),
       _KpiDef(
           label: 'EMPLOYÉS',
           value: '$_employees',
-          art: KpiArt.pharmacist,
+          sub: 'Employés',
+          image: 'assets/images/kpi_bg_7.webp',
           badge: Icons.person_rounded,
           badgeColor: green),
       _KpiDef(
@@ -539,7 +541,7 @@ class _DashboardPageState extends State<DashboardPage> {
           value: Fmt.money(_profitMonth),
           trendPct: pct(_trendProfitMonth),
           trendVs: 'vs mois dernier',
-          art: KpiArt.bars,
+          image: 'assets/images/kpi_bg_8.webp',
           badge: Icons.bar_chart_rounded,
           badgeColor: green),
     ];
@@ -573,8 +575,10 @@ class _KpiDef {
   final String sub;
   final String? trendPct;
   final String trendVs;
-  /// Illustration 3D CustomPaint (kpi_art.dart), centrée dans la cellule.
-  final KpiArt art;
+  /// Fond photo extrait de la maquette (assets/images/kpi_bg_N.png) :
+  /// dégradé du carton + cadre + illustration 3D sur socle, textes de la
+  /// maquette effacés — l'app dessine les valeurs réelles par-dessus.
+  final String image;
   final IconData badge;
   final Color badgeColor;
   const _KpiDef({
@@ -583,7 +587,7 @@ class _KpiDef {
     this.sub = '',
     this.trendPct,
     this.trendVs = '',
-    required this.art,
+    required this.image,
     required this.badge,
     required this.badgeColor,
   });
@@ -651,109 +655,97 @@ class _KpiCardState extends State<_KpiCard> {
                       blurRadius: 18,
                       offset: const Offset(0, 8)),
               ],
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF0E241C), Color(0xFF081612)],
+              // Fond photo : visuel EXACT de la maquette (dégradé du carton,
+              // cadre intérieur, illustration 3D sur socle lumineux). Les
+              // textes dynamiques (titre/valeur/tendance) sont superposés
+              // dans la zone claire en haut à gauche, comme sur la maquette.
+              image: DecorationImage(
+                image: AssetImage(def.image),
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
               ),
             ),
+            // CONTENU TEXTE — aligné sur la maquette : titre + badge en haut,
+            // valeur/sous-titre/tendance dans la moitié haute ; les
+            // illustrations de fond vivent en bas à droite du carton.
             child: LayoutBuilder(builder: (context, box) {
-              // Illustration 3D strictement centrée dans la cellule.
-              final artSize =
-                  (box.maxWidth < box.maxHeight ? box.maxWidth : box.maxHeight)
-                      .clamp(48.0, 96.0);
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  // Podium + objet 3D au centre de la carte
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 36, bottom: 8),
-                      child: SizedBox(
-                        width: artSize * 1.25,
-                        height: artSize,
-                        child: CustomPaint(
-                          painter: KpiArtPainter(def.art),
+              final pr = (box.maxWidth * 0.30).clamp(26.0, 92.0);
+              return Padding(
+                padding: EdgeInsets.fromLTRB(14, 11, pr, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                      // Titre vert numéroté + badge
+                      Row(children: [
+                        Expanded(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text('$index. ${def.label}',
+                                maxLines: 1,
+                                style: const TextStyle(
+                                    color: _titleGreen,
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.8)),
+                          ),
                         ),
+                        const SizedBox(width: 6),
+                        Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0B1D13),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFF2A4A38)),
+                          ),
+                          child: Icon(def.badge, size: 14, color: def.badgeColor),
+                        ),
+                      ]),
+                      const SizedBox(height: 10),
+                      // Valeur
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(def.value,
+                            maxLines: 1,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900)),
                       ),
-                    ),
-                  ),
-                  // Textes superposés (titre / valeur / tendance)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 11, 14, 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(children: [
-                          Expanded(
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerLeft,
-                              child: Text('$index. ${def.label}',
-                                  maxLines: 1,
-                                  style: const TextStyle(
-                                      color: _titleGreen,
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 0.8)),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Container(
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF0B1D13),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0xFF2A4A38)),
-                            ),
-                            child: Icon(def.badge,
-                                size: 14, color: def.badgeColor),
-                          ),
-                        ]),
-                        const SizedBox(height: 6),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(def.value,
-                              maxLines: 1,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w900)),
-                        ),
-                        if (def.sub.isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text(def.sub,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.75),
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w600)),
-                        ],
-                        if (def.trendPct != null) ...[
-                          const SizedBox(height: 3),
-                          Text(def.trendPct!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  color: _titleGreen,
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w800)),
-                          Text(def.trendVs,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.70),
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w600)),
-                        ],
+                      if (def.sub.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(def.sub,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.75),
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w600)),
                       ],
-                    ),
+                      const SizedBox(height: 4),
+                      // Tendance réelle uniquement (sinon rien d'inventé).
+                      if (def.trendPct != null) ...[
+                        Text(def.trendPct!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                color: _titleGreen,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w800)),
+                        Text(def.trendVs,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.70),
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w600)),
+                      ],
+                      const Spacer(),
+                    ],
                   ),
-                ],
-              );
+                );
             }),
           ),
         ),
