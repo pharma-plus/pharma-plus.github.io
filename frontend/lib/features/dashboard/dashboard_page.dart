@@ -666,26 +666,23 @@ class _KpiCardState extends State<_KpiCard> {
               ),
             ),
             child: LayoutBuilder(builder: (context, box) {
-              final w = box.maxWidth;
               final h = box.maxHeight;
               return ClipRect(
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    // Illustration recentrée (image volontairement plus
-                    // grande que la case, ancrée bas → objet au centre).
-                    OverflowBox(
-                      minWidth: w,
-                      maxWidth: w * 1.35,
-                      minHeight: h,
-                      maxHeight: h * 1.7,
-                      alignment: const Alignment(0, 0.8),
-                      child: SizedBox(
-                        width: w * 1.35,
-                        height: h * 1.7,
-                        child: Image.asset(def.image,
-                            fit: BoxFit.cover,
-                            alignment: const Alignment(0, 0.55)),
+                    // Illustration ajustée JUSTE dans la case, centrée
+                    // ( BoxFit.contain → jamais plus grand que la cellule).
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: Image.asset(
+                          def.image,
+                          width: double.infinity,
+                          height: double.infinity,
+                          fit: BoxFit.contain,
+                          alignment: Alignment.center,
+                        ),
                       ),
                     ),
                     // Légère vignette haute pour lisibilité des textes
