@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
@@ -1610,8 +1612,8 @@ class _DevicesTile extends StatelessWidget {
   }
 }
 
-/// Carte outil du Tableau de contrôle — relief 3D premium
-/// (médaillon extrudé centré, podium lumineux, liseré or, reflet diagonal).
+/// Carte outil du Tableau de contrôle — illustration 3D professionnelle
+/// (socle isométrique + médaillon extrudé multicouche, centré dans la cellule).
 class _ControlCard extends StatelessWidget {
   final _CardDef def;
   final String label;
@@ -1645,7 +1647,7 @@ class _ControlCard extends StatelessWidget {
             ? const []
             : [
                 BoxShadow(
-                  color: AppColors.accent.withValues(alpha: 0.10),
+                  color: AppColors.accent.withValues(alpha: 0.12),
                   blurRadius: 16,
                   offset: const Offset(0, 5),
                 ),
@@ -1698,111 +1700,11 @@ class _ControlCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Médaillon 3D extrudé + podium lumineux
                       SizedBox(
-                        width: 52,
-                        height: 48,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          clipBehavior: Clip.none,
-                          children: [
-                            // Podium lumineux (ellipse or)
-                            Positioned(
-                              bottom: 0,
-                              child: Container(
-                                width: 40,
-                                height: 10,
-                                decoration: BoxDecoration(
-                                  gradient: RadialGradient(
-                                    colors: [
-                                      AppColors.pharmaGold.withValues(
-                                          alpha: 0.55),
-                                      Colors.transparent,
-                                    ],
-                                  ),
-                                  borderRadius: const BorderRadius.all(
-                                      Radius.elliptical(20, 5)),
-                                ),
-                              ),
-                            ),
-                            // Ombre portée du médaillon
-                            Positioned(
-                              bottom: 3,
-                              child: Container(
-                                width: 34,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.45),
-                                  borderRadius: const BorderRadius.all(
-                                      Radius.elliptical(17, 4)),
-                                ),
-                              ),
-                            ),
-                            // Face latérale (extrusion)
-                            Positioned(
-                              top: 5,
-                              right: 8,
-                              child: Transform.translate(
-                                offset: const Offset(2.5, 2.5),
-                                child: Container(
-                                  width: 36,
-                                  height: 36,
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: [
-                                        Color(0xFF8A6A28),
-                                        Color(0xFF5C4518),
-                                      ],
-                                    ),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: const Color(0xFF3E2A00),
-                                      width: 1,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            // Face avant (médaillon or principal)
-                            Positioned(
-                              top: 2,
-                              left: 6,
-                              child: Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  gradient: AppColors.goldGradient,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: AppColors.pharmaGoldLight
-                                        .withValues(alpha: 0.85),
-                                    width: 1.4,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.accent
-                                          .withValues(alpha: 0.35),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                    // Specular highlight (haut)
-                                    BoxShadow(
-                                      color: Colors.white
-                                          .withValues(alpha: 0.35),
-                                      blurRadius: 3,
-                                      spreadRadius: -1,
-                                      offset: const Offset(-1, -1),
-                                    ),
-                                  ],
-                                ),
-                                child: Icon(def.icon,
-                                    color: const Color(0xFF3E2A00),
-                                    size: 18),
-                              ),
-                            ),
-                          ],
+                        width: 64,
+                        height: 58,
+                        child: CustomPaint(
+                          painter: _Control3DPainter(icon: def.icon),
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -1828,6 +1730,132 @@ class _ControlCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Illustration 3D professionnelle du Tableau de contrôle :
+/// socle lumineux vert · extrusion bronze multicouche · face or biseautée ·
+/// icône gravée · halo et reflet spéculaire.
+class _Control3DPainter extends CustomPainter {
+  final IconData icon;
+  _Control3DPainter({required this.icon});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final cx = w / 2;
+    final cy = h * 0.42;
+    final r = (w * 0.28).clamp(14.0, 22.0);
+
+    // Halo vert pétrole
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(cx, h * 0.88), width: w * 0.82, height: h * 0.22),
+      Paint()
+        ..color = AppColors.accent.withValues(alpha: 0.35)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+    );
+    // Socle elliptique or
+    final pod = Rect.fromCenter(
+        center: Offset(cx, h * 0.88), width: w * 0.72, height: h * 0.18);
+    canvas.drawOval(
+      pod,
+      Paint()
+        ..shader = ui.Gradient.linear(
+          pod.topCenter,
+          pod.bottomCenter,
+          [AppColors.pharmaGold.withValues(alpha: 0.75),
+           AppColors.pharmaGold.withValues(alpha: 0.2)],
+        ),
+    );
+    canvas.drawOval(
+      pod.deflate(1),
+      Paint()
+        ..color = AppColors.pharmaGoldLight.withValues(alpha: 0.5)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
+
+    // Ombre portée du médaillon
+    canvas.drawOval(
+      Rect.fromCenter(
+          center: Offset(cx + 2, cy + r + 4),
+          width: r * 1.7,
+          height: r * 0.45),
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.5)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+    );
+
+    // Extrusion (couches bronze décalées)
+    for (var i = 4; i >= 1; i--) {
+      final t = i * 1.6;
+      final rect = RRect.fromRectAndRadius(
+        Rect.fromCircle(center: Offset(cx + t, cy + t), radius: r),
+        Radius.circular(r),
+      );
+      final f = i / 5.0;
+      canvas.drawRRect(
+        rect,
+        Paint()
+          ..color = Color.lerp(const Color(0xFF8A6A28), const Color(0xFF3E2A00), f)!
+              .withValues(alpha: 0.95),
+      );
+    }
+
+    // Face avant or
+    final face = RRect.fromRectAndRadius(
+      Rect.fromCircle(center: Offset(cx, cy), radius: r),
+      Radius.circular(r),
+    );
+    canvas.drawRRect(
+      face,
+      Paint()
+        ..shader = ui.Gradient.linear(
+          Offset(cx - r, cy - r),
+          Offset(cx + r, cy + r),
+          [AppColors.pharmaGoldLight, AppColors.pharmaGold, const Color(0xFFA67C1F)],
+        ),
+    );
+    // Biseau intérieur
+    canvas.drawRRect(
+      face.deflate(1.5),
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.35)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2,
+    );
+    // Reflet spéculaire haut-gauche
+    canvas.drawArc(
+      Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.85),
+      3.4,
+      1.2,
+      false,
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.4)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.2
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.2),
+    );
+
+    // Icône centrée
+    final tp = TextPainter(
+      text: TextSpan(
+        text: String.fromCharCode(icon.codePoint),
+        style: TextStyle(
+          fontSize: r * 1.05,
+          fontWeight: FontWeight.w700,
+          color: const Color(0xFF3E2A00),
+          fontFamily: icon.fontFamily,
+          package: icon.fontPackage,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, Offset(cx - tp.width / 2, cy - tp.height / 2));
+  }
+
+  @override
+  bool shouldRepaint(covariant _Control3DPainter old) => old.icon != icon;
 }
 
 class _RadioTheme extends StatelessWidget {
