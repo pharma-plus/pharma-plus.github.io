@@ -11,8 +11,8 @@ BuildContext? _ctx;
 Future<void> Function(BuildContext context)? _onBackAtRoot;
 bool _quitOpen = false;
 bool _inited = false;
-/// true pendant qu'on restaure un onglet depuis l'historique :
-/// on ne doit PAS pousser une nouvelle entrée (sinon doublon).
+/// true pendant qu'on restaure un onglet / ferme une route depuis
+/// l'historique : on ne doit PAS pousser une nouvelle entrée.
 bool _restoring = false;
 
 /// Arme l'historique navigateur (smartphone / tablette) :
@@ -48,59 +48,82 @@ void _pushGuard() {
 
 bool _isOurs(Object? state) => state is Map && state['pmg'] == true;
 
-/// Retour système (bouton Android / geste) — valable sur TOUTES les pages :
-/// 1) dialogue / formulaire / page poussée ouverte → Flutter la ferme seule
-///    (on ne touche ni l'onglet ni la confirmation) ;
+/// Retour système (bouton Android / geste) — TOUTES les pages :
+/// 1) dialogue / formulaire / page poussée → on le FERME et on reste
+///    sur la page courante (l'entrée consommée est re-poussée) ;
 /// 2) onglet ≠ Dashboard → Dashboard ;
-/// 3) Dashboard → dialogue « Voulez-vous quitter PHARMA+ ? » (jamais sans).
+/// 3) Dashboard → dialogue « Voulez-vous quitter PHARMA+ ? ».
 void _onPopState(html.PopStateEvent event) {
   final state = event.state;
-  // Laisse Flutter consommer d'abord ses propres entrées d'historique
-  // (routes poussées : formulaires, bottom sheets, Caméras, etc.).
-  scheduleMicrotask(() async {
-    final ctx = _ctx;
-    if (ctx == null || !ctx.mounted) return;
+  // Laisse d'abord les handlers Flutter (engine) tourner, puis on agit.
+  scheduleMicrotask(() {
+    Future<void>.delayed(Duration.zero, () async {
+      final ctx = _ctx;
+      if (ctx == null || !ctx.mounted) return;
 
-    // 1) Une route Flutter est encore empilée (dialogue/form/sous-page) :
-    //    c'est Flutter qui la pop — on sort sans changer d'onglet.
-    final nav = Navigator.of(ctx, rootNavigator: true);
-    if (nav.canPop()) return;
+      final nav = Navigator.of(ctx, rootNavigator: true);
 
-    if (!_isOurs(state)) return; // entrée Flutter / externe
-
-    final tab = state is Map ? state['tab'] : null;
-
-    // 2) Entrée d'un onglet : on restaure cet onglet (sans re-pousser).
-    if (tab is int && tab > 0) {
-      if (ShellNav.index.value != tab) {
+      // 1) Route Flutter encore ouverte (formulaire, dialogue, bottom
+      //    sheet, sous-page) → la fermer ICI et rester sur la page.
+      if (nav.canPop()) {
         _restoring = true;
-        ShellNav.index.value = tab;
-        _restoring = false;
+        try {
+          nav.pop();
+        } finally {
+          _restoring = false;
+        }
+        // event.state = entrée DÉJÀ affichée par le navigateur après le
+        // retour. Si ce n'est PAS notre entrée d'onglet courante (formulaire
+        // sans entrée histo dédiée → on a sauté une étape), on la recrée
+        // pour que le prochain retour n'aille pas trop loin.
+        final cur = html.window.history.state;
+        final curTab = cur is Map ? cur['tab'] : null;
+        if (!_isOurs(cur) || curTab != ShellNav.index.value) {
+          html.window.history.pushState(
+            {'pmg': true, 'tab': ShellNav.index.value},
+            '',
+            '',
+          );
+        }
+        return;
       }
-      return;
-    }
 
-    // 3) Entrée garde / Dashboard atteint depuis un autre onglet.
-    if (ShellNav.index.value != 0) {
-      _restoring = true;
-      ShellNav.goHome();
-      _restoring = false;
-      return; // la garde déjà en dessous sert de sommet
-    }
+      if (!_isOurs(state)) return; // entrée Flutter / externe
 
-    // 4) Déjà sur le Dashboard → confirmation obligatoire, pas de fermeture.
-    if (_quitOpen) return;
-    if (nav.canPop()) return;
-    _quitOpen = true;
-    final cb = _onBackAtRoot;
-    if (cb != null) {
-      await cb(ctx);
-    } else {
-      await confirmQuitApp(ctx);
-    }
-    _quitOpen = false;
-    if (ctx.mounted && ShellNav.index.value == 0 && !nav.canPop()) {
-      _pushGuard();
-    }
+      final tab = state is Map ? state['tab'] : null;
+
+      // 2) Entrée d'un onglet : on restaure cet onglet (sans re-pousser).
+      if (tab is int && tab > 0) {
+        if (ShellNav.index.value != tab) {
+          _restoring = true;
+          ShellNav.index.value = tab;
+          _restoring = false;
+        }
+        return;
+      }
+
+      // 3) Entrée garde / Dashboard atteint depuis un autre onglet.
+      if (ShellNav.index.value != 0) {
+        _restoring = true;
+        ShellNav.goHome();
+        _restoring = false;
+        return;
+      }
+
+      // 4) Déjà sur le Dashboard → confirmation obligatoire, pas de fermeture.
+      if (_quitOpen) return;
+      if (nav.canPop()) return;
+      _quitOpen = true;
+      final cb = _onBackAtRoot;
+      if (cb != null) {
+        await cb(ctx);
+      } else {
+        await confirmQuitApp(ctx);
+      }
+      _quitOpen = false;
+      if (ctx.mounted && ShellNav.index.value == 0 && !nav.canPop()) {
+        _pushGuard();
+      }
+    });
   });
 }
