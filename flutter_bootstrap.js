@@ -33,10 +33,11 @@ addEventListener("message", eventListener);
 if (!window._flutter) {
   window._flutter = {};
 }
-_flutter.buildConfig = {"engineRevision":"83675ed27633283e7fc296c8bca22e841224c096","builds":[{"compileTarget":"dart2js","renderer":"html","mainJsPath":"main.202609240110.dart.js"},{}]};
+_flutter.buildConfig = {"engineRevision":"83675ed27633283e7fc296c8bca22e841224c096","builds":[{"compileTarget":"dart2js","renderer":"html","mainJsPath":"main.202609240642.dart.js"},{}]};
 
-_flutter.loader.load({ config: { renderer: "html" },
+_flutter.loader.load({
+  config: { renderer: "html" },
   serviceWorkerSettings: {
-    serviceWorkerVersion: "3775981799" /* Flutter's service worker is deprecated and will be removed in a future Flutter release. */
+    serviceWorkerVersion: "3683696032" /* Flutter's service worker is deprecated and will be removed in a future Flutter release. */
   }
 });
