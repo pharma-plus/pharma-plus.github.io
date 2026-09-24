@@ -40,8 +40,8 @@ class RootGate extends StatelessWidget {
         }
         if (!auth.isAuthenticated) return _withPopScope(const LoginPage());
         if (auth.user?.isSuperAdmin == true) return _withPopScope(const SuperAdminPortal());
-        // Bouton retour Android / tablette :
-        // 1) sous-page poussée → pop (recul pas à pas) ;
+        // Bouton retour système (smartphone) — TOUTES les pages :
+        // 1) dialogue / formulaire / sous-page poussée → pop (reste sur la page) ;
         // 2) onglet shell ≠ Dashboard → Dashboard ;
         // 3) Dashboard → dialogue « Voulez-vous quitter PHARMA+ ? ».
         // Jamais de fermeture sans confirmation.
@@ -50,7 +50,7 @@ class RootGate extends StatelessWidget {
           canPop: false,
           onPopInvokedWithResult: (didPop, _) async {
             if (didPop) return;
-            final nav = Navigator.of(context);
+            final nav = Navigator.of(context, rootNavigator: true);
             if (nav.canPop()) {
               nav.pop();
               return;
@@ -70,7 +70,8 @@ class RootGate extends StatelessWidget {
   }
 }
 
-/// Enveloppe toute page racine avec PopScope pour gérer le bouton retour Android.
+/// Enveloppe toute page racine avec PopScope : dialogue d'abord,
+/// sinon confirmation de quitter (splash / login / erreur / super-admin).
 Widget _withPopScope(Widget child) {
   return Builder(
     builder: (context) {
@@ -79,6 +80,11 @@ Widget _withPopScope(Widget child) {
         canPop: false,
         onPopInvokedWithResult: (didPop, _) async {
           if (didPop) return;
+          final nav = Navigator.of(context, rootNavigator: true);
+          if (nav.canPop()) {
+            nav.pop();
+            return;
+          }
           await confirmQuitApp(context);
         },
         child: child,
