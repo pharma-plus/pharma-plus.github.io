@@ -51,10 +51,10 @@ class RootGate extends StatelessWidget {
           onPopInvokedWithResult: (didPop, _) async {
             if (didPop) return;
             final nav = Navigator.of(context, rootNavigator: true);
-            if (nav.canPop()) {
-              nav.pop();
-              return;
-            }
+            // Si nav.canPop() == true, un PopScope interne (formulaire, dialogue)
+            // a déjà eu la main et a DÉCIDÉ de ne pas popper (unsaved changes).
+            // On NE DOIT PAS appeler nav.pop() ici -> double-pop.
+            if (nav.canPop()) return;
             if (ShellNav.index.value != 0) {
               ShellNav.goHome();
               return;
@@ -81,10 +81,9 @@ Widget _withPopScope(Widget child) {
         onPopInvokedWithResult: (didPop, _) async {
           if (didPop) return;
           final nav = Navigator.of(context, rootNavigator: true);
-          if (nav.canPop()) {
-            nav.pop();
-            return;
-          }
+          // Même règle : si une route interne peut popper, c'est qu'un
+          // PopScope interne a déjà géré le retour (ou va le faire).
+          if (nav.canPop()) return;
           await confirmQuitApp(context);
         },
         child: child,

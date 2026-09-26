@@ -105,6 +105,7 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet>
   @override
   void initState() {
     super.initState();
+    initScanAudio();
     _startCamera();
   }
 

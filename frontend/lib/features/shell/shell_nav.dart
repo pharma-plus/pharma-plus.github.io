@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
+
+import '../../core/services/app_guards.dart';
 
 /// Navigation interne du [HomeShell] : les pages affichées dans l'IndexedStack
 /// sont des routes racines (Navigator.canPop == false) — le bouton retour
@@ -16,6 +19,7 @@ class ShellNav {
 
 /// Bouton retour universel des sous-pages :
 /// · icone maison qui retourne au Tableau de bord.
+/// Utilise la logique centralisee de retour (unsaved changes -> pop -> shell).
 class ShellBackButton extends StatelessWidget {
   const ShellBackButton({super.key});
 
@@ -24,17 +28,10 @@ class ShellBackButton extends StatelessWidget {
     return IconButton(
       icon: const Icon(Icons.home_rounded),
       tooltip: 'Retour',
-      onPressed: () {
-        final rootNav = Navigator.of(context, rootNavigator: true);
-        if (rootNav.canPop()) {
-          rootNav.pop();
-        } else {
-          final localNav = Navigator.of(context);
-          if (localNav.canPop()) {
-            localNav.pop();
-          } else {
-            ShellNav.goHome();
-          }
+      onPressed: () async {
+        final handled = await handleSystemBack(context);
+        if (!handled && context.mounted) {
+          ShellNav.goHome();
         }
       },
     );
@@ -43,6 +40,7 @@ class ShellBackButton extends StatelessWidget {
 
 /// Bouton flèche retour pour les sous-sous-pages (pages poussées).
 /// Pop la page en cours pour revenir à la page précédente.
+/// Utilise la logique centralisee de retour.
 class BackArrowButton extends StatelessWidget {
   const BackArrowButton({super.key});
 
@@ -51,18 +49,10 @@ class BackArrowButton extends StatelessWidget {
     return IconButton(
       icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
       tooltip: 'Retour',
-      onPressed: () {
-        final rootNav = Navigator.of(context, rootNavigator: true);
-        if (rootNav.canPop()) {
-          rootNav.pop();
-        } else {
-          final localNav = Navigator.of(context);
-          if (localNav.canPop()) {
-            localNav.pop();
-          } else {
-            ShellNav.goHome();
-          }
-        }
+      onPressed: () async {
+        final handled = await handleSystemBack(context);
+        // Si non gere (pas de route a pop, pas shell), ne rien faire
+        // (le PopScope racine gerera le dialogue quitter si necessaire)
       },
     );
   }

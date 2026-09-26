@@ -12,13 +12,13 @@ Future<void> Function(BuildContext context)? _onBackAtRoot;
 bool _quitOpen = false;
 bool _inited = false;
 /// true pendant qu'on restaure un onglet / ferme une route depuis
-/// l'historique : on ne doit PAS pousser une nouvelle entrée.
+/// l'historique : on ne doit PAS pousser une nouvelle entree.
 bool _restoring = false;
 
 /// Arme l'historique navigateur (smartphone / tablette) :
-/// · une entrée garde au Dashboard pour empêcher la sortie sauvage ;
-/// · une entrée par onglet pour que le retour système recule
-///   Onglet → Dashboard → dialogue de confirmation.
+/// · une entree garde au Dashboard pour empecher la sortie sauvage ;
+/// · une entree par onglet pour que le retour systeme recule
+///   Onglet -> Dashboard -> dialogue de confirmation.
 void systemBackInit({
   required Future<void> Function(BuildContext context) onBackAtRoot,
 }) {
@@ -48,11 +48,12 @@ void _pushGuard() {
 
 bool _isOurs(Object? state) => state is Map && state['pmg'] == true;
 
-/// Retour système (bouton Android / geste) — TOUTES les pages :
-/// 1) dialogue / formulaire / page poussée → on le FERME et on reste
-///    sur la page courante (l'entrée consommée est re-poussée) ;
-/// 2) onglet ≠ Dashboard → Dashboard ;
-/// 3) Dashboard → dialogue « Voulez-vous quitter PHARMA+ ? ».
+/// Retour systeme (bouton Android / geste) — TOUTES les pages :
+/// 1) dialogue / formulaire / page poussee -> on le FERME et on reste
+///    sur la page courante (l'entree consommee n'est PAS repoussee si
+///    le pop est empeche par un formulaire non sauve) ;
+/// 2) onglet != Dashboard -> Dashboard ;
+/// 3) Dashboard -> dialogue "Voulez-vous quitter PHARMA+ ?".
 void _onPopState(html.PopStateEvent event) {
   final state = event.state;
   // Laisse d'abord les handlers Flutter (engine) tourner, puis on agit.
@@ -64,35 +65,32 @@ void _onPopState(html.PopStateEvent event) {
       final nav = Navigator.of(ctx, rootNavigator: true);
 
       // 1) Route Flutter encore ouverte (formulaire, dialogue, bottom
-      //    sheet, sous-page) → la fermer ICI et rester sur la page.
+      //    sheet, sous-page) -> tenter de la fermer.
+      //    Si le pop est empeche (unsaved changes), NE PAS toucher a
+      //    l'historique navigateur (le navigateur a deja consomme son
+      //    entree, on ne doit pas en ajouter une nouvelle).
       if (nav.canPop()) {
         _restoring = true;
-        try {
-          nav.pop();
-        } finally {
-          _restoring = false;
-        }
-        // event.state = entrée DÉJÀ affichée par le navigateur après le
-        // retour. Si ce n'est PAS notre entrée d'onglet courante (formulaire
-        // sans entrée histo dédiée → on a sauté une étape), on la recrée
-        // pour que le prochain retour n'aille pas trop loin.
-        final cur = html.window.history.state;
-        final curTab = cur is Map ? cur['tab'] : null;
-        if (!_isOurs(cur) || curTab != ShellNav.index.value) {
-          html.window.history.pushState(
-            {'pmg': true, 'tab': ShellNav.index.value},
-            '',
-            '',
-          );
-        }
+        final beforePop = nav.canPop();
+        nav.pop();
+        // Attendre une micro-tache pour voir si le pop a reussi
+        // (le PopScope local aura gere unsaved changes).
+        await Future<void>.delayed(Duration.zero);
+        _restoring = false;
+
+        // Si le pop a reussi (route fermee), le navigateur a deja
+        // recule dans son historique -> RIEN A FAIRE.
+        // Si le pop a ECHOUE (formulaire non sauve), le navigateur a
+        // quand meme consomme l'entree d'historique -> on NE repousse
+        // PAS (sinon entree fantome). L'utilisateur reste sur la page.
         return;
       }
 
-      if (!_isOurs(state)) return; // entrée Flutter / externe
+      if (!_isOurs(state)) return; // entree Flutter / externe
 
       final tab = state is Map ? state['tab'] : null;
 
-      // 2) Entrée d'un onglet : on restaure cet onglet (sans re-pousser).
+      // 2) Entree d'un onglet : on restaure cet onglet (sans re-pousser).
       if (tab is int && tab > 0) {
         if (ShellNav.index.value != tab) {
           _restoring = true;
@@ -102,7 +100,7 @@ void _onPopState(html.PopStateEvent event) {
         return;
       }
 
-      // 3) Entrée garde / Dashboard atteint depuis un autre onglet.
+      // 3) Entree garde / Dashboard atteint depuis un autre onglet.
       if (ShellNav.index.value != 0) {
         _restoring = true;
         ShellNav.goHome();
@@ -110,7 +108,7 @@ void _onPopState(html.PopStateEvent event) {
         return;
       }
 
-      // 4) Déjà sur le Dashboard → confirmation obligatoire, pas de fermeture.
+      // 4) Deja sur le Dashboard -> confirmation obligatoire, pas de fermeture.
       if (_quitOpen) return;
       if (nav.canPop()) return;
       _quitOpen = true;
