@@ -71,7 +71,6 @@ void _onPopState(html.PopStateEvent event) {
       //    entree, on ne doit pas en ajouter une nouvelle).
       if (nav.canPop()) {
         _restoring = true;
-        final beforePop = nav.canPop();
         nav.pop();
         // Attendre une micro-tache pour voir si le pop a reussi
         // (le PopScope local aura gere unsaved changes).

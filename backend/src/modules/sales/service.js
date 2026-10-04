@@ -54,7 +54,7 @@ export const salesService = {
    * Caisse (POS) : validation, décrément de stock par lots FEFO,
    * paiement, ticket et facture éventuelle.
    */
-  async createSale(pharmacyId, { branchId, customerId = null, items, payments, saleType = 'pos', notes, prescriptionId = null }, user) {
+  async createSale(pharmacyId, { branchId, customerId = null, items, payments, saleType = 'pos', notes, prescriptionId = null, discount_percent: discountPercent = 0, discount_amount: discountAmount = 0 }, user) {
     if (!items?.length) throw new AppError('Panier vide', 422, 'EMPTY_CART');
 
     return withTransaction(pharmacyId, async (client) => {
@@ -105,7 +105,12 @@ export const salesService = {
         saleItems.push({ medication_id: item.medication_id, name: m.name, quantity: item.quantity, unit_price: unitPrice, net: calc.net });
       }
 
-      const total = Math.round((subtotal + taxTotal) * 100) / 100;
+      const globalDiscount = Math.min(
+        subtotal,
+        discountPercent > 0 ? subtotal * (discountPercent / 100) : discountAmount,
+      );
+      const total = Math.round((subtotal + taxTotal - globalDiscount) * 100) / 100;
+      discountTotal = Math.round((discountTotal + globalDiscount) * 100) / 100;
       const paidAmount = (payments || []).reduce((acc, p) => acc + Number(p.amount || 0), 0);
       const changeAmount = paidAmount > total ? Math.round((paidAmount - total) * 100) / 100 : 0;
 

@@ -15,6 +15,7 @@ import '../../core/utils/calculations.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/barcode_scanner.dart';
 import '../pos/payment_models.dart';
+import '../pos/pos_models.dart';
 import 'pos_category_grid.dart';
 
 /// ============================================================
@@ -30,12 +31,11 @@ import 'pos_category_grid.dart';
 class PosPanel extends StatefulWidget {
   final VoidCallback onCheckout;
 
-  /// Ouvre le POS complet avec le panier courant pré-rempli et le montant
-  /// reçu validé dans la feuille de paiement : l'encaissement se fait
-  /// automatiquement avec CE montant réel (pas de seconde saisie).
-  final void Function(
-          List<Medication> items, double discount, bool isPercent, double received)?
-      onPrefilled;
+  /// Transfère le panier encaissé au POS complet : celui-ci enregistre
+  /// réellement la vente (stock, paiement, ticket) avec CE paiement,
+  /// sans seconde saisie.
+  final void Function(List<CartLine> lines, double discount, bool isPercent,
+      PaymentResult payment, String? customerId)? onPrefilled;
   final bool compact;
   const PosPanel(
       {super.key,
@@ -357,13 +357,16 @@ class _PosPanelState extends State<PosPanel> {
     } else {
       pay = PaymentResult.card(amount: _totals.total, cardType: 'mastercard');
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(pay.method == 'card'
-          ? 'Vente enregistrée · Carte ${pay.cardType ?? ''}'
-          : _change > 0
-              ? 'Vente enregistrée · Monnaie : ${Fmt.money(_change)} MAD'
-              : 'Vente enregistrée')),
-    );
+    final onPrefilled = widget.onPrefilled;
+    if (onPrefilled == null) {
+      widget.onCheckout();
+      return;
+    }
+    final lines = [
+      for (final m in _cart.values)
+        CartLine(medication: m, quantity: (_qty[m.id] ?? 1).toDouble()),
+    ];
+    onPrefilled(lines, _discount, _discountPercent, pay, _customerId);
     _clearCart();
   }
 

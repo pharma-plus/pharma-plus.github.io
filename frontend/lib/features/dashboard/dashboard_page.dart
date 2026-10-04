@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../core/models/medication.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/app_guards.dart';
 import '../../core/services/auth_store.dart';
@@ -21,6 +20,8 @@ import '../cameras/cameras_page.dart';
 import '../floor_plan/pharmacy_plan_page.dart';
 import '../modules/modules_page.dart';
 import '../notifications/notifications_page.dart';
+import '../pos/payment_models.dart';
+import '../pos/pos_models.dart';
 import '../pos/pos_page.dart';
 import '../prescriptions/prescriptions_page.dart';
 import '../reference/reference_page.dart';
@@ -466,11 +467,14 @@ class _DashboardPageState extends State<DashboardPage> {
                   width: posWidth,
                   child: _PosPanel(
                       onCheckout: () => _push(const PosPage()),
-                      onPrefilled: (items, discount, isPercent, received) =>
-                          _push(PosPage(initialItems: items,
+                      onPrefilled: (lines, discount, isPercent, payment,
+                              customerId) =>
+                          _push(PosPage(
+                              initialLines: lines,
                               initialDiscount: discount,
                               initialDiscountIsPercent: isPercent,
-                              initialReceived: received)),
+                              initialPayment: payment,
+                              initialCustomerId: customerId)),
                       compact: compact)),
             ],
           ]),
@@ -2067,11 +2071,10 @@ class _MiniCurvePainter extends CustomPainter {
 class _PosPanel extends StatelessWidget {
   final VoidCallback onCheckout;
 
-  /// Paiement validé dans l'encart : [received] = montant reçu réel
-  /// (le POS complet encaisse directement, sans seconde saisie).
-  final void Function(
-          List<Medication> items, double discount, bool isPercent, double received)?
-      onPrefilled;
+  /// Panier encaissé transféré au POS complet : la vente y est réellement
+  /// enregistrée avec [payment] (aucune seconde saisie).
+  final void Function(List<CartLine> lines, double discount, bool isPercent,
+      PaymentResult payment, String? customerId)? onPrefilled;
   final bool compact;
   const _PosPanel(
       {required this.onCheckout, this.onPrefilled, this.compact = false});

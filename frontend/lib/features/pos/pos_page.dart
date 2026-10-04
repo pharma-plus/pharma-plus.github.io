@@ -24,15 +24,21 @@ import 'payment_models.dart';
 
 class PosPage extends StatefulWidget {
   final List<Medication>? initialItems;
+  final List<CartLine>? initialLines;
   final double initialDiscount;
   final bool initialDiscountIsPercent;
   final double? initialReceived;
+  final PaymentResult? initialPayment;
+  final String? initialCustomerId;
   const PosPage({
     super.key,
     this.initialItems,
+    this.initialLines,
     this.initialDiscount = 0,
     this.initialDiscountIsPercent = true,
     this.initialReceived,
+    this.initialPayment,
+    this.initialCustomerId,
   });
 
   @override
@@ -43,6 +49,7 @@ class _PosPageState extends State<PosPage> {
   final Cart _cart = Cart();
   final _search = TextEditingController();
   final _receivedCtrl = TextEditingController();
+  final _discountCtrl = TextEditingController();
   List<Medication> _results = [];
   bool _searching = false;
   bool _checkout = false;
@@ -81,18 +88,30 @@ class _PosPageState extends State<PosPage> {
     _loadBranches();
     _loadCustomers();
     _searchMedications('');
+    final lines = widget.initialLines;
     final items = widget.initialItems;
-    if (items != null && items.isNotEmpty) {
+    if (lines != null && lines.isNotEmpty) {
+      for (final l in lines) {
+        _cart.lines.add(l);
+      }
+    } else if (items != null && items.isNotEmpty) {
       for (final m in items) {
         _cart.add(m);
       }
-      if (widget.initialDiscount > 0) {
-        _cart.globalDiscountPercent = widget.initialDiscountIsPercent
-            ? widget.initialDiscount
-            : _cart.subtotal > 0
-                ? (widget.initialDiscount / _cart.subtotal) * 100
-                : 0;
+    }
+    if (widget.initialDiscount > 0) {
+      _discountIsPercent = widget.initialDiscountIsPercent;
+      if (widget.initialDiscountIsPercent) {
+        _cart.globalDiscountPercent = widget.initialDiscount;
+      } else {
+        _cart.globalDiscountFixed = widget.initialDiscount;
       }
+      final d = widget.initialDiscount;
+      _discountCtrl.text =
+          d == d.roundToDouble() ? d.round().toString() : d.toStringAsFixed(2);
+    }
+    if (widget.initialCustomerId != null) {
+      _customerId = widget.initialCustomerId;
     }
   }
 
@@ -100,6 +119,7 @@ class _PosPageState extends State<PosPage> {
   void dispose() {
     _search.dispose();
     _receivedCtrl.dispose();
+    _discountCtrl.dispose();
     _searchDebounce?.cancel();
     super.dispose();
   }
@@ -132,19 +152,19 @@ class _PosPageState extends State<PosPage> {
         _branchId =
             auth.user?.branchId ?? (list.isNotEmpty ? '${list[0]['id']}' : null);
       });
-      if (widget.initialReceived != null &&
+      if ((widget.initialPayment != null || widget.initialReceived != null) &&
           _cart.lines.isNotEmpty &&
           _branchId != null &&
           !_checkout) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && !_checkout) {
-            _checkoutFlow(PaymentResult.cash(
+        final payment = widget.initialPayment ??
+            PaymentResult.cash(
               amount: _cart.total,
               received: widget.initialReceived!,
               change: calculateChange(
                   received: widget.initialReceived!, total: _cart.total),
-            ));
-          }
+            );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && !_checkout) _checkoutFlow(payment);
         });
       }
     }
@@ -343,6 +363,7 @@ class _PosPageState extends State<PosPage> {
                 ))
             .toList();
         final gdp = _cart.globalDiscountPercent;
+        final discountAmount = _totals.discount;
         final pharmacyName = _branchName();
         _cart.clear();
         _received = 0;
@@ -361,6 +382,7 @@ class _PosPageState extends State<PosPage> {
             pharmacyName: pharmacyName,
             locale: auth.locale,
             globalDiscountPercent: gdp,
+            globalDiscountAmount: discountAmount,
             amountReceived: pay.received ?? pay.amount,
             change: change,
           );
@@ -1154,6 +1176,7 @@ class _PosPageState extends State<PosPage> {
       children: [
         Expanded(
           child: TextField(
+            controller: _discountCtrl,
             keyboardType:
                 const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
@@ -1542,7 +1565,7 @@ class _PosPageState extends State<PosPage> {
             SaleLine(
                 unitPrice: l.unitPrice,
                 quantity: l.quantity,
-                tvaRate: l.tvaRate),
+                tvaRate: l.tvaRate / 100),
         ],
         discountValue: _discountIsPercent
             ? _cart.globalDiscountPercent

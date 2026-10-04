@@ -76,6 +76,7 @@ class ReceiptPdf {
     required String pharmacyName,
     required String locale,
     double globalDiscountPercent = 0,
+    double globalDiscountAmount = 0,
     double amountReceived = 0,
     double change = 0,
     ReceiptWidth width = ReceiptWidth.mm80,
@@ -87,7 +88,9 @@ class ReceiptPdf {
         lines.fold<double>(0, (s, l) => s + l.unitPrice * l.quantity);
     final tva =
         lines.fold<double>(0, (s, l) => s + l.unitPrice * l.quantity * (l.tvaRate / 100));
-    final discount = subtotal * (globalDiscountPercent / 100);
+    final discount = globalDiscountAmount > 0
+        ? globalDiscountAmount
+        : subtotal * (globalDiscountPercent / 100);
     final total = subtotal + tva - discount;
 
     final doc = pw.Document(title: 'PHARMA+ — Ticket de caisse');
@@ -137,8 +140,11 @@ class ReceiptPdf {
             pw.SizedBox(height: 10),
             _totalRow(S.t('subtotal', locale), Fmt.money(subtotal)),
             _totalRow(S.t('tva', locale), Fmt.money(tva)),
-            if (globalDiscountPercent > 0)
-              _totalRow('${S.t('discount', locale)} ($globalDiscountPercent%)',
+            if (discount > 0)
+              _totalRow(
+                  globalDiscountPercent > 0
+                      ? '${S.t('discount', locale)} ($globalDiscountPercent%)'
+                      : S.t('discount', locale),
                   '- ${Fmt.money(discount)}'),
             _totalRow(S.t('total', locale), Fmt.money(total), bold: true),
             if (amountReceived > 0) ...[
@@ -167,6 +173,7 @@ class ReceiptPdf {
     required String pharmacyName,
     required String locale,
     double globalDiscountPercent = 0,
+    double globalDiscountAmount = 0,
     double amountReceived = 0,
     double change = 0,
   }) async {
@@ -176,6 +183,7 @@ class ReceiptPdf {
       pharmacyName: pharmacyName,
       locale: locale,
       globalDiscountPercent: globalDiscountPercent,
+      globalDiscountAmount: globalDiscountAmount,
       amountReceived: amountReceived,
       change: change,
       width: width,

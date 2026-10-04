@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-import 'unsaved_changes_guard.dart';
-
 /// Fermeture reelle de l'application / du conteneur, si la plateforme
 /// le permet (Android : SystemNavigator ; Web : window.close()).
 Future<void> closeAppOrContainer() async {

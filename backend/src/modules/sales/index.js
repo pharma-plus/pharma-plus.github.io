@@ -35,6 +35,8 @@ router.post('/', requirePerm('sales:create'), validate({
     notes: Joi.string().max(500).allow(null, ''),
     items: Joi.array().items(itemSchema).min(1).max(500).required(),
     payments: Joi.array().items(paymentSchema).optional(),
+    discount_percent: Joi.number().min(0).default(0),
+    discount_amount: Joi.number().min(0).default(0),
   }),
 }), wrap(async (req, res) => {
   const sale = await salesService.createSale(req.user.pharmacyId, req.body, req.user);

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 import '../../core/services/app_guards.dart';
 
@@ -50,7 +49,7 @@ class BackArrowButton extends StatelessWidget {
       icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
       tooltip: 'Retour',
       onPressed: () async {
-        final handled = await handleSystemBack(context);
+        await handleSystemBack(context);
         // Si non gere (pas de route a pop, pas shell), ne rien faire
         // (le PopScope racine gerera le dialogue quitter si necessaire)
       },

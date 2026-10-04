@@ -98,9 +98,8 @@ SaleTotals calculateSaleTotalExcl(
   final subtotal =
       lines.fold<double>(0, (s, l) => s + l.unitPrice * l.quantity);
   final tvaGross = lines.fold<double>(0, (s, l) => s + l.lineTva);
-  final discount =
-      calculateDiscount(subtotal + tvaGross, discountValue,
-          isPercent: discountIsPercent);
+  final discount = calculateDiscount(subtotal, discountValue,
+      isPercent: discountIsPercent);
   return SaleTotals(
     subtotal: subtotal,
     discount: discount,
