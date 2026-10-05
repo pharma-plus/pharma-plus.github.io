@@ -99,6 +99,9 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet>
   bool _paused = false;
   Timer? _duplicateReset;
   String? _lastRawCode;
+  // Bip : un seul par code nouvellement détecté + cooldown global.
+  String? _lastBeepCode;
+  DateTime _lastBeepAt = DateTime.fromMillisecondsSinceEpoch(0);
 
   bool get _continuous => widget.continuous && widget.onScan != null;
 
@@ -187,9 +190,9 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet>
     if (!mounted) return;
     final result = ScanResult(code, BarcodeFormat.unknown,
         gs1: Gs1Parser.parse(code));
-    playScanBeep();
     if (!_continuous) {
       engine.stopBarcodeCamera();
+      _beepFor(result.code);
       Navigator.of(context).pop(result);
       return;
     }
@@ -217,8 +220,8 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet>
       if (raw == null || raw.trim().isEmpty) continue;
       final result =
           ScanResult(raw.trim(), bar.format, gs1: Gs1Parser.parse(raw));
-      playScanBeep();
       if (!_continuous) {
+        _beepFor(result.code);
         Navigator.of(context).pop(result);
         return;
       }
@@ -235,14 +238,28 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet>
       _lastRawCode = null;
     });
 
-    // Retour haptique + son (best effort, silencieux si non supporté).
-    playScanBeep();
+    // Retour sonore (best effort, silencieux si non supporté) :
+    // bip APRÈS la dédup, un seul par code nouveau.
+    _beepFor(result.code);
 
     setState(() {
       _count++;
       _last = result;
     });
     widget.onScan?.call(result);
+  }
+
+  /// Un bip par code NOUVELLEMENT détecté : un code déjà vu reste
+  /// silencieux jusqu'à ce qu'un autre code passe (fini les bips en
+  /// boucle quand le code reste dans le champ), cooldown global 350 ms
+  /// contre les rafales de formats alternés.
+  void _beepFor(String code) {
+    final now = DateTime.now();
+    if (code == _lastBeepCode) return;
+    if (now.difference(_lastBeepAt).inMilliseconds < 350) return;
+    _lastBeepCode = code;
+    _lastBeepAt = now;
+    playScanBeep();
   }
 
   Future<void> _togglePause() async {

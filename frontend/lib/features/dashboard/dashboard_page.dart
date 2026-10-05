@@ -550,8 +550,8 @@ class _DashboardPageState extends State<DashboardPage> {
           badgeColor: green),
     ];
     // 4 colonnes sur desktop ; 2 sur les écrans étroits (lisible partout).
-    // Ratio plus haut (cartes plus hautes) → le webp portrait tient
-    // entier et l'illustration 3D se centre dans la case.
+    // Ratio plus haut (cartes plus hautes) → le webp portrait remplit
+    // la case (cover ancré en bas, podium intact).
     final cols = MediaQuery.of(context).size.width >= 980 ? 4 : 2;
     return GridView.count(
       crossAxisCount: cols,
@@ -599,7 +599,7 @@ class _KpiDef {
   });
 }
 
-/// Carte KPI maquette : titre vert numéroté · badge d'option en haut à
+/// Carte KPI maquette : titre blanc numéroté · badge d'option en haut à
 /// droite (chaque image a son icône) · grande valeur · sous-titre ·
 /// tendance verte · illustration 3D sur podium lumineux en bas à droite.
 /// Animations RÉELLES codées : survol → élévation + liseré or lumineux ;
@@ -661,51 +661,22 @@ class _KpiCardState extends State<_KpiCard> {
                       blurRadius: 18,
                       offset: const Offset(0, 8)),
               ],
-              // Fond carton (dégradé) — l'illustration webp est gérée
-              // par l'OverflowBox centré juste dessous.
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF1A3326), Color(0xFF0A1A14)],
-              ),
+              // L'illustration webp EST le carton de la maquette (dégradé
+              // coloré + 3D) : fond plein cadre gérée par le Stack ci-dessous.
+              color: const Color(0xFF05130D),
             ),
-            child: LayoutBuilder(builder: (context, box) {
-              final h = box.maxHeight;
-              return ClipRect(
+            child: ClipRect(
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    // Illustration ajustée JUSTE dans la case, centrée
-                    // ( BoxFit.contain → jamais plus grand que la cellule).
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(6),
-                        child: Image.asset(
-                          def.image,
-                          width: double.infinity,
-                          height: double.infinity,
-                          fit: BoxFit.contain,
-                          alignment: Alignment.center,
-                        ),
-                      ),
-                    ),
-                    // Légère vignette haute pour lisibilité des textes
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      top: 0,
-                      height: h * 0.48,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              const Color(0xFF0E241C).withValues(alpha: 0.92),
-                              const Color(0xFF0E241C).withValues(alpha: 0.0),
-                            ],
-                          ),
-                        ),
+                    // Illustration plein cadre = carton maquette exact
+                    // (BoxFit.cover + ancrage bas → le podium n'est jamais
+                    // rogné, le léger excédent se prend en haut).
+                    Positioned.fill(
+                      child: Image.asset(
+                        def.image,
+                        fit: BoxFit.cover,
+                        alignment: Alignment.bottomCenter,
                       ),
                     ),
                     Padding(
@@ -721,7 +692,7 @@ class _KpiCardState extends State<_KpiCard> {
                                 child: Text('$index. ${def.label}',
                                     maxLines: 1,
                                     style: const TextStyle(
-                                        color: _titleGreen,
+                                        color: Colors.white,
                                         fontSize: 10.5,
                                         fontWeight: FontWeight.w800,
                                         letterSpacing: 0.8)),
@@ -786,8 +757,7 @@ class _KpiCardState extends State<_KpiCard> {
                     ),
                   ],
                 ),
-              );
-            }),
+              ),
           ),
         ),
       ),
@@ -1808,8 +1778,15 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
     ('S', 'Stock'),
     ('C', 'Caisse'),
   ];
+  bool _auto = false;
+  double _zoom = 1.0;
+
+  void _zoomBy(double f) =>
+      setState(() => _zoom = (_zoom * f).clamp(0.5, 3.0));
+
   @override
   Widget build(BuildContext context) {
+    final compact = widget.compact;
     return _DarkPanel(
       title: 'PLAN 3D DE LA PHARMACIE',
       icon: Icons.view_in_ar_outlined,
@@ -1818,23 +1795,58 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
         SizedBox(
           // Hauteur adaptative : écrans bas => scène réduite mais complète
           // (le bas du dashboard reste entièrement visible, rien n'est masqué).
-          height: widget.compact ? 152.0 : 236.0,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF0D1713), Color(0xFF080E0C)]),
-                  border: Border.all(
-                      color: AppColors.dividerDark.withValues(alpha: 0.9))),
-              // MÊME modèle 3D que la page "Plan 3D" (PlanPainter +
-              // mêmes zones) : aperçu du plan complet, pas un modèle
-              // différent. Tap = ouverture de la page Plan 3D.
-              child: Plan3DPreview(onZoneTap: (_) => widget.onOpen()),
+          height: compact ? 152.0 : 236.0,
+          child: Row(children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF0D1713), Color(0xFF080E0C)]),
+                      border: Border.all(
+                          color:
+                              AppColors.dividerDark.withValues(alpha: 0.9))),
+                  // MÊME modèle 3D que la page "Plan 3D" (PlanPainter +
+                  // mêmes zones) : aperçu du plan complet, pas un modèle
+                  // différent. Tap = ouverture de la page Plan 3D.
+                  child: Plan3DPreview(
+                    onZoneTap: (_) => widget.onOpen(),
+                    zoom: _zoom,
+                    autoRotate: _auto,
+                  ),
+                ),
+              ),
             ),
-          ),
+            const SizedBox(width: 7),
+            // Colonne de boutons de la maquette : Vue 3D · Tourner ·
+            // + · − · plein écran (le plein écran réutilise la page).
+            Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _planBtn(Icons.view_in_ar_rounded, 'Vue 3D', widget.onOpen,
+                    compact: compact, labeled: !compact),
+                _planBtn(
+                    Icons.rotate_right_rounded,
+                    'Tourner',
+                    () => setState(() => _auto = !_auto),
+                    compact: compact,
+                    labeled: !compact,
+                    active: _auto),
+                _planBtn(Icons.add_rounded, 'Zoom +', () => _zoomBy(1.15),
+                    compact: compact),
+                _planBtn(Icons.remove_rounded, 'Zoom -', () => _zoomBy(1 / 1.15),
+                    compact: compact),
+                _planBtn(
+                    Icons.open_in_full_rounded,
+                    'Plein écran',
+                    () => openPlanFullScreen(context, zoom: _zoom),
+                    compact: compact),
+              ],
+            ),
+          ]),
         ),
         const SizedBox(height: 9),
         Row(
@@ -1843,6 +1855,58 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
               for (final (letter, name) in _legend) _LegendItem(letter, name),
             ]),
       ]),
+    );
+  }
+
+  /// Bouton du rail droite : icône blanche ( + libellé sur écran normal ),
+  /// verrou vert actif pour « Tourner », clic immédiat.
+  Widget _planBtn(IconData icon, String tip, VoidCallback onTap,
+      {required bool compact, bool labeled = false, bool active = false}) {
+    return Tooltip(
+      message: tip,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            width: compact ? 24 : 40,
+            height: compact ? 24 : 40,
+            decoration: BoxDecoration(
+              color: active
+                  ? AppColors.pharmaGreen.withValues(alpha: 0.20)
+                  : Colors.white.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(compact ? 8 : 10),
+              border: Border.all(
+                  color: active
+                      ? AppColors.pharmaGreen.withValues(alpha: 0.75)
+                      : Colors.white.withValues(alpha: 0.16)),
+            ),
+            child: labeled
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icon,
+                          size: 15,
+                          color: active
+                              ? AppColors.pharmaGreen
+                              : Colors.white),
+                      const SizedBox(height: 1),
+                      Text(tip,
+                          style: TextStyle(
+                              color: active
+                                  ? AppColors.pharmaGreen
+                                  : Colors.white.withValues(alpha: 0.82),
+                              fontSize: 8,
+                              fontWeight: FontWeight.w700)),
+                    ],
+                  )
+                : Icon(icon,
+                    size: compact ? 14 : 17,
+                    color: active ? AppColors.pharmaGreen : Colors.white),
+          ),
+        ),
+      ),
     );
   }
 }

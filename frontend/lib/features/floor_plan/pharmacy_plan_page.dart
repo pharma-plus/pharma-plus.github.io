@@ -30,7 +30,19 @@ class PharmacyPlanPage extends StatefulWidget {
 /// ============================================================
 class Plan3DPreview extends StatefulWidget {
   final ValueChanged<PlanZoneHit?>? onZoneTap;
-  const Plan3DPreview({super.key, this.onZoneTap});
+
+  /// Zoom piloté par le bouton +/− du panneau (page = état interne).
+  final double zoom;
+
+  /// Rotation auto continue (bouton « Tourner » du dashboard).
+  final bool autoRotate;
+
+  const Plan3DPreview({
+    super.key,
+    this.onZoneTap,
+    this.zoom = 1.0,
+    this.autoRotate = false,
+  });
 
   @override
   State<Plan3DPreview> createState() => _Plan3DPreviewState();
@@ -39,7 +51,35 @@ class Plan3DPreview extends StatefulWidget {
 class _Plan3DPreviewState extends State<Plan3DPreview> {
   late final List<PlanZoneHit> _zones = _buildZones();
   double _rot = 0.6;
-  final double _zoom = 1.0;
+  Timer? _spin;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncSpin();
+  }
+
+  @override
+  void didUpdateWidget(covariant Plan3DPreview old) {
+    super.didUpdateWidget(old);
+    if (old.autoRotate != widget.autoRotate) _syncSpin();
+  }
+
+  void _syncSpin() {
+    _spin?.cancel();
+    _spin = null;
+    if (widget.autoRotate) {
+      _spin = Timer.periodic(const Duration(milliseconds: 30), (_) {
+        if (mounted) setState(() => _rot += 0.01);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _spin?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +98,7 @@ class _Plan3DPreviewState extends State<Plan3DPreview> {
               painter: PlanPainter(
                 zones: _zones,
                 rot: _rot,
-                zoom: _zoom,
+                zoom: widget.zoom,
                 locale: locale,
                 size: size,
                 selectedId: null,
@@ -965,7 +1005,7 @@ class PlanPainter extends CustomPainter {
       canvas.drawPath(
           path,
           Paint()
-            ..color = z.color.withValues(alpha: selected ? 0.38 : 0.18)
+            ..color = z.color.withValues(alpha: selected ? 0.42 : 0.10)
             ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
       if (selected) {
         canvas.drawPath(
@@ -1057,7 +1097,7 @@ class PlanPainter extends CustomPainter {
   /// tablettes en bois clair + rangÃ©es de produits colorÃ©s.
   void _addShelfUnit(List<PlanFace> faces, double bx0, double by0, double bx1,
       double by1, double height, Color base, int seed) {
-    final frame = _darken(base, 0.42);
+    const frame = Color(0xFF54402A);
     // Montants latÃ©raux.
     _addBox(faces, bx0, by0, bx0 + 0.07, by1, 0, height, frame);
     _addBox(faces, bx1 - 0.07, by0, bx1, by1, 0, height, frame);
@@ -1148,14 +1188,36 @@ class PlanPainter extends CustomPainter {
     const h = 2.7;
     // Mur nord (plan y = -4) + frise claire.
     _addQuad(faces, const PlanPt(-5, -4, h), const PlanPt(5, -4, h), const PlanPt(5, -4, 0), const PlanPt(-5, -4, 0),
-        const Color(0xFF1A2C22));
+        const Color(0xFFBFB9A8));
     _addQuad(faces, const PlanPt(-5, -4, h), const PlanPt(5, -4, h), const PlanPt(5, -4, h - 0.14),
-        const PlanPt(-5, -4, h - 0.14), const Color(0xFF2E5241));
+        const PlanPt(-5, -4, h - 0.14), const Color(0xFFD8D3C4));
+    _addQuad(faces, const PlanPt(-5, -4, 0.14), const PlanPt(5, -4, 0.14), const PlanPt(5, -4, 0),
+        const PlanPt(-5, -4, 0), const Color(0xFF3E423B));
     // Mur ouest (plan x = -5) + frise claire.
     _addQuad(faces, const PlanPt(-5, -4, h), const PlanPt(-5, 4, h), const PlanPt(-5, 4, 0), const PlanPt(-5, -4, 0),
-        const Color(0xFF16241C));
+        const Color(0xFFA9A395));
     _addQuad(faces, const PlanPt(-5, -4, h), const PlanPt(-5, 4, h), const PlanPt(-5, 4, h - 0.14),
-        const PlanPt(-5, -4, h - 0.14), const Color(0xFF284638));
+        const PlanPt(-5, -4, h - 0.14), const Color(0xFFC6C1B2));
+    _addQuad(faces, const PlanPt(-5, -4, 0.14), const PlanPt(-5, 4, 0.14), const PlanPt(-5, 4, 0),
+        const PlanPt(-5, -4, 0), const Color(0xFF383C36));
+    // Porte verte a croix + affiche murale sur le mur nord (maquette),
+    // legerement en retrait (y = -3.96) pour rester devant le mur.
+    _addQuad(faces, const PlanPt(3.06, -3.965, 2.16), const PlanPt(4.34, -3.965, 2.16),
+        const PlanPt(4.34, -3.965, 0), const PlanPt(3.06, -3.965, 0), const Color(0xFF14261C));
+    _addQuad(faces, const PlanPt(3.14, -3.96, 2.08), const PlanPt(4.26, -3.96, 2.08),
+        const PlanPt(4.26, -3.96, 0.06), const PlanPt(3.14, -3.96, 0.06), const Color(0xFF1E7A4A));
+    _addQuad(faces, const PlanPt(3.63, -3.955, 1.78), const PlanPt(3.77, -3.955, 1.78),
+        const PlanPt(3.77, -3.955, 0.92), const PlanPt(3.63, -3.955, 0.92), const Color(0xFFF2F6F0));
+    _addQuad(faces, const PlanPt(3.36, -3.955, 1.455), const PlanPt(4.04, -3.955, 1.455),
+        const PlanPt(4.04, -3.955, 1.245), const PlanPt(3.36, -3.955, 1.245), const Color(0xFFF2F6F0));
+    _addQuad(faces, const PlanPt(4.11, -3.955, 1.08), const PlanPt(4.18, -3.955, 1.08),
+        const PlanPt(4.18, -3.955, 0.98), const PlanPt(4.11, -3.955, 0.98), const Color(0xFFD9BC8C));
+    _addQuad(faces, const PlanPt(1.5, -3.965, 2.28), const PlanPt(2.7, -3.965, 2.28),
+        const PlanPt(2.7, -3.965, 1.38), const PlanPt(1.5, -3.965, 1.38), const Color(0xFF2A2E28));
+    _addQuad(faces, const PlanPt(1.58, -3.96, 2.2), const PlanPt(2.62, -3.96, 2.2),
+        const PlanPt(2.62, -3.96, 1.46), const PlanPt(1.58, -3.96, 1.46), const Color(0xFFE8E2D4));
+    _addQuad(faces, const PlanPt(1.58, -3.96, 2.2), const PlanPt(2.62, -3.96, 2.2),
+        const PlanPt(2.62, -3.96, 2.02), const PlanPt(1.58, -3.96, 2.02), const Color(0xFF1E7A4A));
   }
 
   List<PlanFace> _buildFaces() {
@@ -1238,34 +1300,64 @@ class PlanPainter extends CustomPainter {
     for (final z in zones) {
       final c = _proj.project((z.x0 + z.x1) / 2, (z.y0 + z.y1) / 2, 0);
       final active = z.id == selectedId;
+      final name = S.t(z.labelKey, locale);
       final tp = TextPainter(
         text: TextSpan(
-          text: S.t(z.labelKey, locale),
+          text: name,
           style: TextStyle(
               color:
-                  active ? Colors.white : Colors.white.withValues(alpha: 0.88),
+                  active ? Colors.white : Colors.white.withValues(alpha: 0.92),
               fontSize: active ? 12.5 : 11.5,
               fontWeight: FontWeight.w800,
               letterSpacing: active ? 0.5 : 0.2),
         ),
         textDirection: ui.TextDirection.ltr,
       )..layout();
+      // Pastille sombre + badge vert a la lettre (style maquette).
+      final badgeD = tp.height + 4.0;
       final r = Rect.fromCenter(
-          center: c, width: tp.width + 22, height: tp.height + 10);
+          center: c,
+          width: tp.width + badgeD + 26,
+          height: tp.height + 12);
       canvas.drawRRect(
         RRect.fromRectAndRadius(r, const Radius.circular(10)),
-        Paint()..color = z.color.withValues(alpha: active ? 0.94 : 0.75),
+        Paint()
+          ..color = active
+              ? const Color(0xF20A0E0B)
+              : const Color(0xE00D1210),
       );
       if (active) {
         canvas.drawRRect(
           RRect.fromRectAndRadius(r, const Radius.circular(10)),
           Paint()
-            ..color = Colors.white.withValues(alpha: 0.2)
+            ..color = z.color.withValues(alpha: 0.95)
             ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.5,
+            ..strokeWidth = 2,
         );
       }
-      tp.paint(canvas, Offset(c.dx - tp.width / 2, c.dy - tp.height / 2));
+      final badge = Rect.fromCenter(
+          center: Offset(r.left + 8 + badgeD / 2, c.dy),
+          width: badgeD,
+          height: badgeD);
+      canvas.drawOval(badge, Paint()..color = const Color(0xFF2DB866));
+      final letter = name.trim().isNotEmpty
+          ? name.trim()[0].toUpperCase()
+          : z.id[0].toUpperCase();
+      final letterTp = TextPainter(
+        text: TextSpan(
+          text: letter,
+          style: TextStyle(
+              color: Colors.white,
+              fontSize: tp.height * 0.78,
+              fontWeight: FontWeight.w900),
+        ),
+        textDirection: ui.TextDirection.ltr,
+      )..layout();
+      letterTp.paint(
+          canvas,
+          Offset(badge.center.dx - letterTp.width / 2,
+              badge.center.dy - letterTp.height / 2));
+      tp.paint(canvas, Offset(badge.right + 6, c.dy - tp.height / 2));
     }
   }
 
@@ -1420,4 +1512,21 @@ class _FullScreenPlanState extends State<_FullScreenPlan> {
       ),
     );
   }
+}
+
+/// Plein ecran du plan depuis le tableau de bord : reutilise EXACTEMENT
+/// le meme `_FullScreenPlan` que la page Plan 3D (aucun second systeme,
+/// aucun nouveau modele — juste la meme route en dialog plein ecran).
+void openPlanFullScreen(BuildContext context,
+    {double rot = 0.6, double zoom = 1.0}) {
+  final locale = context.read<AuthStore>().locale;
+  Navigator.of(context).push(MaterialPageRoute<void>(
+    fullscreenDialog: true,
+    builder: (_) => _FullScreenPlan(
+      zones: _buildZones(),
+      rot: rot,
+      zoom: zoom,
+      locale: locale,
+    ),
+  ));
 }
