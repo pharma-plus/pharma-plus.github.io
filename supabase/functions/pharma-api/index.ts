@@ -2490,16 +2490,6 @@ Deno.serve(async (req) => {
           { error: { code: "NOT_FOUND", message: "Produit de référence introuvable" } },
           404,
         );
-      if (refProd.commercial_status !== "commercialise")
-        return json(
-          {
-            error: {
-              code: "CONFLICT",
-              message: `Produit non commercialisable : ${refProd.commercial_status}`,
-            },
-          },
-          409,
-        );
 
       const { data: dup } = await sb
         .from("medications")

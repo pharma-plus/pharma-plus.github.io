@@ -261,9 +261,6 @@ export const referenceService = {
   // ---------------- Import vers le catalogue de la pharmacie ----------------
   async importToCatalog(pharmacyId, productId, { priceSale, pricePurchase, reorderLevel = 10, minStock = 5 }, actor) {
     const product = await this.getProduct(productId);
-    if (product.commercial_status !== 'commercialise') {
-      throw new ConflictError(`Produit non commercialisable : ${product.commercial_status}`);
-    }
 
     const existing = await query(
       `SELECT id FROM medications WHERE pharmacy_id = $1 AND barcode_ean13 = $2`,

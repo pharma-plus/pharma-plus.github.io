@@ -415,7 +415,7 @@ class _ProductTile extends StatelessWidget {
             Align(
               alignment: Alignment.centerRight,
               child: FilledButton.tonalIcon(
-                onPressed: commercialised ? onImport : null,
+                onPressed: onImport,
                 icon: const Icon(Icons.add_shopping_cart, size: 18),
                 label: Text(S.t('importToCatalog', locale)),
               ),
