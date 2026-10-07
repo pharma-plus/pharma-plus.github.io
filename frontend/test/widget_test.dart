@@ -33,15 +33,15 @@ void main() {
       (WidgetTester tester) async {
     await tester.pumpWidget(const SizedBox.shrink());
 
-        // Remise en % : 10 % sur 200 (TTC 240 avec 20% TVA) → remise 24, total 216.
+        // Remise en % : 10 % sur 200 HT → remise 20, TVA sur 180 = 36, total 216.
     final pct = calculateSaleTotalExcl(
       [const SaleLine(unitPrice: 200, quantity: 1, tvaRate: 0.20)],
       discountValue: 10,
       discountIsPercent: true,
     );
     expect(pct.subtotal, equals(200.0));
-    expect(pct.tva, equals(40.0));
-    expect(pct.discount, equals(24.0));
+    expect(pct.tva, equals(36.0));
+    expect(pct.discount, equals(20.0));
     expect(pct.total, equals(216.0));
 
     // Remise plafonnée au sous-total (jamais négatif / jamais supérieur).

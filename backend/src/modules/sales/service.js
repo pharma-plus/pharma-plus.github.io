@@ -70,47 +70,47 @@ export const salesService = {
       const saleItems = [];
       const prepared = [];
 
-      // Passe 1 : validation + calcul des lignes (sans insertion, pour pouvoir
-      // insérer l'en-tête de vente AVANT les lignes qui le référencent).
-      for (const item of items) {
-        const med = await client.query(
-          `SELECT id, name, price_sale, tva_rate, price_purchase, status
-             FROM medications WHERE id = $1 AND pharmacy_id = $2`,
-          [item.medication_id, pharmacyId],
-        );
-        if (!med.rows[0]) throw new NotFoundError(`Médicament introuvable : ${item.medication_id}`);
-        const m = med.rows[0];
-        if (m.status === 'retired') throw new AppError(`${m.name} est retiré de la vente`, 409, 'NOT_SALEABLE');
+// Passe 1 : validation + calcul des lignes
+       for (const item of items) {
+         const med = await client.query(
+           `SELECT id, name, price_sale, tva_rate, price_purchase, status
+              FROM medications WHERE id = $1 AND pharmacy_id = $2`,
+           [item.medication_id, pharmacyId],
+         );
+         if (!med.rows[0]) throw new NotFoundError(`Médicament introuvable : ${item.medication_id}`);
+         const m = med.rows[0];
+         if (m.status === 'retired') throw new AppError(`${m.name} est retiré de la vente`, 409, 'NOT_SALEABLE');
 
-        const unitPrice = item.unit_price ?? Number(m.price_sale);
-        const tvaRate = item.tva_rate ?? Number(m.tva_rate);
-        const discount = item.discount ?? 0;
-        const calc = computeLine({ quantity: item.quantity, unit_price: unitPrice, discount, tva_rate: tvaRate });
+         const unitPrice = item.unit_price ?? Number(m.price_sale);
+         const tvaRate = item.tva_rate ?? Number(m.tva_rate);
+         const discount = item.discount ?? 0;
+         const calc = computeLine({ quantity: item.quantity, unit_price: unitPrice, discount, tva_rate: tvaRate });
 
-        let lotsUsed = [];
-        if (saleType === 'pos') {
-          lotsUsed = await selectLots(client, branchId, item.medication_id, pharmacyId, item.quantity);
-        }
+         let lotsUsed = [];
+         lotsUsed = await selectLots(client, branchId, item.medication_id, pharmacyId, item.quantity);
 
-        prepared.push({
-          medicationId: item.medication_id, lotId: item.lot_id ?? null,
-          quantity: item.quantity, unitPrice, costPrice: Number(m.price_purchase),
-          tvaRate, discount, net: calc.net, lotsUsed,
-        });
+         prepared.push({
+           medicationId: item.medication_id, lotId: item.lot_id ?? null,
+           quantity: item.quantity, unitPrice, costPrice: Number(m.price_purchase),
+           tvaRate, discount, net: calc.net, tax: calc.tax, lotsUsed,
+         });
 
-        subtotal += calc.net;
-        discountTotal += calc.discountAmount;
-        taxTotal += calc.tax;
-        costTotal += Number(item.quantity) * Number(m.price_purchase);
-        saleItems.push({ medication_id: item.medication_id, name: m.name, quantity: item.quantity, unit_price: unitPrice, net: calc.net });
-      }
+         subtotal += unitPrice * item.quantity;
+         discountTotal += calc.discountAmount;
+         taxTotal += calc.tax;
+         costTotal += Number(item.quantity) * Number(m.price_purchase);
+         saleItems.push({ medication_id: item.medication_id, name: m.name, quantity: item.quantity, unit_price: unitPrice, net: calc.net });
+       }
 
-      const globalDiscount = Math.min(
-        subtotal,
-        discountPercent > 0 ? subtotal * (discountPercent / 100) : discountAmount,
-      );
-      const total = Math.round((subtotal + taxTotal - globalDiscount) * 100) / 100;
-      discountTotal = Math.round((discountTotal + globalDiscount) * 100) / 100;
+       const globalDiscount = Math.min(
+         subtotal,
+         discountPercent > 0 ? subtotal * (discountPercent / 100) : discountAmount,
+       );
+       const taxable = subtotal - globalDiscount;
+       const taxTotalCorrected = taxable * (taxTotal / subtotal);
+       const total = Math.round((taxable + taxTotalCorrected) * 100) / 100;
+       discountTotal = Math.round((discountTotal + globalDiscount) * 100) / 100;
+       taxTotal = Math.round(taxTotalCorrected * 100) / 100;
       const paidAmount = (payments || []).reduce((acc, p) => acc + Number(p.amount || 0), 0);
       const changeAmount = paidAmount > total ? Math.round((paidAmount - total) * 100) / 100 : 0;
 
@@ -139,13 +139,13 @@ export const salesService = {
         `INSERT INTO sales (id, pharmacy_id, branch_id, user_id, customer_id, number,
                             sale_type, status, subtotal, discount_total, tax_total,
                             total, cost_total, paid_amount, change_amount,
-                            payment_method, notes, prescription_id)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,'completed',$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+                            payment_method, notes, prescription_id, sale_date, payments)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,'completed',$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,CURRENT_DATE,$18)`,
         [saleId, pharmacyId, branchId, user?.id, customerId, number,
          saleType, subtotal, discountTotal, taxTotal, total, costTotal,
          paidAmount, changeAmount,
          (payments || []).map((p) => p.method).join('+') || 'credit',
-         notes ?? null, prescriptionId ?? null],
+         notes ?? null, prescriptionId ?? null, JSON.stringify(payments || [])],
       );
 
       // Passe 2 : décrément du stock (FEFO) + insertion des lignes de vente.
@@ -157,12 +157,12 @@ export const salesService = {
             referenceType: 'sale', referenceId: saleId, userId: user?.id,
           });
         }
-        await client.query(
+await client.query(
           `INSERT INTO sale_items (id, pharmacy_id, sale_id, medication_id, lot_id, quantity,
-                                   unit_price, cost_price, tva_rate, discount, line_total)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
-          [uuid(), pharmacyId, saleId, p.medicationId, p.lotsUsed[0]?.lot_id ?? p.lotId,
-           p.quantity, p.unitPrice, p.costPrice, p.tvaRate, p.discount, p.net],
+                                   unit_price, cost_price, tva_rate, discount)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+           [uuid(), pharmacyId, saleId, p.medicationId, p.lotsUsed[0]?.lot_id ?? p.lotId,
+            p.quantity, p.unitPrice, p.costPrice, p.tvaRate, p.discount],
         );
       }
 
@@ -288,6 +288,14 @@ export const salesService = {
    * Retour / remboursement : réintègre le stock, crée un avoir.
    */
   async returnSale(pharmacyId, { saleId, branchId, reason, returnType = 'refund', items }, user) {
+    // Même garde-fou que fn_sale_return : un article ne peut être retourné
+    // qu'une fois par demande (sinon remboursement et stock gonflés).
+    const seen = new Set();
+    for (const item of items ?? []) {
+      const key = String(item?.medication_id ?? '').toLowerCase();
+      if (seen.has(key)) throw new AppError('Article en double dans la demande de retour', 409, 'DUPLICATE_ITEM');
+      seen.add(key);
+    }
     return withTransaction(pharmacyId, async (client) => {
       const sale = await client.query(
         'SELECT * FROM sales WHERE id = $1 AND pharmacy_id = $2', [saleId, pharmacyId],
@@ -343,12 +351,12 @@ export const salesService = {
       await client.query("UPDATE sales SET status = 'returned' WHERE id = $1", [saleId]);
 
       // Avoir
-      await client.query(
+await client.query(
         `INSERT INTO invoices (pharmacy_id, branch_id, sale_id, customer_id, number, type,
                                issue_date, subtotal, tax_total, total, paid_amount, status, created_by)
-         VALUES ($1,$2,$3,$4,
-                 (SELECT fn_next_number($1::uuid, 'AVR')),
-                 'avoir', CURRENT_DATE, 0, 0, -$5, -$5, 'paid', $6)`,
+          VALUES ($1,$2,$3,$4,
+                  (SELECT fn_next_number($1::uuid, 'AVR')),
+                  'avoir', CURRENT_DATE, 0, 0, - $5, 0, 'paid', $6)`,
         [pharmacyId, branchId, saleId, s.customer_id, refundTotal, user?.id],
       );
 

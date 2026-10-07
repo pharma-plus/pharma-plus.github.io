@@ -13,7 +13,7 @@ export const config = {
   apiVersion: process.env.API_VERSION || 'v1',
   databaseUrl: process.env.DATABASE_URL,
   jwt: {
-    secret: process.env.JWT_SECRET || 'insecure-dev-secret',
+    secret: (() => { const s = process.env.JWT_SECRET; if (!s) throw new Error('JWT_SECRET environment variable is required'); return s; })(),
     accessTtl: process.env.JWT_ACCESS_TTL || '15m',
     refreshTtl: process.env.JWT_REFRESH_TTL || '30d',
     issuer: 'pharma-maroc-gold',

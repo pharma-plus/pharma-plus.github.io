@@ -90,6 +90,7 @@ double _includedTva(double net, List<SaleLine> lines, double subtotal) {
 /// s'ajoute au total (total = Σ prix×qté + TVA − remise). Utilisée pour
 /// que l'encart POS du dashboard affiche EXACTEMENT les mêmes montants
 /// que le POS complet et que la vente enregistrée.
+/// La remise globale est appliquée AVANT TVA (sur la base HT), alignée backend.
 SaleTotals calculateSaleTotalExcl(
   List<SaleLine> lines, {
   double discountValue = 0,
@@ -97,14 +98,19 @@ SaleTotals calculateSaleTotalExcl(
 }) {
   final subtotal =
       lines.fold<double>(0, (s, l) => s + l.unitPrice * l.quantity);
-  final tvaGross = lines.fold<double>(0, (s, l) => s + l.lineTva);
   final discount = calculateDiscount(subtotal, discountValue,
       isPercent: discountIsPercent);
+  final net = subtotal - discount;
+  final tva = lines.fold<double>(0, (s, l) {
+    if (l.tvaRate <= 0) return s;
+    final netLine = l.unitPrice * l.quantity / subtotal * net;
+    return s + netLine * l.tvaRate;
+  });
   return SaleTotals(
     subtotal: subtotal,
     discount: discount,
-    tva: tvaGross,
-    total: subtotal + tvaGross - discount,
+    tva: tva,
+    total: net + tva,
   );
 }
 

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import Joi from 'joi';
 import { validate } from '../../middleware/validate.js';
-import { requireAuth, requirePerm } from '../../middleware/auth.js';
+import { requireAuth, requirePerm, requireBranchAccess } from '../../middleware/auth.js';
 import { wrap } from '../../middleware/error.js';
 import { ok, created } from '../../utils/response.js';
 import { accountingService } from './service.js';
@@ -78,12 +78,12 @@ router.get('/trial-balance', requirePerm('accounting:view'), validate({
 }));
 
 // ---- Caisse ----
-router.get('/registers/:branchId/open', requirePerm('accounting:view'), wrap(async (req, res) => {
+router.get('/registers/:branchId/open', requirePerm('accounting:view'), requireBranchAccess('branchId'), wrap(async (req, res) => {
   const register = await accountingService.getOpenRegister(req.user.pharmacyId, req.params.branchId);
   return ok(res, register);
 }));
 
-router.post('/registers', requirePerm('accounting:create'), validate({
+router.post('/registers', requirePerm('accounting:create'), requireBranchAccess('branchId'), validate({
   body: Joi.object({
     branchId: Joi.string().uuid().required(),
     openingBalance: Joi.number().min(0).default(0),

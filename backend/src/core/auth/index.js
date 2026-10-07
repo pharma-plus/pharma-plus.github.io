@@ -62,6 +62,28 @@ router.post('/2fa/verify', validate({
   return ok(res, result);
 }));
 
+router.post('/2fa/verify', validate({
+  body: Joi.object({
+    twoFactorToken: Joi.string().required(),
+    code: Joi.string().pattern(/^\d{6}$/).required(),
+    device: deviceSchema,
+  }),
+}), wrap(async (req, res) => {
+  const result = await authService.verifyTwoFactor(
+    req.body.twoFactorToken, req.body.code, buildDevice(req),
+  );
+  return ok(res, result);
+}));
+
+router.post('/verify-2fa', wrap(async (req, res) => {
+  // Alias vers /auth/2fa/verify pour compatibilité frontend existant
+  // On réutilise la même validation et le même service
+  const result = await authService.verifyTwoFactor(
+    req.body.twoFactorToken, req.body.code, buildDevice(req),
+  );
+  return ok(res, result);
+}));
+
 router.post('/refresh', validate({
   body: Joi.object({
     refreshToken: Joi.string().required(),

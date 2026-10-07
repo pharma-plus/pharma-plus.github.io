@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import Joi from 'joi';
 import { validate } from '../../middleware/validate.js';
-import { requireAuth, requirePerm } from '../../middleware/auth.js';
+import { requireAuth, requirePerm, requireBranchAccess } from '../../middleware/auth.js';
 import { wrap } from '../../middleware/error.js';
 import { ok, created } from '../../utils/response.js';
 import { stockService } from './service.js';
@@ -70,7 +70,7 @@ router.get('/lots', requirePerm('stock:view'), validate({
   return ok(res, result.items, result.meta);
 }));
 
-router.post('/entries', requirePerm('stock:create'), validate({
+router.post('/entries', requirePerm('stock:create'), requireBranchAccess('branchId'), validate({
   body: Joi.object({
     branchId: Joi.string().uuid().required(),
     items: Joi.array().items(itemSchema).min(1).max(200).required(),
@@ -82,7 +82,7 @@ router.post('/entries', requirePerm('stock:create'), validate({
   return created(res, { message: 'Stock ajouté' });
 }));
 
-router.post('/adjustments', requirePerm('stock:edit'), validate({
+router.post('/adjustments', requirePerm('stock:edit'), requireBranchAccess('branchId'), validate({
   body: Joi.object({
     branchId: Joi.string().uuid().required(),
     items: Joi.array().items(Joi.object({
@@ -97,7 +97,7 @@ router.post('/adjustments', requirePerm('stock:edit'), validate({
   return ok(res, result);
 }));
 
-router.post('/write-off', requirePerm('stock:edit'), validate({
+router.post('/write-off', requirePerm('stock:edit'), requireBranchAccess('branchId'), validate({
   body: Joi.object({
     branchId: Joi.string().uuid().required(),
     items: Joi.array().items(Joi.object({
@@ -112,7 +112,7 @@ router.post('/write-off', requirePerm('stock:edit'), validate({
   return created(res, { message: 'Sortie enregistrée' });
 }));
 
-router.post('/transfers', requirePerm('stock:create'), validate({
+router.post('/transfers', requirePerm('stock:create'), requireBranchAccess('fromBranch'), requireBranchAccess('toBranch'), validate({
   body: Joi.object({
     fromBranch: Joi.string().uuid().required(),
     toBranch: Joi.string().uuid().required(),

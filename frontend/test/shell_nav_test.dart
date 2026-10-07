@@ -14,24 +14,16 @@ void main() {
     ShellNav.index.value = 0;
   });
 
-  Widget harness() {
-    return MaterialApp(
-      home: Navigator(
-        pages: const [
-          MaterialPage<void>(
-            child: _ShellHost(),
-            key: ValueKey('host'),
-          ),
-        ],
-        onDidRemovePage: (page) {},
-      ),
-    );
+  Widget buildTestApp({required Widget child}) {
+    return MaterialApp(home: child);
   }
+
+  Widget buildShellHost() => const _ShellHost();
 
   // Optionnellement pousse une route "POS" au-dessus du shell.
   Future<void> pushPos(WidgetTester tester) async {
-    final navContext = tester.element(find.byType(_ShellHost));
-    Navigator.of(navContext).push(
+    final navState = tester.state<NavigatorState>(find.byType(Navigator));
+    navState.push(
       MaterialPageRoute<void>(
         builder: (_) => const _PosLike(),
         settings: const RouteSettings(name: 'pos-like'),
@@ -43,7 +35,7 @@ void main() {
   testWidgets(
       'POS en onglet du shell : clic home -> retour au dashboard (index 0)',
       (tester) async {
-    await tester.pumpWidget(harness());
+    await tester.pumpWidget(buildTestApp(child: buildShellHost()));
 
     // On simule la sélection de l'onglet Point de vente.
     ShellNav.index.value = 2;
@@ -61,7 +53,7 @@ void main() {
   testWidgets(
       'POS en route poussée au-dessus du shell : clic home -> dashboard',
       (tester) async {
-    await tester.pumpWidget(harness());
+    await tester.pumpWidget(buildTestApp(child: buildShellHost()));
 
     // Shell sur un autre onglet (Modules = index 1) puis POS poussé.
     ShellNav.index.value = 1;
@@ -82,7 +74,7 @@ void main() {
 
   testWidgets('Route POS déjà fermée : clic home -> dashboard sans crash',
       (tester) async {
-    await tester.pumpWidget(harness());
+    await tester.pumpWidget(buildTestApp(child: buildShellHost()));
 
     await pushPos(tester);
     // L'utilisateur est sur la route POS et clique directement la maison.

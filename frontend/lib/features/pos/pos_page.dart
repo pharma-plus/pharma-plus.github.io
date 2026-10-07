@@ -2107,20 +2107,27 @@ class _PayButtonState extends State<_PayButton>
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.payments_outlined,
-                    size: 15,
-                    color: widget.enabled
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: 0.25)),
-                const SizedBox(width: 5),
-                Text(widget.label,
-                    style: TextStyle(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w800,
-                        color: widget.enabled
-                            ? Colors.white
-                            : Colors.white.withValues(alpha: 0.25))),
+                Flexible(
+                  child: Icon(Icons.payments_outlined,
+                      size: 14,
+                      color: widget.enabled
+                          ? Colors.white
+                          : Colors.white.withValues(alpha: 0.25)),
+                ),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(widget.label,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: widget.enabled
+                              ? Colors.white
+                              : Colors.white.withValues(alpha: 0.25))),
+                ),
               ],
             ),
           );

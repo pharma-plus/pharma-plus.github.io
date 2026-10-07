@@ -115,3 +115,20 @@ export function requirePerm(perms) {
     next();
   };
 }
+
+/**
+ * Middleware de vérification d'accès à la branche.
+ * L'utilisateur doit soit être super-admin, soit avoir branchId = requested branchId,
+ * soit avoir la permission 'branch:cross' (accès multi-branches).
+ */
+export function requireBranchAccess(branchIdParam = 'branchId') {
+  return (req, _res, next) => {
+    if (!req.user) return next(new UnauthorizedError());
+    if (req.user.isSuperAdmin) return next();
+    const requestedBranchId = req.params[branchIdParam] || req.body[branchIdParam] || req.query[branchIdParam];
+    if (!requestedBranchId) return next(); // pas de branchId demandé, on laisse passer
+    if (req.user.permissions.has('branch:cross')) return next();
+    if (req.user.branchId === requestedBranchId) return next();
+    return next(new ForbiddenError('Accès non autorisé à cette branche'));
+  };
+}

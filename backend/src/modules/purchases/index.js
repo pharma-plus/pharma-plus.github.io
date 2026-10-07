@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import Joi from 'joi';
 import { validate } from '../../middleware/validate.js';
-import { requireAuth, requirePerm } from '../../middleware/auth.js';
+import { requireAuth, requirePerm, requireBranchAccess } from '../../middleware/auth.js';
 import { wrap } from '../../middleware/error.js';
 import { ok, created } from '../../utils/response.js';
 import { purchasesService } from './service.js';
@@ -69,7 +69,7 @@ router.get('/receptions', requirePerm('purchases:view'), validate({
   return ok(res, result.items, result.meta);
 }));
 
-router.post('/orders/:id/receive', requirePerm('purchases:create'), validate({
+router.post('/orders/:id/receive', requirePerm('purchases:create'), requireBranchAccess('branchId'), validate({
   body: Joi.object({
     branchId: Joi.string().uuid().required(),
     notes: Joi.string().max(500).allow(null, ''),

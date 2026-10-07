@@ -93,7 +93,7 @@ CREATE TRIGGER trg_stock_movement_apply
 DROP MATERIALIZED VIEW IF EXISTS mv_daily_sales CASCADE;
 CREATE MATERIALIZED VIEW mv_daily_sales AS
   SELECT pharmacy_id, branch_id,
-         date_trunc('day', created_at)::date  AS sale_date,
+         sale_date,
          count(*)                             AS nb_sales,
          sum(subtotal)                        AS subtotal,
          sum(discount_total)                  AS discounts,
@@ -103,7 +103,7 @@ CREATE MATERIALIZED VIEW mv_daily_sales AS
          sum(cost_total)                      AS cost_total
     FROM sales
    WHERE status = 'completed'
-   GROUP BY pharmacy_id, branch_id, date_trunc('day', created_at)::date;
+   GROUP BY pharmacy_id, branch_id, sale_date;
 
 CREATE UNIQUE INDEX mv_daily_sales_pk ON mv_daily_sales(pharmacy_id, branch_id, sale_date);
 CREATE INDEX mv_daily_sales_branch ON mv_daily_sales(branch_id, sale_date);
@@ -120,10 +120,11 @@ CREATE MATERIALIZED VIEW mv_stock_levels AS
 CREATE UNIQUE INDEX mv_stock_levels_pk ON mv_stock_levels(branch_id, medication_id, lot_id);
 CREATE INDEX mv_stock_levels_expiry ON mv_stock_levels(pharmacy_id, expiry_date);
 
--- Rafraîchissement de mv_daily_sales à chaque vente
+-- Rafraîchissement de mv_daily_sales : trigger synchrone (pas CONCURRENTLY dans trigger)
+-- + job pg_cron externe pour rafraîchissement périodique
 CREATE OR REPLACE FUNCTION fn_refresh_daily_sales() RETURNS trigger AS $$
 BEGIN
-  REFRESH MATERIALIZED VIEW CONCURRENTLY mv_daily_sales;
+  REFRESH MATERIALIZED VIEW mv_daily_sales;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

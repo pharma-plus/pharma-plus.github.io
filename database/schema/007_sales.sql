@@ -28,6 +28,8 @@ CREATE TABLE sales (
                   CHECK (payment_method IN ('cash','card','mobile','mixed','credit','none')),
   prescription_id uuid,               -- FK ajoutée en 008_prescriptions.sql
   notes           text,
+  sale_date       date NOT NULL DEFAULT CURRENT_DATE,
+  payments        jsonb NOT NULL DEFAULT '[]'::jsonb,
   created_at      timestamptz NOT NULL DEFAULT now(),
   updated_at      timestamptz NOT NULL DEFAULT now(),
   UNIQUE (pharmacy_id, number)

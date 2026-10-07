@@ -28,8 +28,8 @@ class ShellBackButton extends StatelessWidget {
       icon: const Icon(Icons.home_rounded),
       tooltip: 'Retour',
       onPressed: () async {
-        final handled = await handleSystemBack(context);
-        if (!handled && context.mounted) {
+        await handleSystemBack(context);
+        if (context.mounted) {
           ShellNav.goHome();
         }
       },
