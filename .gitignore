@@ -33,3 +33,10 @@ server_log.txt
 main.dart.js.locked
 build_exit_code.txt
 build_web_out.txt
+
+# Fichiers locaux conservés sur disque mais jamais versionnés
+_validation_backup/
+backend/_db_audit.mjs
+backend/_db_audit2.mjs
+backend/_db_audit3.mjs
+main.202609261917.dart.js
