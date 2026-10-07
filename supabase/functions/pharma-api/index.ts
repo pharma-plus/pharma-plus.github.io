@@ -14,17 +14,220 @@ function json(data: unknown, status = 200) {
   });
 }
 
-function jwtPayload(req: Request): Record<string, unknown> | null {
+function b64urlDecode(s: string) {
+  const b64 = s.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+  const bin = atob(padded);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+/* JWKS public du projet Supabase (cles de verification uniquement,
+   aucune cle privee). Cache module, rechargement si kid inconnu. */
+type JwksCache = { keys: Map<string, Record<string, string>>; fetchedAt: number };
+let jwksCache: JwksCache | null = null;
+const JWKS_TTL_MS = 10 * 60 * 1000;
+
+function jwksUrl(): string {
+  const explicit = Deno.env.get("SUPABASE_JWKS_URL");
+  if (explicit) return explicit;
+  const base = Deno.env.get("SUPABASE_URL");
+  return base ? `${base.replace(/\/+$/, "")}/auth/v1/.well-known/jwks.json` : "";
+}
+
+async function fetchJwks(force = false): Promise<Map<string, Record<string, string>>> {
+  if (!force && jwksCache && Date.now() - jwksCache.fetchedAt < JWKS_TTL_MS) {
+    return jwksCache.keys;
+  }
+  const url = jwksUrl();
+  if (!url) {
+    console.error("[JWT] JWKS url manquante (SUPABASE_URL / SUPABASE_JWKS_URL)");
+    return jwksCache?.keys ?? new Map();
+  }
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const body = await res.json();
+    const keys = new Map<string, Record<string, string>>();
+    for (const k of body?.keys ?? []) {
+      if (k && typeof k.kid === "string" && k.kty === "EC" && k.crv === "P-256") {
+        keys.set(k.kid, k);
+      }
+    }
+    jwksCache = { keys, fetchedAt: Date.now() };
+    return keys;
+  } catch (e) {
+    console.error("[JWT] echec recuperation JWKS:", String(e));
+    return jwksCache?.keys ?? new Map();
+  }
+}
+
+/* Verification ES256 (JWT Supabase) via le JWKS public du projet. */
+async function verifyJWT(req: Request): Promise<Record<string, unknown> | null> {
   const auth = req.headers.get("authorization") ?? "";
   const m = auth.match(/^Bearer\s+(.+)$/i);
   if (!m) return null;
   try {
     const parts = m[1].split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    return JSON.parse(atob(b64));
-  } catch {
+    if (parts.length !== 3) return null;
+    const header = JSON.parse(new TextDecoder().decode(b64urlDecode(parts[0])));
+    if (header?.alg !== "ES256" || typeof header?.kid !== "string") return null;
+    let keys = await fetchJwks(false);
+    let jwk = keys.get(header.kid);
+    if (!jwk) {
+      keys = await fetchJwks(true);
+      jwk = keys.get(header.kid);
+    }
+    if (!jwk) {
+      console.error("[JWT] kid absent du JWKS");
+      return null;
+    }
+    const { kid, alg, use, key_ops, ...keyData } = jwk;
+    const key = await crypto.subtle.importKey(
+      "jwk",
+      keyData as JsonWebKey,
+      { name: "ECDSA", namedCurve: "P-256" },
+      false,
+      ["verify"],
+    );
+    const signature = b64urlDecode(parts[2]);
+    const data = new TextEncoder().encode(`${parts[0]}.${parts[1]}`);
+    const valid = await crypto.subtle.verify(
+      { name: "ECDSA", hash: "SHA-256" },
+      key,
+      signature,
+      data,
+    );
+    if (!valid) return null;
+    const payload = JSON.parse(new TextDecoder().decode(b64urlDecode(parts[1])));
+    const exp = payload?.exp;
+    if (typeof exp !== "number" || exp * 1000 <= Date.now()) return null;
+    const base = Deno.env.get("SUPABASE_URL");
+    const iss = typeof payload?.iss === "string" ? payload.iss : "";
+    if (base && iss && !iss.startsWith(base.replace(/\/+$/, ""))) return null;
+    return payload;
+  } catch (e) {
+    console.error("[JWT] erreur verification:", String(e));
     return null;
+  }
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/* Client data module-level (service role), utilise pour resoudre le
+   profil verifie avant la creation du client de la requete. */
+let verifiedSb: any = null;
+function verifiedClient() {
+  if (!verifiedSb) {
+    verifiedSb = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
+  }
+  return verifiedSb;
+}
+
+type VerifiedIdentity = {
+  payload: Record<string, unknown>;
+  user: { id: string; pharmacy_id: string | null } | null;
+};
+
+const verifiedCache = new WeakMap<Request, Promise<VerifiedIdentity | null>>();
+
+async function computeVerified(req: Request): Promise<VerifiedIdentity | null> {
+  const payload = await verifyJWT(req);
+  if (!payload) return null;
+  const sub = typeof payload.sub === "string" ? payload.sub : "";
+  const email = typeof payload.email === "string" ? payload.email : "";
+  const sb = verifiedClient();
+  let user: any = null;
+  // Le sub du JWT Supabase (= auth.users.id) ne correspond pas forcement
+  // a public.users.id : on resout par id puis par email du jeton verifie.
+  if (sub && UUID_RE.test(sub)) {
+    const { data } = await sb
+      .from("users")
+      .select("id, pharmacy_id")
+      .eq("id", sub)
+      .maybeSingle();
+    user = data;
+  }
+  if (!user && email) {
+    const { data } = await sb
+      .from("users")
+      .select("id, pharmacy_id")
+      .ilike("email", email)
+      .maybeSingle();
+    user = data;
+  }
+  return { payload, user };
+}
+
+/* Identite verifiee du requetrant : JWT Supabase valide (ES256/JWKS)
+   + profil public.users resolu depuis le jeton. Memoise par requete. */
+function verified(req: Request): Promise<VerifiedIdentity | null> {
+  let p = verifiedCache.get(req);
+  if (!p) {
+    p = computeVerified(req);
+    verifiedCache.set(req, p);
+  }
+  return p;
+}
+
+/* public.users.id de l'utilisateur authentifie : cible des cles
+   etrangeres (user_id, received_by, started_by...). */
+async function currentUserId(req: Request): Promise<string | null> {
+  const v = await verified(req);
+  const id = v?.user?.id ?? null;
+  return id && UUID_RE.test(id) ? id : null;
+}
+
+/* Claim `sub` du JWT Supabase (= auth.users.id) : operations Supabase
+   Auth telles que la mise a jour du mot de passe. */
+async function authSubId(req: Request): Promise<string | null> {
+  const v = await verified(req);
+  const sub = v?.payload?.sub;
+  const s = sub === undefined || sub === null ? "" : String(sub);
+  return s && UUID_RE.test(s) ? s : null;
+}
+
+/* Verification argon2id/argon2i (format PHC) sans dependance native :
+   WASM hash-wasm via esm.sh. L'ancienne reference @phc/argon2@0.1.1
+   n'existe pas (404) et faisait echouer tout le repli de login. */
+async function verifyArgon2phc(encodedHash: string, password: string): Promise<boolean> {
+  const m = encodedHash.match(/^\$argon2(i|id)\$v=19\$m=(\d+),t=(\d+),p=(\d+)\$([^$]+)\$(.+)$/);
+  if (!m) return false;
+  const [, flavor, mem, iters, par, saltB64, hashB64] = m;
+  const decode = (s: string): Uint8Array => {
+    const b64 = s + "=".repeat((4 - (s.length % 4)) % 4);
+    const bin = atob(b64);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  };
+  try {
+    const wasm = await import("https://esm.sh/hash-wasm@4.9.0");
+    const fn = flavor === "i" ? wasm.argon2i : wasm.argon2id;
+    const salt = decode(saltB64);
+    const expected = decode(hashB64);
+    const encoded = await fn({
+      password,
+      salt,
+      parallelism: Number(par),
+      iterations: Number(iters),
+      memorySize: Number(mem),
+      hashLength: expected.length,
+      outputType: "encoded",
+    });
+    const got = decode(String(encoded).split("$").pop() ?? "");
+    if (got.length !== expected.length) return false;
+    let diff = 0;
+    for (let i = 0; i < got.length; i++) diff |= got[i] ^ expected[i];
+    return diff === 0;
+  } catch (e) {
+    console.error("argon2 verify error:", String(e));
+    return false;
   }
 }
 
@@ -59,19 +262,56 @@ async function enrichProfile(sb: any, profile: any): Promise<any> {
   };
 }
 
-function pharmacyId(req: Request, fallback = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"): string {
+/* Routes accessibles sans JWT (avant authentification). */
+const PUBLIC_PATHS = new Set(["health", "auth/login", "auth/refresh"]);
+/* Pharmacie par defaut : utilisee uniquement sur les routes publiques
+   (profil synthetique de login de derniere ressource). */
+const DEFAULT_PHARMACY_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+
+function publicPharmacyId(req: Request): string {
   const hdr = req.headers.get("x-pharmacy-id");
-  if (hdr) return hdr;
-  const p = jwtPayload(req);
-  if (p) {
-    const v =
-      p.pharmacyId ?? p.pharmacy_id ?? p.app_metadata?.pharmacy_id ?? null;
-    if (v) return String(v);
-  }
-  return fallback;
+  return hdr && UUID_RE.test(hdr) ? hdr : DEFAULT_PHARMACY_ID;
+}
+
+/* Routes protegees : JWT Supabase verifie (ES256/JWKS) obligatoire ;
+   pharmacy_id provient de public.users de l'utilisateur authentifie
+   (le header x-pharmacy-id n'est plus une source de confiance). */
+async function pharmacyId(req: Request): Promise<string> {
+  const v = await verified(req);
+  if (!v) throw new Error("JWT Supabase invalide ou expiré");
+  if (!v.user) throw new Error("Utilisateur introuvable pour ce jeton");
+  if (!v.user.pharmacy_id) throw new Error("Compte sans pharmacie associée");
+  return String(v.user.pharmacy_id);
 }
 
 /* ---- Route helpers ---- */
+
+/**
+ * Contrôle de permission côté Edge : identité (claim `sub`) → rôle →
+ * permissions. Contrairement aux checks historiques basés sur `email`
+ * (absent du JWT signé par le backend), cette voie fonctionne toujours.
+ */
+async function hasPermission(
+  sb: any,
+  req: Request,
+  code: string,
+): Promise<{ allowed: boolean; userId: string | null }> {
+  const userId = await currentUserId(req);
+  if (!userId) return { allowed: false, userId: null };
+  const { data: u } = await sb
+    .from("users")
+    .select("id, role_id, is_super_admin")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!u) return { allowed: false, userId };
+  if (u.is_super_admin || !u.role_id) return { allowed: true, userId };
+  const { data: perms } = await sb
+    .from("role_permissions")
+    .select("permission_code")
+    .eq("role_id", u.role_id);
+  const granted = (perms ?? []).map((p: any) => p.permission_code);
+  return { allowed: granted.includes(code), userId };
+}
 
 const TABLE_MAP: Record<string, string> = {
   "/catalog/medications": "medications",
@@ -124,7 +364,7 @@ function mapTable(raw: string): string | null {
   return TABLE_MAP[clean] ?? null;
 }
 
-/** Proxy POST/PUT/DELETE to PostgREST with pharmacy_id injection. */
+/** Proxy to PostgREST with pharmacy_id injection & verification. */
 async function proxyToTable(
   serviceKey: string,
   supabaseUrl: string,
@@ -136,13 +376,11 @@ async function proxyToTable(
   let restPath = `/rest/v1/${table}`;
   const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (subpath && uuidRe.test(subpath)) {
-    // UUID → filtre PostgREST id=eq.xxx (pas de sous-chemin)
     restPath += ``;
   } else if (subpath) {
     restPath += `/${subpath}`;
   }
   const targetUrl = new URL(`${supabaseUrl}${restPath}`);
-  // Si subpath est un UUID, on l'ajoute comme filtre id=eq
   if (subpath && uuidRe.test(subpath)) {
     targetUrl.searchParams.set("id", `eq.${subpath}`);
   }
@@ -169,6 +407,12 @@ async function proxyToTable(
       targetUrl.searchParams.set(k, `eq.${v}`);
     }
   });
+
+  // CRITICAL: Add pharmacy_id filter to ALL GET requests for tenant isolation
+  const method = req.method;
+  if (method === "GET" && table !== "pharmacies" && table !== "roles") {
+    targetUrl.searchParams.set("pharmacy_id", `eq.${pid}`);
+  }
   // Convert `q` to PostgREST or/ilike for medication search
   if (searchQ && table === "medications") {
     const pct = `%${searchQ}%`;
@@ -203,7 +447,6 @@ async function proxyToTable(
     Prefer: "return=representation",
   };
 
-  const method = req.method;
   let body: string | undefined;
   if (method !== "GET" && method !== "HEAD") {
     const raw = await req.text();
@@ -248,7 +491,17 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const raw = url.pathname.replace(/^\/pharma-api\/?/, "").replace(/^\/+/, "/");
   const path = raw.startsWith("api/v1/") ? raw.slice(7) : raw;
-  const pid = pharmacyId(req);
+  let pid: string;
+  if (PUBLIC_PATHS.has(path.replace(/^\/+/, ""))) {
+    // Routes publiques (login/refresh/health) : accessibles sans JWT.
+    pid = publicPharmacyId(req);
+  } else {
+    try {
+      pid = await pharmacyId(req);
+    } catch (e) {
+      return json({ error: { code: "UNAUTHORIZED", message: String(e) } }, 401);
+    }
+  }
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const anonKey =
@@ -376,39 +629,32 @@ Deno.serve(async (req) => {
         .ilike("email", String(email).trim().toLowerCase())
         .maybeSingle();
       if (user && user.status === "active") {
-        const hash = user.password_hash;
-        try {
-          const mod = await import("https://esm.sh/@phc/argon2@0.1.1");
-          const ok = await mod.verify(hash, password);
-          if (ok) {
-            const { error: createErr } = await sb.auth.admin.createUser({
-              email: String(email).trim().toLowerCase(),
-              password,
-              email_confirm: true,
-              user_metadata: {
-                pharmacy_id: user.pharmacy_id,
-                role_id: user.role_id,
-              },
-            });
-            if (createErr) {
-              return json(
-                { error: { code: "MIGRATION_FAILED", message: createErr.message } },
-                500,
-              );
-            }
-            const { data: authData2, error: authErr2 } =
-await sbAuth.auth.signInWithPassword({ email, password });
-            if (authData2?.session && !authErr2) {
-              return await buildSession(authData2.session);
-            }
+        const ok = await verifyArgon2phc(String(user.password_hash ?? ""), password);
+        if (ok) {
+          const { error: createErr } = await sb.auth.admin.createUser({
+            email: String(email).trim().toLowerCase(),
+            password,
+            email_confirm: true,
+            user_metadata: {
+              pharmacy_id: user.pharmacy_id,
+              role_id: user.role_id,
+            },
+          });
+          if (createErr) {
             return json(
-              { error: { code: "MIGRATION_FAILED", message: authErr2?.message ?? "login après migration" } },
+              { error: { code: "MIGRATION_FAILED", message: createErr.message } },
               500,
             );
           }
-        } catch (e) {
-          // Verif argon2 impossible => on laisse tomber vers credentials invalides.
-          console.error("argon2 verify error:", String(e));
+          const { data: authData2, error: authErr2 } =
+            await sbAuth.auth.signInWithPassword({ email, password });
+          if (authData2?.session && !authErr2) {
+            return await buildSession(authData2.session);
+          }
+          return json(
+            { error: { code: "MIGRATION_FAILED", message: authErr2?.message ?? "login après migration" } },
+            500,
+          );
         }
         return json(
           { error: { code: "INVALID_CREDENTIALS", message: "Identifiants invalides" } },
@@ -539,8 +785,7 @@ await sbAuth.auth.signInWithPassword({ email, password });
       return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
     const body = await req.json().catch(() => ({}));
     const { newPassword } = body as any;
-    const payload = jwtPayload(req);
-    const userId = payload?.sub as string;
+    const userId = await authSubId(req);
     if (!userId || !newPassword)
       return json({ error: { code: "VALIDATION" } }, 400);
     const { error } = await sb.auth.admin.updateUserById(userId, {
@@ -859,8 +1104,23 @@ await sbAuth.auth.signInWithPassword({ email, password });
      REFERENCE — categories
      =========================================================== */
   if (path === "reference/categories" || path === "/reference/categories") {
-    const { data, error } = await sb.from("reference_categories").select("*").order("name");
-    return json({ data: data ?? [], error: error?.message });
+    if (req.method !== "GET")
+      return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+    const permCat = await hasPermission(sb, req, "reference:view");
+    if (!permCat.allowed)
+      return json(
+        { error: { code: "FORBIDDEN", message: "Permission reference:view requise" } },
+        403,
+      );
+    // Table GLOBALE (pas de pharmacy_id) : partagée par toutes les pharmacies.
+    const { data, error } = await sb
+      .from("reference_categories")
+      .select("*")
+      .order("sort_order", { ascending: true })
+      .order("name_fr", { ascending: true });
+    if (error)
+      return json({ error: { code: "QUERY_FAILED", message: error.message } }, 500);
+    return json({ data: data ?? [] });
   }
   if (path === "reference/sync" && req.method === "POST") {
     return json({ data: { synced: 0, message: "Sync non disponible côté edge" } });
@@ -1023,6 +1283,55 @@ await sbAuth.auth.signInWithPassword({ email, password });
     return json({ data: { total: data?.length ?? 0, present: data?.filter((a: any) => a.clock_in).length ?? 0 } });
   }
 
+  if (path === "attendance/clock-in" || path === "/attendance/clock-in") {
+    if (req.method !== "POST")
+      return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+    const body = await req.json().catch(() => ({}));
+    const { userId } = body as any;
+    if (!userId)
+      return json({ error: { code: "VALIDATION" } }, 400);
+    const { data: session } = await sb.from("user_sessions").select("id").eq("user_id", userId).maybeSingle();
+    if (!session) return json({ data: null });
+    const { data: att } = await sb.from("attendance").select(`*`).eq("pharmacy_id", pid).eq("user_id", userId).eq("clock_in", null).maybeSingle();
+    if (att) return json({ data: { type: "clock_in", already_clocked_in: false } });
+    return json({ data: { type: "clock_in", already_clocked_in: true } });
+  }
+
+  if (path === "attendance/clock-out" || path === "/attendance/clock-out") {
+    if (req.method !== "POST")
+      return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+    const body = await req.json().catch(() => ({}));
+    const { userId } = body as any;
+    if (!userId)
+      return json({ error: { code: "VALIDATION" } }, 400);
+    const { data: att } = await sb.from("attendance").select(`*`).eq("pharmacy_id", pid).eq("user_id", userId).eq("clock_out", null).maybeSingle();
+    if (att) {
+      await sb.from("attendance").update({ clock_out: sb`now()` }).eq("id", att.id);
+      return json({ data: { type: "clock_out", success: true } });
+    }
+    return json({ data: { type: "clock_out", already_clocked_out: true } });
+  }
+
+  if (path === "attendance/leaves" || path === "/attendance/leaves") {
+    if (req.method !== "GET")
+      return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+    const { data } = await sb.from("leaves").select(`*`).eq("pharmacy_id", pid).order("created_at", { ascending: false });
+    if (error)
+      return json({ error: { code: "QUERY_FAILED", message: error.message } }, 500);
+    return json({ data });
+  }
+
+  if (path === "attendance/leaves/{id}/decide" || path.startsWith("attendance/leaves/")) {
+    const match = path.match(/attendance\/leaves\/(\w+)/);
+    if (!match) return json({ error: { code: "VALIDATION" } }, 400);
+    const decision = match[1];
+    if (decision !== "accept" && decision !== "reject") return json({ error: { code: "VALIDATION" } }, 400);
+    const { data } = await sb.from("leaves").select(`*`).eq("pharmacy_id", pid).eq("id", match[2]).maybeSingle();
+    if (!data) return json({ error: { code: "NOT_FOUND" } }, 404);
+    await sb.from("leaves").update({ status: decision }).eq("id", match[2]);
+    return json({ data: { status: decision } });
+  }
+
   /* ===========================================================
      PRESCRIPTIONS — dispense
      =========================================================== */
@@ -1066,7 +1375,8 @@ await sbAuth.auth.signInWithPassword({ email, password });
       const body = await req.json().catch(() => ({}));
       const branchId = body.branchId ?? body.branch_id;
       const rawSaleType = body.saleType ?? body.sale_type ?? "pos";
-      const saleType = ({ pos: "cash", cash: "cash", credit: "credit" }[rawSaleType] ?? "cash") as string;
+      // Aligne sur le schéma du dépôt (007_sales.sql) : 'pos' est la valeur POS.
+      const saleType = ({ pos: "pos", cash: "cash", credit: "credit", online: "online", reservation: "reservation" }[rawSaleType] ?? "pos") as string;
       const items: any[] = Array.isArray(body.items) ? body.items : [];
       const payments: any[] = Array.isArray(body.payments) ? body.payments : [];
       const customerId = body.customerId ?? body.customer_id ?? body.client_id ?? null;
@@ -1079,26 +1389,12 @@ await sbAuth.auth.signInWithPassword({ email, password });
       }
 
       // Utilisateur connecté (sub du JWT) → user_id de public.users.
-      const payload = jwtPayload(req);
-      const authEmail = (payload?.email as string) ?? "";
-      let userId: string | null = null;
-      if (authEmail) {
-        const { data: u } = await sb
-          .from("users")
-          .select("id")
-          .ilike("email", authEmail)
-          .maybeSingle();
-        userId = u?.id ?? null;
-      }
+      const userId = await currentUserId(req);
       if (!userId) {
-        const { data: first } = await sb
-          .from("users")
-          .select("id")
-          .eq("pharmacy_id", pid)
-          .eq("status", "active")
-          .limit(1)
-          .maybeSingle();
-        userId = first?.id ?? null;
+        return json(
+          { error: { code: "UNAUTHORIZED", message: "Identité absente du JWT" } },
+          401,
+        );
       }
 
       // Coordonnées médicaments (coût, TVA) — aucune donnée inventée.
@@ -1358,17 +1654,7 @@ await sbAuth.auth.signInWithPassword({ email, password });
       );
 
     // Utilisateur connecté (sub du JWT) → public.users (même pattern que /sales).
-    const payloadR = jwtPayload(req);
-    const authEmailR = (payloadR?.email as string) ?? "";
-    let userIdR: string | null = null;
-    if (authEmailR) {
-      const { data: u } = await sb
-        .from("users")
-        .select("id")
-        .ilike("email", authEmailR)
-        .maybeSingle();
-      userIdR = u?.id ?? null;
-    }
+    const userIdR = await currentUserId(req);
 
     const { data: numData, error: numErr } = await sb.rpc("fn_next_number", {
       p_pharmacy_id: pid,
@@ -1599,17 +1885,7 @@ await sbAuth.auth.signInWithPassword({ email, password });
         { error: { code: "VALIDATION", message: "branchId requis" } },
         400,
       );
-    const payloadI = jwtPayload(req);
-    const authEmailI = (payloadI?.email as string) ?? "";
-    let userIdI: string | null = null;
-    if (authEmailI) {
-      const { data: u } = await sb
-        .from("users")
-        .select("id")
-        .ilike("email", authEmailI)
-        .maybeSingle();
-      userIdI = u?.id ?? null;
-    }
+    const userIdI = await currentUserId(req);
     const { data: session, error: sErr } = await sb
       .from("inventory_sessions")
       .insert({
@@ -1706,26 +1982,11 @@ await sbAuth.auth.signInWithPassword({ email, password });
   if (mm && req.method === "POST") {
     // Validation pharmacien : permission inventory:approve exigée
     // (super admin ou profil sans rôle → autorisé, comme le backend Node).
-    const payloadC = jwtPayload(req);
-    const authEmailC = (payloadC?.email as string) ?? "";
-    let userIdC: string | null = null;
-    let allowedC = true;
-    if (authEmailC) {
-      const { data: u } = await sb
-        .from("users")
-        .select("id, role_id, is_super_admin")
-        .ilike("email", authEmailC)
-        .maybeSingle();
-      userIdC = u?.id ?? null;
-      if (u && !u.is_super_admin && u.role_id) {
-        const { data: perms } = await sb
-          .from("role_permissions")
-          .select("permission_code")
-          .eq("role_id", u.role_id);
-        const set = new Set((perms ?? []).map((p: any) => p.permission_code));
-        allowedC = set.has("inventory:approve");
-      }
-    }
+    const { allowed: allowedC, userId: userIdC } = await hasPermission(
+      sb,
+      req,
+      "inventory:approve",
+    );
     if (!allowedC)
       return json(
         {
@@ -1862,13 +2123,7 @@ await sbAuth.auth.signInWithPassword({ email, password });
     const branchCS = bodyCS.branchId ?? bodyCS.branch_id;
     if (!branchCS)
       return json({ error: { code: "VALIDATION", message: "branchId requis" } }, 400);
-    const payloadCS = jwtPayload(req);
-    const authEmailCS = (payloadCS?.email as string) ?? "";
-    let userIdCS: string | null = null;
-    if (authEmailCS) {
-      const { data: u } = await sb.from("users").select("id").ilike("email", authEmailCS).maybeSingle();
-      userIdCS = u?.id ?? null;
-    }
+    const userIdCS = await currentUserId(req);
     const { data: numCS } = await sb.rpc("fn_next_number", {
       p_pharmacy: pid,
       p_prefix: "CAISSE",
@@ -1907,13 +2162,7 @@ await sbAuth.auth.signInWithPassword({ email, password });
         { error: { code: "VALIDATION", message: "Type d'événement invalide" } },
         400,
       );
-    const payloadE = jwtPayload(req);
-    const authEmailE = (payloadE?.email as string) ?? "";
-    let userIdE: string | null = null;
-    if (authEmailE) {
-      const { data: u } = await sb.from("users").select("id").ilike("email", authEmailE).maybeSingle();
-      userIdE = u?.id ?? null;
-    }
+    const userIdE = await currentUserId(req);
     const { data: ev, error: evErr } = await sb
       .from("cash_session_events")
       .insert({
@@ -1935,13 +2184,7 @@ await sbAuth.auth.signInWithPassword({ email, password });
   if (mm && req.method === "POST") {
     const bodyX = await req.json().catch(() => ({}) as any);
     const counted = Number(bodyX.countedCash ?? bodyX.counted_cash ?? 0);
-    const payloadX = jwtPayload(req);
-    const authEmailX = (payloadX?.email as string) ?? "";
-    let userIdX: string | null = null;
-    if (authEmailX) {
-      const { data: u } = await sb.from("users").select("id").ilike("email", authEmailX).maybeSingle();
-      userIdX = u?.id ?? null;
-    }
+    const userIdX = await currentUserId(req);
     const { data: sessX } = await sb
       .from("cash_sessions")
       .select("*")
@@ -2044,26 +2287,11 @@ await sbAuth.auth.signInWithPassword({ email, password });
         { error: { code: "VALIDATION", message: "Confirmation invalide (tapez REINITIALISER)" } },
         400,
       );
-    const payloadM = jwtPayload(req);
-    const authEmailM = (payloadM?.email as string) ?? "";
-    let userIdM: string | null = null;
-    let allowedM = false;
-    if (authEmailM) {
-      const { data: u } = await sb
-        .from("users")
-        .select("id, role_id, is_super_admin")
-        .ilike("email", authEmailM)
-        .maybeSingle();
-      userIdM = u?.id ?? null;
-      if (u && (u.is_super_admin || !u.role_id)) allowedM = true;
-      else if (u?.role_id) {
-        const { data: perms } = await sb
-          .from("role_permissions")
-          .select("permission_code")
-          .eq("role_id", u.role_id);
-        allowedM = (perms ?? []).some((p: any) => p.permission_code === "settings:edit");
-      }
-    }
+    const { allowed: allowedM, userId: userIdM } = await hasPermission(
+      sb,
+      req,
+      "settings:edit",
+    );
     if (!allowedM)
       return json(
         { error: { code: "FORBIDDEN", message: "Permission settings:edit requise" } },
@@ -2183,6 +2411,228 @@ await sbAuth.auth.signInWithPassword({ email, password });
     return json({ data: data ?? [] });
   }
 
+  /* ==========================================================/
+     REFERENCE — produits (table GLOBALE : pas de pharmacy_id)
+     =========================================================== */
+  if (path === "reference/products" || path === "/reference/products") {
+    if (req.method !== "GET")
+      return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+    const permProd = await hasPermission(sb, req, "reference:view");
+    if (!permProd.allowed)
+      return json(
+        { error: { code: "FORBIDDEN", message: "Permission reference:view requise" } },
+        403,
+      );
+    const urlP = new URL(req.url);
+    const rawQ = (urlP.searchParams.get("q") ?? "").trim();
+    const qP = rawQ.replace(/[,()%\\]/g, " ").trim();
+    const catP = (urlP.searchParams.get("category") ?? "").trim();
+    const pageP = Math.max(1, Number(urlP.searchParams.get("page") ?? 1) || 1);
+    const limitP = Math.min(200, Math.max(1, Number(urlP.searchParams.get("limit") ?? 30) || 30));
+    let qb = sb.from("reference_products").select("*", { count: "exact" });
+    if (qP) {
+      qb = qb.or(
+        `name.ilike.%${qP}%,dci.ilike.%${qP}%,barcode_ean13.eq.${qP}`,
+      );
+    }
+    if (catP) qb = qb.eq("category_code", catP);
+    const offsetP = (pageP - 1) * limitP;
+    const { data, error, count: totalP } = await qb
+      .order("name", { ascending: true })
+      .range(offsetP, offsetP + limitP - 1);
+    if (error)
+      return json({ error: { code: "QUERY_FAILED", message: error.message } }, 500);
+    return json({
+      data: data ?? [],
+      meta: { page: pageP, limit: limitP, total: totalP ?? 0 },
+    });
+  }
+
+  /* Détail + import d'un produit de référence dans la pharmacie */
+  const refProductMatch = path.match(/^\/?reference\/products\/([^/?]+)(\/import)?$/i);
+  if (refProductMatch) {
+    const refId = refProductMatch[1];
+    const isImport = Boolean(refProductMatch[2]);
+
+    if (req.method === "GET" && !isImport) {
+      const { data, error } = await sb
+        .from("reference_products")
+        .select("*")
+        .eq("id", refId)
+        .maybeSingle();
+      if (error)
+        return json({ error: { code: "QUERY_FAILED", message: error.message } }, 500);
+      if (!data)
+        return json(
+          { error: { code: "NOT_FOUND", message: "Produit de référence introuvable" } },
+          404,
+        );
+      return json({ data });
+    }
+
+    if (req.method === "POST" && isImport) {
+      const permImport = await hasPermission(sb, req, "reference:create");
+      if (!permImport.allowed)
+        return json(
+          { error: { code: "FORBIDDEN", message: "Permission reference:create requise" } },
+          403,
+        );
+
+      const { data: refProd, error: refErr } = await sb
+        .from("reference_products")
+        .select("*")
+        .eq("id", refId)
+        .maybeSingle();
+      if (refErr)
+        return json({ error: { code: "QUERY_FAILED", message: refErr.message } }, 500);
+      if (!refProd)
+        return json(
+          { error: { code: "NOT_FOUND", message: "Produit de référence introuvable" } },
+          404,
+        );
+      if (refProd.commercial_status !== "commercialise")
+        return json(
+          {
+            error: {
+              code: "CONFLICT",
+              message: `Produit non commercialisable : ${refProd.commercial_status}`,
+            },
+          },
+          409,
+        );
+
+      const { data: dup } = await sb
+        .from("medications")
+        .select("id")
+        .eq("pharmacy_id", pid)
+        .eq("barcode_ean13", refProd.barcode_ean13 ?? "")
+        .maybeSingle();
+      if (dup)
+        return json(
+          {
+            error: {
+              code: "CONFLICT",
+              message: `Ce produit existe déjà dans votre catalogue (${refProd.name})`,
+            },
+          },
+          409,
+        );
+
+      const pricePur = Number(refProd.pfht ?? 0);
+      const priceSel = refProd.ppv != null ? Number(refProd.ppv) : pricePur * 1.3;
+      const margin = pricePur > 0
+        ? Math.round(((priceSel - pricePur) / pricePur) * 100 * 100) / 100
+        : 0;
+
+      const { data: created, error: insErr } = await sb
+        .from("medications")
+        .insert({
+          pharmacy_id: pid,
+          name: refProd.name,
+          dci: refProd.dci ?? null,
+          generic_name: refProd.substance_active ?? null,
+          dosage: refProd.dosage ?? null,
+          form: refProd.form ?? null,
+          presentation: refProd.presentation ?? null,
+          barcode_ean13: refProd.barcode_ean13 ?? null,
+          price_purchase: pricePur,
+          price_sale: priceSel,
+          tva_rate: refProd.tva_rate ?? 20,
+          margin,
+          prescription_required: false,
+          reorder_level: 10,
+          min_stock: 5,
+          status: "available",
+          is_public: false,
+        })
+        .select("id")
+        .single();
+      if (insErr)
+        return json({ error: { code: "IMPORT_FAILED", message: insErr.message } }, 400);
+
+      // Laboratoire : réutiliser ou créer (clé pharmacie + nom).
+      let labId: string | null = null;
+      if (refProd.laboratory) {
+        const { data: existingLab } = await sb
+          .from("laboratories")
+          .select("id")
+          .eq("pharmacy_id", pid)
+          .eq("name", refProd.laboratory)
+          .maybeSingle();
+        if (existingLab) {
+          labId = existingLab.id;
+        } else {
+          const { data: newLab } = await sb
+            .from("laboratories")
+            .insert({ pharmacy_id: pid, name: refProd.laboratory })
+            .select("id")
+            .single();
+          labId = newLab?.id ?? null;
+        }
+        if (labId) {
+          await sb.from("medications").update({ laboratory_id: labId }).eq("id", created.id);
+        }
+      }
+
+      await sb.from("audit_logs").insert({
+        pharmacy_id: pid,
+        user_id: permImport.userId,
+        action: "create",
+        module: "reference",
+        entity: "medication",
+        entity_id: created.id,
+        new_values: {
+          name: refProd.name,
+          barcode: refProd.barcode_ean13 ?? null,
+          importedFrom: refProd.source ?? null,
+        },
+      });
+
+      return json(
+        { data: { id: created.id, name: refProd.name, barcode: refProd.barcode_ean13 ?? null } },
+        201,
+      );
+    }
+
+    return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+  }
+
+  /* ==========================================================/
+     SYNC — tirage delta du catalogue (hors-ligne)
+     =========================================================== */
+  if (path === "sync/pull/medications" || path === "/sync/pull/medications") {
+    if (req.method !== "GET")
+      return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+    const urlS = new URL(req.url);
+    const sinceS = Math.max(0, Number(urlS.searchParams.get("sinceRevision") ?? 0) || 0);
+    const limitS = Math.min(2000, Math.max(1, Number(urlS.searchParams.get("limit") ?? 500) || 500));
+    const { data: rowsS, error: errS } = await sb
+      .from("medications")
+      .select("id, name, barcode_ean13, price_sale, tva_rate, status, revision")
+      .eq("pharmacy_id", pid)
+      .gt("revision", sinceS)
+      .order("revision", { ascending: true })
+      .limit(limitS);
+    if (errS)
+      return json({ error: { code: "QUERY_FAILED", message: errS.message } }, 500);
+    const { data: maxS } = await sb
+      .from("medications")
+      .select("revision")
+      .eq("pharmacy_id", pid)
+      .order("revision", { ascending: false })
+      .limit(1);
+    const maxRevision = Number(maxS?.[0]?.revision ?? sinceS);
+    return json({
+      data: {
+        entity: "medications",
+        sinceRevision: sinceS,
+        maxRevision,
+        hasMore: (rowsS ?? []).length === limitS,
+        rows: rowsS ?? [],
+      },
+    });
+  }
+
   if (path === "inventory/cash-audits" && req.method === "POST") {
     const bodyK = await req.json().catch(() => ({}) as any);
     const branchIdK = bodyK.branchId ?? bodyK.branch_id;
@@ -2191,17 +2641,7 @@ await sbAuth.auth.signInWithPassword({ email, password });
         { error: { code: "VALIDATION", message: "branchId requis" } },
         400,
       );
-    const payloadK = jwtPayload(req);
-    const authEmailK = (payloadK?.email as string) ?? "";
-    let userIdK: string | null = null;
-    if (authEmailK) {
-      const { data: u } = await sb
-        .from("users")
-        .select("id")
-        .ilike("email", authEmailK)
-        .maybeSingle();
-      userIdK = u?.id ?? null;
-    }
+    const userIdK = await currentUserId(req);
     const expectedCash = Number(bodyK.expectedCash ?? 0);
     const countedCash = Number(bodyK.countedCash ?? 0);
     const difference = countedCash - expectedCash;
@@ -2240,6 +2680,78 @@ await sbAuth.auth.signInWithPassword({ email, password });
     const slug = path.split("/")[1];
     const { data } = await sb.from("blog_posts").select("*").eq("slug", slug).maybeSingle();
     return json({ data });
+  }
+
+  /* ===========================================================
+     BARCODE LOOKUP — médicaments par code-barres EAN-13
+     =========================================================== */
+  if (path === "catalog/medications/barcode" || path.startsWith("catalog/medications/barcode/")) {
+    const barcode = path.replace("/catalog/medications/barcode", "").replace("/catalog/medications/barcode/", "").trim();
+    if (!barcode) return json({ data: [] });
+    const { data, error } = await sb.from("medications").select(`id, name, price_sale, tva_rate, barcode_ean13, generic_name`).eq("pharmacy_id", pid).eq("barcode_ean13", barcode).single();
+    if (error || !data) return json({ data: [] });
+    return json({ data });
+  }
+
+  /* ===========================================================
+     RETOURS / AVOIRS - POST /sales/returns
+     Portage reel de salesService.returnSale via la fonction
+     PostgreSQL atomique fn_sale_return : sale_returns +
+     sale_return_items + reintegration du stock + avoir + credit.
+     =========================================================== */
+  if (path === "sales/returns" && req.method === "POST") {
+    const { allowed: allowedR, userId: userIdRet } = await hasPermission(sb, req, "sales:create");
+    if (!allowedR)
+      return json({ error: { code: "FORBIDDEN", message: "Permission sales:create requise" } }, 403);
+    const bodyR = await req.json().catch(() => ({}) as any);
+    const saleId = bodyR.saleId ?? bodyR.sale_id ?? null;
+    const branchIdR = bodyR.branchId ?? bodyR.branch_id ?? null;
+    const reasonR = bodyR.reason ?? null;
+    const returnTypeR = bodyR.returnType ?? bodyR.return_type ?? "refund";
+    const itemsR: any[] = Array.isArray(bodyR.items) ? bodyR.items : [];
+    const uuidOk = (v: unknown) =>
+      typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+    if (!uuidOk(saleId))
+      return json({ error: { code: "VALIDATION", message: "saleId invalide" } }, 400);
+    if (!uuidOk(branchIdR))
+      return json({ error: { code: "VALIDATION", message: "branchId invalide" } }, 400);
+    if (reasonR !== null && reasonR !== undefined && (typeof reasonR !== "string" || reasonR.length > 500))
+      return json({ error: { code: "VALIDATION", message: "reason invalide" } }, 400);
+    if (!["refund", "exchange", "credit"].includes(returnTypeR))
+      return json({ error: { code: "VALIDATION", message: "returnType invalide" } }, 400);
+    if (itemsR.length < 1 || itemsR.length > 200)
+      return json({ error: { code: "VALIDATION", message: "items invalide (1 a 200 articles)" } }, 400);
+    for (const it of itemsR) {
+      const q = Number(it?.quantity);
+      if (!uuidOk(it?.medication_id) || !Number.isFinite(q) || q <= 0)
+        return json({ error: { code: "VALIDATION", message: "Article invalide (medication_id, quantity > 0)" } }, 400);
+    }
+    const { data: retData, error: retErr } = await sb.rpc("fn_sale_return", {
+      p_pharmacy: pid,
+      p_sale_id: saleId,
+      p_branch_id: branchIdR,
+      p_reason: typeof reasonR === "string" ? reasonR : null,
+      p_return_type: returnTypeR,
+      p_items: itemsR.map((it) => ({ medication_id: it.medication_id, quantity: Number(it.quantity) })),
+      p_user_id: userIdRet,
+    });
+    if (retErr) {
+      const hint = ((retErr as any).hint ?? "") as string;
+      const msg = retErr.message ?? "Retour impossible";
+      const hintCode: Record<string, [number, string]> = {
+        SALE_NOT_FOUND: [404, "NOT_FOUND"],
+        ITEM_NOT_FOUND: [404, "NOT_FOUND"],
+        ALREADY_RETURNED: [409, "ALREADY_RETURNED"],
+        INVALID_RETURN_QTY: [409, "INVALID_RETURN_QTY"],
+        DUPLICATE_ITEM: [409, "DUPLICATE_ITEM"],
+        VALIDATION: [400, "VALIDATION"],
+      };
+      const mapped = hintCode[hint];
+      if (mapped) return json({ error: { code: mapped[1], message: msg } }, mapped[0]);
+      console.error("[returns] fn_sale_return:", retErr.message);
+      return json({ error: { code: "RETURN_FAILED", message: msg } }, 400);
+    }
+    return json({ data: retData }, 201);
   }
 
   /* ===========================================================
