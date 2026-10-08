@@ -365,6 +365,7 @@ const ROUTE_MODULE: Record<string, string> = {
   "website/blog/posts": "website",
   "support/tickets": "support",
   backups: "backups",
+  "cash-sessions": "cashier",
 };
 /* Prefixes triés longueur decroissante : "purchases/orders" avant
    "purchases", "catalog/medications" avant "catalog/...". */
@@ -417,6 +418,100 @@ async function enforcePathPermission(
     );
   }
   return null;
+}
+
+/* ===========================================================
+   SESSIONS — une requête protegee exige une session active
+   (user_sessions : access_token_hash du bearer, non revoquee,
+   non expiree). Le refresh tourne le hash (voir auth/refresh).
+   =========================================================== */
+/* GoTrue renvoie expires_at en epoch secondes : new Date(n)
+   donnerait 1970 et la session serait expiree des sa creation. */
+function sessionExpiresIso(v: unknown): string {
+  if (typeof v === "number" && Number.isFinite(v)) {
+    // epoch secondes (v < 1e12) vs millisecondes
+    return new Date(v < 1e12 ? v * 1000 : v).toISOString();
+  }
+  const d = new Date(String(v ?? ""));
+  if (isNaN(d.getTime())) return new Date(Date.now() + 3600_000).toISOString();
+  return d.toISOString();
+}
+
+/* Les64 premiers chars d'un JWT (header + debut payload) sont
+   identiques pour des tokens crees a la meme seconde : hash
+   discriminant = SHA-256 hex du jeton entier. */
+async function sha256Hex(token: string): Promise<string> {
+  const buf = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(token),
+  );
+  return [...new Uint8Array(buf)]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function bearerHash(req: Request): Promise<string | null> {
+  const a = req.headers.get("authorization") ?? "";
+  const t = a.startsWith("Bearer ") ? a.slice(7).trim() : "";
+  return t ? await sha256Hex(t) : null;
+}
+
+async function sessionActive(sb: any, req: Request): Promise<boolean> {
+  const h = await bearerHash(req);
+  if (!h) return false;
+  const { data } = await sb
+    .from("user_sessions")
+    .select("id")
+    .eq("access_token_hash", h)
+    .is("revoked_at", null)
+    .gt("expires_at", new Date().toISOString())
+    .limit(1)
+    .maybeSingle();
+  return !!data;
+}
+
+/* ===========================================================
+   VERROUILLAGE COMPTE — failed_attempts / locked_until
+   (5 echecs => verrou 15 min ; succes => remise a zero).
+   =========================================================== */
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCK_MINUTES = 15;
+
+async function lockState(
+  sb: any,
+  userId: string,
+): Promise<{ locked: boolean; minutes: number }> {
+  const { data: u } = await sb
+    .from("users")
+    .select("locked_until")
+    .eq("id", userId)
+    .maybeSingle();
+  const until = u?.locked_until ? new Date(u.locked_until).getTime() : 0;
+  if (until > Date.now()) {
+    return { locked: true, minutes: Math.ceil((until - Date.now()) / 60000) };
+  }
+  return { locked: false, minutes: 0 };
+}
+
+async function registerFailedLogin(sb: any, userId: string): Promise<void> {
+  const { data: u } = await sb
+    .from("users")
+    .select("failed_attempts")
+    .eq("id", userId)
+    .maybeSingle();
+  const n = (u?.failed_attempts ?? 0) + 1;
+  const patch: Record<string, unknown> = { failed_attempts: n };
+  if (n >= MAX_FAILED_ATTEMPTS) {
+    patch.locked_until = new Date(Date.now() + LOCK_MINUTES * 60_000).toISOString();
+  }
+  await sb.from("users").update(patch).eq("id", userId);
+}
+
+async function clearFailedLogin(sb: any, userId: string): Promise<void> {
+  await sb
+    .from("users")
+    .update({ failed_attempts: 0, locked_until: null })
+    .eq("id", userId);
 }
 
 const TABLE_MAP: Record<string, string> = {
@@ -576,6 +671,31 @@ async function proxyToTable(
     if (!parsed.pharmacy_id && table !== "pharmacies" && table !== "roles") {
       parsed.pharmacy_id = pid;
     }
+    /* CAISSE MULTI-EMPLOYES : toute vente est rattachee automatiquement
+       a la session de caisse OUVERTE de l'employe (et son user_id). */
+    if (table === "sales" && method === "POST") {
+      try {
+        const userId = await currentUserId(req);
+        if (userId && !parsed.user_id) parsed.user_id = userId;
+        if (userId && !parsed.cash_session_id) {
+          const sc = createClient(supabaseUrl, serviceKey, {
+            auth: { persistSession: false, autoRefreshToken: false },
+          });
+          const { data: openS } = await sc
+            .from("cash_sessions")
+            .select("id")
+            .eq("pharmacy_id", pid)
+            .eq("user_id", userId)
+            .eq("status", "OUVERTE")
+            .order("opened_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (openS?.id) parsed.cash_session_id = openS.id;
+        }
+      } catch (e) {
+        console.error("[sales] cash attach:", String(e));
+      }
+    }
     body = JSON.stringify(parsed);
   }
 
@@ -654,12 +774,25 @@ Deno.serve(async (req) => {
   });
 
   /* ===========================================================
-     RBAC GLOBAL — toute route de donnees mappee exige
+     SESSION ACTIVE + RBAC GLOBAL — toute route de donnees
+     mappee exige une session active (user_sessions) puis
      module:action (voir ROUTE_MODULE). Super admin bypass.
      Les routes non mappees (auth, health, metier custom) sont
-     hors perimetre de ce controle.
+     hors perimetre du controle RBAC mais restent soumises a la
+     session active.
      =========================================================== */
   if (!PUBLIC_PATHS.has(path.replace(/^\/+/, ""))) {
+    if (!(await sessionActive(sb, req))) {
+      return json(
+        {
+          error: {
+            code: "SESSION_EXPIRED",
+            message: "Session absente, expirée ou révoquée — reconnectez-vous",
+          },
+        },
+        401,
+      );
+    }
     const rbacDeny = await enforcePathPermission(sb, req, path);
     if (rbacDeny) return rbacDeny;
   }
@@ -699,6 +832,28 @@ Deno.serve(async (req) => {
         400,
       );
 
+    /* Verrouillage : 5 echecs => compte bloque 15 min. */
+    const { data: preUser } = await sb
+      .from("users")
+      .select("id, locked_until")
+      .ilike("email", String(email).trim().toLowerCase())
+      .maybeSingle();
+    if (preUser?.id && preUser.locked_until) {
+      const until = new Date(preUser.locked_until).getTime();
+      if (until > Date.now()) {
+        const mins = Math.ceil((until - Date.now()) / 60000);
+        return json(
+          {
+            error: {
+              code: "ACCOUNT_LOCKED",
+              message: `Compte verrouillé — réessayez dans ${mins} min`,
+            },
+          },
+          423,
+        );
+      }
+    }
+
     const buildSession = async (session: any) => {
       const normalized = String(email).trim().toLowerCase();
       const { data: profile, error: profileErr } = await sb
@@ -729,17 +884,22 @@ Deno.serve(async (req) => {
         };
       }
 
+      // Login reussi : remise a zero du compteur de tentatives.
+      try {
+        await clearFailedLogin(sb, userProfile.id);
+      } catch (e) {
+        console.error("[login] clearFailedLogin:", String(e));
+      }
+
       // Enregistre la session / appareil (user_sessions) — non bloquant.
       try {
         const dev = (body as any)?.device ?? {};
-        const exp = session?.expires_at
-          ? new Date(session.expires_at).toISOString()
-          : new Date(Date.now() + 3600_000).toISOString();
+        const exp = sessionExpiresIso(session?.expires_at);
         await sb.from("user_sessions").insert({
           user_id: userProfile.id,
           pharmacy_id: userProfile.pharmacy_id ?? pid,
-          access_token_hash: String(session?.access_token ?? "").slice(0, 64),
-          refresh_token_hash: String(session?.refresh_token ?? "").slice(0, 64),
+          access_token_hash: await sha256Hex(String(session?.access_token ?? "")),
+          refresh_token_hash: await sha256Hex(String(session?.refresh_token ?? "")),
           device_name: dev.name ?? req.headers.get("user-agent")?.slice(0, 120) ?? "App",
           device_type: dev.type ?? "app",
           ip_address: (req.headers.get("x-forwarded-for") ?? "").split(",")[0]?.trim() || null,
@@ -809,6 +969,14 @@ Deno.serve(async (req) => {
           { error: { code: "INVALID_CREDENTIALS", message: "Identifiants invalides" } },
           401,
         );
+      }
+    }
+    // Compteur de tentatives echouees (verrouillage apres 5).
+    if (preUser?.id) {
+      try {
+        await registerFailedLogin(sb, preUser.id);
+      } catch (e) {
+        console.error("[login] registerFailedLogin:", String(e));
       }
     }
     return json(
@@ -904,6 +1072,42 @@ Deno.serve(async (req) => {
     const { data, error } = await sbAuth.auth.refreshSession({ refresh_token: rt });
     if (error)
       return json({ error: { code: "REFRESH_FAILED", message: error.message } }, 401);
+    /* Rotation de session : les hashes suivent les nouveaux tokens
+       (sinon le controle de session rejetterait le client apres refresh). */
+    try {
+      const newAccess = await sha256Hex(String(data.session?.access_token ?? ""));
+      const newRefresh = await sha256Hex(String(data.session?.refresh_token ?? ""));
+      const { data: rotated } = await sb
+        .from("user_sessions")
+        .update({
+          access_token_hash: newAccess,
+          refresh_token_hash: newRefresh,
+          expires_at: sessionExpiresIso(data.session?.expires_at),
+          last_used_at: new Date().toISOString(),
+        })
+        .eq("refresh_token_hash", await sha256Hex(String(rt)))
+        .is("revoked_at", null)
+        .select("id");
+      if (!rotated?.length) {
+        // Session non tracee (login anterieur) : on la trace maintenant.
+        const { data: prof } = await sb
+          .from("users")
+          .select("id, pharmacy_id")
+          .ilike("email", String(data.session?.user?.email ?? "").toLowerCase())
+          .maybeSingle();
+        await sb.from("user_sessions").insert({
+          user_id: prof?.id ?? data.session?.user?.id,
+          pharmacy_id: prof?.pharmacy_id ?? pid,
+          access_token_hash: newAccess,
+          refresh_token_hash: newRefresh,
+          device_name: req.headers.get("user-agent")?.slice(0, 120) ?? "App",
+          device_type: "refresh",
+          expires_at: sessionExpiresIso(data.session?.expires_at),
+        });
+      }
+    } catch (e) {
+      console.error("[refresh] session rotate:", String(e));
+    }
     const email = data.session?.user?.email ?? "";
     const { data: profile } = await sb
       .from("users")
@@ -927,6 +1131,139 @@ Deno.serve(async (req) => {
         },
       },
     });
+  }
+
+  /* -----------------------------------------------
+     PIN — code de verrouillage / deverrouillage en
+     session active (un "login PIN" pur est impossible :
+     les tokens proviennent de Supabase Auth qui exige
+     le mot de passe). PIN : 4-6 chiffres, argon2id.
+     ----------------------------------------------- */
+  if ((path === "auth/pin" || path === "/auth/pin") && req.method === "PUT") {
+    const body = await req.json().catch(() => ({}));
+    const pin = String((body as any)?.pin ?? "");
+    const userId = await currentUserId(req);
+    if (!userId)
+      return json({ error: { code: "UNAUTHORIZED" } }, 401);
+    if (!/^\d{4,6}$/.test(pin))
+      return json(
+        { error: { code: "VALIDATION", message: "PIN : 4 à 6 chiffres" } },
+        400,
+      );
+    try {
+      const wasm = await import("https://esm.sh/hash-wasm@4.9.0");
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      const encoded = await wasm.argon2id({
+        password: pin,
+        salt,
+        parallelism: 1,
+        iterations: 2,
+        memorySize: 19456,
+        hashLength: 32,
+        outputType: "encoded",
+      });
+      await sb.from("users").update({ pin_hash: encoded }).eq("id", userId);
+      return json({ data: { message: "PIN enregistré" } });
+    } catch (e) {
+      return json(
+        { error: { code: "PIN_SET_FAILED", message: String(e) } },
+        500,
+      );
+    }
+  }
+
+  if ((path === "auth/pin/verify" || path === "/auth/pin/verify") && req.method === "POST") {
+    const body = await req.json().catch(() => ({}));
+    const pin = String((body as any)?.pin ?? "");
+    const userId = await currentUserId(req);
+    if (!userId)
+      return json({ error: { code: "UNAUTHORIZED" } }, 401);
+    const { data: u } = await sb
+      .from("users")
+      .select("pin_hash, locked_until")
+      .eq("id", userId)
+      .maybeSingle();
+    if (!u?.pin_hash)
+      return json(
+        { error: { code: "PIN_NOT_SET", message: "Aucun PIN enregistré" } },
+        400,
+      );
+    if (u.locked_until && new Date(u.locked_until).getTime() > Date.now())
+      return json(
+        { error: { code: "ACCOUNT_LOCKED", message: "Compte verrouillé" } },
+        423,
+      );
+    const ok = await verifyArgon2phc(String(u.pin_hash), pin);
+    if (!ok) {
+      try {
+        await registerFailedLogin(sb, userId);
+      } catch (e) {
+        console.error("[pin] registerFailedLogin:", String(e));
+      }
+      return json(
+        { error: { code: "PIN_INVALID", message: "PIN incorrect" } },
+        401,
+      );
+    }
+    try {
+      await clearFailedLogin(sb, userId);
+    } catch (e) {
+      console.error("[pin] clearFailedLogin:", String(e));
+    }
+    return json({ data: { valid: true } });
+  }
+
+  /* Sessions de l'utilisateur courant (actives, sans jetons). */
+  if ((path === "auth/sessions" || path === "/auth/sessions") && req.method === "GET") {
+    const userId = await currentUserId(req);
+    if (!userId)
+      return json({ error: { code: "UNAUTHORIZED" } }, 401);
+    const { data } = await sb
+      .from("user_sessions")
+      .select("id, device_name, device_type, ip_address, created_at, last_used_at, expires_at")
+      .eq("user_id", userId)
+      .is("revoked_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .order("last_used_at", { ascending: false });
+    return json({ data: data ?? [] });
+  }
+
+  const sessPath = path.replace(/^\/+/, "");
+  if (sessPath.startsWith("auth/sessions/") && req.method === "DELETE") {
+    const id = sessPath.split("/")[2] ?? "";
+    const userId = await currentUserId(req);
+    if (!userId)
+      return json({ error: { code: "UNAUTHORIZED" } }, 401);
+    const { data: row } = await sb
+      .from("user_sessions")
+      .select("id, user_id")
+      .eq("id", id)
+      .maybeSingle();
+    if (!row)
+      return json(
+        { error: { code: "NOT_FOUND", message: "Session introuvable" } },
+        404,
+      );
+    const { allowed: canManage } = await hasPermission(sb, req, "users:edit");
+    if (row.user_id !== userId && !canManage)
+      return json({ error: { code: "FORBIDDEN" } }, 403);
+    await sb
+      .from("user_sessions")
+      .update({ revoked_at: new Date().toISOString() })
+      .eq("id", id);
+    return json({ data: { message: "Session révoquée" } });
+  }
+
+  /* Deconnexion : revoque la session courante (le client purge ses tokens). */
+  if ((path === "auth/logout" || path === "/auth/logout") && req.method === "POST") {
+    const h = await bearerHash(req);
+    if (h) {
+      await sb
+        .from("user_sessions")
+        .update({ revoked_at: new Date().toISOString() })
+        .eq("access_token_hash", h);
+    }
+    return json({ data: { message: "Session révoquée" } });
   }
 
   if (path === "auth/change-password" || path === "/auth/change-password") {
@@ -2211,13 +2548,16 @@ Deno.serve(async (req) => {
     const branchQ = (url.searchParams.get("branchId") ?? "").toLowerCase();
     let q = sb
       .from("cash_sessions")
-      .select("*, branches(name), users(first_name, last_name)")
+      .select("*, branches(name), users!cash_sessions_user_id_fkey(first_name, last_name)")
       .eq("pharmacy_id", pid)
       .eq("status", "OUVERTE")
       .order("opened_at", { ascending: false })
       .limit(1);
     if (branchQ) q = q.eq("branch_id", branchQ);
-    const { data: sess } = await q.maybeSingle();
+    const { data: sess, error: sessErr } = await q.maybeSingle();
+    if (sessErr) {
+      return json({ error: { code: "SESSION_FETCH_FAILED", message: sessErr.message } }, 500);
+    }
     if (!sess) return json({ data: null });
     const { data: salesRows } = await sb
       .from("sales")
@@ -2273,6 +2613,21 @@ Deno.serve(async (req) => {
     if (!branchCS)
       return json({ error: { code: "VALIDATION", message: "branchId requis" } }, 400);
     const userIdCS = await currentUserId(req);
+    // Une seule session OUVERTE par succursale : pas de double ouverture.
+    const { data: alreadyCS } = await sb
+      .from("cash_sessions")
+      .select("id")
+      .eq("pharmacy_id", pid)
+      .eq("branch_id", branchCS)
+      .eq("status", "OUVERTE")
+      .limit(1)
+      .maybeSingle();
+    if (alreadyCS) {
+      return json(
+        { error: { code: "SESSION_ALREADY_OPEN", message: "Une caisse est déjà ouverte", sessionId: alreadyCS.id } },
+        409,
+      );
+    }
     const { data: numCS } = await sb.rpc("fn_next_number", {
       p_pharmacy: pid,
       p_prefix: "CAISSE",
