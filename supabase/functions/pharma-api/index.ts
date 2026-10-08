@@ -444,7 +444,7 @@ async function proxyToTable(
     apikey: serviceKey,
     Authorization: `Bearer ${serviceKey}`,
     "Content-Type": "application/json",
-    Prefer: "return=representation",
+    Prefer: method === "GET" ? "return=representation, count=exact" : "return=representation",
   };
 
   let body: string | undefined;
@@ -476,6 +476,22 @@ async function proxyToTable(
         return json({ error: { code: "NOT_FOUND", message: "Not found" } }, 404);
       }
     } catch (_) { /* fallback to raw */ }
+  }
+
+  // Liste GET : exposer meta.total (Content-Range "0-39/5016") pour que
+  // l'app connaisse le vrai total et active "Load more" (sinon total = longueur
+  // de page et la pagination se verrouille a la premiere page).
+  if (method === "GET" && res.status >= 200 && res.status < 300) {
+    const cr = res.headers.get("content-range");
+    const totalStr = cr && cr.includes("/") ? cr.split("/")[1] : null;
+    if (totalStr && totalStr !== "*") {
+      try {
+        const arr = JSON.parse(text);
+        if (Array.isArray(arr)) {
+          return json({ data: arr, meta: { total: parseInt(totalStr, 10) } });
+        }
+      } catch (_) { /* fallback brut ci-dessous */ }
+    }
   }
 
   return new Response(text, {

@@ -59,7 +59,7 @@ class _CatalogPageState extends State<CatalogPage> {
         if (query != null && query.isNotEmpty) 'q': query,
         'is_parapharmacie': _paraMode,
         'page': page,
-        'limit': 40,
+        'limit': 500,
       },
     );
     // Backend edge function incomplet : si la route /catalog/medications
@@ -80,7 +80,10 @@ class _CatalogPageState extends State<CatalogPage> {
       return;
     }
     setState(() {
-      _items = ApiList.of(result.data).map(Medication.fromJson).toList();
+      final incoming =
+          ApiList.of(result.data).map(Medication.fromJson).toList();
+      // "Load more" : cumuler les pages au lieu de remplacer la liste.
+      _items = page > 1 ? [..._items, ...incoming] : incoming;
       _total = ApiList.total(result.data, result.meta);
       _page = page;
       _loading = false;
