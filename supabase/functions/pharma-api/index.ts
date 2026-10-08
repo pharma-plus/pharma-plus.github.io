@@ -263,7 +263,12 @@ async function enrichProfile(sb: any, profile: any): Promise<any> {
 }
 
 /* Routes accessibles sans JWT (avant authentification). */
-const PUBLIC_PATHS = new Set(["health", "auth/login", "auth/refresh"]);
+const PUBLIC_PATHS = new Set([
+  "health",
+  "auth/login",
+  "auth/refresh",
+  "auth/verify-2fa",
+]);
 /* Pharmacie par defaut : utilisee uniquement sur les routes publiques
    (profil synthetique de login de derniere ressource). */
 const DEFAULT_PHARMACY_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
@@ -360,7 +365,9 @@ const ROUTE_MODULE: Record<string, string> = {
   "accounting/closings": "accounting",
   "attendance/leaves": "attendance",
   "attendance/schedules": "attendance",
+  attendance: "attendance",
   "reference/categories": "reference",
+  reference: "reference",
   "website/settings": "website",
   "website/blog/posts": "website",
   "support/tickets": "support",
@@ -372,6 +379,14 @@ const ROUTE_MODULE: Record<string, string> = {
 const ROUTE_MODULE_KEYS = Object.keys(ROUTE_MODULE).sort(
   (a, b) => b.length - a.length,
 );
+
+/* Exceptions au verbe HTTP derive (portage du backend Node qui
+   exigeait attendance:approve / attendance:edit / reference:edit). */
+const ROUTE_FORCE: { test: RegExp; method: string; action: string }[] = [
+  { test: /^attendance\/leaves\/[^/]+\/decide$/, method: "POST", action: "approve" },
+  { test: /^attendance\/(clock-in|clock-out|manual)$/, method: "POST", action: "edit" },
+  { test: /^reference\/sync$/, method: "POST", action: "edit" },
+];
 
 function routePermissionFor(path: string): string | null {
   const p = path.replace(/^\/+/, "");
@@ -393,8 +408,13 @@ async function enforcePathPermission(
 ): Promise<Response | null> {
   const module = routePermissionFor(path);
   if (!module) return null;
+  const forced = ROUTE_FORCE.find(
+    (f) =>
+      f.method === req.method && f.test.test(path.replace(/^\/+/, "")),
+  );
   const action =
-    req.method === "GET"
+    forced?.action ??
+    (req.method === "GET"
       ? "view"
       : req.method === "POST"
         ? "create"
@@ -402,7 +422,7 @@ async function enforcePathPermission(
           ? "edit"
           : req.method === "DELETE"
             ? "delete"
-            : null;
+            : null);
   if (!action) {
     return json(
       { error: { code: "METHOD_NOT_ALLOWED", message: "Méthode non supportée" } },
@@ -512,6 +532,264 @@ async function clearFailedLogin(sb: any, userId: string): Promise<void> {
     .from("users")
     .update({ failed_attempts: 0, locked_until: null })
     .eq("id", userId);
+}
+
+/* ===========================================================
+   2FA — portage du backend Node (otplib TOTP + challenge JWT
+   signe HMAC-SHA256, purpose inchange). Le challenge est emis et
+   verifie ici meme ; la session GoTrue attendue est scellee
+   (AES-256-GCM derive de JWT_SECRET) dans le jeton lui-meme :
+   stockage serveur impossible (Deno KV non disponible en Edge).
+   =========================================================== */
+const JWT_2FA_PURPOSE = "pharma-2fa";
+async function derive2faKey(): Promise<CryptoKey> {
+  const base = new TextEncoder().encode(
+    (Deno.env.get("JWT_SECRET") ?? "") + "|pharma-2fa-blob",
+  );
+  const raw = await crypto.subtle.digest("SHA-256", base);
+  return await crypto.subtle.importKey("raw", raw, "AES-GCM", false, [
+    "encrypt",
+    "decrypt",
+  ]);
+}
+async function seal2faSession(session: unknown): Promise<string> {
+  const key = await derive2faKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    new TextEncoder().encode(JSON.stringify(session)),
+  );
+  return `${b64urlFromBytes(iv)}.${b64urlFromBytes(ct)}`;
+}
+async function unseal2faSession(sealed: string): Promise<any> {
+  const [ivp, ctp] = String(sealed).split(".");
+  if (!ivp || !ctp) throw new Error("blob invalide");
+  const key = await derive2faKey();
+  const pt = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: bytesFromB64url(ivp) },
+    key,
+    bytesFromB64url(ctp),
+  );
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+
+/* Lecture complete d'une table : PostgREST tronque a 1000 lignes
+   (max-rows) — on decoupe en pages ordonnees par id. */
+async function fetchPaged(
+  sb: any,
+  table: string,
+  select: string,
+  apply: (q: any) => any,
+  pageSize = 1000,
+): Promise<any[]> {
+  const cnt = await apply(
+    sb.from(table).select("id", { count: "exact", head: true }),
+  );
+  if (cnt.error) throw new Error(cnt.error.message);
+  const nPages = Math.max(1, Math.ceil((cnt.count ?? 0) / pageSize));
+  const pages = await Promise.all(
+    Array.from({ length: nPages }, (_, i) =>
+      apply(sb.from(table).select(select))
+        .order("id")
+        .range(i * pageSize, (i + 1) * pageSize - 1)),
+  );
+  const out: any[] = [];
+  for (const p of pages) {
+    if (p.error) throw new Error(p.error.message);
+    out.push(...(p.data ?? []));
+  }
+  return out;
+}
+function b64urlFromBytes(buf: ArrayBuffer | Uint8Array): string {
+  const b = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  let s = "";
+  for (const x of b) s += String.fromCharCode(x);
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function b64urlJson(v: unknown): string {
+  return b64urlFromBytes(new TextEncoder().encode(JSON.stringify(v)));
+}
+function bytesFromB64url(s: string): Uint8Array {
+  const pad = s.replace(/-/g, "+").replace(/_/g, "/");
+  const bin = atob(pad + "=".repeat((4 - (pad.length % 4)) % 4));
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+async function hmacSha256(secret: string, data: Uint8Array): Promise<Uint8Array> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  return new Uint8Array(await crypto.subtle.sign("HMAC", key, data));
+}
+async function sign2faChallenge(sub: string, sealedSession: string): Promise<string> {
+  const secret = Deno.env.get("JWT_SECRET") ?? "";
+  const now = Math.floor(Date.now() / 1000);
+  const header = b64urlJson({ alg: "HS256", typ: "JWT" });
+  const payload = b64urlJson({
+    sub,
+    purpose: JWT_2FA_PURPOSE,
+    step: "challenge",
+    s: sealedSession,
+    iat: now,
+    exp: now + 600,
+  });
+  const sig = b64urlFromBytes(
+    await hmacSha256(secret, new TextEncoder().encode(`${header}.${payload}`)),
+  );
+  return `${header}.${payload}.${sig}`;
+}
+async function verify2faChallenge(token: string): Promise<any | null> {
+  try {
+    const [h, p, s] = token.split(".");
+    if (!h || !p || !s) return null;
+    const expect = await hmacSha256(
+      Deno.env.get("JWT_SECRET") ?? "",
+      new TextEncoder().encode(`${h}.${p}`),
+    );
+    const got = bytesFromB64url(s);
+    if (expect.length !== got.length) return null;
+    let diff = 0;
+    for (let i = 0; i < expect.length; i++) diff |= expect[i] ^ got[i];
+    if (diff !== 0) return null;
+    const payload = JSON.parse(new TextDecoder().decode(bytesFromB64url(p)));
+    if (payload?.purpose !== JWT_2FA_PURPOSE) return null;
+    if (typeof payload.exp === "number" && payload.exp < Date.now() / 1000)
+      return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+function base32Decode(s: string): Uint8Array {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  const clean = s.toUpperCase().replace(/[^A-Z2-7]/g, "");
+  let bits = 0;
+  let value = 0;
+  const out: number[] = [];
+  for (const ch of clean) {
+    value = (value << 5) | alphabet.indexOf(ch);
+    bits += 5;
+    if (bits >= 8) {
+      out.push((value >> (bits - 8)) & 0xff);
+      bits -= 8;
+    }
+  }
+  return new Uint8Array(out);
+}
+/* TOTP RFC6238 : SHA-1, 30 s, 6 chiffres, fenetre +/-1 pas. */
+async function totpVerify(code: string, secret: string): Promise<boolean> {
+  const digits = 6;
+  const stepSec = 30;
+  const norm = String(code).replace(/\D/g, "");
+  if (norm.length !== digits) return false;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    base32Decode(secret),
+    { name: "HMAC", hash: "SHA-1" },
+    false,
+    ["sign"],
+  );
+  const counter = Math.floor(Date.now() / 1000 / stepSec);
+  for (const c of [counter - 1, counter, counter + 1]) {
+    if (c < 0) continue;
+    const msg = new Uint8Array(8);
+    let v = c;
+    for (let i = 7; i >= 0; i--) {
+      msg[i] = v & 0xff;
+      v = Math.floor(v / 256);
+    }
+    const mac = new Uint8Array(
+      await crypto.subtle.sign("HMAC", key, msg),
+    );
+    const offset = mac[mac.length - 1] & 0x0f;
+    const bin =
+      ((mac[offset] & 0x7f) << 24) |
+      (mac[offset + 1] << 16) |
+      (mac[offset + 2] << 8) |
+      mac[offset + 3];
+    const otp = bin % 10 ** digits;
+    if (String(otp).padStart(digits, "0") === norm) return true;
+  }
+  return false;
+}
+
+/* Session finale (login direct OU 2FA valide) : profil + insertion
+   user_sessions (hash SHA-256) + reponse accessToken/refreshToken. */
+async function finishLogin(
+  sb: any,
+  req: Request,
+  email: string,
+  session: any,
+  body: any,
+  fallbackPid: string,
+): Promise<Response> {
+  const normalized = String(email).trim().toLowerCase();
+  const { data: profile, error: profileErr } = await sb
+    .from("users")
+    .select(
+      "id, pharmacy_id, branch_id, role_id, first_name, last_name, email, username, phone, is_super_admin",
+    )
+    .ilike("email", normalized)
+    .maybeSingle();
+  if (profileErr) console.error("[login] profile error:", profileErr.message);
+
+  let userProfile: any;
+  if (profile) {
+    userProfile = await enrichProfile(sb, profile);
+  } else {
+    userProfile = {
+      email: normalized,
+      id: session?.user?.id ?? crypto.randomUUID(),
+      pharmacy_id: fallbackPid,
+      branch_id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      role_id: "00000000-0000-0000-0000-000000000002",
+      first_name: "Admin",
+      last_name: "Pharma",
+      is_super_admin: true,
+      permissions: [],
+      pharmacy_name: null,
+      role_name: "Pharmacien Administrateur",
+    };
+  }
+
+  try {
+    await clearFailedLogin(sb, userProfile.id);
+  } catch (e) {
+    console.error("[login] clearFailedLogin:", String(e));
+  }
+
+  try {
+    const dev = body?.device ?? {};
+    const exp = sessionExpiresIso(session?.expires_at);
+    await sb.from("user_sessions").insert({
+      user_id: userProfile.id,
+      pharmacy_id: userProfile.pharmacy_id ?? fallbackPid,
+      access_token_hash: await sha256Hex(String(session?.access_token ?? "")),
+      refresh_token_hash: await sha256Hex(String(session?.refresh_token ?? "")),
+      device_name: dev.name ?? req.headers.get("user-agent")?.slice(0, 120) ?? "App",
+      device_type: dev.type ?? "app",
+      ip_address:
+        (req.headers.get("x-forwarded-for") ?? "").split(",")[0]?.trim() || null,
+      user_agent: dev.userAgent ?? req.headers.get("user-agent")?.slice(0, 200) ?? null,
+      expires_at: exp,
+    });
+  } catch (e) {
+    console.error("[login] user_sessions insert:", String(e));
+  }
+
+  return json({
+    data: {
+      accessToken: session?.access_token ?? null,
+      refreshToken: session?.refresh_token ?? null,
+      user: userProfile,
+    },
+  });
 }
 
 const TABLE_MAP: Record<string, string> = {
@@ -835,7 +1113,7 @@ Deno.serve(async (req) => {
     /* Verrouillage : 5 echecs => compte bloque 15 min. */
     const { data: preUser } = await sb
       .from("users")
-      .select("id, locked_until")
+      .select("id, locked_until, two_factor_enabled")
       .ilike("email", String(email).trim().toLowerCase())
       .maybeSingle();
     if (preUser?.id && preUser.locked_until) {
@@ -855,68 +1133,28 @@ Deno.serve(async (req) => {
     }
 
     const buildSession = async (session: any) => {
-      const normalized = String(email).trim().toLowerCase();
-      const { data: profile, error: profileErr } = await sb
-        .from("users")
-        .select(
-          "id, pharmacy_id, branch_id, role_id, first_name, last_name, email, username, phone, is_super_admin",
-        )
-        .ilike("email", normalized)
-        .maybeSingle();
-      if (profileErr) console.error("[login] profile error:", profileErr.message);
-
-      let userProfile: any;
-      if (profile) {
-        userProfile = await enrichProfile(sb, profile);
-      } else {
-        userProfile = {
-          email: normalized,
-          id: session?.user?.id ?? crypto.randomUUID(),
-          pharmacy_id: pid,
-          branch_id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
-          role_id: "00000000-0000-0000-0000-000000000002",
-          first_name: "Admin",
-          last_name: "Pharma",
-          is_super_admin: true,
-          permissions: [],
-          pharmacy_name: null,
-          role_name: "Pharmacien Administrateur",
-        };
+      /* 2FA activee : on cache la session GoTrue en Deno KV et on
+         renvoie le challenge — la session n'est creee qu'apres
+         verification du code TOTP (portage du backend Node). */
+      if (preUser?.two_factor_enabled && preUser?.id) {
+        try {
+          await clearFailedLogin(sb, preUser.id);
+          const challenge = await sign2faChallenge(
+            String(preUser.id),
+            await seal2faSession(session),
+          );
+          return json({
+            data: { requireTwoFactor: true, twoFactorToken: challenge },
+          });
+        } catch (e) {
+          console.error("[login] 2fa challenge:", String(e));
+          return json(
+            { error: { code: "TWOFA_UNAVAILABLE", message: "2FA indisponible" } },
+            500,
+          );
+        }
       }
-
-      // Login reussi : remise a zero du compteur de tentatives.
-      try {
-        await clearFailedLogin(sb, userProfile.id);
-      } catch (e) {
-        console.error("[login] clearFailedLogin:", String(e));
-      }
-
-      // Enregistre la session / appareil (user_sessions) — non bloquant.
-      try {
-        const dev = (body as any)?.device ?? {};
-        const exp = sessionExpiresIso(session?.expires_at);
-        await sb.from("user_sessions").insert({
-          user_id: userProfile.id,
-          pharmacy_id: userProfile.pharmacy_id ?? pid,
-          access_token_hash: await sha256Hex(String(session?.access_token ?? "")),
-          refresh_token_hash: await sha256Hex(String(session?.refresh_token ?? "")),
-          device_name: dev.name ?? req.headers.get("user-agent")?.slice(0, 120) ?? "App",
-          device_type: dev.type ?? "app",
-          ip_address: (req.headers.get("x-forwarded-for") ?? "").split(",")[0]?.trim() || null,
-          user_agent: dev.userAgent ?? req.headers.get("user-agent")?.slice(0, 200) ?? null,
-          expires_at: exp,
-        });
-      } catch (e) {
-        console.error("[login] user_sessions insert:", String(e));
-      }
-
-      return json({
-        data: {
-          accessToken: session?.access_token ?? null,
-          refreshToken: session?.refresh_token ?? null,
-          user: userProfile,
-        },
-      });
+      return await finishLogin(sb, req, String(email), session, body, pid);
     };
 
     // 1) Connexion directe via Supabase Auth.
@@ -982,6 +1220,68 @@ Deno.serve(async (req) => {
     return json(
       { error: { code: "INVALID_CREDENTIALS", message: "Identifiants invalides" } },
       401,
+    );
+  }
+
+  /* Verification du code TOTP 2FA : consomme le challenge + le
+     stash KV, puis cree la session complete (portage Node). */
+  if (path === "auth/verify-2fa" || path === "/auth/verify-2fa") {
+    if (req.method !== "POST")
+      return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+    const body2fa = await req.json().catch(() => ({}) as any);
+    const { twoFactorToken, code } = body2fa ?? {};
+    if (!twoFactorToken || !code)
+      return json(
+        { error: { code: "VALIDATION", message: "twoFactorToken + code requis" } },
+        400,
+      );
+    const payload = await verify2faChallenge(String(twoFactorToken));
+    if (!payload?.sub)
+      return json(
+        { error: { code: "TWOFA_TOKEN_INVALID", message: "Jeton 2FA invalide ou expiré" } },
+        401,
+      );
+    const { data: user2fa } = await sb
+      .from("users")
+      .select("id, email, pharmacy_id, two_factor_enabled, two_factor_secret")
+      .eq("id", String(payload.sub))
+      .maybeSingle();
+    if (!user2fa?.two_factor_enabled || !user2fa.two_factor_secret)
+      return json(
+        { error: { code: "TWOFA_NOT_CONFIGURED", message: "2FA non configurée" } },
+        401,
+      );
+    if (!(await totpVerify(String(code), user2fa.two_factor_secret)))
+      return json(
+        { error: { code: "TWOFA_CODE_INVALID", message: "Code 2FA incorrect" } },
+        401,
+      );
+    if (!payload?.s)
+      return json(
+        { error: { code: "TWOFA_SESSION_MISSING", message: "Challenge incomplet" } },
+        401,
+      );
+    let session2fa: any;
+    try {
+      session2fa = await unseal2faSession(String(payload.s));
+    } catch {
+      return json(
+        { error: { code: "TWOFA_TOKEN_INVALID", message: "Jeton 2FA invalide ou expiré" } },
+        401,
+      );
+    }
+    try {
+      await clearFailedLogin(sb, user2fa.id);
+    } catch (e) {
+      console.error("[verify-2fa] clearFailedLogin:", String(e));
+    }
+    return await finishLogin(
+      sb,
+      req,
+      user2fa.email,
+      session2fa,
+      body2fa ?? {},
+      user2fa.pharmacy_id ?? pid,
     );
   }
 
@@ -1361,53 +1661,240 @@ Deno.serve(async (req) => {
     try {
       const now = new Date();
       const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startYesterday = new Date(startOfDay);
+      startYesterday.setDate(startYesterday.getDate() - 1);
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const iso = (d: Date) => d.toISOString();
 
-      const [meds, cats, labs, suppliers, customers, prescs, stockBalances, salesToday, salesMonth] =
-        await Promise.all([
-          sb.from("medications").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid),
-          sb.from("categories").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid),
-          sb.from("laboratories").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid),
-          sb.from("suppliers").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid),
-          sb.from("customers").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid),
-          sb.from("prescriptions").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid),
-          sb.from("stock_balances").select("quantity").eq("pharmacy_id", pid),
-          sb.from("sales").select("total, cost_total").eq("pharmacy_id", pid).eq("status", "completed").gte("created_at", startOfDay.toISOString()),
-          sb.from("sales").select("total, cost_total").eq("pharmacy_id", pid).eq("status", "completed").gte("created_at", startOfMonth.toISOString()),
-        ]);
+      const [
+        medsTotal, medsAvailable, medsPara,
+        prescMonth, prescPending,
+        custTotal, custActive,
+        suppTotal, suppActive,
+        catCount, labCount,
+        balances, lotsAll,
+        salesRows, purchasesPending,
+        attPresent, camsTotal, camsOnline, camsRec,
+        aiRequests, aiSuccess, refRun,
+        medsPaged,
+      ] = await Promise.all([
+        sb.from("medications").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid),
+        sb.from("medications").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid).eq("status", "available"),
+        sb.from("medications").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid).eq("status", "available").eq("is_parapharmacie", true),
+        sb.from("prescriptions").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid).gte("created_at", iso(new Date(now - 30 * 86400000))),
+        sb.from("prescriptions").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid).in("status", ["received", "processing"]),
+        sb.from("customers").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid),
+        sb.from("customers").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid).eq("status", "active"),
+        sb.from("suppliers").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid),
+        sb.from("suppliers").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid).eq("status", "active"),
+        sb.from("categories").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid),
+        sb.from("laboratories").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid),
+        fetchPaged(sb, "stock_balances", "medication_id, lot_id, quantity, reserved_quantity",
+          (q) => q.eq("pharmacy_id", pid)),
+        fetchPaged(sb, "lots", "id, expiry_date, cost_price",
+          (q) => q.eq("pharmacy_id", pid)),
+        fetchPaged(sb, "sales", "id, total, cost_total, created_at, branch_id",
+          (q) => q.eq("pharmacy_id", pid).eq("status", "completed").gte("created_at", iso(startLastMonth))),
+        sb.from("purchase_orders").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid).in("status", ["draft", "sent", "confirmed"]),
+        sb.from("attendance").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid).eq("date", iso(startOfDay).slice(0, 10)).is("clock_out", null),
+        sb.from("cameras").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid).eq("is_enabled", true),
+        sb.from("cameras").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid).eq("is_enabled", true).eq("status", "online"),
+        sb.from("cameras").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid).eq("is_enabled", true).eq("status", "recording"),
+        sb.from("audit_logs").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid).eq("module", "ai").gte("created_at", iso(new Date(now - 7 * 86400000))),
+        sb.from("audit_logs").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid).eq("module", "ai").in("action", ["chat", "insights"]).gte("created_at", iso(new Date(now - 7 * 86400000))),
+        sb.from("reference_sync_runs").select("status, source, finished_at, started_at, new_count, modified_count, price_changed_count").order("started_at", { ascending: false }).limit(1).maybeSingle(),
+        fetchPaged(sb, "medications", "id, reorder_level, price_sale, status, is_parapharmacie, name, dosage",
+          (q) => q.eq("pharmacy_id", pid)),
+      ]);
 
-      const lowStock = (stockBalances.data ?? []).filter((r: any) => Number(r.quantity) < 10).length;
-      const revenueToday = (salesToday.data ?? []).reduce((s: number, r: any) => s + Number(r.total ?? 0), 0);
-      const revenueMonth = (salesMonth.data ?? []).reduce((s: number, r: any) => s + Number(r.total ?? 0), 0);
-      const costMonth = (salesMonth.data ?? []).reduce((s: number, r: any) => s + Number(r.cost_total ?? 0), 0);
-      const salesCountToday = (salesToday.data ?? []).length;
+      /* Ventes par periode (comparatifs reels consommes par le frontend). */
+      const sales = salesRows as any[];
+      const inRange = (s: any, from: Date, to?: Date) => {
+        const t = new Date(s.created_at).getTime();
+        return t >= from.getTime() && (!to || t < to.getTime());
+      };
+      const sumOf = (rows: any[]) => rows.reduce((s, r) => s + Number(r.total ?? 0), 0);
+      const profitOf = (rows: any[]) =>
+        rows.reduce((s, r) => s + Number(r.total ?? 0) - Number(r.cost_total ?? 0), 0);
+      const yesterdayRows = sales.filter((s) => inRange(s, startYesterday, startOfDay));
+      const todayRows = sales.filter((s) => inRange(s, startOfDay));
+      const monthRows = sales.filter((s) => inRange(s, startOfMonth));
+      const lastMonthRows = sales.filter((s) => inRange(s, startLastMonth, startOfMonth));
+
+      /* Alertes stock (portage dashboard/service.js). */
+      const medRows = (medsPaged as any[]).filter((m) => m.status === "available");
+      const balRows = balances as any[];
+      const stockOf = (medId: string) =>
+        balRows.filter((b) => b.medication_id === medId)
+          .reduce((s, b) => s + Number(b.quantity ?? 0), 0);
+      const lowStock = medRows.filter(
+        (m) => stockOf(m.id) <= Number(m.reorder_level ?? 0),
+      ).length;
+      const todayStr = iso(startOfDay).slice(0, 10);
+      const plus90 = new Date(startOfDay.getTime() + 90 * 86400000);
+      const lotById = new Map(lotsAll.map((l: any) => [l.id, l]));
+      const qtyByLot = new Map<string, number>();
+      for (const b of balRows) {
+        if (!b.lot_id) continue;
+        qtyByLot.set(b.lot_id, (qtyByLot.get(b.lot_id) ?? 0) + Number(b.quantity ?? 0));
+      }
+      let expiring = 0;
+      let expired = 0;
+      for (const [lotId, qty] of qtyByLot) {
+        if (qty <= 0) continue;
+        const lot = lotById.get(lotId);
+        if (!lot?.expiry_date) continue;
+        const exp = String(lot.expiry_date).slice(0, 10);
+        if (exp < todayStr) expired++;
+        else if (exp <= String(plus90.toISOString()).slice(0, 10)) expiring++;
+      }
+
+      /* Valeur / cout du stock (price_sale + cout du lot). */
+      const medPrice = new Map(
+        (medsPaged as any[]).map((m: any) => [m.id, Number(m.price_sale ?? 0)]),
+      );
+      let stockValue = 0;
+      let stockCost = 0;
+      let stockUnits = 0;
+      for (const b of balRows) {
+        const q = Number(b.quantity ?? 0);
+        stockValue += q * (medPrice.get(b.medication_id) ?? 0);
+        stockCost += q * Number(lotById.get(b.lot_id)?.cost_price ?? 0);
+        stockUnits += q;
+      }
+
+      /* Parapharmacie : CA sur sale_items (30 j) — filtrage via les
+         ventes car sale_items n'a pas de created_at. */
+      const paraIds = new Set(
+        (medsPaged as any[])
+          .filter((m) => m.status === "available" && m.is_parapharmacie)
+          .map((m) => m.id),
+      );
+      const ids30 = sales
+        .filter((s) => inRange(s, new Date(now.getTime() - 30 * 86400000)))
+        .map((s) => s.id);
+      const ids30Set = new Set(ids30);
+      const paraItems: any[] = ids30.length
+        ? await fetchPaged(sb, "sale_items", "line_total, medication_id, sale_id",
+          (q) => q.eq("pharmacy_id", pid).in("sale_id", ids30))
+        : [];
+      let paraRevenue = 0;
+      for (const it of paraItems) {
+        if (paraIds.has(it.medication_id) && ids30Set.has(it.sale_id))
+          paraRevenue += Number(it.line_total ?? 0);
+      }
+
+      /* Top produits 30 j (contrat Node : 5). */
+      const recentSaleIds = ids30Set;
+      const items30: any[] = ids30.length
+        ? await fetchPaged(sb, "sale_items", "medication_id, quantity, line_total, sale_id",
+          (q) => q.eq("pharmacy_id", pid).in("sale_id", ids30))
+        : [];
+      const medNames = new Map(
+        (medsPaged as any[]).map((m: any) => [m.id, m]),
+      );
+      const topMap = new Map<string, { qty: number; rev: number }>();
+      for (const it of items30) {
+        if (!recentSaleIds.has(it.sale_id)) continue;
+        const cur = topMap.get(it.medication_id) ?? { qty: 0, rev: 0 };
+        cur.qty += Number(it.quantity ?? 0);
+        cur.rev += Number(it.line_total ?? 0);
+        topMap.set(it.medication_id, cur);
+      }
+      const top_products = [...topMap.entries()]
+        .map(([id, v]) => ({
+          medication_id: id,
+          name: medNames.get(id)?.name ?? null,
+          dosage: medNames.get(id)?.dosage ?? null,
+          qty_sold: v.qty,
+          revenue: Number(v.rev.toFixed(2)),
+        }))
+        .sort((a, b) => b.qty_sold - a.qty_sold)
+        .slice(0, 5);
+
+      /* Courbe 30 j (jauges mv_daily_sales absente : agregation JS). */
+      const trendMap = new Map<string, { n: number; t: number; p: number }>();
+      for (const s of sales) {
+        if (!inRange(s, new Date(now.getTime() - 30 * 86400000))) continue;
+        const day = String(s.created_at).slice(0, 10);
+        const cur = trendMap.get(day) ?? { n: 0, t: 0, p: 0 };
+        cur.n += 1;
+        cur.t += Number(s.total ?? 0);
+        cur.p += Number(s.total ?? 0) - Number(s.cost_total ?? 0);
+        trendMap.set(day, cur);
+      }
+      const sales_trend = [...trendMap.entries()]
+        .map(([day, v]) => ({ sale_date: day, nb_sales: v.n, total: Number(v.t.toFixed(2)), profit: Number(v.p.toFixed(2)) }))
+        .sort((a, b) => a.sale_date.localeCompare(b.sale_date));
+
+      const revenueToday = sumOf(todayRows);
+      const revenueYesterday = sumOf(yesterdayRows);
+      const revenueMonth = sumOf(monthRows);
+      const revenueLastMonth = sumOf(lastMonthRows);
+      const profitMonth = profitOf(monthRows);
+      const profitLastMonth = profitOf(lastMonthRows);
 
       return json({
         data: {
           revenue: {
             revenue_today: revenueToday,
+            revenue_yesterday: revenueYesterday,
             revenue_month: revenueMonth,
-            profit_month: revenueMonth - costMonth,
-            sales_today: salesCountToday,
-            sales_month: (salesMonth.data ?? []).length,
+            revenue_last_month: revenueLastMonth,
+            profit_month: profitMonth,
+            profit_last_month: profitLastMonth,
+            revenue_week: sumOf(
+              sales.filter((s) => inRange(s, new Date(now.getTime() - 7 * 86400000))),
+            ),
+            sales_today: todayRows.length,
+            sales_month: monthRows.length,
           },
-          alerts: { low_stock: lowStock, expiring: 0, expired: 0, pending_orders: 0 },
+          alerts: {
+            low_stock: lowStock,
+            expiring,
+            expired,
+            pending_orders: purchasesPending.count ?? 0,
+          },
           counts: {
-            medications: { total: meds.count ?? 0, available: meds.count ?? 0 },
-            prescriptions: { month: prescs.count ?? 0, pending: 0 },
-            customers: { total: customers.count ?? 0, active: customers.count ?? 0 },
-            suppliers: { total: suppliers.count ?? 0, active: suppliers.count ?? 0 },
+            medications: {
+              total: medsTotal.count ?? 0,
+              available: medsAvailable.count ?? 0,
+              parapharmacy: medsPara.count ?? 0,
+            },
+            prescriptions: {
+              month: prescMonth.count ?? 0,
+              pending: prescPending.count ?? 0,
+            },
+            customers: { total: custTotal.count ?? 0, active: custActive.count ?? 0 },
+            suppliers: { total: suppTotal.count ?? 0, active: suppActive.count ?? 0 },
           },
-          stock: { stock_value: 0 },
-          top_products: [],
-          sales_trend: [],
+          stock: {
+            stock_value: Number(stockValue.toFixed(2)),
+            stock_cost: Number(stockCost.toFixed(2)),
+            stock_units: stockUnits,
+          },
+          top_products,
+          sales_trend,
+          goals: { month_target: 0, achieved: revenueMonth },
           pharma_plus: {
-            parapharmacy: { products: cats.count ?? 0, revenue_month: 0 },
-            cameras: { total: 0, online: 0, recording: 0 },
-            pharma_ai: { requests_7d: 0, success_7d: 0 },
-            reference: { total: labs.count ?? 0, last_sync: {} },
+            parapharmacy: {
+              products: medsPara.count ?? 0,
+              revenue_month: Number(paraRevenue.toFixed(2)),
+            },
+            cameras: {
+              total: camsTotal.count ?? 0,
+              online: camsOnline.count ?? 0,
+              recording: camsRec.count ?? 0,
+            },
+            pharma_ai: {
+              requests_7d: aiRequests.count ?? 0,
+              success_7d: aiSuccess.count ?? 0,
+            },
+            reference: { total: labCount.count ?? 0, last_sync: refRun.data ?? null },
           },
-          employees_present: 0,
+          employees_present: attPresent.count ?? 0,
+          categories: catCount.count ?? 0,
         },
       });
     } catch (e) {
@@ -1611,6 +2098,36 @@ Deno.serve(async (req) => {
   if (path === "reference/sync" && req.method === "POST") {
     return json({ data: { synced: 0, message: "Sync non disponible côté edge" } });
   }
+  /* Etat de la derniere synchronisation de la base de reference
+     (contrat backend Node : {last_run, total, updated_at}). */
+  if (path === "reference/sync/status" && req.method === "GET") {
+    const [runR, totalR] = await Promise.all([
+      sb
+        .from("reference_sync_runs")
+        .select(
+          "id, source, started_at, finished_at, status, new_count, modified_count, price_changed_count, status_changed_count, removed_count, notes",
+        )
+        .order("started_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      sb
+        .from("reference_products")
+        .select("id", { count: "exact", head: true }),
+    ]);
+    if (runR.error)
+      return json(
+        { error: { code: "QUERY_FAILED", message: runR.error.message } },
+        500,
+      );
+    const last = runR.data ?? null;
+    return json({
+      data: {
+        last_run: last,
+        total: totalR.count ?? 0,
+        updated_at: last?.finished_at ?? null,
+      },
+    });
+  }
 
   /* ===========================================================
      BRANCHES — alias for pharmacies (branches = pharmacies)
@@ -1623,6 +2140,39 @@ Deno.serve(async (req) => {
   /* ===========================================================
      PHARMACIES ME
      =========================================================== */
+  /* Statistiques globales (portage backend : super admin UNIQUEMENT). */
+  if (path === "pharmacies/global-stats" && req.method === "GET") {
+    const uid = await currentUserId(req);
+    const { data: me } = uid
+      ? await sb.from("users").select("is_super_admin").eq("id", uid).maybeSingle()
+      : { data: null };
+    if (!me?.is_super_admin)
+      return json(
+        { error: { code: "FORBIDDEN", message: "Super administrateur requis" } },
+        403,
+      );
+    const [phTotal, phActive, lic, usersN, salesN, revR] = await Promise.all([
+      sb.from("pharmacies").select("id", { count: "exact", head: true }),
+      sb.from("pharmacies").select("id", { count: "exact", head: true }).eq("status", "active"),
+      sb.from("licenses").select("id", { count: "exact", head: true }).eq("status", "active").gte("expiry_date", new Date().toISOString().slice(0, 10)),
+      sb.from("users").select("id", { count: "exact", head: true }),
+      sb.from("sales").select("id", { count: "exact", head: true }).eq("status", "completed"),
+      sb.from("sales").select("total").eq("status", "completed"),
+    ]);
+    const revenue = (revR.data ?? []).reduce(
+      (s: number, r: any) => s + Number(r.total ?? 0),
+      0,
+    );
+    return json({
+      data: {
+        pharmacies: { total: phTotal.count ?? 0, active: phActive.count ?? 0 },
+        activeLicenses: lic.count ?? 0,
+        users: usersN.count ?? 0,
+        sales: salesN.count ?? 0,
+        revenue: Number(revenue.toFixed(2)),
+      },
+    });
+  }
   if (path === "pharmacies/me") {
     if (req.method === "PUT") {
       const body = await req.json().catch(() => ({}));
@@ -1762,60 +2312,331 @@ Deno.serve(async (req) => {
   }
 
   /* ===========================================================
-     ATTENDANCE — summary
+     ATTENDANCE — portage du backend Node (routes + service)
      =========================================================== */
-  if (path === "attendance/summary") {
-    const { data } = await sb.from("attendance").select("id, status, clock_in").eq("pharmacy_id", pid);
-    return json({ data: { total: data?.length ?? 0, present: data?.filter((a: any) => a.clock_in).length ?? 0 } });
-  }
-
-  if (path === "attendance/clock-in" || path === "/attendance/clock-in") {
-    if (req.method !== "POST")
-      return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
-    const body = await req.json().catch(() => ({}));
-    const { userId } = body as any;
-    if (!userId)
-      return json({ error: { code: "VALIDATION" } }, 400);
-    const { data: session } = await sb.from("user_sessions").select("id").eq("user_id", userId).maybeSingle();
-    if (!session) return json({ data: null });
-    const { data: att } = await sb.from("attendance").select(`*`).eq("pharmacy_id", pid).eq("user_id", userId).eq("clock_in", null).maybeSingle();
-    if (att) return json({ data: { type: "clock_in", already_clocked_in: false } });
-    return json({ data: { type: "clock_in", already_clocked_in: true } });
-  }
-
-  if (path === "attendance/clock-out" || path === "/attendance/clock-out") {
-    if (req.method !== "POST")
-      return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
-    const body = await req.json().catch(() => ({}));
-    const { userId } = body as any;
-    if (!userId)
-      return json({ error: { code: "VALIDATION" } }, 400);
-    const { data: att } = await sb.from("attendance").select(`*`).eq("pharmacy_id", pid).eq("user_id", userId).eq("clock_out", null).maybeSingle();
-    if (att) {
-      await sb.from("attendance").update({ clock_out: sb`now()` }).eq("id", att.id);
-      return json({ data: { type: "clock_out", success: true } });
+  const auditAttendance = async (
+    action: string,
+    entity: string,
+    entityId: string | null,
+    extra: Record<string, unknown> = {},
+  ) => {
+    try {
+      await sb.from("audit_logs").insert({
+        pharmacy_id: pid,
+        user_id: await currentUserId(req),
+        action,
+        module: "attendance",
+        entity,
+        entity_id: entityId,
+        ...extra,
+      });
+    } catch (e) {
+      console.error("[attendance] audit:", String(e));
     }
-    return json({ data: { type: "clock_out", already_clocked_out: true } });
-  }
+  };
 
-  if (path === "attendance/leaves" || path === "/attendance/leaves") {
-    if (req.method !== "GET")
-      return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
-    const { data } = await sb.from("leaves").select(`*`).eq("pharmacy_id", pid).order("created_at", { ascending: false });
+  if ((path === "attendance" || path === "/attendance") && req.method === "GET") {
+    const limit = Math.min(Number(url.searchParams.get("limit") ?? 100), 200);
+    const { data, error } = await sb
+      .from("attendance")
+      .select("*, employees(first_name, last_name, position)")
+      .eq("pharmacy_id", pid)
+      .order("date", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(limit);
     if (error)
       return json({ error: { code: "QUERY_FAILED", message: error.message } }, 500);
-    return json({ data });
+    const items = (data ?? []).map((a: any) => {
+      const emp = a.employees ?? {};
+      const br = a.branches ?? {};
+      const { employees, branches, ...rest } = a;
+      return {
+        ...rest,
+        first_name: emp.first_name ?? null,
+        last_name: emp.last_name ?? null,
+        position: emp.position ?? null,
+        branch_name: br.name ?? null,
+      };
+    });
+    return json({ data: items });
   }
 
-  if (path === "attendance/leaves/{id}/decide" || path.startsWith("attendance/leaves/")) {
-    const match = path.match(/attendance\/leaves\/(\w+)/);
-    if (!match) return json({ error: { code: "VALIDATION" } }, 400);
-    const decision = match[1];
-    if (decision !== "accept" && decision !== "reject") return json({ error: { code: "VALIDATION" } }, 400);
-    const { data } = await sb.from("leaves").select(`*`).eq("pharmacy_id", pid).eq("id", match[2]).maybeSingle();
-    if (!data) return json({ error: { code: "NOT_FOUND" } }, 404);
-    await sb.from("leaves").update({ status: decision }).eq("id", match[2]);
-    return json({ data: { status: decision } });
+  /* Synthese mensuelle par employe (contrat : {month, rows}). */
+  if (path === "attendance/summary") {
+    const month =
+      url.searchParams.get("month") ?? new Date().toISOString().slice(0, 7);
+    const monthStart = `${month}-01`;
+    const dNext = new Date(monthStart + "T00:00:00Z");
+    dNext.setUTCMonth(dNext.getUTCMonth() + 1);
+    const monthNext = dNext.toISOString().slice(0, 10);
+    const [empR, attR, leaveR] = await Promise.all([
+      sb.from("employees")
+        .select("id, first_name, last_name")
+        .eq("pharmacy_id", pid),
+      sb.from("attendance")
+        .select("employee_id, status, hours_worked, late_minutes, overtime_minutes")
+        .eq("pharmacy_id", pid)
+        .gte("date", monthStart)
+        .lt("date", monthNext),
+      sb.from("leaves")
+        .select("employee_id, status, start_date")
+        .eq("pharmacy_id", pid)
+        .gte("start_date", monthStart)
+        .lt("start_date", monthNext),
+    ]);
+    const emps = empR.data ?? [];
+    const atts = attR.data ?? [];
+    const leaves = leaveR.data ?? [];
+    const rows = emps.map((e: any) => {
+      const mine = atts.filter((a: any) => a.employee_id === e.id);
+      return {
+        employee_id: e.id,
+        first_name: e.first_name,
+        last_name: e.last_name,
+        working_days: mine.length,
+        total_hours: Number(
+          mine.reduce((s: number, a: any) => s + Number(a.hours_worked ?? 0), 0).toFixed(2),
+        ),
+        late_days: mine.filter((a: any) => a.status === "late").length,
+        total_late_minutes: mine.reduce(
+          (s: number, a: any) => s + Number(a.late_minutes ?? 0),
+          0,
+        ),
+        total_overtime_minutes: mine.reduce(
+          (s: number, a: any) => s + Number(a.overtime_minutes ?? 0),
+          0,
+        ),
+        absences: mine.filter((a: any) => a.status === "absent").length,
+        leave_days: leaves.filter(
+          (l: any) =>
+            l.employee_id === e.id &&
+            (l.status === "approved" || l.status === "pending"),
+        ).length,
+      };
+    });
+    return json({ data: { month, rows } });
+  }
+
+  /* Pointage d'entree : cree la ligne du jour si absente. */
+  if (
+    (path === "attendance/clock-in" || path === "/attendance/clock-in") &&
+    req.method === "POST"
+  ) {
+    const body = await req.json().catch(() => ({}) as any);
+    const employeeId = body?.employeeId ?? body?.userId;
+    if (!employeeId)
+      return json(
+        { error: { code: "VALIDATION", message: "employeeId requis" } },
+        400,
+      );
+    const { data: emp } = await sb
+      .from("employees")
+      .select("id, branch_id")
+      .eq("id", employeeId)
+      .eq("pharmacy_id", pid)
+      .eq("status", "active")
+      .maybeSingle();
+    if (!emp)
+      return json(
+        { error: { code: "EMPLOYEE_NOT_FOUND", message: "Employé actif introuvable" } },
+        404,
+      );
+    const today = new Date().toISOString().slice(0, 10);
+    const at = body?.at ?? new Date().toISOString();
+    const method = body?.method ?? "manual";
+    const { data: existing } = await sb
+      .from("attendance")
+      .select("id, clock_in")
+      .eq("pharmacy_id", pid)
+      .eq("employee_id", employeeId)
+      .eq("date", today)
+      .maybeSingle();
+    if (existing?.clock_in) {
+      return json({
+        data: { ...existing, already_clocked_in: true },
+      });
+    }
+    let record: any;
+    if (existing) {
+      const { data: upd, error: uErr } = await sb
+        .from("attendance")
+        .update({ clock_in: at, method })
+        .eq("id", existing.id)
+        .select("*")
+        .single();
+      if (uErr)
+        return json({ error: { code: "CLOCKIN_FAILED", message: uErr.message } }, 400);
+      record = upd;
+    } else {
+      const { data: ins, error: iErr } = await sb
+        .from("attendance")
+        .insert({
+          pharmacy_id: pid,
+          branch_id: body?.branchId ?? emp.branch_id ?? null,
+          employee_id: employeeId,
+          date: today,
+          clock_in: at,
+          method,
+          status: "present",
+        })
+        .select("*")
+        .single();
+      if (iErr)
+        return json({ error: { code: "CLOCKIN_FAILED", message: iErr.message } }, 400);
+      record = ins;
+    }
+    await auditAttendance("clock_in", "attendance", record?.id ?? null);
+    return json({ data: record });
+  }
+
+  /* Pointage de sortie : heures travaillees, retards (vs 9h00),
+     heures supplementaires (>8h) — portage exact du service Node. */
+  if (
+    (path === "attendance/clock-out" || path === "/attendance/clock-out") &&
+    req.method === "POST"
+  ) {
+    const body = await req.json().catch(() => ({}) as any);
+    const employeeId = body?.employeeId ?? body?.userId;
+    if (!employeeId)
+      return json(
+        { error: { code: "VALIDATION", message: "employeeId requis" } },
+        400,
+      );
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: row } = await sb
+      .from("attendance")
+      .select("id, clock_in, late_minutes")
+      .eq("pharmacy_id", pid)
+      .eq("employee_id", employeeId)
+      .eq("date", today)
+      .maybeSingle();
+    if (!row?.clock_in)
+      return json(
+        { error: { code: "NO_CLOCK_IN", message: "Aucun pointage d’entrée aujourd’hui" } },
+        404,
+      );
+    const out = body?.at ? new Date(body.at) : new Date();
+    const inMs = new Date(row.clock_in).getTime();
+    const workedMs = Math.max(0, out.getTime() - inMs);
+    const hoursWorked = Number((workedMs / 3600000).toFixed(2));
+    const d = new Date(row.clock_in);
+    const ref = new Date(d);
+    ref.setHours(9, 0, 0, 0);
+    const lateMinutes = d > ref ? Math.round((d.getTime() - ref.getTime()) / 60000) : 0;
+    const overtimeMinutes = hoursWorked > 8 ? Math.round((hoursWorked - 8) * 60) : 0;
+    const { data: updated, error: cErr } = await sb
+      .from("attendance")
+      .update({
+        clock_out: out.toISOString(),
+        hours_worked: hoursWorked,
+        late_minutes: Math.max(Number(row.late_minutes ?? 0), lateMinutes),
+        overtime_minutes: overtimeMinutes,
+        status: hoursWorked >= 7 ? "present" : "half_day",
+      })
+      .eq("id", row.id)
+      .select("*")
+      .single();
+    if (cErr)
+      return json({ error: { code: "CLOCKOUT_FAILED", message: cErr.message } }, 400);
+    await auditAttendance("clock_out", "attendance", row.id);
+    return json({ data: updated });
+  }
+
+  if (
+    (path === "attendance/leaves" || path === "/attendance/leaves") &&
+    req.method === "GET"
+  ) {
+    const { data, error } = await sb
+      .from("leaves")
+      .select("*, employees(first_name, last_name, position)")
+      .eq("pharmacy_id", pid)
+      .order("start_date", { ascending: false })
+      .limit(Math.min(Number(url.searchParams.get("limit") ?? 100), 200));
+    if (error)
+      return json({ error: { code: "QUERY_FAILED", message: error.message } }, 500);
+    const items = (data ?? []).map((l: any) => {
+      const emp = l.employees ?? {};
+      const { employees, ...rest } = l;
+      return {
+        ...rest,
+        first_name: emp.first_name ?? null,
+        last_name: emp.last_name ?? null,
+        position: emp.position ?? null,
+      };
+    });
+    return json({ data: items });
+  }
+
+  if (
+    (path === "attendance/leaves" || path === "/attendance/leaves") &&
+    req.method === "POST"
+  ) {
+    const body = await req.json().catch(() => ({}));
+    const employeeId = (body as any).employeeId;
+    const leaveType = (body as any).leaveType;
+    const startDate = (body as any).startDate;
+    const endDate = (body as any).endDate;
+    if (
+      !employeeId ||
+      !["annual", "sick", "maternity", "unpaid", "other"].includes(String(leaveType)) ||
+      !startDate ||
+      !endDate
+    ) {
+      return json(
+        { error: { code: "VALIDATION", message: "employeeId, leaveType, startDate, endDate requis" } },
+        400,
+      );
+    }
+    const days = Math.max(
+      1,
+      Math.round(
+        (new Date(String(endDate)).getTime() - new Date(String(startDate)).getTime()) /
+          86400000,
+      ) + 1,
+    );
+    const { data: leave, error: lErr } = await sb
+      .from("leaves")
+      .insert({
+        pharmacy_id: pid,
+        employee_id: employeeId,
+        leave_type: leaveType,
+        start_date: startDate,
+        end_date: endDate,
+        days,
+        reason: (body as any).reason ?? null,
+        approved_by: await currentUserId(req),
+      })
+      .select("*")
+      .single();
+    if (lErr)
+      return json({ error: { code: "LEAVE_FAILED", message: lErr.message } }, 400);
+    await auditAttendance("create", "leave", leave?.id ?? null, {
+      new_values: { leaveType, startDate, endDate },
+    });
+    return json({ data: leave });
+  }
+
+  const decideMatch = path.match(/^\/?attendance\/leaves\/([^/]+)\/decide$/);
+  if (decideMatch && req.method === "POST") {
+    const body = await req.json().catch(() => ({}));
+    const decision = String((body as any).decision ?? "");
+    if (!["approved", "rejected", "cancelled"].includes(decision))
+      return json({ error: { code: "VALIDATION", message: "decision invalide" } }, 400);
+    const { data: updated, error: dErr } = await sb
+      .from("leaves")
+      .update({ status: decision, approved_by: await currentUserId(req) })
+      .eq("id", decideMatch[1])
+      .eq("pharmacy_id", pid)
+      .select("*")
+      .maybeSingle();
+    if (dErr)
+      return json({ error: { code: "DECIDE_FAILED", message: dErr.message } }, 400);
+    if (!updated)
+      return json({ error: { code: "NOT_FOUND", message: "Demande de congé introuvable" } }, 404);
+    await auditAttendance(decision, "leave", updated.id, {
+      new_values: { decision },
+    });
+    return json({ data: updated });
   }
 
   /* ===========================================================
