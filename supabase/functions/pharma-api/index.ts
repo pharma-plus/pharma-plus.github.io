@@ -313,6 +313,112 @@ async function hasPermission(
   return { allowed: granted.includes(code), userId };
 }
 
+/* ===========================================================
+   RBAC — matrice route -> module de permission.
+   GET/POST/PUT/PATCH/DELETE -> module:view|create|edit|delete.
+   Les codes existent tous dans public.permissions (grille
+   module:action, aucun code invente). Les routes non listees
+   ne sont pas concernees (auth, health, routes metier ayant
+   deja leurs propres checks).
+   =========================================================== */
+const ROUTE_MODULE: Record<string, string> = {
+  "catalog/medications": "catalog",
+  "catalog/categories": "catalog",
+  "catalog/laboratories": "catalog",
+  "catalog/families": "catalog",
+  suppliers: "suppliers",
+  customers: "customers",
+  employees: "employees",
+  cameras: "settings",
+  branches: "settings",
+  roles: "users",
+  role_permissions: "users",
+  permissions: "users",
+  users: "users",
+  user_sessions: "users",
+  notifications: "notifications",
+  prescriptions: "prescriptions",
+  pharmacies: "settings",
+  "purchases/orders": "purchases",
+  "purchases/receptions": "purchases",
+  sales: "sales",
+  "sale-items": "sales",
+  "sale-returns": "sales",
+  payments: "sales",
+  invoices: "sales",
+  "invoice-items": "sales",
+  "stock/adjustments": "stock",
+  "stock/balances": "stock",
+  "stock/movements": "stock",
+  "stock/lots": "stock",
+  "stock/transfers": "stock",
+  "accounting/accounts": "accounting",
+  "accounting/journal": "accounting",
+  "accounting/expense-categories": "accounting",
+  "accounting/expenses": "accounting",
+  "accounting/registers": "accounting",
+  "accounting/closings": "accounting",
+  "attendance/leaves": "attendance",
+  "attendance/schedules": "attendance",
+  "reference/categories": "reference",
+  "website/settings": "website",
+  "website/blog/posts": "website",
+  "support/tickets": "support",
+  backups: "backups",
+};
+/* Prefixes triés longueur decroissante : "purchases/orders" avant
+   "purchases", "catalog/medications" avant "catalog/...". */
+const ROUTE_MODULE_KEYS = Object.keys(ROUTE_MODULE).sort(
+  (a, b) => b.length - a.length,
+);
+
+function routePermissionFor(path: string): string | null {
+  const p = path.replace(/^\/+/, "");
+  const prefix = ROUTE_MODULE_KEYS.find(
+    (k) => p === k || p.startsWith(k + "/"),
+  );
+  return prefix ? ROUTE_MODULE[prefix] : null;
+}
+
+/**
+ * Enforcement RBAC globale des routes de donnees : un verbe HTTP exige
+ * module:action correspondant. Super admin bypass (hasPermission).
+ * Retourne une Response 403, ou null si autorise / route non mappee.
+ */
+async function enforcePathPermission(
+  sb: any,
+  req: Request,
+  path: string,
+): Promise<Response | null> {
+  const module = routePermissionFor(path);
+  if (!module) return null;
+  const action =
+    req.method === "GET"
+      ? "view"
+      : req.method === "POST"
+        ? "create"
+        : req.method === "PUT" || req.method === "PATCH"
+          ? "edit"
+          : req.method === "DELETE"
+            ? "delete"
+            : null;
+  if (!action) {
+    return json(
+      { error: { code: "METHOD_NOT_ALLOWED", message: "Méthode non supportée" } },
+      405,
+    );
+  }
+  const code = `${module}:${action}`;
+  const { allowed } = await hasPermission(sb, req, code);
+  if (!allowed) {
+    return json(
+      { error: { code: "FORBIDDEN", message: `Permission ${code} requise` } },
+      403,
+    );
+  }
+  return null;
+}
+
 const TABLE_MAP: Record<string, string> = {
   "/catalog/medications": "medications",
   "/catalog/categories": "categories",
@@ -546,6 +652,17 @@ Deno.serve(async (req) => {
   const sbAuth = createClient(supabaseUrl, anonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+
+  /* ===========================================================
+     RBAC GLOBAL — toute route de donnees mappee exige
+     module:action (voir ROUTE_MODULE). Super admin bypass.
+     Les routes non mappees (auth, health, metier custom) sont
+     hors perimetre de ce controle.
+     =========================================================== */
+  if (!PUBLIC_PATHS.has(path.replace(/^\/+/, ""))) {
+    const rbacDeny = await enforcePathPermission(sb, req, path);
+    if (rbacDeny) return rbacDeny;
+  }
 
   /* ===========================================================
      HEALTH
