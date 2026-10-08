@@ -24,8 +24,17 @@ class Medication {
   final String? shelfLocation;
   /// Laboratoire / fabricant (texte libre, saisie pharmacien).
   final String? laboratoryName;
-  /// Classe thérapeutique (texte libre, saisie pharmacien).
+  /// Classe th�rapeutique (texte libre, saisie pharmacien).
   final String? therapeuticClass;
+  /// Substance active (colonne additive 933).
+  final String? substanceActive;
+  /// Composition libre (colonne additive 933).
+  final String? composition;
+  /// Prix hors / PPC (colonnes additives 935, copie fidele reference).
+  final double? ph;
+  final double? ppc;
+  /// FK vers laboratories (laboratoire rattache au produit).
+  final String? laboratoryId;
 
   const Medication({
     required this.id,
@@ -51,6 +60,11 @@ class Medication {
     this.shelfLocation,
     this.laboratoryName,
     this.therapeuticClass,
+    this.substanceActive,
+    this.composition,
+    this.ph,
+    this.ppc,
+    this.laboratoryId,
   });
 
   /// Zone du Plan 3D où se trouve le médicament (dérivée de `shelfLocation`).
@@ -88,6 +102,11 @@ class Medication {
             json['laboratoryName'] as String?,
         therapeuticClass: json['therapeutic_class'] as String? ??
             json['therapeuticClass'] as String?,
+        substanceActive: json['substance_active'] as String?,
+        composition: json['composition'] as String?,
+        ph: json['ph'] == null ? null : _d(json['ph']),
+        ppc: json['ppc'] == null ? null : _d(json['ppc']),
+        laboratoryId: json['laboratory_id'] as String?,
         stockQuantity: json['stock_quantity'] != null
             ? _d(json['stock_quantity'])
             : (json['stock'] != null ? _d(json['stock']) : null),

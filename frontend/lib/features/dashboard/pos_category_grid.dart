@@ -123,10 +123,24 @@ _GlyphKind _kindFor(String label) {
   if (s.contains('vitam') || s.contains('compl') || s.contains('nutrit')) {
     return _GlyphKind.citrus;
   }
-  if (s.contains('respir') || s.contains('toux') || s.contains('poumon')) {
+  if (s.contains('respir') || s.contains('toux') || s.contains('poumon') ||
+      s.contains('spray') || s.contains('aérosol') || s.contains('aerosol') ||
+      s.contains('inhal')) {
     return _GlyphKind.lungs;
   }
   if (s.contains('digest') || s.contains('estomac')) return _GlyphKind.stomach;
+  // Formes galéniques réelles (facettes du catalogue).
+  if (s.contains('comprim') || s.contains('gélul') || s.contains('gelul') ||
+      s.contains('capsul') || s.contains('dragée') || s.contains('dragee') ||
+      s.contains('granul') || s.contains('lyophilisat')) {
+    return _GlyphKind.pill;
+  }
+  if (s.contains('sirop') || s.contains('solution') || s.contains('suspension') ||
+      s.contains('inject') || s.contains('collyre') || s.contains('gouttes') ||
+      s.contains('crème') || s.contains('creme') || s.contains('pommade') ||
+      s.contains('gel')) {
+    return _GlyphKind.drop;
+  }
   return _GlyphKind.box;
 }
 

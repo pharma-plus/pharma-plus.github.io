@@ -413,12 +413,28 @@ async function proxyToTable(
   if (method === "GET" && table !== "pharmacies" && table !== "roles") {
     targetUrl.searchParams.set("pharmacy_id", `eq.${pid}`);
   }
+  // Tenant isolation also on UPDATE/DELETE (uuid lookup): jamais d'ecriture
+  // cross-tenant par id. Tables globales (sans colonne pharmacy_id) exclues.
+  const GLOBAL_TABLES = new Set([
+    "pharmacies", "permissions", "role_permissions", "app_settings",
+    "cities", "countries", "medication_equivalents", "reference_categories",
+    "reference_product_provenance", "reference_product_updates",
+    "reference_products", "reference_sync_runs", "update_releases",
+  ]);
+  if (
+    method !== "GET" && method !== "HEAD" &&
+    subpath && uuidRe.test(subpath) &&
+    !GLOBAL_TABLES.has(table)
+  ) {
+    targetUrl.searchParams.set("pharmacy_id", `eq.${pid}`);
+  }
   // Convert `q` to PostgREST or/ilike for medication search
+  // (nom, DCI, substance, dosage, forme, presentation, labo, classe, EAN)
   if (searchQ && table === "medications") {
     const pct = `%${searchQ}%`;
     targetUrl.searchParams.set(
       "or",
-      `(name.ilike.${pct},dci.ilike.${pct},generic_name.ilike.${pct},barcode_ean13.ilike.${pct})`
+      `(name.ilike.${pct},dci.ilike.${pct},generic_name.ilike.${pct},barcode_ean13.ilike.${pct},dosage.ilike.${pct},form.ilike.${pct},presentation.ilike.${pct},laboratory_name.ilike.${pct},therapeutic_class.ilike.${pct},substance_active.ilike.${pct})`,
     );
   } else if (searchQ) {
     const pct = `%${searchQ}%`;
@@ -2758,6 +2774,165 @@ Deno.serve(async (req) => {
       return json({ error: { code: "RETURN_FAILED", message: msg } }, 400);
     }
     return json({ data: retData }, 201);
+  }
+
+  /* ===========================================================
+     STOCK PAR LOTS — GET /catalog/medications/ids=...
+     Retourne les quantites reelles pour une liste d'ids
+     (colonne Stock/Disponibilite du catalogue, batch).
+     =========================================================== */
+  if (path === "catalog/medications/stock" && req.method === "GET") {
+    const rawIds = new URL(req.url).searchParams.get("ids") ?? "";
+    const ids = rawIds
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) =>
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)
+      )
+      .slice(0, 1000);
+    if (ids.length === 0) return json({ data: [] });
+    const { data, error } = await sb.rpc("medication_stock_map", {
+      p_pharmacy: pid,
+      p_ids: ids,
+    });
+    if (error) {
+      return json({ error: { code: "STOCK_MAP_FAILED", message: error.message } }, 400);
+    }
+    return json({ data: data ?? [] });
+  }
+
+  /* ===========================================================
+     POS FACETS — formes / laboratoires reels avec comptage
+     (cartes du POS rattachees a des donnees reelles)
+     =========================================================== */
+  if (path === "catalog/medications/facets" && req.method === "GET") {
+    const [formsR, labsR, indR, dosR, stR] = await Promise.all([
+      sb.rpc("catalog_pos_facets", { p_pharmacy: pid }),
+      sb.rpc("catalog_pos_facets_labs", { p_pharmacy: pid }),
+      sb.rpc("catalog_pos_indications_count", { p_pharmacy: pid }),
+      sb.rpc("catalog_pos_facets_dosages", { p_pharmacy: pid }),
+      sb.rpc("catalog_pos_facets_statuses", { p_pharmacy: pid }),
+    ]);
+    if (formsR.error) {
+      return json(
+        { error: { code: "FACETS_UNAVAILABLE", message: formsR.error.message } },
+        400,
+      );
+    }
+    return json({
+      data: {
+        forms: (formsR.data ?? []).map((r: any) => ({
+          label: String(r.label),
+          value: String(r.value),
+          total: Number(r.total ?? 0),
+        })),
+        laboratories: (labsR.data ?? []).map((r: any) => ({
+          label: String(r.label),
+          value: String(r.value),
+          total: Number(r.total ?? 0),
+        })),
+        dosages: (dosR.data ?? []).map((r: any) => ({
+          label: String(r.label),
+          total: Number(r.total ?? 0),
+        })),
+        statuses: (stR.data ?? []).map((r: any) => ({
+          label: String(r.label),
+          total: Number(r.total ?? 0),
+        })),
+        indications_total: Number(indR.data ?? 0),
+      },
+    });
+  }
+
+  /* ===========================================================
+     IDS EN STOCK — GET /catalog/medications/stock-ids
+     (filtre Disponibilite : liste courte des ids avec stock > 0)
+     =========================================================== */
+  if (path === "catalog/medications/stock-ids" && req.method === "GET") {
+    const { data, error } = await sb.rpc("catalog_stock_ids", {
+      p_pharmacy: pid,
+    });
+    if (error) {
+      return json({ error: { code: "STOCK_IDS_FAILED", message: error.message } }, 400);
+    }
+    return json({
+      data: (data ?? []).map((r: any) => String(r.medication_id)),
+      meta: { total: (data ?? []).length },
+    });
+  }
+
+  /* ===========================================================
+     FICHE MEDICAMENT COMPLETE — GET /catalog/medications/:id/details
+     medication + laboratoire + stock + provenance source +
+     reference liee + indications (table vide = "non renseigne")
+     =========================================================== */
+  if (
+    /^catalog\/medications\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/details$/i.test(path) &&
+    req.method === "GET"
+  ) {
+    const medId = path.split("/")[2];
+    const { data: med, error: medErr } = await sb
+      .from("medications")
+      .select("*")
+      .eq("pharmacy_id", pid)
+      .eq("id", medId)
+      .maybeSingle();
+    if (medErr || !med) {
+      return json({ error: { code: "NOT_FOUND", message: "Médicament introuvable" } }, 404);
+    }
+    const [stockR, provR, indR] = await Promise.all([
+      sb.from("stock_balances")
+        .select("quantity, reserved_quantity, location, branch_id")
+        .eq("pharmacy_id", pid)
+        .eq("medication_id", medId),
+      sb.from("reference_product_provenance")
+        .select(
+          "reference_id, source, source_url, source_file, date_source, date_import, nom_original, labo_source_original, statut_source",
+        )
+        .eq("medicament_id", medId)
+        .maybeSingle(),
+      sb.from("medicine_indications")
+        .select("*")
+        .eq("pharmacy_id", pid)
+        .eq("medication_id", medId),
+    ]);
+    let laboratory: { id?: string; name?: string } | null = null;
+    if (med.laboratory_id) {
+      const { data: lab } = await sb
+        .from("laboratories")
+        .select("id, name")
+        .eq("id", med.laboratory_id)
+        .maybeSingle();
+      laboratory = lab ?? null;
+    }
+    let reference: Record<string, unknown> | null = null;
+    const refId = provR.data?.reference_id;
+    if (refId) {
+      const { data: ref } = await sb
+        .from("reference_products")
+        .select(
+          "id, name, dci, substance_active, therapeutic_class, amm_number, code_produit, barcode_ean13, qr_code, ppv, ph, pfht, ppc, tva_rate, rcp_url, notice_url, commercial_status, source_updated_at",
+        )
+        .eq("id", refId)
+        .maybeSingle();
+      reference = ref ?? null;
+    }
+    const qty = (stockR.data ?? []).reduce(
+      (s, r) => s + Number(r.quantity ?? 0),
+      0,
+    );
+    const medOut: Record<string, unknown> = { ...med };
+    medOut.laboratory_name = med.laboratory_name ?? laboratory?.name ?? null;
+    return json({
+      data: {
+        medication: medOut,
+        laboratory,
+        stock: { quantity: qty, lines: stockR.data ?? [] },
+        provenance: provR.data ?? null,
+        reference,
+        indications: indR.data ?? [],
+      },
+    });
   }
 
   /* ===========================================================

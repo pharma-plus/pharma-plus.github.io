@@ -67,36 +67,32 @@ class _PosPanelState extends State<PosPanel> {
 
   static const _kHeldKey = 'pmg_pos_held_sales';
 
-  /// Mots-clés de recherche réels par catégorie (filtre API du catalogue).
-  static const Map<String, String> _catQueries = {
-    'all': '',
-    'antalgiques': 'ibuprof',
-    'antibiotiques': 'amoxicill',
-    'cardiologie': 'bisoprolol',
-    'diabete': 'metformin',
-    'vitamines': 'vitamine',
-    'respiratoire': 'salbutamol',
-    'digestif': 'omeprazole',
-    'autres': '',
-  };
+  /// Facettes réelles du catalogue : formes les plus fréquentes (API
+  /// /catalog/medications/facets), plus de mots-clés en dur.
+  List<Map<String, dynamic>> _facetForms = [];
+  String? _activeForm;
 
-  static const _cats = <(String, String)>[
-    ('Antalgiques', 'antalgiques'),
-    ('Antibiotiques', 'antibiotiques'),
-    ('Cardiologie', 'cardiologie'),
-    ('Diabète', 'diabete'),
-    ('Vitamines', 'vitamines'),
-    ('Respiratoire', 'respiratoire'),
-    ('Digestif', 'digestif'),
-    ('Autres', 'autres'),
-  ];
+  static const _kAllLabel = 'Tout';
 
   @override
   void initState() {
     super.initState();
     _loadHeld();
     _loadCustomers();
+    _loadFacets();
     _doSearch(_search.text.trim());
+  }
+
+  Future<void> _loadFacets() async {
+    final r = await ApiClient.instance.get('/catalog/medications/facets');
+    if (!mounted || !r.success || r.data is! Map) return;
+    final d = Map<String, dynamic>.from(r.data as Map);
+    setState(() {
+      _facetForms = (d['forms'] as List? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .take(7)
+          .toList();
+    });
   }
 
   @override
@@ -131,9 +127,12 @@ class _PosPanelState extends State<PosPanel> {
 
   Future<void> _doSearch(String query) async {
     setState(() => _searching = true);
-    final r = await ApiClient.instance.get(
-        '/catalog/medications',
-        query: {'q': query.trim(), 'limit': 60});
+    final params = <String, dynamic>{'q': query.trim(), 'limit': 60};
+    if (_activeForm != null && _activeForm!.isNotEmpty) {
+      params['form'] = 'eq.$_activeForm';
+    }
+    final r = await ApiClient.instance
+        .get('/catalog/medications', query: params);
     if (!mounted) return;
     if (!r.success) {
       debugPrint('[PosPanel] catalog load failed: ${r.error} base=${ApiClient.instance.baseUrl}');
@@ -161,16 +160,11 @@ class _PosPanelState extends State<PosPanel> {
     }
   }
 
-  void _searchCategory(String kind) {
-    final q = _catQueries[kind] ?? '';
-    if (q.isNotEmpty &&
-        _search.text.trim().toLowerCase() == q.trim().toLowerCase()) {
-      _search.text = '';
-      _doSearch('');
-      return;
-    }
-    _search.text = q;
-    _doSearch(q);
+  void _toggleForm(String form) {
+    setState(() {
+      _activeForm = _activeForm == form ? null : form;
+    });
+    _doSearch(_search.text.trim());
   }
 
   void _add(Medication m) {
@@ -512,7 +506,10 @@ class _PosPanelState extends State<PosPanel> {
           const gap = 6.0;
           const tileH = 48.0;
           final cellW = (cons.maxWidth - 3 * gap) / 4;
-          final active = _search.text.trim().toLowerCase();
+          final cards = <(String, String?)>[
+            (_kAllLabel, null),
+            for (final f in _facetForms) ('${f['value']}', '${f['value']}'),
+          ];
           return SizedBox(
             height: tileH * 2 + gap,
             child: GridView.count(
@@ -524,13 +521,20 @@ class _PosPanelState extends State<PosPanel> {
               crossAxisSpacing: gap,
               childAspectRatio: cellW / tileH,
               children: [
-                for (final (name, kind) in _cats)
+                for (final (name, form) in cards)
                   _CatChip(
                       name: name,
-                      selected: active.isNotEmpty &&
-                          active ==
-                              (_catQueries[kind] ?? '').trim().toLowerCase(),
-                      onTap: () => _searchCategory(kind)),
+                      selected: form == null
+                          ? _activeForm == null
+                          : _activeForm == form,
+                      onTap: () {
+                        if (form == null) {
+                          setState(() => _activeForm = null);
+                          _doSearch(_search.text.trim());
+                        } else {
+                          _toggleForm(form);
+                        }
+                      }),
               ],
             ),
           );

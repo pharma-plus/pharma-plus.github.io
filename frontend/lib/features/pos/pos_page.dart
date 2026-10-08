@@ -18,7 +18,6 @@ import '../../core/utils/format.dart';
 import '../../core/widgets/barcode_scanner.dart';
 import '../shell/shell_nav.dart';
 import '../dashboard/pos_category_grid.dart';
-import 'pos_categories.dart';
 import 'pos_models.dart';
 import 'payment_models.dart';
 
@@ -67,26 +66,19 @@ class _PosPageState extends State<PosPage> {
   String _paymentMode = 'cash'; // cash | visa | mastercard
   double _received = 0;
 
-  // ── Catégories ──
+  // ── Catégories : facettes réelles du catalogue (formes) ──
   List<Medication> _catalog = [];
-  String? _activeCategoryId;
-
-  static const _catQueries = <String, String>{
-    'antalgiques': 'ibuprof',
-    'antibiotiques': 'amoxicill',
-    'cardiologie': 'bisoprolol',
-    'diabete': 'metformin',
-    'vitamines': 'vitamine',
-    'respiratoire': 'salbutamol',
-    'digestif': 'omeprazole',
-    'autres': '',
-  };
+  String? _activeForm;
+  List<Map<String, dynamic>> _facetForms = [];
+  bool _indicationsAvailable = false;
+  final Map<String, double> _stock = {};
 
   @override
   void initState() {
     super.initState();
     _loadBranches();
     _loadCustomers();
+    _loadFacets();
     _searchMedications('');
     final lines = widget.initialLines;
     final items = widget.initialItems;
@@ -190,20 +182,35 @@ class _PosPageState extends State<PosPage> {
 
   // ──────────────── SEARCH + FILTER ────────────────
 
+  /// Facettes réelles : formes les plus fréquentes + disponibilité des
+  /// données d'indication (carte Pathologie).
+  Future<void> _loadFacets() async {
+    final r = await ApiClient.instance.get('/catalog/medications/facets');
+    if (!mounted || !r.success || r.data is! Map) return;
+    final d = Map<String, dynamic>.from(r.data as Map);
+    setState(() {
+      _facetForms = (d['forms'] as List? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .take(11)
+          .toList();
+      _indicationsAvailable = ((d['indications_total'] as num?) ?? 0) > 0;
+    });
+  }
+
   Future<void> _searchMedications(String query) async {
     setState(() => _searching = true);
     final q = query.trim();
     final Map<String, dynamic> params = {'limit': 60};
     if (q.isNotEmpty) params['q'] = q;
+    final form = _activeForm;
+    if (form != null && form.isNotEmpty) params['form'] = 'eq.$form';
     final result = await ApiClient.instance.get('/catalog/medications', query: params);
     if (!mounted) return;
     final rows =
         result.success ? ApiList.of(result.data) : <Map<String, dynamic>>[];
-    _catalog = rows
-        .map(Medication.fromJson)
-        .where((m) => m.stockQuantity == null || m.stockQuantity! > 0)
-        .toList();
+    _catalog = rows.map(Medication.fromJson).toList();
     _applyFilter();
+    _loadStockForPage();
     if (mounted) setState(() => _searching = false);
     // Rechargement « cata vide » borné : max 3 tentatives, sinon boucle
     // infinie (1 req/1,2 s à vie si le catalogue est réellement vide).
@@ -218,20 +225,121 @@ class _PosPageState extends State<PosPage> {
     }
   }
 
+  /// Le filtre catégorie est appliqué côté serveur (param form=eq.*) :
+  /// plus de filtrage local sur categoryName qui masquait des produits.
   void _applyFilter() {
-    final cat = _activeCategoryId;
-    if (cat == null || cat == 'autres') {
-      setState(() => _results = List.of(_catalog));
-    } else {
-      final q = cat.toLowerCase();
-      setState(() {
-        _results = _catalog
-            .where((m) =>
-                (m.categoryName?.toLowerCase().contains(q) ?? false) ||
-                (m.categoryId?.toLowerCase() == q))
-            .toList();
-      });
-    }
+    setState(() => _results = List.of(_catalog));
+  }
+
+  /// Stock réel par lot pour les ids affichés (badge stock des cartes).
+  Future<void> _loadStockForPage() async {
+    final ids = _catalog.map((m) => m.id).where((id) => !_stock.containsKey(id)).toList();
+    if (ids.isEmpty) return;
+    final r = await ApiClient.instance
+        .get('/catalog/medications/stock', query: {'ids': ids.take(100).join(',')});
+    if (!mounted || !r.success || r.data is! List) return;
+    setState(() {
+      for (final e in r.data as List) {
+        if (e is Map) {
+          _stock['${e['medication_id']}'] =
+              (e['quantity'] as num?)?.toDouble() ?? 0;
+        }
+      }
+    });
+  }
+
+  /// Fiche rapide POS : infos complètes sans quitter la caisse.
+  /// GET /catalog/medications/{id}/details (médicament + labo + stock +
+  /// provenance + référence liée), fallback sur les données locales.
+  Future<void> _showQuickInfo(Medication m) async {
+    Map<String, dynamic>? details;
+    final r = await ApiClient.instance.get('/catalog/medications/${m.id}/details');
+    if (r.success && r.data is Map) details = Map<String, dynamic>.from(r.data as Map);
+    if (!mounted) return;
+    final med = details?['medication'] as Map<String, dynamic>? ??
+        <String, dynamic>{
+          'name': m.name,
+          'dci': m.dci,
+          'dosage': m.dosage,
+          'form': m.form,
+          'presentation': m.presentation,
+          'laboratory_name': m.laboratoryName,
+          'therapeutic_class': m.therapeuticClass,
+          'substance_active': m.substanceActive,
+          'barcode_ean13': m.barcodeEan13,
+          'price_sale': m.priceSale,
+        };
+    final lab = details?['laboratory'] as Map<String, dynamic>?;
+    final prov = details?['provenance'] as Map<String, dynamic>?;
+    String v(Object? x) =>
+        (x == null || '$x'.trim().isEmpty) ? 'Non renseigné' : '$x';
+    String row(String k, Object? val) => '$k : ${v(val)}';
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.pharmaSurface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(18))),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Expanded(
+                child: Text(v(med['name']),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800)),
+              ),
+              IconButton(
+                  icon: const Icon(Icons.close_rounded,
+                      color: AppColors.pharmaMuted, size: 20),
+                  onPressed: () => Navigator.pop(context)),
+            ]),
+            const SizedBox(height: 6),
+            Text(
+              [
+                row('DCI', med['dci']),
+                row('Dosage', med['dosage']),
+                row('Forme', med['form']),
+                row('Présentation', med['presentation']),
+                row('Laboratoire', lab?['name'] ?? med['laboratory_name']),
+                row('Classe thérapeutique', med['therapeutic_class']),
+                row('Substance active', med['substance_active']),
+                row('EAN', med['barcode_ean13']),
+                'PPV : ${Fmt.money((med['price_sale'] as num?)?.toDouble() ?? m.priceSale)}',
+                row('Pathologie', 'Données non disponibles'),
+                row('Source',
+                    prov?['source_name'] ?? prov?['source_url']),
+                'Stock : ${_stock[m.id]?.round().toString() ?? 'Non renseigné'}',
+              ].join('\n'),
+              style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  fontSize: 12,
+                  height: 1.7),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.emerald,
+                    foregroundColor: Colors.white),
+                icon: const Icon(Icons.add_shopping_cart_rounded, size: 18),
+                label: const Text('Ajouter au panier'),
+                onPressed: () {
+                  Navigator.pop(context);
+                  setState(() => _cart.add(m));
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _scan() async {
@@ -933,10 +1041,16 @@ class _PosPageState extends State<PosPage> {
   }
 
   // ══════════════════════════════════════════
-  //  SECTION 3 : CATÉGORIES 3D (PosCategoryTile glyphs)
+  //  SECTION 3 : CATÉGORIES 3D (facettes réelles)
   // ══════════════════════════════════════════
   Widget _buildCategoriesGrid(String locale, {double aspectRatio = 1.0}) {
-    const cats = PosCategoriesGrid.categories;
+    // Cartes = formes réelles du catalogue (avec comptage), pas de
+    // catégories théoriques en dur.
+    final cards = <(String, String?)>[
+      ('Tous', null),
+      for (final f in _facetForms) ('${f['value']}', '${f['value']}'),
+      ('Pathologie', 'pathologie'),
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -956,22 +1070,28 @@ class _PosPageState extends State<PosPage> {
             crossAxisSpacing: 10,
             childAspectRatio: aspectRatio,
           ),
-          itemCount: cats.length,
+          itemCount: cards.length,
           itemBuilder: (context, index) {
-            final c = cats[index];
-            final active = _activeCategoryId == c.id;
-            return PosCategoryTile(
-              label: c.label,
+            final (label, form) = cards[index];
+            final isPatho = form == 'pathologie';
+            final active = !isPatho && form != null && _activeForm == form;
+            final tile = PosCategoryTile(
+              label: label,
               selected: active,
-              onTap: () {
-                setState(() {
-                  _activeCategoryId = active ? null : c.id;
-                  if (c.id == 'autres') _activeCategoryId = null;
-                });
-                _search.text = _catQueries[c.id] ?? '';
-                _searchMedications(_catQueries[c.id] ?? '');
-              },
+              onTap: isPatho
+                  ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text(
+                          'Données non disponibles : aucune indication/pathologie enregistrée.')))
+                  : () {
+                      setState(() {
+                        _activeForm = active ? null : form;
+                      });
+                      _search.clear();
+                      _searchMedications('');
+                    },
             );
+            if (!isPatho) return tile;
+            return Opacity(opacity: _indicationsAvailable ? 1 : 0.45, child: tile);
           },
         ),
       ],
@@ -1087,6 +1207,13 @@ class _PosPageState extends State<PosPage> {
           if (_results.isNotEmpty && _cart.isEmpty)
             ...List.generate(_results.length, (i) {
               final m = _results[i];
+              final stockQty = _stock[m.id];
+              final meta = [
+                if ((m.laboratoryName ?? '').trim().isNotEmpty) m.laboratoryName!,
+                if ((m.dosage ?? '').trim().isNotEmpty) m.dosage!,
+                if ((m.form ?? '').trim().isNotEmpty) m.form!,
+                if ((m.presentation ?? '').trim().isNotEmpty) m.presentation!,
+              ].join(' · ');
               return InkWell(
                 onTap: () => setState(() => _cart.add(m)),
                 child: Container(
@@ -1100,13 +1227,40 @@ class _PosPageState extends State<PosPage> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: Text(m.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600)),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(m.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600)),
+                            if (meta.isNotEmpty)
+                              Text(meta,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      color: Colors.white.withValues(alpha: 0.45),
+                                      fontSize: 9.5)),
+                            Text(
+                                'PPV ${Fmt.money(m.priceSale)}  ·  Stock : ${stockQty == null ? 'Non renseigné' : stockQty.round()}',
+                                style: TextStyle(
+                                    color: stockQty == null
+                                        ? Colors.white.withValues(alpha: 0.4)
+                                        : AppColors.emerald,
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w700)),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Fiche rapide',
+                        visualDensity: VisualDensity.compact,
+                        icon: const Icon(Icons.info_outline_rounded,
+                            size: 18, color: AppColors.pharmaGold),
+                        onPressed: () => _showQuickInfo(m),
                       ),
                       const Icon(Icons.add_circle_outline,
                           size: 18, color: AppColors.emerald),
