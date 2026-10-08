@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
@@ -29,6 +30,12 @@ class _ReferencePageState extends State<ReferencePage> {
   int _page = 1;
   bool _hasMore = true;
   final int _limit = 30;
+
+  // Navigation clavier : fleches haut/bas pour parcourir la liste.
+  int _selected = 0;
+  int _lastDelta = 0;
+  final ScrollController _listCtrl = ScrollController();
+  final GlobalKey _selectedKey = GlobalKey();
 
   @override
   void initState() {
@@ -62,6 +69,7 @@ class _ReferencePageState extends State<ReferencePage> {
       _page = 1;
       _hasMore = true;
       _products = [];
+      _selected = 0;
     }
     if (!_hasMore) return;
     final query = <String, dynamic>{
@@ -86,7 +94,61 @@ class _ReferencePageState extends State<ReferencePage> {
       _products = [..._products, ...listData];
       _page++;
       _hasMore = _products.length < total;
+      if (_selected >= _products.length) {
+        _selected = _products.isEmpty ? 0 : _products.length - 1;
+      }
       _loading = false;
+    });
+  }
+
+  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      _moveSelection(1);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _moveSelection(-1);
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  void _moveSelection(int delta) {
+    if (_products.isEmpty) return;
+    final next = (_selected + delta).clamp(0, _products.length - 1);
+    if (next == _selected) return;
+    _lastDelta = delta;
+    setState(() => _selected = next);
+    _ensureSelectedVisible();
+  }
+
+  void _ensureSelectedVisible() {
+    void showSelected() {
+      if (!mounted) return;
+      final ctx = _selectedKey.currentContext;
+      if (ctx != null) {
+        Scrollable.ensureVisible(
+          ctx,
+          duration: const Duration(milliseconds: 150),
+          alignment: 0.5,
+          curve: Curves.easeOut,
+        );
+      }
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      // Item hors zone virtuelle : faire défiler d'un ecran puis reessayer.
+      if (_selectedKey.currentContext == null && _listCtrl.hasClients) {
+        final pos = _listCtrl.position;
+        final target =
+            pos.pixels + _lastDelta * pos.viewportDimension;
+        _listCtrl.jumpTo(target.clamp(0.0, pos.maxScrollExtent).toDouble());
+        WidgetsBinding.instance.addPostFrameCallback((_) => showSelected());
+      } else {
+        showSelected();
+      }
     });
   }
 
@@ -124,6 +186,7 @@ class _ReferencePageState extends State<ReferencePage> {
   @override
   void dispose() {
     _search.dispose();
+    _listCtrl.dispose();
     super.dispose();
   }
 
@@ -152,7 +215,10 @@ class _ReferencePageState extends State<ReferencePage> {
       ),
       body: PharmaBackground(
         assetImage: 'assets/images/background.webp',
-        child: Column(
+        child: Focus(
+          autofocus: true,
+          onKeyEvent: _onKeyEvent,
+          child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
@@ -255,6 +321,7 @@ class _ReferencePageState extends State<ReferencePage> {
         ],
       ),
       ),
+      ),
     );
   }
 
@@ -287,6 +354,7 @@ class _ReferencePageState extends State<ReferencePage> {
       return Center(child: Text(S.t('noReferenceProducts', locale)));
     }
     return ListView.builder(
+      controller: _listCtrl,
       padding: const EdgeInsets.fromLTRB(14, 8, 14, 24),
       itemCount: _products.length + 1,
       itemBuilder: (context, i) {
@@ -303,7 +371,19 @@ class _ReferencePageState extends State<ReferencePage> {
           );
         }
         final p = _products[i] as Map<String, dynamic>;
-        return _ProductTile(product: p, onImport: () => _import(p));
+        final selected = i == _selected;
+        // Charger la page suivante des que l'on arrive en bas de la liste.
+        if (selected && _hasMore && !_loading) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _hasMore && !_loading) _loadProducts();
+          });
+        }
+        return _ProductTile(
+          key: selected ? _selectedKey : null,
+          product: p,
+          selected: selected,
+          onImport: () => _import(p),
+        );
       },
     );
   }
@@ -311,8 +391,10 @@ class _ReferencePageState extends State<ReferencePage> {
 
 class _ProductTile extends StatelessWidget {
   final Map<String, dynamic> product;
+  final bool selected;
   final VoidCallback onImport;
-  const _ProductTile({required this.product, required this.onImport});
+  const _ProductTile(
+      {super.key, required this.product, this.selected = false, required this.onImport});
 
   @override
   Widget build(BuildContext context) {
@@ -322,6 +404,15 @@ class _ProductTile extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
+      color: selected
+          ? AppColors.turquoise.withValues(alpha: 0.12)
+          : null,
+      shape: selected
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: AppColors.turquoise, width: 1.5),
+            )
+          : null,
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
