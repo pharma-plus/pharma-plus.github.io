@@ -12,6 +12,7 @@ import '../../core/models/medication.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
+import '../../core/services/receipt_pdf.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/calculations.dart';
 import '../../core/utils/format.dart';
@@ -438,6 +439,27 @@ class _PosPanelState extends State<PosPanel> {
                 ? 'Vente enregistrée · Monnaie : ${Fmt.money(pay.change!)} MAD'
                 : 'Vente enregistrée · ${Fmt.money(pay.amount)} MAD';
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+        // Impression ticket (même service que le POS complet).
+        final receiptLines = [
+          for (final m in _cart.values)
+            CartLineLike(
+              name: m.name,
+              quantity: (_qty[m.id] ?? 1).toDouble(),
+              unitPrice: m.priceSale,
+              tvaRate: m.tvaRate,
+            ),
+        ];
+        ReceiptPdf.printSaleReceipt(
+          lines: receiptLines,
+          pharmacyName: 'PHARMA+',
+          locale: AuthStore.instance.locale,
+          globalDiscountPercent: _discountPercent ? _discount : 0,
+          globalDiscountAmount: _discountPercent ? 0 : _discount,
+          amountReceived: pay.received ?? pay.amount,
+          change: pay.change ?? 0,
+        ).catchError((e) {
+          debugPrint('[PosPanel] impression ticket échouée: $e');
+        });
         _clearCart();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(

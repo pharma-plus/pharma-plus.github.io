@@ -1890,6 +1890,19 @@ class _PosPageState extends State<PosPage> {
                     : 'Payer',
             enabled: canPay,
             onTap: canPay ? () => _confirmPayment() : null,
+            // Feedback EXPLICITE : le tap ne doit JAMAIS sembler « mort ».
+            onDisabledTap: () {
+              final reason = _cart.isEmpty
+                  ? 'Ajoutez au moins un produit au panier.'
+                  : _checkout
+                      ? 'Enregistrement en cours…'
+                      : _paymentMode == 'cash' && !_cashSufficient
+                          ? 'Montant reçu insuffisant — reste ${Fmt.money(_due)} MAD à payer.'
+                          : 'Paiement impossible pour le moment.';
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(reason)),
+              );
+            },
           ),
         ),
       ],
@@ -2396,10 +2409,12 @@ class _PayButton extends StatefulWidget {
   final String label;
   final bool enabled;
   final VoidCallback? onTap;
+  final VoidCallback? onDisabledTap;
   const _PayButton({
     required this.label,
     required this.enabled,
     this.onTap,
+    this.onDisabledTap,
   });
 
   @override
@@ -2445,7 +2460,10 @@ class _PayButtonState extends State<_PayButton>
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: widget.enabled ? widget.onTap : null,
+      // Tap TOUJOURS actif : si désactivé, onDisabledTap affiche la raison.
+      onTap: widget.enabled
+          ? widget.onTap
+          : (widget.onDisabledTap ?? () {}),
       child: AnimatedBuilder(
         animation: _glow,
         builder: (context, child) {
