@@ -14,10 +14,11 @@ import '../pos/pos_page.dart';
 import '../catalog/catalog_page.dart';
 import '../stock/stock_page.dart';
 import '../suppliers/suppliers_page.dart';
-import '../purchases/purchases_page.dart';
 import '../customers/customers_page.dart';
 import '../employees/employees_page.dart';
 import '../reports/reports_page.dart';
+import '../purchases/purchases_page.dart';
+import '../security/lock_screen.dart';
 import '../floor_plan/pharmacy_plan_page.dart';
 import '../settings/settings_page.dart';
 
@@ -31,6 +32,7 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   bool _syncing = false;
+  bool _lockRouteShown = false;
 
   /// Pages déjà visitées : montées à la demande (lazy) pour éviter
   /// d'inflammer ~24 requêtes API + 12 initState d'un coup au login.
@@ -43,7 +45,7 @@ class _HomeShellState extends State<HomeShell> {
     return TickerMode(enabled: i == ShellNav.index.value, child: _pages[i]);
   }
 
-  static const _pages = [
+  static final _pages = [
     DashboardPage(),
     ModulesPage(),
     PosPage(),
@@ -65,6 +67,9 @@ class _HomeShellState extends State<HomeShell> {
     // pour reculer Onglet → Dashboard → dialogue de confirmation.
     ShellNav.index.addListener(_onShellIndexChanged);
     systemBackNoteShellIndex(ShellNav.index.value);
+    // Verrouillage automatique : dès que le store bascule en `isLocked`,
+    // l'écran PIN est posé par-dessus le shell (inactivité ou manuel).
+    context.read<AuthStore>().addListener(_onAuthLockChanged);
     // Sync différée : on ne la lance pas pendant la première frame qui
     // charge déjà le dashboard (concurrence réseau inutile).
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -77,7 +82,20 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void dispose() {
     ShellNav.index.removeListener(_onShellIndexChanged);
+    context.read<AuthStore>().removeListener(_onAuthLockChanged);
     super.dispose();
+  }
+
+  void _onAuthLockChanged() {
+    final locked = context.read<AuthStore>().isLocked;
+    if (locked && !_lockRouteShown && mounted) {
+      _lockRouteShown = true;
+      Navigator.of(context)
+          .push(MaterialPageRoute(builder: (_) => const LockScreen()))
+          .whenComplete(() {
+        if (mounted) setState(() => _lockRouteShown = false);
+      });
+    }
   }
 
   void _onShellIndexChanged() {
@@ -128,6 +146,16 @@ class _HomeShellState extends State<HomeShell> {
         _visit(shellIndex);
         return Scaffold(
         backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          // Bouton verrouillage pour tous les rôles sauf super admin
+          leading: IconButton(
+      icon: const Icon(Icons.lock_open_outlined),
+      onPressed: () => context.read<AuthStore>().lockSession(manual: true),
+    ),
+          title: const Text('PHARMA+'),
+          actions: [
+          ],
+        ),
         body: PharmaBackground(
           assetImage: 'assets/images/background.webp',
           child: SafeArea(

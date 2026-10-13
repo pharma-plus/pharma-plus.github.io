@@ -13,7 +13,7 @@ const itemSchema = Joi.object({
   medication_id: Joi.string().uuid().required(),
   quantity: Joi.number().positive().required(),
   unit_cost: Joi.number().min(0).default(0),
-  tva_rate: Joi.number().min(0).max(100).default(20),
+  tva_rate: Joi.number().min(0).max(100).default(0),
   discount: Joi.number().min(0).max(100).default(0),
 });
 

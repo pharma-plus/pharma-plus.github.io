@@ -41,7 +41,7 @@ class _UnknownProductDialogState extends State<UnknownProductDialog> {
   final _form = TextEditingController();
   final _purchase = TextEditingController();
   final _sale = TextEditingController();
-  final _tva = TextEditingController(text: '20');
+  final _tva = TextEditingController(text: '0');
   bool _parapharmacie = false;
   bool _saving = false;
   String? _error;
@@ -152,7 +152,7 @@ class _UnknownProductDialogState extends State<UnknownProductDialog> {
       'price_purchase':
           double.tryParse(_purchase.text.replaceAll(',', '.')) ?? 0,
       'price_sale': double.tryParse(_sale.text.replaceAll(',', '.')) ?? 0,
-      'tva_rate': double.tryParse(_tva.text.replaceAll(',', '.')) ?? 20,
+      'tva_rate': double.tryParse(_tva.text.replaceAll(',', '.')) ?? 0,
       'is_parapharmacie': _parapharmacie,
     };
     final r = await ApiClient.instance.post('/catalog/medications', body: body);

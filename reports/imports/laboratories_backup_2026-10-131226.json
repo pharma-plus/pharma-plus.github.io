@@ -1,0 +1,313 @@
+{
+ "at": "2026-10-13T12:26:54.176Z",
+ "rows": [
+  {
+   "id": "11111111-1111-1111-1111-111111111111",
+   "name": "Pfizer"
+  },
+  {
+   "id": "22222222-2222-2222-2222-222222222222",
+   "name": "Sanofi"
+  },
+  {
+   "id": "33333333-3333-3333-3333-333333333333",
+   "name": "Bayer"
+  },
+  {
+   "id": "a0000000-0000-0000-0000-000000000001",
+   "name": "Sanofi"
+  },
+  {
+   "id": "a0000000-0000-0000-0000-000000000002",
+   "name": "Sothema"
+  },
+  {
+   "id": "a0000000-0000-0000-0000-000000000003",
+   "name": "GSK"
+  },
+  {
+   "id": "a0000000-0000-0000-0000-000000000004",
+   "name": "Pharmaghreb"
+  },
+  {
+   "id": "8d1f59eb-ac99-4754-ae6f-1d27723a7113",
+   "name": "LAPROPHAN"
+  },
+  {
+   "id": "58a44d5b-c118-4dcf-98f5-c71bbaae594b",
+   "name": "KEMIPHARM"
+  },
+  {
+   "id": "e9726a8f-e154-4bc7-8314-04028f4f78f6",
+   "name": "FRESENIUS MEDICAL CARE PHARMA AFRIQUE"
+  },
+  {
+   "id": "149eafc2-3e06-4f77-a320-1a300a6d2193",
+   "name": "PFIZER MAROC"
+  },
+  {
+   "id": "cfc9a5cf-5381-47f8-84fe-777122d52608",
+   "name": "SUN PHARMACEUTICALS NORTH AFRICA S.A"
+  },
+  {
+   "id": "3f962ed1-b2ac-422d-8326-48796963dd9f",
+   "name": "AXESS PHARMA (EX HAYDELENA)"
+  },
+  {
+   "id": "0cf1b049-e94b-43b2-9e76-3a2df66c3784",
+   "name": "NESTLÉ"
+  },
+  {
+   "id": "097eafce-1261-4e65-a5b5-40811408df19",
+   "name": "SOLUDIA MAGHREB"
+  },
+  {
+   "id": "d83cba53-64be-421d-af24-6f6eea1a2850",
+   "name": "PHARMA CONNECT"
+  },
+  {
+   "id": "51332532-671f-4929-afa1-047719f97fc9",
+   "name": "STERIPHARMA"
+  },
+  {
+   "id": "fc183a48-5bc9-43ef-b481-368374ee14b4",
+   "name": "BIOCODEX MAROC"
+  },
+  {
+   "id": "a5e38065-7f58-4488-9822-49157c13a622",
+   "name": "PHARMED"
+  },
+  {
+   "id": "aba3696e-c7f8-443f-8482-ce671e3536da",
+   "name": "KOSMO PHARM"
+  },
+  {
+   "id": "ead3a4f5-711f-45e1-a147-0e83b6633256",
+   "name": "GENPHARMA"
+  },
+  {
+   "id": "34a97773-156e-4812-8934-e0d2b1147839",
+   "name": "ESNAPHARM"
+  },
+  {
+   "id": "0db38b81-b4a9-4bbe-b114-1df011ea4d3a",
+   "name": "BAYER S.A"
+  },
+  {
+   "id": "ecadcbf3-933c-42f0-9f8d-9682e6ab8417",
+   "name": "ZENITH PHARMA"
+  },
+  {
+   "id": "a67472c0-79e2-4c52-a890-ad3923ac63ed",
+   "name": "HYPHADIET"
+  },
+  {
+   "id": "37fc4b42-a327-45b6-b1cd-ecf562e30cb1",
+   "name": "SOTHEMA"
+  },
+  {
+   "id": "eb386659-f847-4f9f-b29a-3c38197dbec7",
+   "name": "PROMOPHARM (HIKMA)"
+  },
+  {
+   "id": "e3bdb6aa-3b17-4c50-9e2e-04aaabd0081c",
+   "name": "GLAXO SMITHKLINE"
+  },
+  {
+   "id": "4928b56e-4974-4736-9ad3-3f7a62392b71",
+   "name": "PHARMA5"
+  },
+  {
+   "id": "7aca342a-ead2-402f-aa80-5a0bf17f7972",
+   "name": "SYNTHEMEDIC"
+  },
+  {
+   "id": "6573acc3-ba52-4b0f-bb96-162303c816ce",
+   "name": "GENERATION SANTE"
+  },
+  {
+   "id": "3c7f2dcf-66c2-4e7b-a1bb-29bbcd0bb623",
+   "name": "DEVA PHARMACEUTIQUE"
+  },
+  {
+   "id": "7c907f8b-fa0b-4b68-a7af-3b79ae2a2035",
+   "name": "SERVIER MAROC"
+  },
+  {
+   "id": "6fcd47e0-a6a6-4b66-aa86-11b624a48496",
+   "name": "SOPHARMA"
+  },
+  {
+   "id": "a9730019-6290-48e4-975c-9a58a91fbd39",
+   "name": "ERGO MAROC"
+  },
+  {
+   "id": "9f306571-6730-461c-92da-72562e7c2219",
+   "name": "MEDIPRO PHARMA"
+  },
+  {
+   "id": "4dee4d44-f8e9-4b96-8884-e6657fe3565a",
+   "name": "CYCLOPHARMA"
+  },
+  {
+   "id": "6b473219-bb1f-4907-ab26-e4d67170a5ab",
+   "name": "CIPLA MAROC"
+  },
+  {
+   "id": "df08d2e5-eb30-4c25-a3b4-6c655cea0d75",
+   "name": "SANOFI AVENTIS MAROC"
+  },
+  {
+   "id": "09fed0eb-80aa-4e98-b300-0995e9a9b335",
+   "name": "SYNAPSE SANTÉ"
+  },
+  {
+   "id": "654f5a46-c66a-4393-bea2-290957dd9da0",
+   "name": "MC PHARMA"
+  },
+  {
+   "id": "7ebd107f-82e6-4cb8-8adc-254aafa45837",
+   "name": "THERAPHARMA"
+  },
+  {
+   "id": "fbbf2882-f1df-4a5a-890c-a6c03fd5099f",
+   "name": "IPHADERM"
+  },
+  {
+   "id": "88c3baec-1726-43fa-87de-d08389bdad5a",
+   "name": "PHI"
+  },
+  {
+   "id": "b9f7867f-d4a4-44ca-a8de-9579b59d2b55",
+   "name": "ABBOTT"
+  },
+  {
+   "id": "30792b76-d7ce-4b27-9d78-485c53d0458e",
+   "name": "POLYMEDIC"
+  },
+  {
+   "id": "9abcf451-8630-467d-a862-e5afa79e54ca",
+   "name": "INSTITUT PASTEUR MAROC"
+  },
+  {
+   "id": "3a2c1bab-e9d6-4ae7-b421-6963dfb9f871",
+   "name": "ATLAS PHARM"
+  },
+  {
+   "id": "8a77ec65-754f-49cf-8c86-046100c2ff14",
+   "name": "BOTANIC PHARMA"
+  },
+  {
+   "id": "bf7a8b74-0581-4d79-be6f-c7b351acf25a",
+   "name": "NOVARTIS PHARMA MAROC"
+  },
+  {
+   "id": "0fe40490-0cdc-4747-9d62-07b2e3208f0c",
+   "name": "SPIMACO"
+  },
+  {
+   "id": "140e529e-6b19-49cf-a56a-568a2ceaa18a",
+   "name": "APIA LABORATOIRE"
+  },
+  {
+   "id": "4448c81b-49d7-474f-a525-7ec722e30d1e",
+   "name": "ISIO LABORATOIRE"
+  },
+  {
+   "id": "c75f3155-4222-4751-9286-5e83cd36172e",
+   "name": "LABOZAMAN SARL"
+  },
+  {
+   "id": "b00f4016-382a-4ae3-b15d-b0d234b671d9",
+   "name": "ROCHE S.A"
+  },
+  {
+   "id": "61f67cd7-d284-408c-bb71-be591050e2a0",
+   "name": "MAROC BIOTECHNOLOGIE MARBIO"
+  },
+  {
+   "id": "48f257c1-ad07-4486-8a6d-724181a56528",
+   "name": "HEMOLAB-PHARMA"
+  },
+  {
+   "id": "de44bf77-d803-4520-86e7-1b07d6521078",
+   "name": "SANTÉ FAMILIALE"
+  },
+  {
+   "id": "62fed5a8-dd1a-4225-b78b-eec67f0af68e",
+   "name": "PHARMIS"
+  },
+  {
+   "id": "6733fb6e-cb5e-44f2-8faf-7ce0343eeda5",
+   "name": "GALENICA"
+  },
+  {
+   "id": "c175b019-dadd-4a65-9fce-bc582b6fb5dd",
+   "name": "BOTTU S.A."
+  },
+  {
+   "id": "101c4ef1-3e8d-430c-80e1-871800cfe8e5",
+   "name": "VERSALYA SA"
+  },
+  {
+   "id": "8432b6cc-0c9a-44c0-92d8-80c06e38d1ea",
+   "name": "ARKOSANTE"
+  },
+  {
+   "id": "bc861a83-be56-4db3-a0de-cd184d6f8b5b",
+   "name": "MERCK SHARP AND DOHME"
+  },
+  {
+   "id": "f76359d4-ec46-45db-bd3f-f1dce3a08827",
+   "name": "PHARMAPROM"
+  },
+  {
+   "id": "f6dd2273-1074-4a4d-8e8e-2d1194f60765",
+   "name": "ARWA MEDIC"
+  },
+  {
+   "id": "045b622c-ab29-4bd7-9793-2eba3b31103c",
+   "name": "IBERMA"
+  },
+  {
+   "id": "dd6ef3c6-b0ff-4356-b0ed-fe0aec535344",
+   "name": "COOPER PHARMA"
+  },
+  {
+   "id": "d8f65ede-3fea-4b1e-9246-64f0323c8e42",
+   "name": "AMANYS PHARMA (Ex SAHAM PHARMA)"
+  },
+  {
+   "id": "cd6f627d-819a-4ffc-a739-36a1b869e3ea",
+   "name": "AFRIC-PHAR"
+  },
+  {
+   "id": "0bd9c47f-bbc6-472b-8e08-3a17ad06cdba",
+   "name": "GYNEBIO PHARMA"
+  },
+  {
+   "id": "d6bc79a4-5fa0-4134-bafd-2b4e64f25cf7",
+   "name": "PROMOPLUS PHARMA"
+  },
+  {
+   "id": "57f09922-9a11-4776-819f-02188fb61561",
+   "name": "VIATRIS PHARMACEUTICALS"
+  },
+  {
+   "id": "d8a5cd5e-ac58-4754-9a55-2a6628b5bd57",
+   "name": "NOVOPHARMA"
+  },
+  {
+   "id": "f327498b-b984-4ea9-8e7d-b99e67969ee7",
+   "name": "RIM PHARMA"
+  },
+  {
+   "id": "fcc9d14f-143c-4809-bd11-074d78336f9d",
+   "name": "MAPHAR"
+  },
+  {
+   "id": "1570dccd-8daf-4e7a-bbee-80921497d4e9",
+   "name": "KHETTANE BENMLIH SANTÉ"
+  }
+ ]
+}

@@ -83,10 +83,18 @@ class SyncEngine {
   }
 
   Future<void> _cacheMedications(List<dynamic> rows) async {
-    // Les clients hors-ligne récupèrent une vue locale simplifiée ;
-    // l'indexation détaillée est fournie par le modèle de données local.
-    final db = OfflineStore.instance;
-    // force l'initialisation de la base (attente du lazy open)
-    await db.getRevision('medications');
+    // Met en cache les lignes du catalogue (upsert par id) pour que la
+    // recherche reste fonctionnelle hors-ligne (repli dans POS sur
+    // NETWORK_ERROR). Même format brut que l'API => Medication.fromJson.
+    final maps = rows
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+    if (maps.isEmpty) return;
+    try {
+      await OfflineStore.instance.saveCatalogRows(maps);
+    } catch (e) {
+      debugPrint('[SyncEngine] cache error: $e');
+    }
   }
 }

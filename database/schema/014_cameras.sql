@@ -14,11 +14,13 @@ CREATE TABLE cameras (
   location     text,                       -- emplacement (Comptoir, Réserve, ...)
   stream_url   text,                       -- flux RTSP/HLS
   snapshot_url text,
+  port         integer NOT NULL DEFAULT 554,
   position_x   numeric(10,2) NOT NULL DEFAULT 0,   -- position sur le plan
   position_y   numeric(10,2) NOT NULL DEFAULT 0,
   status       text NOT NULL DEFAULT 'offline'
                CHECK (status IN ('online','offline','recording','error')),
   is_enabled   boolean NOT NULL DEFAULT true,
+  is_active    boolean NOT NULL DEFAULT true,
   created_at   timestamptz NOT NULL DEFAULT now(),
   updated_at   timestamptz NOT NULL DEFAULT now()
 );

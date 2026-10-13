@@ -48,7 +48,7 @@ class Medication {
     this.barcodeEan13,
     this.pricePurchase = 0,
     this.priceSale = 0,
-    this.tvaRate = 20,
+    this.tvaRate = 0,
     this.prescriptionRequired = false,
     this.reorderLevel = 0,
     this.minStock = 0,
@@ -87,7 +87,7 @@ class Medication {
             json['barcode_ean13'] as String? ?? json['barcodeEan13'] as String?,
         pricePurchase: _d(json['price_purchase'] ?? json['pricePurchase']),
         priceSale: _d(json['price_sale'] ?? json['priceSale']),
-        tvaRate: _d(json['tva_rate'] ?? json['tvaRate'], 20),
+        tvaRate: _d(json['tva_rate'] ?? json['tvaRate'], 0),
         prescriptionRequired: json['prescription_required'] as bool? ??
             json['prescriptionRequired'] as bool? ??
             false,

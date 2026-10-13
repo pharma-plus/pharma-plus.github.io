@@ -42,6 +42,10 @@ class _PaymentSheetState extends State<PaymentSheet>
   final _receivedCtrl = TextEditingController();
   double _received = 0;
 
+  // Isolation des rebuilds : le champ « montant reçu » notifie uniquement
+  // la bannière monnaie au lieu de reconstruire toute la feuille à chaque frappe.
+  final ValueNotifier<double> _receivedVN = ValueNotifier<double>(0);
+
   // ── Carte ──
   String _cardType = 'visa'; // visa | mastercard | other
   String _cardStatus = 'idle'; // idle | waiting | confirmed | refused | error
@@ -64,18 +68,24 @@ class _PaymentSheetState extends State<PaymentSheet>
     _receivedCtrl.dispose();
     _refCtrl.dispose();
     _creditRefCtrl.dispose();
+    _receivedVN.dispose();
     super.dispose();
   }
 
-  void _setReceived(String v) =>
-      setState(() => _received = double.tryParse(v.replaceAll(',', '.')) ?? 0);
+  void _setReceived(String v) {
+    _received = double.tryParse(v.replaceAll(',', '.')) ?? 0;
+    // Notifie uniquement la bannière monnaie (ValueListenableBuilder) au
+    // lieu de setState() qui reconstruirait toute la feuille à chaque frappe.
+    _receivedVN.value = _received;
+  }
 
   void _quick(double v) {
     final next = v == widget.total ? v : _received + v;
     _receivedCtrl.text = next == next.roundToDouble()
         ? next.round().toString()
         : next.toStringAsFixed(2);
-    setState(() => _received = next);
+    _received = next;
+    _receivedVN.value = next;
   }
 
   bool get _cashSufficient =>
@@ -222,31 +232,38 @@ class _PaymentSheetState extends State<PaymentSheet>
                 const SizedBox(width: 10),
                 Expanded(
                   flex: 2,
-                  child: ElevatedButton.icon(
-                      onPressed: _canValidate ? _validate : null,
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0FA958),
-                          foregroundColor: Colors.white,
-                          disabledBackgroundColor:
-                              const Color(0xFF0FA958).withValues(alpha: 0.25),
-                          padding: const EdgeInsets.symmetric(vertical: 13)),
-                      icon: const Icon(Icons.check_circle_outline_rounded, size: 19),
-                      label: Text(
-                          _tab.index == 0
-                              ? (_cashSufficient
-                                  ? 'Valider · rendre ${Fmt.money(_change)} MAD'
-                                  : 'Montant insuffisant')
-                              : _tab.index == 1
-                                  ? (_cardStatus == 'confirmed'
-                                      ? 'Confirmer ${Fmt.money(widget.total)} MAD'
-                                      : _cardStatus == 'refused'
-                                          ? 'Paiement refusé'
-                                          : 'Simuler paiement')
-                                  : 'Valider · ${Fmt.money(_creditAmount)} MAD',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w900, fontSize: 12.5))),
+                  // Le libellé/état du bouton dépend du montant reçu
+                  // (_cashSufficient) : reconstruit via le notifier.
+                  child: ValueListenableBuilder<double>(
+                    valueListenable: _receivedVN,
+                    builder: (context, _, __) {
+                      return ElevatedButton.icon(
+                          onPressed: _canValidate ? _validate : null,
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF0FA958),
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor:
+                                  const Color(0xFF0FA958).withValues(alpha: 0.25),
+                              padding: const EdgeInsets.symmetric(vertical: 13)),
+                          icon: const Icon(Icons.check_circle_outline_rounded, size: 19),
+                          label: Text(
+                              _tab.index == 0
+                                  ? (_cashSufficient
+                                      ? 'Valider · rendre ${Fmt.money(_change)} MAD'
+                                      : 'Montant insuffisant')
+                                  : _tab.index == 1
+                                      ? (_cardStatus == 'confirmed'
+                                          ? 'Confirmer ${Fmt.money(widget.total)} MAD'
+                                          : _cardStatus == 'refused'
+                                              ? 'Paiement refusé'
+                                              : 'Simuler paiement')
+                                      : 'Valider · ${Fmt.money(_creditAmount)} MAD',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w900, fontSize: 12.5)));
+                    },
+                  ),
                 ),
               ]),
             ]),
@@ -258,56 +275,65 @@ class _PaymentSheetState extends State<PaymentSheet>
   //  ESPÈCES
   // ═══════════════════════════════════════════════════════
   Widget _buildCashSection() {
-    return Column(children: [
-      TextField(
-        controller: _receivedCtrl,
-        autofocus: true,
-        keyboardType:
-            const TextInputType.numberWithOptions(decimal: true),
-        inputFormatters: [
-          FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d{0,2}')),
-        ],
-        onChanged: _setReceived,
-        style: const TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.w900),
-        decoration: InputDecoration(
-            labelText: 'MONTANT REÇU (MAD)',
-            labelStyle: TextStyle(
-                color: Colors.white.withValues(alpha: 0.55),
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5),
-            filled: true,
-            fillColor: Colors.white.withValues(alpha: 0.05),
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                    color: _cashSufficient
-                        ? const Color(0xFF2E7A50)
-                        : AppColors.danger.withValues(alpha: 0.7))),
-            focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFC9A24B))),
-            suffixIcon: _received > 0
-                ? IconButton(
-                    icon: const Icon(Icons.close_rounded,
-                        size: 18, color: Colors.white54),
-                    onPressed: () {
-                      _receivedCtrl.clear();
-                      setState(() => _received = 0);
-                    })
-                : null),
-      ),
-      const SizedBox(height: 10),
-      _QuickRow(
-          total: widget.total,
-          onAdd: _quick,
-          onExact: () => _quick(widget.total)),
-      const SizedBox(height: 14),
-      _ChangeBanner(sufficient: _cashSufficient, change: _change, due: _due),
-    ]);
+    // Reconstruit UNIQUEMENT ce bloc (champ + bannière monnaie) quand le
+    // montant reçu change — pas toute la feuille (3 onglets, bouton valider).
+    return ValueListenableBuilder<double>(
+      valueListenable: _receivedVN,
+      builder: (context, _, __) {
+        return Column(children: [
+          TextField(
+            controller: _receivedCtrl,
+            autofocus: true,
+            keyboardType:
+                const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d{0,2}')),
+            ],
+            onChanged: _setReceived,
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.w900),
+            decoration: InputDecoration(
+                labelText: 'MONTANT REÇU (MAD)',
+                labelStyle: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.55),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.05),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                        color: _cashSufficient
+                            ? const Color(0xFF2E7A50)
+                            : AppColors.danger.withValues(alpha: 0.7))),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFC9A24B))),
+                suffixIcon: _received > 0
+                    ? IconButton(
+                        icon: const Icon(Icons.close_rounded,
+                            size: 18, color: Colors.white54),
+                        onPressed: () {
+                          _receivedCtrl.clear();
+                          _received = 0;
+                          _receivedVN.value = 0;
+                        })
+                    : null),
+          ),
+          const SizedBox(height: 10),
+          _QuickRow(
+              total: widget.total,
+              onAdd: _quick,
+              onExact: () => _quick(widget.total)),
+          const SizedBox(height: 14),
+          _ChangeBanner(
+              sufficient: _cashSufficient, change: _change, due: _due),
+        ]);
+      },
+    );
   }
 
   // ═══════════════════════════════════════════════════════

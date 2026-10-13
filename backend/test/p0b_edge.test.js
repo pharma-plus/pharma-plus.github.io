@@ -114,9 +114,19 @@ test('identité : currentUserId s\'appuie sur la signature (verifyJWT) et le cla
   const start = edge.indexOf('async function currentUserId(');
   assert.ok(start > 0, 'helper currentUserId manquant');
   const window = edge.slice(start, start + 500);
-  assert.match(window, /await verifyJWT\(req\)/, 'currentUserId doit vérifier la signature');
-  assert.match(window, /payload\?\.sub/, 'currentUserId doit lire le claim sub');
-  assert.match(window, /UUID_RE\.test\(v\)/, 'sub doit être un uuid (users.id)');
+  assert.match(window, /await verified\(req\)/,
+    'currentUserId doit passer par verified() (JWT verifie + profil)');
+  assert.match(window, /UUID_RE\.test\(id\)/, 'id public.users doit être un uuid');
+
+  const compute = edge.indexOf('async function computeVerified(');
+  assert.ok(compute > 0, 'helper computeVerified manquant');
+  assert.match(edge.slice(compute, compute + 400), /await verifyJWT\(req\)/,
+    'computeVerified doit vérifier la signature (JWKS/ES256)');
+
+  const sub = edge.indexOf('async function authSubId(');
+  assert.ok(sub > 0, 'helper authSubId manquant');
+  assert.match(edge.slice(sub, sub + 400), /payload\?\.sub/,
+    'authSubId doit lire le claim sub');
 });
 
 test('identité : les routes à risque passent par les helpers vérifiés', () => {

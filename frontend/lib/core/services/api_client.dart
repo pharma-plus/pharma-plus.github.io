@@ -221,6 +221,13 @@ class ApiClient {
           }
           _auth.signOut();
         }
+        // Session verrouillée côté serveur (423) : afficher l'écran PIN.
+        // Géré ici pour couvrir le redémarrage de l'application pendant un
+        // verrou (état local réinitialisé à déverrouillé alors que le serveur
+        // est encore verrouillé).
+        if (res.statusCode == 423) {
+          _auth.serverLocked();
+        }
         return ApiResult<dynamic>.fromResponse(res);
       } on ApiResult<dynamic> {
         rethrow;

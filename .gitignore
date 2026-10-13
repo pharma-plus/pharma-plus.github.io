@@ -16,6 +16,9 @@ analyze_now.txt
 analyze_done.txt
 build_web_out.txt
 
+# Sorties d'outils Flutter locales (analyzer / tests)
+frontend/*.txt
+
 # Backend versionné (sauf secrets et dépendances — voir lignes 1-2 ci-dessus :
 # backend/.env et backend/node_modules/ restent ignorés).
 # Ancien dépôt git imbriqué (pharma-plus-api) : ne pas ajouter comme gitlink.

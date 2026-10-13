@@ -54,6 +54,9 @@ class _PosPageState extends State<PosPage> {
   bool _checkout = false;
   Timer? _searchDebounce;
   int _emptyReloads = 0;
+  // ── État hors-ligne du catalogue (fraîcheur des données affichées) ──
+  bool _offlineMode = false;
+  DateTime? _catalogSyncedAt;
   List<Map<String, dynamic>> _branches = [];
   String? _branchId;
   List<Map<String, dynamic>> _customers = [];
@@ -66,11 +69,18 @@ class _PosPageState extends State<PosPage> {
   String _paymentMode = 'cash'; // cash | visa | mastercard
   double _received = 0;
 
+  // Isolation des rebuilds : le champ « montant reçu » notifie uniquement
+  // les widgets concernés (monnaie/ bouton Payer) au lieu de reconstruire
+  // toute la page POS à chaque frappe → saisie fluide sur PC modeste.
+  final ValueNotifier<double> _receivedVN = ValueNotifier<double>(0);
+
   // ── Catégories : facettes réelles du catalogue (formes) ──
   List<Medication> _catalog = [];
   String? _activeForm;
   List<Map<String, dynamic>> _facetForms = [];
   bool _indicationsAvailable = false;
+  String? _activePathologie;
+  List<Map<String, dynamic>> _pathologies = const [];
   final Map<String, double> _stock = {};
 
   @override
@@ -113,6 +123,7 @@ class _PosPageState extends State<PosPage> {
     _receivedCtrl.dispose();
     _discountCtrl.dispose();
     _searchDebounce?.cancel();
+    _receivedVN.dispose();
     super.dispose();
   }
 
@@ -195,6 +206,13 @@ class _PosPageState extends State<PosPage> {
           .toList();
       _indicationsAvailable = ((d['indications_total'] as num?) ?? 0) > 0;
     });
+    // Liste des pathologies tracees (reellement filtree cote Edge) —
+    // chargee uniquement si des indications existent.
+    if (_indicationsAvailable) {
+      final pr = await ApiClient.instance.get('/catalog/medications/pathologies');
+      if (!mounted || !pr.success) return;
+      setState(() => _pathologies = ApiList.of(pr.data));
+    }
   }
 
   Future<void> _searchMedications(String query) async {
@@ -204,16 +222,37 @@ class _PosPageState extends State<PosPage> {
     if (q.isNotEmpty) params['q'] = q;
     final form = _activeForm;
     if (form != null && form.isNotEmpty) params['form'] = 'eq.$form';
+    final patho = _activePathologie;
+    if (patho != null && patho.isNotEmpty) params['pathologie'] = patho;
     final result = await ApiClient.instance.get('/catalog/medications', query: params);
     if (!mounted) return;
-    final rows =
-        result.success ? ApiList.of(result.data) : <Map<String, dynamic>>[];
+    List<Map<String, dynamic>> rows;
+    if (result.success) {
+      _offlineMode = false;
+      rows = ApiList.of(result.data);
+      // Alimente le cache local pour que la recherche fonctionne hors-ligne.
+      try {
+        await OfflineStore.instance.saveCatalogRows(rows);
+        _catalogSyncedAt = await OfflineStore.instance.catalogSyncedAt();
+      } catch (_) {}
+    } else if (result.error?.code == 'NETWORK_ERROR' ||
+        result.error?.code == 'TIMEOUT') {
+      // Hors-ligne : repli sur le catalogue mis en cache (recherche locale).
+      _offlineMode = true;
+      try {
+        _catalogSyncedAt = await OfflineStore.instance.catalogSyncedAt();
+      } catch (_) {}
+      rows = await _offlineSearch(q, form);
+    } else {
+      rows = <Map<String, dynamic>>[];
+    }
     _catalog = rows.map(Medication.fromJson).toList();
     _applyFilter();
     _loadStockForPage();
     if (mounted) setState(() => _searching = false);
     // Rechargement « cata vide » borné : max 3 tentatives, sinon boucle
     // infinie (1 req/1,2 s à vie si le catalogue est réellement vide).
+    // Non déclenché hors-ligne (result non success => pas de reload).
     if (query.trim().isEmpty && _catalog.isEmpty && result.success) {
       if (_emptyReloads >= 3) return;
       _emptyReloads++;
@@ -222,6 +261,30 @@ class _PosPageState extends State<PosPage> {
       if (_catalog.isEmpty && !_searching) _searchMedications('');
     } else if (_catalog.isNotEmpty) {
       _emptyReloads = 0;
+    }
+  }
+
+  /// Recherche locale sur le cache hors-ligne (texte + forme). Le filtre
+  /// pathologie nécessite medicine_indications (vide) => ignoré offline.
+  Future<List<Map<String, dynamic>>> _offlineSearch(
+      String q, String? form) async {
+    try {
+      final cached = await OfflineStore.instance.cachedCatalog();
+      final ql = q.toLowerCase();
+      return cached.where((r) {
+        final name = (r['name'] ?? '').toString().toLowerCase();
+        final lab = (r['laboratory_name'] ?? '').toString().toLowerCase();
+        final ean = (r['barcode_ean13'] ?? '').toString();
+        final matchesQ = ql.isEmpty ||
+            name.contains(ql) ||
+            lab.contains(ql) ||
+            ean.contains(q);
+        final matchesForm =
+            form == null || form.isEmpty || (r['form'] ?? '').toString() == form;
+        return matchesQ && matchesForm;
+      }).toList();
+    } catch (_) {
+      return <Map<String, dynamic>>[];
     }
   }
 
@@ -393,14 +456,19 @@ class _PosPageState extends State<PosPage> {
   double get _change => (_received > _cart.total) ? _received - _cart.total : 0;
   double get _due => (_received < _cart.total) ? _cart.total - _received : 0;
 
-  void _setReceived(String v) =>
-      setState(() => _received = double.tryParse(v.replaceAll(',', '.')) ?? 0);
+  void _setReceived(String v) {
+    _received = double.tryParse(v.replaceAll(',', '.')) ?? 0;
+    // Notifie uniquement les widgets « monnaie / Payer » (ValueListenableBuilder)
+    // au lieu de setState() qui reconstruirait toute la page POS.
+    _receivedVN.value = _received;
+  }
 
   void _quickReceived(double v) {
     final next = v == _cart.total ? v : _received + v;
     _receivedCtrl.text =
         next == next.roundToDouble() ? next.round().toString() : next.toStringAsFixed(2);
-    setState(() => _received = next);
+    _received = next;
+    _receivedVN.value = next;
   }
 
   Future<void> _confirmPayment() async {
@@ -475,6 +543,7 @@ class _PosPageState extends State<PosPage> {
         final pharmacyName = _branchName();
         _cart.clear();
         _received = 0;
+        _receivedVN.value = 0;
         _receivedCtrl.clear();
         _paymentMode = 'cash';
         if (mounted) {
@@ -977,6 +1046,34 @@ class _PosPageState extends State<PosPage> {
                 borderSide: const BorderSide(color: AppColors.pharmaGold)),
           ),
         ),
+        // ── Bandeau hors-ligne : signale que prix/stock ne sont pas garantis
+        // à jour (données servies depuis le cache local, dernière synchro). ──
+        if (_offlineMode)
+          Container(
+            margin: const EdgeInsets.only(top: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0x26FF9800), // orange ~15% opacité
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orangeAccent),
+            ),
+            child: Row(children: [
+              const Icon(Icons.cloud_off, size: 15, color: Colors.orangeAccent),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _catalogSyncedAt != null
+                      ? '${S.t('offline', locale)} — '
+                          'données du ${_catalogSyncedAt!.hour.toString().padLeft(2, '0')}:'
+                          '${_catalogSyncedAt!.minute.toString().padLeft(2, '0')} '
+                          '(prix/stock non garantis à jour)'
+                      : '${S.t('offline', locale)} — cache local '
+                          '(prix/stock non garantis à jour)',
+                  style: const TextStyle(fontSize: 11, color: Colors.orangeAccent),
+                ),
+              ),
+            ]),
+          ),
         const SizedBox(height: 8),
         // ── Scanner sous la barre (simple + continu) ──
         Row(children: [
@@ -1079,9 +1176,15 @@ class _PosPageState extends State<PosPage> {
               label: label,
               selected: active,
               onTap: isPatho
-                  ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text(
-                          'Données non disponibles : aucune indication/pathologie enregistrée.')))
+                  ? () {
+                      if (!_indicationsAvailable) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                            content: Text(
+                                'Données non disponibles : aucune indication/pathologie enregistrée.')));
+                        return;
+                      }
+                      _pickPathologie(context);
+                    }
                   : () {
                       setState(() {
                         _activeForm = active ? null : form;
@@ -1094,8 +1197,66 @@ class _PosPageState extends State<PosPage> {
             return Opacity(opacity: _indicationsAvailable ? 1 : 0.45, child: tile);
           },
         ),
+        if (_activePathologie != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(
+              children: [
+                Chip(
+                  visualDensity: VisualDensity.compact,
+                  label: Text('Pathologie : $_activePathologie',
+                      style: const TextStyle(fontSize: 11)),
+                  onDeleted: () {
+                    setState(() => _activePathologie = null);
+                    _searchMedications('');
+                  },
+                ),
+              ],
+            ),
+          ),
       ],
     );
+  }
+
+  /// Choix d'une pathologie parmi les valeurs tracees (table
+  /// medicine_indications). Aucune donnee fabriquee : liste vide =
+  /// message honnete, aucun filtre applique.
+  Future<void> _pickPathologie(BuildContext context) async {
+    if (_pathologies.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Aucune pathologie enregistrée pour le moment.')));
+      return;
+    }
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text('Filtrer par pathologie',
+                  style: TextStyle(fontWeight: FontWeight.w700)),
+            ),
+            for (final p in _pathologies)
+              ListTile(
+                dense: true,
+                title: Text('${p['pathologie']}'),
+                trailing: Text('${p['count'] ?? 0}',
+                    style: const TextStyle(color: Colors.grey)),
+                onTap: () => Navigator.pop(ctx, '${p['pathologie']}'),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (choice == null || choice.isEmpty || !mounted) return;
+    setState(() {
+      _activeForm = null;
+      _activePathologie = choice;
+    });
+    _search.clear();
+    _searchMedications('');
   }
 
   // ══════════════════════════════════════════
@@ -1517,9 +1678,14 @@ class _PosPageState extends State<PosPage> {
   //  SECTION 10 : MONTANT REÇU / MONNAIE
   // ══════════════════════════════════════════
   Widget _buildCashReceived(String locale) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
+    // Reconstruit UNIQUEMENT ce bloc (et le bouton Payer via son propre
+    // écouteur) quand « montant reçu » change — pas toute la page.
+    return ValueListenableBuilder<double>(
+      valueListenable: _receivedVN,
+      builder: (context, _, __) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
         const Text('MONTANT REÇU (MAD)',
             style: TextStyle(
                 fontSize: 11,
@@ -1568,7 +1734,8 @@ class _PosPageState extends State<PosPage> {
                         size: 18, color: Colors.white54),
                     onPressed: () {
                       _receivedCtrl.clear();
-                      setState(() => _received = 0);
+                      _received = 0;
+                      _receivedVN.value = 0;
                     })
                 : null,
           ),
@@ -1591,7 +1758,8 @@ class _PosPageState extends State<PosPage> {
                   _receivedCtrl.text = _cart.total == _cart.total.roundToDouble()
                       ? _cart.total.round().toString()
                       : Fmt.money(_cart.total);
-                  setState(() => _received = _cart.total);
+                  _received = _cart.total;
+                  _receivedVN.value = _cart.total;
                 }),
           ],
         ),
@@ -1631,6 +1799,8 @@ class _PosPageState extends State<PosPage> {
             ),
           ),
       ],
+      );
+      },
     );
   }
 
@@ -1638,11 +1808,16 @@ class _PosPageState extends State<PosPage> {
   //  SECTION 11 : ACTIONS
   // ══════════════════════════════════════════
   Widget _buildActions(String locale) {
-    final canPay = !_cart.isEmpty &&
-        !_checkout &&
-        (_paymentMode != 'cash' || _cashSufficient);
-    return Row(
-      children: [
+    // Le bouton Payer dépend de _cashSufficient → _received : on limite
+    // la reconstruction à cette rangée quand le montant reçu change.
+    return ValueListenableBuilder<double>(
+      valueListenable: _receivedVN,
+      builder: (context, _, __) {
+        final canPay = !_cart.isEmpty &&
+            !_checkout &&
+            (_paymentMode != 'cash' || _cashSufficient);
+        return Row(
+          children: [
         Expanded(
           child: _PosButton(
             label: 'Vider',
@@ -1669,6 +1844,7 @@ class _PosPageState extends State<PosPage> {
                             _received = 0;
                             _receivedCtrl.clear();
                           });
+                          _receivedVN.value = 0;
                         },
                         child: const Text('Vider',
                             style: TextStyle(color: AppColors.danger))),
@@ -1709,6 +1885,8 @@ class _PosPageState extends State<PosPage> {
           ),
         ),
       ],
+      );
+      },
     );
   }
 
@@ -1894,10 +2072,25 @@ class _PaymentChipState extends State<_PaymentChip>
   void initState() {
     super.initState();
     _ac = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1200))
-      ..repeat(reverse: true);
+        vsync: this, duration: const Duration(milliseconds: 1200));
     _glow = Tween<double>(begin: 0.3, end: 0.8).animate(
         CurvedAnimation(parent: _ac, curve: Curves.easeInOut));
+    // Animation continue UNIQUEMENT si le chip est sélectionné : sinon
+    // le contrôleur tournerait à 60 fps inutilement (CPU gaspillé).
+    if (widget.selected) _ac.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant _PaymentChip old) {
+    super.didUpdateWidget(old);
+    if (widget.selected != old.selected) {
+      if (widget.selected) {
+        _ac.repeat(reverse: true);
+      } else {
+        _ac.stop();
+        _ac.value = 0;
+      }
+    }
   }
 
   @override
@@ -2091,10 +2284,25 @@ class _PosButtonState extends State<_PosButton>
   void initState() {
     super.initState();
     _ac = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1200))
-      ..repeat(reverse: true);
+        vsync: this, duration: const Duration(milliseconds: 1200));
     _glow = Tween<double>(begin: 0.4, end: 0.8).animate(
         CurvedAnimation(parent: _ac, curve: Curves.easeInOut));
+    // Animation continue UNIQUEMENT si le bouton est actif : sinon le
+    // contrôleur tournerait à 60 fps inutilement (CPU gaspillé).
+    if (widget.enabled) _ac.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant _PosButton old) {
+    super.didUpdateWidget(old);
+    if (widget.enabled != old.enabled) {
+      if (widget.enabled) {
+        _ac.repeat(reverse: true);
+      } else {
+        _ac.stop();
+        _ac.value = 0;
+      }
+    }
   }
 
   @override
@@ -2199,10 +2407,25 @@ class _PayButtonState extends State<_PayButton>
   void initState() {
     super.initState();
     _ac = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1400))
-      ..repeat(reverse: true);
+        vsync: this, duration: const Duration(milliseconds: 1400));
     _glow = Tween<double>(begin: 0.4, end: 1.0).animate(
         CurvedAnimation(parent: _ac, curve: Curves.easeInOut));
+    // Animation continue UNIQUEMENT si le bouton Payer est actif : sinon
+    // le contrôleur tournerait à 60 fps inutilement (CPU gaspillé).
+    if (widget.enabled) _ac.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant _PayButton old) {
+    super.didUpdateWidget(old);
+    if (widget.enabled != old.enabled) {
+      if (widget.enabled) {
+        _ac.repeat(reverse: true);
+      } else {
+        _ac.stop();
+        _ac.value = 0;
+      }
+    }
   }
 
   @override

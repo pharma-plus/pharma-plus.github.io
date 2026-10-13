@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
+import '../../core/services/api_client.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../catalog/catalog_page.dart';
@@ -266,12 +267,34 @@ class _PharmacyPlanPageState extends State<PharmacyPlanPage> {
                             // doit disparaitre (avant: re-selectionnait 'meds'
                             // et semblait ne jamais se fermer).
                             onClose: () => setState(() => _selected = null),
-                            onProductTap: (product) {
+                            onProductTap: (product) async {
                               final nav = Navigator.of(context);
-                              nav.push(MaterialPageRoute(
-                                builder: (_) =>
-                                    CatalogPage(initialQuery: product),
-                              ));
+                              final messenger =
+                                  ScaffoldMessenger.of(context);
+                              final locale = this.locale;
+                              // Vérifie qu'un produit correspond AVANT de
+                              // pousser le catalogue : les libellés de meuble
+                              // ('Caisse', 'TPE', 'Ordonnances'…) ne doivent
+                              // pas ouvrir une recherche qui retombe sur vide.
+                              final r = await ApiClient.instance.get(
+                                '/catalog/medications',
+                                query: {'q': product, 'limit': 1},
+                              );
+                              final body = r.data;
+                              final items = (body is Map && body['items'] is List)
+                                  ? body['items'] as List
+                                  : (body is List ? body : const []);
+                              if (items.isNotEmpty) {
+                                nav.push(MaterialPageRoute(
+                                  builder: (_) =>
+                                      CatalogPage(initialQuery: product),
+                                ));
+                              } else {
+                                messenger.showSnackBar(SnackBar(
+                                  content: Text(
+                                      '${S.t('noResults', locale)} : $product'),
+                                ));
+                              }
                             },
                           ),
                        ],

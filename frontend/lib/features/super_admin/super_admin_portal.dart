@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
@@ -8,6 +10,7 @@ import '../../core/theme/colors.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/status_chip.dart';
+import 'users_management_page.dart';
 
 /// Portail réservé au Super Administrateur PHARMA+ :
 /// statistiques globales, gestion des pharmacies, création, suspension.
@@ -28,11 +31,18 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
   int _page = 1;
   final int _limit = 20;
   bool _hasMore = true;
+  Timer? _searchDebounce;
 
   @override
   void initState() {
     super.initState();
     _load(reset: true);
+  }
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    super.dispose();
   }
 
   Color _statusColor(String? s) {
@@ -170,14 +180,34 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
           if (_global != null) _GlobalStats(global: _global!, locale: locale),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const UsersManagementPage(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.people_outline),
+              label: Text(S.t('gestion_utilisateurs', locale)),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: TextField(
               decoration: InputDecoration(
                 hintText: S.t('searchPharmacy', locale),
                 prefixIcon: const Icon(Icons.search),
               ),
               onChanged: (v) {
-                _q = v.trim();
-                _load(reset: true);
+                _searchDebounce?.cancel();
+                _searchDebounce =
+                    Timer(const Duration(milliseconds: 300), () {
+                  if (!mounted) return;
+                  _q = v.trim();
+                  _load(reset: true);
+                });
               },
             ),
           ),

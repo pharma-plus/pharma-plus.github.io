@@ -43,17 +43,20 @@ CREATE INDEX idx_sales_created ON sales(pharmacy_id, created_at DESC);
 -- Lignes de vente
 -- ------------------------------------------------------------
 CREATE TABLE sale_items (
-  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  pharmacy_id   uuid NOT NULL REFERENCES pharmacies(id) ON DELETE CASCADE,
-  sale_id       uuid NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
-  medication_id uuid NOT NULL REFERENCES medications(id) ON DELETE RESTRICT,
-  lot_id        uuid REFERENCES lots(id) ON DELETE SET NULL,
-  quantity      numeric(12,3) NOT NULL CHECK (quantity > 0),
-  unit_price    numeric(14,2) NOT NULL DEFAULT 0,
-  cost_price    numeric(14,2) NOT NULL DEFAULT 0,
-  tva_rate      numeric(5,2) NOT NULL DEFAULT 20.00,
-  discount      numeric(5,2) NOT NULL DEFAULT 0,
-  line_total    numeric(14,2) NOT NULL DEFAULT 0
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  pharmacy_id     uuid NOT NULL REFERENCES pharmacies(id) ON DELETE CASCADE,
+  sale_id         uuid NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
+  medication_id   uuid NOT NULL REFERENCES medications(id) ON DELETE RESTRICT,
+  lot_id          uuid REFERENCES lots(id) ON DELETE SET NULL,
+  quantity        numeric(12,3) NOT NULL CHECK (quantity > 0),
+  unit_price      numeric(14,2) NOT NULL DEFAULT 0,
+  cost_price      numeric(14,2) NOT NULL DEFAULT 0,
+  unit_cost       numeric(14,2) NOT NULL DEFAULT 0,
+  tva_rate        numeric(5,2) NOT NULL DEFAULT 20.00,
+  tax_rate        numeric(5,2) NOT NULL DEFAULT 20.00,
+  discount        numeric(5,2) NOT NULL DEFAULT 0,
+  discount_percent numeric(5,2) NOT NULL DEFAULT 0,
+  line_total      numeric(14,2) NOT NULL DEFAULT 0
 );
 CREATE INDEX idx_sale_items_sale ON sale_items(sale_id);
 CREATE INDEX idx_sale_items_med ON sale_items(medication_id);
@@ -88,6 +91,7 @@ CREATE TABLE invoices (
   number       text NOT NULL,
   type         text NOT NULL DEFAULT 'invoice' CHECK (type IN ('invoice','avoir','credit_note')),
   issue_date   date NOT NULL DEFAULT CURRENT_DATE,
+  issued_at    timestamptz NOT NULL DEFAULT now(),
   due_date     date,
   subtotal     numeric(14,2) NOT NULL DEFAULT 0,
   tax_total    numeric(14,2) NOT NULL DEFAULT 0,

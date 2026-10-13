@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
@@ -42,12 +44,18 @@ class _CatalogPageState extends State<CatalogPage> {
   String? _error;
   late bool _paraMode = widget.parapharmacy;
 
+  // Recherche : debounce 300 ms + séquence pour ignorer les résultats
+  // obsolètes d'une requête antérieure (frappe rapide).
+  Timer? _searchDebounce;
+  int _loadSeq = 0;
+
   // Facettes reelles (alimentees par /catalog/medications/facets).
   List<_Facet> _labs = [];
   List<_Facet> _forms = [];
   List<_Facet> _dosages = [];
   List<_Facet> _statuses = [];
   int _indicationsTotal = 0;
+  List<Map<String, dynamic>> _pathologies = const [];
   List<String> _stockIds = [];
   final Map<String, double> _stock = {};
 
@@ -58,6 +66,7 @@ class _CatalogPageState extends State<CatalogPage> {
   String? _fStatus;
   String? _fAvail; // en_stock | hors_stock
   String? _fPrice; // tranche id ("0-50")
+  String? _fPathologie; // valeur tracee medicine_indications
 
   static const Map<String, List<num?>> _priceRanges = {
     '0-50': [0, 50],
@@ -68,10 +77,11 @@ class _CatalogPageState extends State<CatalogPage> {
   };
 
   bool get _hasFilters => _fLab != null || _fForm != null || _fDosage != null ||
-      _fStatus != null || _fAvail != null || _fPrice != null;
+      _fStatus != null || _fAvail != null || _fPrice != null || _fPathologie != null;
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _search.dispose();
     super.dispose();
   }
@@ -108,6 +118,14 @@ class _CatalogPageState extends State<CatalogPage> {
     if (s.success && s.data is List) {
       setState(() => _stockIds = (s.data as List).map((e) => '$e').toList());
     }
+    // Valeurs de pathologie tracees (filtre reel via medicine_indications).
+    if (_indicationsTotal > 0) {
+      final p = await ApiClient.instance.get('/catalog/medications/pathologies');
+      if (mounted && p.success) {
+        setState(() => _pathologies =
+            (ApiList.of(p.data)).cast<Map<String, dynamic>>());
+      }
+    }
   }
 
   Map<String, dynamic> _buildQuery(int page, String? query) {
@@ -120,6 +138,7 @@ class _CatalogPageState extends State<CatalogPage> {
       if (_fForm != null) 'form': 'eq.$_fForm',
       if (_fDosage != null) 'dosage': 'eq.$_fDosage',
       if (_fStatus != null) 'status': 'eq.$_fStatus',
+      if (_fPathologie != null) 'pathologie': _fPathologie,
     };
     // Tranche de prix (PostgREST and= pour cumuler min+max).
     final range = _fPrice != null ? _priceRanges[_fPrice] : null;
@@ -141,6 +160,7 @@ class _CatalogPageState extends State<CatalogPage> {
   }
 
   Future<void> _load({int page = 1, String? query}) async {
+    final seq = ++_loadSeq;
     setState(() {
       _loading = true;
       _error = null;
@@ -158,7 +178,7 @@ class _CatalogPageState extends State<CatalogPage> {
         query: {'limit': 100, 'is_parapharmacie': _paraMode},
       );
     }
-    if (!mounted) return;
+    if (!mounted || seq != _loadSeq) return; // résultat obsolète ignoré
     if (!result.success) {
       setState(() {
         _loading = false;
@@ -203,7 +223,44 @@ class _CatalogPageState extends State<CatalogPage> {
       _fStatus = null;
       _fAvail = null;
       _fPrice = null;
+      _fPathologie = null;
     });
+    _load(page: 1, query: _search.text);
+  }
+
+  /// Choix d'une pathologie parmi les valeurs tracees (medicine_indications).
+  /// Aucune donnee fabriquee : liste vide = message honnete, aucun filtre.
+  Future<void> _pickPathologie() async {
+    if (_pathologies.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Aucune pathologie enregistrée pour le moment.')));
+      return;
+    }
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text('Filtrer par pathologie',
+                  style: TextStyle(fontWeight: FontWeight.w700)),
+            ),
+            for (final p in _pathologies)
+              ListTile(
+                dense: true,
+                title: Text('${p['pathologie']}'),
+                trailing: Text('${p['count'] ?? 0}',
+                    style: const TextStyle(color: Colors.grey)),
+                onTap: () => Navigator.pop(ctx, '${p['pathologie']}'),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (choice == null || choice.isEmpty || !mounted) return;
+    setState(() => _fPathologie = choice);
     _load(page: 1, query: _search.text);
   }
 
@@ -272,7 +329,7 @@ class _CatalogPageState extends State<CatalogPage> {
           : null;
       final tva = settings?['tva'] as Map?;
       tvaRate = (tva?[_paraMode ? 'parapharmacie' : 'medication'] as num?)?.toDouble() ??
-          (_paraMode ? 20 : 16);
+          (_paraMode ? 20 : 0);
     }
     final tva = TextEditingController(text: '$tvaRate');
     String? selectedZone = medication?.shelfLocation;
@@ -501,7 +558,7 @@ class _CatalogPageState extends State<CatalogPage> {
       'therapeutic_class': therapeuticClass.text.trim().isEmpty
           ? null
           : therapeuticClass.text.trim(),
-      'tva_rate': double.tryParse(tva.text) ?? 20,
+      'tva_rate': double.tryParse(tva.text) ?? 0,
     };
     if (medication == null) {
       payload['is_parapharmacie'] = _paraMode;
@@ -568,7 +625,15 @@ class _CatalogPageState extends State<CatalogPage> {
             padding: const EdgeInsets.all(12),
             child: TextField(
               controller: _search,
-              onChanged: (q) => _load(query: q),
+              // Affichage du caractère immédiat (contrôleur local) ;
+              // requête serveur débouncée à 300 ms pour ne pas flood.
+              onChanged: (q) {
+                _searchDebounce?.cancel();
+                _searchDebounce =
+                    Timer(const Duration(milliseconds: 300), () {
+                  if (mounted) _load(page: 1, query: q);
+                });
+              },
               decoration: InputDecoration(
                 hintText: S.t('search', locale),
                 prefixIcon: const Icon(Icons.search),
@@ -652,19 +717,22 @@ class _CatalogPageState extends State<CatalogPage> {
                     _load(page: 1, query: _search.text);
                   },
                 ),
-                // Pathologie / indication : signale honnetement (aucune
-                // donnee reelle en base, jamais de carte promettant du vide).
+                // Pathologie : filtre reel sur medicine_indications quand
+                // des donnees tracees existent ; signale honnetement
+                // l'absence de donnees (aucune carte promettant du vide).
                 Tooltip(
                   message: _indicationsTotal > 0
-                      ? '$_indicationsTotal indications'
+                      ? '$_indicationsTotal indications tracées'
                       : 'Aucune indication fournie par la source — données non disponibles',
                   child: FilterChip(
                     label: Text(_indicationsTotal > 0
-                        ? 'Pathologie ($_indicationsTotal)'
+                        ? (_fPathologie != null
+                            ? 'Pathologie : $_fPathologie'
+                            : 'Pathologie ($_indicationsTotal)')
                         : 'Pathologie : données non disponibles'),
-                    selected: false,
+                    selected: _fPathologie != null,
                     onSelected: _indicationsTotal > 0
-                        ? (_) {}
+                        ? (_) => _pickPathologie()
                         : null,
                     avatar: Icon(
                       _indicationsTotal > 0

@@ -50,7 +50,7 @@ export const purchasesService = {
                                               quantity_ordered, unit_cost, tax_rate, discount_percent)
            VALUES ($1,$2,$3,$4,$5,$6,$7)`,
           [orderId, pharmacyId, item.medication_id, item.quantity, item.unit_cost ?? 0,
-           item.tva_rate ?? 20, item.discount ?? 0],
+            item.tva_rate ?? 0, item.discount ?? 0],
         );
       }
 
@@ -184,7 +184,7 @@ export const purchasesService = {
                                                 tax_rate, discount_percent)
              VALUES ($1,$2,$3,$4,0,$5,$6,0) RETURNING *`,
             [orderId, pharmacyId, item.medication_id, item.quantity,
-             item.cost_price ?? 0, item.tva_rate ?? 20],
+              item.cost_price ?? 0, item.tva_rate ?? 0],
           );
           oi = inserted.rows[0];
           orderItems.push(oi);

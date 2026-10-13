@@ -18,6 +18,7 @@ CREATE TABLE backups (
   status       text NOT NULL DEFAULT 'running'
                CHECK (status IN ('running','completed','failed','restoring','verified')),
   error        text,
+  started_at   timestamptz NOT NULL DEFAULT now(),
   created_at   timestamptz NOT NULL DEFAULT now(),
   completed_at timestamptz,
   restored_at  timestamptz
@@ -67,10 +68,14 @@ CREATE TABLE support_tickets (
   pharmacy_id  uuid NOT NULL REFERENCES pharmacies(id) ON DELETE CASCADE,
   user_id      uuid REFERENCES users(id) ON DELETE SET NULL,
   subject      text NOT NULL,
+  description  text,
+  assigned_to  uuid REFERENCES users(id) ON DELETE SET NULL,
   status       text NOT NULL DEFAULT 'open' CHECK (status IN ('open','in_progress','resolved','closed')),
   priority     text NOT NULL DEFAULT 'normal' CHECK (priority IN ('low','normal','high','critical')),
   created_at   timestamptz NOT NULL DEFAULT now(),
-  resolved_at  timestamptz
+  updated_at   timestamptz NOT NULL DEFAULT now(),
+  resolved_at  timestamptz,
+  closed_at    timestamptz
 );
 
 CREATE TABLE support_messages (
@@ -99,17 +104,27 @@ CREATE TABLE announcements (
 -- Site Web pharmacie (contenu personnalisable)
 -- ------------------------------------------------------------
 CREATE TABLE website_settings (
-  pharmacy_id  uuid PRIMARY KEY REFERENCES pharmacies(id) ON DELETE CASCADE,
-  hero_title   text,
-  hero_subtitle text,
-  about        text,
-  services     jsonb DEFAULT '[]',
-  photos       jsonb DEFAULT '[]',
-  video_url    text,
-  social       jsonb DEFAULT '{}',
-  opening_hours jsonb DEFAULT '[]',
-  custom_css   text,
-  updated_at   timestamptz NOT NULL DEFAULT now()
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  pharmacy_id    uuid NOT NULL REFERENCES pharmacies(id) ON DELETE CASCADE,
+  slug           text,
+  title          text,
+  description    text,
+  hero_title     text,
+  hero_subtitle  text,
+  hero_image_url text,
+  about          text,
+  services       jsonb DEFAULT '[]',
+  photos         jsonb DEFAULT '[]',
+  video_url      text,
+  social         jsonb DEFAULT '{}',
+  opening_hours  jsonb DEFAULT '[]',
+  custom_css     text,
+  theme_colors   jsonb,
+  seo_json       jsonb,
+  is_published   boolean NOT NULL DEFAULT false,
+  updated_at     timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (pharmacy_id),
+  UNIQUE (slug)
 );
 
 CREATE TABLE blog_categories (

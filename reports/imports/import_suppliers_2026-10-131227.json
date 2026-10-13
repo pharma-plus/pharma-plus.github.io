@@ -1,0 +1,16 @@
+{
+ "import": "suppliers",
+ "source": "data\\imports\\templates\\suppliers\\suppliers_template.csv",
+ "mode": "DRY-RUN",
+ "at": "2026-10-13T12:27:30.015Z",
+ "lignes_source": 1,
+ "existants": 23,
+ "a_creer": 1,
+ "a_mettre_a_jour": 0,
+ "inchanges": 0,
+ "rejets": 0,
+ "motifs_rejet": [],
+ "crees": [],
+ "mis_a_jour": [],
+ "erreurs": []
+}

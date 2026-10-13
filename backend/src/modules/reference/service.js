@@ -156,7 +156,7 @@ export const referenceService = {
                item.presentation ?? null, item.laboratory ?? null, item.therapeutic_class ?? null,
                item.commercial_status ?? 'commercialise', item.amm_number ?? null,
                item.code_produit ?? null, item.barcode_ean13 ?? null, item.qr_code ?? null,
-               item.ppv ?? null, item.ph ?? null, item.pfht ?? null, item.tva_rate ?? 20,
+                item.ppv ?? null, item.ph ?? null, item.pfht ?? null, item.tva_rate ?? 0,
                item.rcp_url ?? null, item.notice_url ?? null, source, snapshot.updated_at ?? null],
             );
             await client.query(
@@ -283,7 +283,7 @@ export const referenceService = {
        VALUES ($1,$2,NULL,NULL,NULL,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,false,$14,$15,'available',false)`,
       [id, pharmacyId, product.name, product.dci ?? null, product.substance_active ?? null,
        product.dosage ?? null, product.form ?? null, product.presentation ?? null,
-       product.barcode_ean13 ?? null, pricePur, priceSel, product.tva_rate ?? 20,
+        product.barcode_ean13 ?? null, pricePur, priceSel, product.tva_rate ?? 0,
        Math.round(margin * 100) / 100, reorderLevel ?? 10, minStock ?? 5],
     );
 

@@ -488,7 +488,7 @@ class _OrderLine {
   String? medicationId;
   double quantity = 1;
   double unitCost = 0;
-  double tvaRate = 20;
+  double tvaRate = 0;
   double discount = 0;
 }
 
@@ -534,7 +534,7 @@ class _LineEditor extends StatelessWidget {
                     line.unitCost =
                         double.tryParse('${med['price_purchase'] ?? 0}') ?? 0;
                     line.tvaRate =
-                        double.tryParse('${med['tva_rate'] ?? 20}') ?? 20;
+                        double.tryParse('${med['tva_rate'] ?? 0}') ?? 0;
                     onChanged();
                   },
                 ),

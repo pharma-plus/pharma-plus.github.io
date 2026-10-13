@@ -24,7 +24,7 @@ const medicationSchema = {
   laboratory_id: Joi.string().uuid().allow(null),
   price_purchase: Joi.number().min(0).default(0),
   price_sale: Joi.number().min(0).default(0),
-  tva_rate: Joi.number().min(0).max(100).default(20),
+  tva_rate: Joi.number().min(0).max(100).default(0),
   margin: Joi.number().allow(null),
   prescription_required: Joi.boolean().default(false),
   storage_conditions: Joi.string().max(300).allow(null, ''),

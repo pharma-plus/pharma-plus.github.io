@@ -28,6 +28,16 @@ test('EAN-13 : clé de contrôle correcte (340093605541 → 4)', () => {
   assert.ok(!isEan13Valid('34009360554'));
 });
 
+test('EAN-13 : rejet des valeurs non conformes (vide, alpha, longueur, AMM)', () => {
+  assert.ok(!isEan13Valid(''));            // vide
+  assert.ok(!isEan13Valid(null));          // null
+  assert.ok(!isEan13Valid('34009360554AA'));// non numérique
+  assert.ok(!isEan13Valid('340093605541')); // 12 chiffres (incomplet)
+  assert.ok(!isEan13Valid('34009360554123')); // 14 chiffres
+  // Un numéro AMM dé-spacé (Doliprane AMM 34009 360 5541 2) n'est PAS un EAN :
+  assert.ok(!isEan13Valid('3400936055412'));
+});
+
 test('chiffrement/déchiffrement AES-256-GCM roundtrip', () => {
   const key = deriveKey('passphrase-de-test');
   const data = Buffer.from('données sensibles de sauvegarde');

@@ -222,11 +222,11 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  Future<void> _editServerUrl() async {
+Future<void> _editServerUrl() async {
     final auth = context.read<AuthStore>();
     final locale = auth.locale;
     final controller = TextEditingController(text: auth.baseUrl);
-    final value = await showDialog<String>(
+    await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(S.t('serverUrl', locale)),
@@ -247,9 +247,66 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
       ),
     );
-    if (value != null && value.isNotEmpty) {
-      await auth.setBaseUrl(value);
-    }
+  }
+
+  void _showInactivityMenu(BuildContext context) {
+    final auth = context.read<AuthStore>();
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext builder) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(S.t('choisirMinuterie', auth.locale)),
+              const SizedBox(height: 16),
+              ListTile(
+                title: Text('1 minute'),
+                trailing: Checkbox(
+                  value: auth.inactivityMinutes == 1,
+                  onChanged: (bool? value) {
+                    setState(() => auth.inactivityMinutes = value == true ? 1 : 0);
+                  },
+                ),
+              ),
+              ListTile(
+                title: Text('5 minutes'),
+                trailing: Checkbox(
+                  value: auth.inactivityMinutes == 5,
+                  onChanged: (bool? value) {
+                    setState(() => auth.inactivityMinutes = value == true ? 5 : 0);
+                  },
+                ),
+              ),
+              ListTile(
+                title: Text('15 minutes'),
+                trailing: Checkbox(
+                  value: auth.inactivityMinutes == 15,
+                  onChanged: (bool? value) {
+                    setState(() => auth.inactivityMinutes = value == true ? 15 : 0);
+                  },
+                ),
+              ),
+              ListTile(
+                title: Text('30 minutes'),
+                trailing: Checkbox(
+                  value: auth.inactivityMinutes == 30,
+                  onChanged: (bool? value) {
+                    setState(() => auth.inactivityMinutes = value == true ? 30 : 0);
+                  },
+                ),
+              ),
+              const SizedBox(height: 24),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(S.t('fermer', auth.locale)),
+              ),
+            ],
+          ),
+        );
+      },
+);
   }
 
   @override
@@ -525,6 +582,38 @@ class _SettingsPageState extends State<SettingsPage> {
               title: Text(S.t('changePassword', locale)),
               trailing: const Icon(Icons.chevron_right),
               onTap: _changePassword,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _Section(
+            title: S.t('securitySettings', locale),
+            child: Column(
+              children: [
+                // Minuterie inactivité
+                ListTile(
+                  title: Text(S.t('minuterieInactivite', locale)),
+                  subtitle: Text('${auth.inactivityMinutes} min'),
+                  trailing: const Icon(Icons.timer),
+                  onTap: () => _showInactivityMenu(context),
+                ),
+                // Case à cocher verrouillage auto
+                ListTile(
+                  title: Text(S.t('verrouillageAuto', locale)),
+                  trailing: Switch(
+                    value: auth.inactivityMinutes > 0,
+                    onChanged: (value) {
+                      if (value) {
+                        // Activer avec valeur par défaut
+                        auth.inactivityMinutes = 15;
+                      } else {
+                        // Désactiver
+                        auth.inactivityMinutes = 0;
+                      }
+                      setState(() {});
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
@@ -2029,7 +2118,7 @@ class _TvaSectionState extends State<_TvaSection> {
     final tva = (widget.pharmacy?['settings'] is Map
             ? (widget.pharmacy!['settings'] as Map)['tva']
             : null) as Map?;
-    _medication.text = '${_rate(tva?['medication'], 16)}';
+    _medication.text = '${_rate(tva?['medication'], 0)}';
     _parapharmacie.text = '${_rate(tva?['parapharmacie'], 20)}';
     _other.text = '${_rate(tva?['other'], 20)}';
   }

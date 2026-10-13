@@ -8,14 +8,14 @@
 -- Catégories thérapeutiques de référence (nomenclature standard)
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS reference_categories (
-  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  code         text NOT NULL UNIQUE,
+  code         text PRIMARY KEY,
   name_fr      text NOT NULL,
   name_ar      text,
   name_en      text,
   icon         text,
   color        text,
-  sort_order   int NOT NULL DEFAULT 0
+  sort_order   int NOT NULL DEFAULT 0,
+  created_at   timestamptz NOT NULL DEFAULT now()
 );
 
 -- ------------------------------------------------------------

@@ -23,12 +23,18 @@ CREATE TABLE journal_entries (
   branch_id     uuid REFERENCES branches(id) ON DELETE SET NULL,
   entry_number  text NOT NULL,
   entry_date    date NOT NULL DEFAULT CURRENT_DATE,
+  date          date NOT NULL DEFAULT CURRENT_DATE,
   journal_type  text NOT NULL DEFAULT 'cash'
                 CHECK (journal_type IN ('cash','bank','sales','purchases','general','closing')),
   description   text,
+  reference     text,
   source_module text,
   source_id     text,
+  total_debit   numeric(14,2) NOT NULL DEFAULT 0,
+  total_credit  numeric(14,2) NOT NULL DEFAULT 0,
+  status        text NOT NULL DEFAULT 'draft',
   created_by    uuid REFERENCES users(id) ON DELETE SET NULL,
+  created_at    timestamptz NOT NULL DEFAULT now(),
   posted_at     timestamptz NOT NULL DEFAULT now(),
   is_posted     boolean NOT NULL DEFAULT true,
   UNIQUE (pharmacy_id, entry_number)

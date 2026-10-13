@@ -1,0 +1,13 @@
+{
+ "import": "laboratories",
+ "source": "C:\\medicament_ma_extraction\\laboratoires.csv",
+ "mode": "DRY-RUN",
+ "at": "2026-10-13T12:24:28.481Z",
+ "lignes_source": 73,
+ "existants": 77,
+ "a_creer": 3,
+ "deja_presents": 70,
+ "variantes_signalees": [],
+ "crees": [],
+ "erreurs": []
+}

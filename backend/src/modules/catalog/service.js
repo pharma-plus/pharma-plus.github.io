@@ -322,7 +322,7 @@ export const catalogService = {
        data.name, data.dci ?? null, data.generic_name ?? null, data.dosage ?? null,
        data.form ?? null, data.presentation ?? null, data.photo_url ?? null,
        data.leaflet_url ?? null, data.barcode_ean13 ?? null, data.price_purchase ?? 0,
-       data.price_sale ?? 0, data.tva_rate ?? 20, Math.round(margin * 100) / 100,
+        data.price_sale ?? 0, data.tva_rate ?? 0, Math.round(margin * 100) / 100,
        data.prescription_required ?? false, data.storage_conditions ?? null,
        data.storage_temp_min ?? null, data.storage_temp_max ?? null,
        data.reorder_level ?? 0, data.min_stock ?? 0, data.shelf_location ?? null,

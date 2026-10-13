@@ -1,0 +1,37 @@
+-- ============================================================
+-- catalog_merge_procedure.sql — GABARIT, NE PAS EXECUTER EN L'ETAT.
+-- Procedure de rapprochement (merge) REVERSIBLE des doublons
+-- TECHNIQUES du catalogue (classe A de catalog_duplicate_detection.sql).
+--
+-- PREREQUIS (tous obligatoires) :
+--   1. Autorisation explicite et nominee du proprietaire des donnees.
+--   2. Preflight : la liste des groupes (classe A) est archivée et
+--      validee par un humain (aucune variante legitime dedans).
+--   3. Sauvegarde exportee de public.medications (select to_json) +
+--      verification de restauration sur un environnement isole.
+--   4. Controle des references liees (stock_balances, sale_items,
+--      lot, prescription_items, purchase_*_items) : aucune ligne
+--      orpheline apres re-orientation.
+--
+-- PRINCIPE (journalisation + reversibilite) :
+--   * creer public.medication_merges (journal) et
+--     public.medications_merged_alias (ancien id -> id survivant) ;
+--   * re-orienter TOUTES les references de l'ancien id vers le
+--     survivant (une table a la fois, dans une transaction) ;
+--   * marquer l'ancienne ligne status='retired' (jamais DELETE) ;
+--   * journaliser (ancien_id, survivant_id, motif, operateur, date) ;
+--   * reversal = re-orientation inverse depuis le journal + status
+--     restaure — possible tant qu'aucune ecriture metier ulterieure
+--     n'a ete faite sur l'ancien id.
+--
+-- CONTRE-INDICATIONS :
+--   * ne jamais fusionner deux lignes qui different par dosage,
+--     forme, prix, EAN ou statut (variances metier) ;
+--   * ne jamais fusionner si une des lignes a du stock residuel
+--     different de zero sans arbitrage humain du stock ;
+--   * ne jamais fabriquer ni ecraser prix/DCI/EAN pendant le merge.
+--
+-- Ce fichier est un GABARIT DOCUMENTE. L'execution reelle sera un
+-- script dedie, produit apres autorisation, avec compteur de lignes
+-- avant/apres pour chaque etape.
+-- ============================================================

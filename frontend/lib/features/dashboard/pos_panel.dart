@@ -62,6 +62,10 @@ class _PosPanelState extends State<PosPanel> {
   String _paymentMode = 'cash'; // cash | visa | mastercard
   double _received = 0;
   final _receivedCtrl = TextEditingController();
+
+  // Isolation des rebuilds : le champ « montant reçu » notifie uniquement
+  // le bloc monnaie au lieu de reconstruire tout le panneau à chaque frappe.
+  final ValueNotifier<double> _receivedVN = ValueNotifier<double>(0);
   List<Map<String, dynamic>> _customers = [];
   String? _customerId;
 
@@ -101,6 +105,7 @@ class _PosPanelState extends State<PosPanel> {
     _discountCtrl.dispose();
     _receivedCtrl.dispose();
     _debounce?.cancel();
+    _receivedVN.dispose();
     super.dispose();
   }
 
@@ -188,16 +193,19 @@ class _PosPanelState extends State<PosPanel> {
     });
   }
 
-  void _clearCart() => setState(() {
-        _cart.clear();
-        _qty.clear();
-        _discount = 0;
-        _discountCtrl.clear();
-        _received = 0;
-        _receivedCtrl.clear();
-        _paymentMode = 'cash';
-        _customerId = null;
-      });
+  void _clearCart() {
+    setState(() {
+      _cart.clear();
+      _qty.clear();
+      _discount = 0;
+      _discountCtrl.clear();
+      _received = 0;
+      _receivedCtrl.clear();
+      _paymentMode = 'cash';
+      _customerId = null;
+    });
+    _receivedVN.value = 0;
+  }
 
   Future<void> _scanBarcode() async {
     final result = await BarcodeScannerSheet.show(context, title: 'Scanner produit');
@@ -367,14 +375,19 @@ class _PosPanelState extends State<PosPanel> {
   bool get _cashSufficient => _received >= _totals.total || _paymentMode != 'cash';
   double get _change => (_received > _totals.total) ? _received - _totals.total : 0;
 
-  void _setReceived(String v) =>
-      setState(() => _received = double.tryParse(v.replaceAll(',', '.')) ?? 0);
+  void _setReceived(String v) {
+    _received = double.tryParse(v.replaceAll(',', '.')) ?? 0;
+    // Notifie uniquement le bloc monnaie (ValueListenableBuilder) au lieu
+    // de setState() qui reconstruirait tout le panneau à chaque frappe.
+    _receivedVN.value = _received;
+  }
 
   void _quickReceived(double v) {
     final next = v == _totals.total ? v : _received + v;
     _receivedCtrl.text =
         next == next.roundToDouble() ? next.round().toString() : next.toStringAsFixed(2);
-    setState(() => _received = next);
+    _received = next;
+    _receivedVN.value = next;
   }
 
   @override
@@ -586,7 +599,7 @@ class _PosPanelState extends State<PosPanel> {
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
-                                    '${m.name}${m.dosage != null ? ' · ${m.dosage}' : ''}',
+                                    '${m.name}${m.dosage != null ? ' · ${m.dosage}' : ''}${m.laboratoryName != null && m.laboratoryName!.isNotEmpty ? ' · ${m.laboratoryName}' : ''}',
                                     maxLines: 1, overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(color: Colors.white, fontSize: 10.5)),
                               ),
@@ -766,41 +779,50 @@ class _PosPanelState extends State<PosPanel> {
               _receivedCtrl.text = _totals.total == _totals.total.roundToDouble()
                   ? _totals.total.round().toString()
                   : _totals.total.toStringAsFixed(2);
-              setState(() => _received = _totals.total);
+              _received = _totals.total;
+              _receivedVN.value = _totals.total;
             }),
           ]),
-          if (_received > 0) ...[
-            const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                  color: _cashSufficient
-                      ? AppColors.emerald.withValues(alpha: 0.1)
-                      : AppColors.danger.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                      color: _cashSufficient ? AppColors.emerald : AppColors.danger)),
-              child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(_cashSufficient ? 'MONNAIE' : 'RESTE A PAYER',
-                        style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: _cashSufficient
-                                ? AppColors.emerald
-                                : AppColors.danger)),
-                    Text(
-                        '${Fmt.money(_cashSufficient ? _change : _totals.total - _received)} MAD',
-                        style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                            color: _cashSufficient
-                                ? AppColors.emerald
-                                : AppColors.danger)),
-                  ]),
-            ),
-          ],
+          // Bannière monnaie / reste : reconstruite seule via le notifier.
+          ValueListenableBuilder<double>(
+            valueListenable: _receivedVN,
+            builder: (context, rv, _) {
+              if (rv <= 0) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                      color: _cashSufficient
+                          ? AppColors.emerald.withValues(alpha: 0.1)
+                          : AppColors.danger.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color:
+                              _cashSufficient ? AppColors.emerald : AppColors.danger)),
+                  child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(_cashSufficient ? 'MONNAIE' : 'RESTE A PAYER',
+                            style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: _cashSufficient
+                                    ? AppColors.emerald
+                                    : AppColors.danger)),
+                        Text(
+                            '${Fmt.money(_cashSufficient ? _change : _totals.total - _received)} MAD',
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
+                                color: _cashSufficient
+                                    ? AppColors.emerald
+                                    : AppColors.danger)),
+                      ]),
+                ),
+              );
+            },
+          ),
         ],
         // ── 8) MODE DE PAIEMENT (3 boutons avec logos) ──
         if (_cart.isNotEmpty) ...[

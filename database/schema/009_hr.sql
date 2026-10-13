@@ -55,6 +55,7 @@ CREATE TABLE attendance (
   overtime_minutes int NOT NULL DEFAULT 0,
   hours_worked     numeric(5,2) NOT NULL DEFAULT 0,
   notes            text,
+  created_at       timestamptz NOT NULL DEFAULT now(),
   UNIQUE (employee_id, date)
 );
 CREATE INDEX idx_attendance_employee ON attendance(employee_id, date DESC);

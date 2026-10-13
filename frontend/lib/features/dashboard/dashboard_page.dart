@@ -212,34 +212,13 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  void _onMenuSelect(int index) {
+  void _onSidebarNavigate(_NavItem item) {
     // Navigation via ShellNav (IndexedStack) au lieu de push : évite les
     // doublons de pages (2× requêtes API, pile Navigator qui grossit).
-    switch (index) {
-      case 1:
-        ShellNav.index.value = 2; // POS
-      case 2:
-        ShellNav.index.value = 3; // Catalogue
-      case 3:
-        ShellNav.index.value = 4; // Stock
-      case 4:
-        ShellNav.index.value = 5; // Fournisseurs
-      case 5:
-        ShellNav.index.value = 6; // Achats
-      case 6:
-        ShellNav.index.value = 7; // Clients
-      case 7:
-        ShellNav.index.value = 8; // Employés
-      case 8:
-        ShellNav.index.value = 9; // Rapports
-      case 9:
-        ShellNav.index.value = 10; // Plan pharmacie
-      case 10:
-        _push(const CamerasPage()); // hors shell (pas d'onglet dédié)
-      case 11:
-        _push(const ScannerPage()); // hors shell
-      case 12:
-        ShellNav.index.value = 11; // Tableau de contrôle
+    if (item.shellIndex != null) {
+      ShellNav.index.value = item.shellIndex!;
+    } else if (item.pageBuilder != null) {
+      _push(item.pageBuilder!());
     }
   }
 
@@ -271,19 +250,16 @@ class _DashboardPageState extends State<DashboardPage> {
             child: SizedBox(
               width: 250,
               child: _Sidebar(
-                onSelect: (index) {
-                  Navigator.of(ctx).pop(); // navigation → referme le menu
-                  _onMenuSelect(index);
-                },
-                onLogout: () {
-                  Navigator.of(ctx).pop();
-                  _onLogout();
-                },
-                onMoreModules: () {
-                  Navigator.of(ctx).pop();
-                  _showModulesMenu();
-                },
-              ),
+                  onNavigate: _onSidebarNavigate,
+                  onLogout: () {
+                    Navigator.of(ctx).pop();
+                    _onLogout();
+                  },
+                  onMoreModules: () {
+                    Navigator.of(ctx).pop();
+                    _showModulesMenu();
+                  },
+                ),
             ),
           ),
         );
@@ -387,7 +363,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   child: _Sidebar(
                       collapsed: _sidebarCollapsed,
                       onToggleCollapse: _toggleSidebar,
-                      onSelect: _onMenuSelect,
+                      onNavigate: _onSidebarNavigate,
                       onLogout: _onLogout,
                       onMoreModules: _showModulesMenu)),
               Container(width: 1, color: AppColors.dividerDark),
@@ -767,13 +743,39 @@ class _KpiCardState extends State<_KpiCard> {
 
 /// Or de marque utilisé par les accents dorés du dashboard.
 const Color _gold = Color(0xFFD9B45C);
-
 /// ============================================================
 /// SIDEBAR — logo croix+feuille · PHARMA+ blanc · 13 modules ·
 /// carte Admin · Se déconnecter · horloge + date (maquette).
+///
+/// NAVIGATION DYNAMIQUE (phase 30) : les entrées sont filtrées
+/// selon les permissions de l'utilisateur connecté. Cacher un
+/// bouton ne suffit pas : le backend refuse aussi la requête
+/// (enforcePathPermission, matrice ROUTE_MODULE).
 /// ============================================================
+class _NavItem {
+  final IconData icon;
+  final String label;
+
+  /// Code permission requis (null = toujours visible).
+  final String? permission;
+
+  /// Index ShellNav de destination (null = page poussée hors shell).
+  final int? shellIndex;
+
+  /// Constructeur de page hors shell (Caméras, Scanner).
+  final Widget Function()? pageBuilder;
+
+  const _NavItem(
+    this.icon,
+    this.label, {
+    this.permission,
+    this.shellIndex,
+    this.pageBuilder,
+  });
+}
+
 class _Sidebar extends StatefulWidget {
-  final ValueChanged<int> onSelect;
+  final ValueChanged<_NavItem> onNavigate;
   final VoidCallback onLogout;
   final VoidCallback onMoreModules;
 
@@ -782,12 +784,13 @@ class _Sidebar extends StatefulWidget {
   final bool collapsed;
   final VoidCallback? onToggleCollapse;
   const _Sidebar({
-    required this.onSelect,
+    required this.onNavigate,
     required this.onLogout,
     required this.onMoreModules,
     this.collapsed = false,
     this.onToggleCollapse,
   });
+
   @override
   State<_Sidebar> createState() => _SidebarState();
 }
@@ -796,21 +799,38 @@ class _SidebarState extends State<_Sidebar> {
   Timer? _timer;
   DateTime _now = DateTime.now();
 
-  static const _items = <(IconData, String)>[
-    (Icons.home_outlined, 'Tableau de bord'),
-    (Icons.shopping_cart_outlined, 'Point de vente'),
-    (Icons.medication_outlined, 'Catalogue'),
-    (Icons.inventory_2_outlined, 'Stock'),
-    (Icons.local_shipping_outlined, 'Fournisseurs'),
-    (Icons.assignment_outlined, 'Commandes'),
-    (Icons.people_alt_outlined, 'Clients'),
-    (Icons.badge_outlined, 'Employés'),
-    (Icons.insert_chart_outlined, 'Rapports'),
-    (Icons.view_in_ar_outlined, 'Plan 3D'),
-    (Icons.videocam_outlined, 'Caméras'),
-    (Icons.qr_code_scanner, 'Scanner'),
-    (Icons.settings_outlined, 'Tableau de contrôle'),
-  ];
+  /// Entrées visibles : filtrées par permissions réelles de l'utilisateur
+  /// (AuthStore.user.permissions, renvoyées par le backend à la connexion).
+  List<_NavItem> get _visibleItems {
+    final user = AuthStore.instance.user;
+    bool p(String code) => user?.hasPermission(code) ?? true;
+    return <_NavItem>[
+      _NavItem(Icons.home_outlined, 'Tableau de bord', shellIndex: 0),
+      _NavItem(Icons.shopping_cart_outlined, 'Point de vente',
+          permission: 'sales:view', shellIndex: 2),
+      _NavItem(Icons.medication_outlined, 'Catalogue',
+          permission: 'catalog:view', shellIndex: 3),
+      _NavItem(Icons.inventory_2_outlined, 'Stock',
+          permission: 'stock:view', shellIndex: 4),
+      _NavItem(Icons.local_shipping_outlined, 'Fournisseurs',
+          permission: 'suppliers:view', shellIndex: 5),
+      _NavItem(Icons.assignment_outlined, 'Commandes',
+          permission: 'purchases:view', shellIndex: 6),
+      _NavItem(Icons.people_alt_outlined, 'Clients',
+          permission: 'customers:view', shellIndex: 7),
+      _NavItem(Icons.badge_outlined, 'Employés',
+          permission: 'employees:view', shellIndex: 8),
+      _NavItem(Icons.insert_chart_outlined, 'Rapports',
+          permission: 'reports:view', shellIndex: 9),
+      _NavItem(Icons.view_in_ar_outlined, 'Plan 3D', shellIndex: 10),
+      _NavItem(Icons.videocam_outlined, 'Caméras',
+          pageBuilder: () => const CamerasPage()),
+      _NavItem(Icons.qr_code_scanner, 'Scanner',
+          pageBuilder: () => const ScannerPage()),
+      _NavItem(Icons.settings_outlined, 'Tableau de contrôle',
+          permission: 'settings:view', shellIndex: 11),
+    ].where((i) => i.permission == null || p(i.permission!)).toList();
+  }
 
   @override
   void initState() {
@@ -857,19 +877,19 @@ class _SidebarState extends State<_Sidebar> {
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 12),
-            itemCount: _items.length,
+            itemCount: _visibleItems.length,
             itemBuilder: (context, i) {
               final active = i == 0;
-              final (icon, label) = _items[i];
+              final item = _visibleItems[i];
               return Padding(
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Center(
                   child: Tooltip(
-                    message: label,
+                    message: item.label,
                     waitDuration: const Duration(milliseconds: 300),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(10),
-                      onTap: () => widget.onSelect(i),
+                      onTap: () => widget.onNavigate(item),
                       child: Container(
                         width: 44,
                         height: 40,
@@ -882,7 +902,7 @@ class _SidebarState extends State<_Sidebar> {
                                       .withValues(alpha: 0.55)
                                   : Colors.transparent),
                         ),
-                        child: Icon(icon,
+                        child: Icon(item.icon,
                             size: 20,
                             color: active
                                 ? Colors.white
@@ -963,15 +983,15 @@ class _SidebarState extends State<_Sidebar> {
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-            itemCount: _items.length,
+            itemCount: _visibleItems.length,
             itemBuilder: (context, i) {
               final active = i == 0;
-              final (icon, label) = _items[i];
+              final item = _visibleItems[i];
               return Padding(
                 padding: const EdgeInsets.only(bottom: 2),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(10),
-                  onTap: () => widget.onSelect(i),
+                  onTap: () => widget.onNavigate(item),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 10.5),
@@ -984,11 +1004,11 @@ class _SidebarState extends State<_Sidebar> {
                               : Colors.transparent),
                     ),
                     child: Row(children: [
-                      Icon(icon,
+                      Icon(item.icon,
                           size: 19, color: const Color(0xFFC9A24B)),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Text(label,
+                        child: Text(item.label,
                             style: TextStyle(
                                 fontSize: 13.5,
                                 color: active

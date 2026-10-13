@@ -4,20 +4,21 @@
 -- ============================================================
 
 CREATE TABLE prescriptions (
-  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  pharmacy_id   uuid NOT NULL REFERENCES pharmacies(id) ON DELETE CASCADE,
-  customer_id   uuid REFERENCES customers(id) ON DELETE SET NULL,
-  patient_name  text,
-  doctor_name   text,
-  source        text NOT NULL DEFAULT 'manual' CHECK (source IN ('camera','pdf','manual','client_web')),
-  file_url      text,
-  status        text NOT NULL DEFAULT 'received'
-                CHECK (status IN ('received','processing','filled','rejected','archived')),
-  notes         text,
-  filled_at     timestamptz,
-  created_by    uuid REFERENCES users(id) ON DELETE SET NULL,
-  created_at    timestamptz NOT NULL DEFAULT now(),
-  updated_at    timestamptz NOT NULL DEFAULT now()
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  pharmacy_id    uuid NOT NULL REFERENCES pharmacies(id) ON DELETE CASCADE,
+  customer_id    uuid REFERENCES customers(id) ON DELETE SET NULL,
+  patient_name   text,
+  doctor_name    text,
+  prescribed_date date NOT NULL DEFAULT CURRENT_DATE,
+  source         text NOT NULL DEFAULT 'manual' CHECK (source IN ('camera','pdf','manual','client_web')),
+  file_url       text,
+  status         text NOT NULL DEFAULT 'received'
+                 CHECK (status IN ('received','processing','filled','rejected','archived')),
+  notes          text,
+  filled_at      timestamptz,
+  created_by     uuid REFERENCES users(id) ON DELETE SET NULL,
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  updated_at     timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_prescriptions_customer ON prescriptions(customer_id, created_at DESC);
 CREATE INDEX idx_prescriptions_status ON prescriptions(pharmacy_id, status);

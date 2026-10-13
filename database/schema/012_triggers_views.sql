@@ -31,21 +31,11 @@ END $$;
 -- ------------------------------------------------------------
 CREATE OR REPLACE FUNCTION fn_apply_stock_movement() RETURNS trigger AS $$
 DECLARE
-  v_new_qty numeric;
-  v_res     numeric;
+  v_remain numeric;
+  r record;
 BEGIN
-  -- Mouvements entrants (augmentent la balance)
-  IF NEW.movement_type IN ('purchase_receipt','sale_return','inventory_in',
-                           'transfer_in','release') THEN
-    INSERT INTO stock_balances (pharmacy_id, branch_id, medication_id, lot_id,
-                                quantity, reserved_quantity, updated_at)
-    VALUES (NEW.pharmacy_id, NEW.branch_id, NEW.medication_id, NEW.lot_id,
-            NEW.quantity, 0, now())
-    ON CONFLICT (branch_id, medication_id, lot_id) DO UPDATE
-      SET quantity = stock_balances.quantity + NEW.quantity, updated_at = now();
-
-  -- Réservations : bloquent de la quantité disponible
-  ELSIF NEW.movement_type = 'reservation' THEN
+  -- Réservations : seule la quantité RÉSERVÉE bouge
+  IF NEW.movement_type = 'reservation' THEN
     UPDATE stock_balances
        SET reserved_quantity = reserved_quantity + abs(NEW.quantity), updated_at = now()
      WHERE branch_id = NEW.branch_id AND medication_id = NEW.medication_id
@@ -54,28 +44,133 @@ BEGIN
       RAISE EXCEPTION 'Stock introuvable pour la réservation';
     END IF;
 
-  -- Libérations de réservation
+  -- Libérations de réservation ('release' n'est plus dans la branche
+  -- entrante : un release ajoutait le stock au lieu de libérer la
+  -- réservation)
   ELSIF NEW.movement_type = 'release' THEN
     UPDATE stock_balances
        SET reserved_quantity = GREATEST(0, reserved_quantity - abs(NEW.quantity)),
            updated_at = now()
      WHERE branch_id = NEW.branch_id AND medication_id = NEW.medication_id
        AND lot_id IS NOT DISTINCT FROM NEW.lot_id;
-
-  -- Mouvements sortants (décrémentent)
-  ELSE
-    UPDATE stock_balances
-       SET quantity = stock_balances.quantity - abs(NEW.quantity), updated_at = now()
-     WHERE branch_id = NEW.branch_id AND medication_id = NEW.medication_id
-       AND lot_id IS NOT DISTINCT FROM NEW.lot_id
-    RETURNING quantity INTO v_new_qty;
-
     IF NOT FOUND THEN
+      RAISE EXCEPTION 'Stock introuvable pour la libération de réservation';
+    END IF;
+
+  -- Mouvements entrants (direction par le TYPE ; lot NULL agrégé sur
+  -- UNE ligne : ON CONFLICT ne couvre pas NULL)
+  ELSIF NEW.movement_type IN ('purchase_receipt','sale_return','inventory_in',
+                              'transfer_in') THEN
+    IF NEW.lot_id IS NULL THEN
+      UPDATE stock_balances
+         SET quantity = quantity + abs(NEW.quantity), updated_at = now()
+       WHERE branch_id = NEW.branch_id AND medication_id = NEW.medication_id
+         AND lot_id IS NULL;
+      IF NOT FOUND THEN
+        INSERT INTO stock_balances (pharmacy_id, branch_id, medication_id, lot_id,
+                                    quantity, reserved_quantity, updated_at)
+        VALUES (NEW.pharmacy_id, NEW.branch_id, NEW.medICATION_ID, NULL,
+                abs(NEW.quantity), 0, now());
+      END IF;
+    ELSE
+      INSERT INTO stock_balances (pharmacy_id, branch_id, medication_id, lot_id,
+                                  quantity, reserved_quantity, updated_at)
+      VALUES (NEW.pharmacy_id, NEW.branch_id, NEW.medication_id, NEW.lot_id,
+              abs(NEW.quantity), 0, now())
+      ON CONFLICT (branch_id, medication_id, lot_id) DO UPDATE
+        SET quantity = stock_balances.quantity + abs(NEW.quantity), updated_at = now();
+    END IF;
+
+  -- Mouvements sortants (direction par le TYPE ; solde contrôlé AVANT
+  -- écriture, sortie répartie sur les lignes existantes)
+  ELSIF NEW.movement_type IN ('sale','inventory_out','transfer_out',
+                              'write_off','expiry_loss') THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM stock_balances b
+       WHERE b.branch_id = NEW.branch_id AND b.medication_id = NEW.medication_id
+         AND b.lot_id IS NOT DISTINCT FROM NEW.lot_id
+    ) THEN
       RAISE EXCEPTION 'Stock insuffisant (aucune balance trouvée)';
     END IF;
-    IF v_new_qty < 0 THEN
-      RAISE EXCEPTION 'Stock insuffisant pour % (solde serait %)', NEW.medication_id, v_new_qty;
+    v_remain := abs(NEW.quantity);
+    FOR r IN
+      SELECT b.id, b.quantity FROM stock_balances b
+       WHERE b.branch_id = NEW.branch_id AND b.medication_id = NEW.medication_id
+         AND b.lot_id IS NOT DISTINCT FROM NEW.lot_id
+       ORDER BY b.id FOR UPDATE
+    LOOP
+      EXIT WHEN v_remain <= 0;
+      IF r.quantity >= v_remain THEN
+        UPDATE stock_balances SET quantity = quantity - v_remain, updated_at = now()
+         WHERE id = r.id;
+        v_remain := 0;
+      ELSE
+        UPDATE stock_balances SET quantity = 0, updated_at = now()
+         WHERE id = r.id;
+        v_remain := v_remain - r.quantity;
+      END IF;
+    END LOOP;
+    IF v_remain > 0 THEN
+      RAISE EXCEPTION 'Stock insuffisant pour % (manque %)', NEW.medication_id, v_remain;
     END IF;
+
+  -- Ajustement d'inventaire (direction par le SIGNE)
+  ELSIF NEW.movement_type = 'adjustment' THEN
+    IF NEW.quantity > 0 THEN
+      IF NEW.lot_id IS NULL THEN
+        UPDATE stock_balances
+           SET quantity = quantity + abs(NEW.quantity), updated_at = now()
+         WHERE branch_id = NEW.branch_id AND medication_id = NEW.medication_id
+           AND lot_id IS NULL;
+        IF NOT FOUND THEN
+          INSERT INTO stock_balances (pharmacy_id, branch_id, medication_id, lot_id,
+                                      quantity, reserved_quantity, updated_at)
+          VALUES (NEW.pharmacy_id, NEW.branch_id, NEW.medICATION_ID, NULL,
+                  abs(NEW.quantity), 0, now());
+        END IF;
+      ELSE
+        INSERT INTO stock_balances (pharmacy_id, branch_id, medication_id, lot_id,
+                                    quantity, reserved_quantity, updated_at)
+        VALUES (NEW.pharmacy_id, NEW.branch_id, NEW.medication_id, NEW.lot_id,
+                abs(NEW.quantity), 0, now())
+        ON CONFLICT (branch_id, medication_id, lot_id) DO UPDATE
+          SET quantity = stock_balances.quantity + abs(NEW.quantity), updated_at = now();
+      END IF;
+    ELSE
+      IF NOT EXISTS (
+        SELECT 1 FROM stock_balances b
+         WHERE b.branch_id = NEW.branch_id AND b.medication_id = NEW.medication_id
+           AND b.lot_id IS NOT DISTINCT FROM NEW.lot_id
+      ) THEN
+        RAISE EXCEPTION 'Stock insuffisant (aucune balance trouvée)';
+      END IF;
+      v_remain := abs(NEW.quantity);
+      FOR r IN
+        SELECT b.id, b.quantity FROM stock_balances b
+         WHERE b.branch_id = NEW.branch_id AND b.medication_id = NEW.medication_id
+           AND b.lot_id IS NOT DISTINCT FROM NEW.lot_id
+         ORDER BY b.id FOR UPDATE
+      LOOP
+        EXIT WHEN v_remain <= 0;
+        IF r.quantity >= v_remain THEN
+          UPDATE stock_balances SET quantity = quantity - v_remain, updated_at = now()
+           WHERE id = r.id;
+          v_remain := 0;
+        ELSE
+          UPDATE stock_balances SET quantity = 0, updated_at = now()
+           WHERE id = r.id;
+          v_remain := v_remain - r.quantity;
+        END IF;
+      END LOOP;
+      IF v_remain > 0 THEN
+        RAISE EXCEPTION 'Stock insuffisant pour % (manque %)', NEW.medication_id, v_remain;
+      END IF;
+    END IF;
+
+  ELSE
+    -- Type non géré : mouvement REFUSÉ (rollback), jamais un
+    -- mouvement silencieux de stock
+    RAISE EXCEPTION 'movement_type % non géré par fn_apply_stock_movement', NEW.movement_type;
   END IF;
 
   RETURN NEW;

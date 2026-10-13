@@ -34,12 +34,15 @@ CREATE TABLE purchase_order_items (
   id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   pharmacy_id        uuid NOT NULL REFERENCES pharmacies(id) ON DELETE CASCADE,
   order_id           uuid NOT NULL REFERENCES purchase_orders(id) ON DELETE CASCADE,
+  purchase_order_id  uuid NOT NULL REFERENCES purchase_orders(id) ON DELETE CASCADE,
   medication_id      uuid NOT NULL REFERENCES medications(id) ON DELETE RESTRICT,
   quantity_ordered   numeric(12,3) NOT NULL CHECK (quantity_ordered > 0),
   quantity_received  numeric(12,3) NOT NULL DEFAULT 0,
   unit_cost          numeric(14,2) NOT NULL DEFAULT 0,
   tva_rate           numeric(5,2) NOT NULL DEFAULT 20.00,
+  tax_rate           numeric(5,2) NOT NULL DEFAULT 20.00,
   discount           numeric(5,2) NOT NULL DEFAULT 0,
+  discount_percent   numeric(5,2) NOT NULL DEFAULT 0,
   UNIQUE (order_id, medication_id)
 );
 CREATE INDEX idx_po_items_order ON purchase_order_items(order_id);
