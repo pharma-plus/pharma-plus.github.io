@@ -1,6 +1,7 @@
 // PMG-POS-REAL
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/models/medication.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/api_list.dart';
+import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/calculations.dart';
 import '../../core/utils/format.dart';
@@ -62,6 +64,7 @@ class _PosPanelState extends State<PosPanel> {
   String _paymentMode = 'cash'; // cash | visa | mastercard
   double _received = 0;
   final _receivedCtrl = TextEditingController();
+  bool _checkout = false; // anti double-clic pendant POST /sales
 
   // Isolation des rebuilds : le champ « montant reçu » notifie uniquement
   // le bloc monnaie au lieu de reconstruire tout le panneau à chaque frappe.
@@ -346,13 +349,15 @@ class _PosPanelState extends State<PosPanel> {
 
   void _pay() {
     if (_cart.isEmpty) {
-      widget.onCheckout();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Panier vide — ajoutez un produit avant de payer.')),
+      );
       return;
     }
+    if (_checkout) return; // anti double-clic
     PaymentResult pay;
     if (_paymentMode == 'cash') {
       if (!_cashSufficient) {
-        // Feedback explicite : le bouton ne doit JAMAIS sembler « mort ».
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text(
@@ -367,17 +372,62 @@ class _PosPanelState extends State<PosPanel> {
     } else {
       pay = PaymentResult.card(amount: _totals.total, cardType: 'mastercard');
     }
-    final onPrefilled = widget.onPrefilled;
-    if (onPrefilled == null) {
-      widget.onCheckout();
+    _executeSale(pay);
+  }
+
+  /// Exécute la vente directement via POST /sales (sans naviguer vers PosPage).
+  Future<void> _executeSale(PaymentResult pay) async {
+    final auth = AuthStore.instance;
+    final branchId = auth.user?.branchId;
+    if (branchId == null || branchId.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Aucun branch assigné — sélectionnez un point de vente.')),
+        );
+      }
       return;
     }
-    final lines = [
-      for (final m in _cart.values)
-        CartLine(medication: m, quantity: (_qty[m.id] ?? 1).toDouble()),
-    ];
-    onPrefilled(lines, _discount, _discountPercent, pay, _customerId);
-    _clearCart();
+    setState(() => _checkout = true);
+    try {
+      final clientSaleId =
+          '${DateTime.now().millisecondsSinceEpoch}-${math.Random().nextInt(1 << 32)}'
+              .hashCode
+              .toString();
+      final saleBody = <String, dynamic>{
+        'branchId': branchId,
+        'saleType': 'pos',
+        'clientSaleId': clientSaleId,
+        'items': [
+          for (final m in _cart.values)
+            {
+              'medication_id': m.id,
+              'quantity': (_qty[m.id] ?? 1).toDouble(),
+              'unit_price': m.priceSale,
+            }
+        ],
+        if (_discount > 0)
+          _discountPercent ? 'discount_percent' : 'discount_amount': _discount,
+        if (_customerId != null) 'customerId': _customerId,
+        'payments': [pay.toPayload()],
+      };
+      final result = await ApiClient.instance.post('/sales', body: saleBody);
+      if (!mounted) return;
+      if (result.success) {
+        final msg = pay.method == 'card'
+            ? 'Vente enregistrée · Carte ${pay.cardType ?? ''}'
+            : (pay.change != null && pay.change! > 0)
+                ? 'Vente enregistrée · Monnaie : ${Fmt.money(pay.change!)} MAD'
+                : 'Vente enregistrée · ${Fmt.money(pay.amount)} MAD';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+        _clearCart();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result.error?.readableMessage ?? 'Erreur lors de la vente')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _checkout = false);
+    }
   }
 
   bool get _cashSufficient => _received >= _totals.total || _paymentMode != 'cash';
