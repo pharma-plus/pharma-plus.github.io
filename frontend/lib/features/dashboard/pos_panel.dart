@@ -351,7 +351,15 @@ class _PosPanelState extends State<PosPanel> {
     }
     PaymentResult pay;
     if (_paymentMode == 'cash') {
-      if (!_cashSufficient) return;
+      if (!_cashSufficient) {
+        // Feedback explicite : le bouton ne doit JAMAIS sembler « mort ».
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(
+                  'Montant reçu insuffisant — reste ${_fmt(_totals.total - _received)} MAD à payer')),
+        );
+        return;
+      }
       pay = PaymentResult.cash(
           amount: _totals.total, received: _received, change: _change);
     } else if (_paymentMode == 'visa') {

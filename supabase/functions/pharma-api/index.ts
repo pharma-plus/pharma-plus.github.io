@@ -340,7 +340,7 @@ const DEFAULT_PHARMACY_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 /* Version unique de la fonction (routes /health et /). La version
    deploiee (2.1.0) ne porte pas les corrections de ce depot : le
    bump marque l'ecart jusqu'au prochain deploiement autorise. */
-const EDGE_VERSION = "2.4.0";
+const EDGE_VERSION = "2.4.1";
 
 function publicPharmacyId(req: Request): string {
   const hdr = req.headers.get("x-pharmacy-id");
@@ -4345,12 +4345,20 @@ Deno.serve(async (req) => {
         .eq("id", pid)
         .maybeSingle();
       const tvaDefaults = (pharmacyRow?.settings as any)?.tva ?? {};
+      /* FIX POS (13/10) : 0 est une TVA VALIDE (médicaments génériques),
+         jamais un « manquant ». L'ancien `Number(fallback ?? 20) || 20`
+         retournait 20 pour tva_rate=0 (0 || 20 = 20) → total serveur +20 %
+         vs total affiché par le client (TVA 0) → paiement incohérent.
+         Règle : tva_rate du médicament si numérique >= 0, sinon défaut
+         pharmacie (settings.tva), sinon 0. */
       const defaultTvaFor = (med: any): number => {
-        const t = Number(med?.tva_rate ?? 0);
-        if (t > 0) return t;
+        const t = Number(med?.tva_rate);
+        if (Number.isFinite(t) && t >= 0) return t;
         const isPara = med?.is_parapharmacie === true;
-        const fallback = isPara ? tvaDefaults.parapharmacie : tvaDefaults.medication;
-        return Number(fallback ?? 20) || 20;
+        const fallback = Number(
+          isPara ? tvaDefaults.parapharmacie : tvaDefaults.medication,
+        );
+        return Number.isFinite(fallback) && fallback >= 0 ? fallback : 0;
       };
 
       // Lots disponibles par médicament (FIFO : péremption la plus proche),
@@ -4730,7 +4738,7 @@ Deno.serve(async (req) => {
     for (const it of items) {
       const qty = Number(it.quantity ?? it.quantity_ordered ?? 0);
       const cost = Number(it.unit_cost ?? 0);
-      const tva = Number(it.tva_rate ?? it.tax_rate ?? 20);
+      const tva = Number(it.tva_rate ?? it.tax_rate ?? 0);
       const disc = Number(it.discount ?? 0);
       const line = qty * cost * (1 - disc / 100);
       subtotal += line;

@@ -10,7 +10,10 @@ const edge = readFileSync(
 const saleBlock = () => {
   const at = edge.indexOf('if (path === "sales" && req.method === "POST")');
   assert.ok(at >= 0, "bloc sales POST absent");
-  return edge.slice(at, at + 16000);
+  // Fenêtre élargie (16000 -> 22000, 13/10) : le handler POST /sales a
+  // grandi (fix TVA 0 + contrôles) et le bloc paiements sortait de la
+  // window d'origine — le code de compensation est inchangé.
+  return edge.slice(at, at + 22000);
 };
 
 test("sales : erreur sale_items -> compensation (jamais de vente orpheline)", () => {

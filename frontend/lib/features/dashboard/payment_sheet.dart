@@ -97,7 +97,14 @@ class _PaymentSheetState extends State<PaymentSheet>
   void _validate() {
     switch (_tab.index) {
       case 0: // Espèces
-        if (!_cashSufficient) return;
+        if (!_cashSufficient) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(
+                    'Montant reçu insuffisant — reste ${Fmt.money(_due)} MAD à payer')),
+          );
+          return;
+        }
         Navigator.of(context).pop(PaymentResult.cash(
           amount: widget.total,
           received: _received,
