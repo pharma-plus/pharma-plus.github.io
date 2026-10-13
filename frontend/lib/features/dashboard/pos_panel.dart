@@ -71,6 +71,7 @@ class _PosPanelState extends State<PosPanel> {
   final ValueNotifier<double> _receivedVN = ValueNotifier<double>(0);
   List<Map<String, dynamic>> _customers = [];
   String? _customerId;
+  String? _branchId; // fallback via /branches si AuthStore n'a pas de branch
 
   static const _kHeldKey = 'pmg_pos_held_sales';
 
@@ -87,7 +88,26 @@ class _PosPanelState extends State<PosPanel> {
     _loadHeld();
     _loadCustomers();
     _loadFacets();
+    _loadBranchId();
     _doSearch(_search.text.trim());
+  }
+
+  /// Résout le branchId : AuthStore d'abord, sinon première branche de l'API
+  /// (même logique que PosPage._loadBranches).
+  Future<void> _loadBranchId() async {
+    final fromAuth = AuthStore.instance.user?.branchId;
+    if (fromAuth != null && fromAuth.isNotEmpty) {
+      _branchId = fromAuth;
+      return;
+    }
+    final r = await ApiClient.instance.get('/branches');
+    if (!mounted || !r.success) return;
+    final list = (r.data as List? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .toList();
+    if (list.isNotEmpty) {
+      setState(() => _branchId = '${list[0]['id']}');
+    }
   }
 
   Future<void> _loadFacets() async {
@@ -377,12 +397,11 @@ class _PosPanelState extends State<PosPanel> {
 
   /// Exécute la vente directement via POST /sales (sans naviguer vers PosPage).
   Future<void> _executeSale(PaymentResult pay) async {
-    final auth = AuthStore.instance;
-    final branchId = auth.user?.branchId;
+    final branchId = _branchId ?? AuthStore.instance.user?.branchId;
     if (branchId == null || branchId.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Aucun branch assigné — sélectionnez un point de vente.')),
+          const SnackBar(content: Text('Aucun point de vente assigné — rechargez la page.')),
         );
       }
       return;
