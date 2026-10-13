@@ -1,0 +1,11 @@
+[
+  {
+    "nom_original": "EXEMPLE LABORATOIRE",
+    "laboratory_id": "lab_EXEMPLE000",
+    "nom_normalise": "EXEMPLE LABO",
+    "fabricant": "",
+    "exploitant": "",
+    "source": "modele-template",
+    "nombre_de_produits": 0
+  }
+]

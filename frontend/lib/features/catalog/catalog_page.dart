@@ -1107,10 +1107,12 @@ class _MedicationDetailState extends State<_MedicationDetail> {
     });
   }
 
+  static const String _unverified = 'Information non vérifiée ou indisponible';
+
   String _np(dynamic v) {
-    if (v == null) return 'Non renseigné';
+    if (v == null) return _unverified;
     final s = '$v'.trim();
-    return s.isEmpty || s == '0.0' || s == '0' ? 'Non renseigné' : s;
+    return s.isEmpty || s == '0.0' || s == '0' ? _unverified : s;
   }
 
   @override
@@ -1210,27 +1212,28 @@ class _MedicationDetailState extends State<_MedicationDetail> {
             section('Laboratoire'),
             row('Laboratoire', _np(labName)),
             section('Prix'),
-            row('PPV', m.priceSale > 0 ? Fmt.money(m.priceSale) : 'Non renseigné'),
-            row('PH', (ref?['ph'] != null) ? Fmt.money(double.parse('${ref!['ph']}')) : 'Non renseigné'),
-            row('PPC', (med?['ppc'] != null) ? Fmt.money(double.parse('${med!['ppc']}')) : ((ref?['ppc'] != null) ? Fmt.money(double.parse('${ref!['ppc']}')) : 'Non renseigné')),
-            row('PFHT (achat)', m.pricePurchase > 0 ? Fmt.money(m.pricePurchase) : 'Non renseigné'),
+            row('PPV', m.priceSale > 0 ? Fmt.money(m.priceSale) : _unverified),
+            row('PH', (ref?['ph'] != null) ? Fmt.money(double.parse('${ref!['ph']}')) : _unverified),
+            row('PPC', (med?['ppc'] != null) ? Fmt.money(double.parse('${med!['ppc']}')) : ((ref?['ppc'] != null) ? Fmt.money(double.parse('${ref!['ppc']}')) : _unverified)),
+            row('PFHT (achat)', m.pricePurchase > 0 ? Fmt.money(m.pricePurchase) : _unverified),
             row('TVA', '${_np(tva)} %'),
             section('Thérapeutique'),
             row('Classe thérapeutique', _np(classe)),
-            row('Pathologie', 'Non renseignée'),
-            row('Indication', 'Non renseignée'),
+            row('Pathologie', _unverified),
+            row('Indication', _unverified),
+            row('RCP', _unverified),
             section('Stock'),
             row('Quantité',
                 stockQty == null ? 'Non suivi' : Fmt.number(stockQty)),
             row('Disponibilité', stockQty == null
-                ? 'Non renseignée'
+                ? _unverified
                 : (stockQty > 0 ? 'En stock' : 'Sans stock')),
             row('Stock minimum', _np(med?['min_stock'] ?? m.minStock)),
             row('Emplacement', _np(med?['shelf_location'] ?? m.shelfLocation)),
             section('Source'),
             row('Source', _np(prov?['source'])),
             row('URL source',
-                prov?['source_url'] == null ? 'Non renseignée' : '${prov!['source_url']}'),
+                prov?['source_url'] == null ? _unverified : '${prov!['source_url']}'),
             row('Date source', _np(prov?['date_source'])),
             row('Date import', _np(prov?['date_import'])),
             if (ref != null) ...[

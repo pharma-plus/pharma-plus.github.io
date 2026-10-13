@@ -63,7 +63,15 @@ Rapports antérieurs : conservés dans `_validation_backup/` à côté du projet
 
 - Identité **vert pétrole + or champagne déjà centralisée** : `frontend/lib/core/theme/colors.dart` — 65 tokens sémantiques (`pharmaBg 0xFF03100D`, `primary 0xFF006B43`, `gold 0xFFD6A84F`…), appliqués via `app_theme.dart` et les pages (dashboard, POS, catalogue, stock, fournisseurs, commandes, employés, rapports, paramètres).
 - Nettoyage analyze : suppression de 15 warnings préexistants (imports/éléments inutilisés dans 5 fichiers) — **0 erreur, 0 warning** désormais.
+- **Fiche médicament** : mention exacte **« Information non vérifiée ou indisponible »** appliquée à tous les champs non sourcés (pathologie, indication, RCP ajouté, prix, source…) — aucun champ absent n'affiche plus « Non renseigné ».
 - Plan 3D et ses fonctionnalités **non touchés**.
+
+## Phase 5-bis — Performances (cible PC 4 Go RAM)
+
+- **Requêtes paginées** : catalogue `limit: 100` + bouton « Charger plus » (vérifié `catalog_page.dart`), helper backend `fetchPaged` anti-troncature PostgREST (1 000 lignes).
+- **Shell IndexedStack** : navigation par onglets sans rebuild complet ni accumulation de piles Navigator.
+- **Build web optimisé** : tree-shaking actif (MaterialIcons 1,6 Mo → **37 Ko**, CupertinoIcons 258 Ko → **1,5 Ko**), `main.dart.js` ≈ 5,3 Mo servi en gzip (~1,2 Mo) — compatible 4 Go RAM.
+- Aucune image lourde embarquée (icônes vectorielles + CanvasKit lazy).
 
 ## Phase 6 — Tests exécutés (commandes réelles + résultats)
 

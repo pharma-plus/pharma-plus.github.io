@@ -140431,107 +140431,108 @@ if(p.c==null){s=1
 break}p.t(new A.b1o(p,o))
 case 1:return A.r(q,r)}})
 return A.t($async$Hl,r)},
-j1(a){var s,r="Non renseign\xe9"
+j1(a){var s,r="Information non v\xe9rifi\xe9e ou indisponible"
 if(a==null)return r
 s=B.p.ai(A.c(a))
 return s.length===0||s==="0.0"||s==="0"?r:s},
-C(e2){var s,r,q,p,o,n,m,l,k,j,i,h,g,f,e,d,c,b,a,a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,d0=this,d1=null,d2="substance_active",d3="Laboratoire",d4="Non renseign\xe9",d5="ppc",d6="Non renseign\xe9e",d7="source_url",d8=A.N(e2).ax.a===B.b4?B.e9:B.aQ,d9=A.af(e2,!1,t.y).Q,e0=d0.a.c,e1=d0.d
-e1=e1==null?d1:e1.h(0,"medication")
+C(e2){var s,r,q,p,o,n,m,l,k,j,i,h,g,f,e,d,c,b,a,a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,d0,d1=this,d2=null,d3="substance_active",d4="Laboratoire",d5="Information non v\xe9rifi\xe9e ou indisponible",d6="ppc",d7="source_url",d8=A.N(e2).ax.a===B.b4?B.e9:B.aQ,d9=A.af(e2,!1,t.y).Q,e0=d1.a.c,e1=d1.d
+e1=e1==null?d2:e1.h(0,"medication")
 s=t.nA
 s.a(e1)
-r=d0.d
-q=s.a(r==null?d1:r.h(0,"laboratory"))
-r=d0.d
-p=s.a(r==null?d1:r.h(0,"provenance"))
-r=d0.d
-o=s.a(r==null?d1:r.h(0,"reference"))
-s=d0.d
+r=d1.d
+q=s.a(r==null?d2:r.h(0,"laboratory"))
+r=d1.d
+p=s.a(r==null?d2:r.h(0,"provenance"))
+r=d1.d
+o=s.a(r==null?d2:r.h(0,"reference"))
+s=d1.d
 if(s!=null){s=t.F5.a(s.h(0,"stock"))
-s=A.eu(s==null?d1:J.i(s,"quantity"))
-n=s==null?d1:s}else n=d0.a.d
+s=A.eu(s==null?d2:J.i(s,"quantity"))
+n=s==null?d2:s}else n=d1.a.d
 s=new A.b1r(d8)
 r=new A.b1s()
 m=e1==null
-l=m?d1:J.i(e1,"dci")
+l=m?d2:J.i(e1,"dci")
 k=l==null?e0.c:l
-if(k==null)k=A.aF(o==null?d1:J.i(o,"dci"))
-j=m?d1:J.i(e1,d2)
-if(j==null)j=o==null?d1:J.i(o,d2)
-i=m?d1:J.i(e1,"dosage")
+if(k==null)k=A.aF(o==null?d2:J.i(o,"dci"))
+j=m?d2:J.i(e1,d3)
+if(j==null)j=o==null?d2:J.i(o,d3)
+i=m?d2:J.i(e1,"dosage")
 if(i==null)i=e0.e
-h=m?d1:J.i(e1,"form")
+h=m?d2:J.i(e1,"form")
 if(h==null)h=e0.f
-g=m?d1:J.i(e1,"presentation")
+g=m?d2:J.i(e1,"presentation")
 if(g==null)g=e0.r
-l=m?d1:J.i(e1,"laboratory_name")
-if(l==null){l=q==null?d1:J.i(q,"name")
+l=m?d2:J.i(e1,"laboratory_name")
+if(l==null){l=q==null?d2:J.i(q,"name")
 f=l}else f=l
 if(f==null)f=e0.dx
-e=m?d1:J.i(e1,"tva_rate")
+e=m?d2:J.i(e1,"tva_rate")
 if(e==null)e=e0.Q
-d=m?d1:J.i(e1,"therapeutic_class")
+d=m?d2:J.i(e1,"therapeutic_class")
 if(d==null)d=e0.dy
 l=e0.b
 c=t.p
-b=A.ab(A.b([B.agM,B.aF,A.a6(A.h(l,d1,d1,d1,d1,B.hG,d1,d1,d1),1),A.c8(d1,d1,d1,B.ov,d1,d1,d0.a.e,d1,d1,d1,d1,d1)],c),B.y,B.r,B.w,0,d1)
-a=d0.d==null
-if(a&&d0.e)a="Chargement\u2026"
+b=A.ab(A.b([B.agM,B.aF,A.a6(A.h(l,d2,d2,d2,d2,B.hG,d2,d2,d2),1),A.c8(d2,d2,d2,B.ov,d2,d2,d1.a.e,d2,d2,d2,d2,d2)],c),B.y,B.r,B.w,0,d2)
+a=d1.d==null
+if(a&&d1.e)a="Chargement\u2026"
 else a=a?"D\xe9tails indisponibles":""
-a=A.h(a,d1,d1,d1,d1,A.bc(d1,d1,d8,d1,d1,d1,d1,d1,d1,d1,d1,12,d1,d1,d1,d1,d1,!0,d1,d1,d1,d1,d1,d1,d1,d1),d1,d1,d1)
+a=A.h(a,d2,d2,d2,d2,A.bc(d2,d2,d8,d2,d2,d2,d2,d2,d2,d2,d2,12,d2,d2,d2,d2,d2,!0,d2,d2,d2,d2,d2,d2,d2,d2),d2,d2,d2)
 a0=r.$1("Identit\xe9")
 l=s.$2("Nom commercial",l)
-a1=s.$2("DCI",d0.j1(k))
-a2=m?d1:J.i(e1,"barcode_ean13")
-a2=s.$2("Code-barres (EAN-13)",d0.j1(a2==null?e0.x:a2))
-a3=s.$2("QR / DataMatrix",d0.j1(m?d1:J.i(e1,"qr_code")))
+a1=s.$2("DCI",d1.j1(k))
+a2=m?d2:J.i(e1,"barcode_ean13")
+a2=s.$2("Code-barres (EAN-13)",d1.j1(a2==null?e0.x:a2))
+a3=s.$2("QR / DataMatrix",d1.j1(m?d2:J.i(e1,"qr_code")))
 a4=r.$1("Caract\xe9ristiques")
-a5=s.$2("Dosage",d0.j1(i))
-a6=s.$2("Forme",d0.j1(h))
-a7=s.$2("Pr\xe9sentation",d0.j1(g))
-a8=s.$2("Substance active",d0.j1(j))
-a9=s.$2("Composition",d0.j1(m?d1:J.i(e1,"composition")))
-b0=r.$1(d3)
-b1=s.$2(d3,d0.j1(f))
+a5=s.$2("Dosage",d1.j1(i))
+a6=s.$2("Forme",d1.j1(h))
+a7=s.$2("Pr\xe9sentation",d1.j1(g))
+a8=s.$2("Substance active",d1.j1(j))
+a9=s.$2("Composition",d1.j1(m?d2:J.i(e1,"composition")))
+b0=r.$1(d4)
+b1=s.$2(d4,d1.j1(f))
 b2=r.$1("Prix")
 b3=e0.z
-b3=s.$2("PPV",b3>0?A.bK(b3):d4)
+b3=s.$2("PPV",b3>0?A.bK(b3):d5)
 b4=o==null
-if((b4?d1:J.i(o,"ph"))!=null){o.toString
-b5=A.bK(A.bj5(A.c(J.i(o,"ph"))))}else b5=d4
+if((b4?d2:J.i(o,"ph"))!=null){o.toString
+b5=A.bK(A.bj5(A.c(J.i(o,"ph"))))}else b5=d5
 b5=s.$2("PH",b5)
-if((m?d1:J.i(e1,d5))!=null){e1.toString
-b6=A.bK(A.bj5(A.c(J.i(e1,d5))))}else if((b4?d1:J.i(o,d5))!=null){o.toString
-b6=A.bK(A.bj5(A.c(J.i(o,d5))))}else b6=d4
+if((m?d2:J.i(e1,d6))!=null){e1.toString
+b6=A.bK(A.bj5(A.c(J.i(e1,d6))))}else if((b4?d2:J.i(o,d6))!=null){o.toString
+b6=A.bK(A.bj5(A.c(J.i(o,d6))))}else b6=d5
 b6=s.$2("PPC",b6)
 b7=e0.y
-b7=s.$2("PFHT (achat)",b7>0?A.bK(b7):d4)
-b8=s.$2("TVA",d0.j1(e)+" %")
+b7=s.$2("PFHT (achat)",b7>0?A.bK(b7):d5)
+b8=s.$2("TVA",d1.j1(e)+" %")
 b9=r.$1("Th\xe9rapeutique")
-c0=s.$2("Classe th\xe9rapeutique",d0.j1(d))
-c1=s.$2("Pathologie",d6)
-c2=s.$2("Indication",d6)
-c3=r.$1("Stock")
-c4=n==null
-c5=s.$2("Quantit\xe9",c4?"Non suivi":A.fY(0,"fr_MA").da(n))
-if(c4)c4=d6
-else c4=n>0?"En stock":"Sans stock"
-c4=s.$2("Disponibilit\xe9",c4)
-c6=m?d1:J.i(e1,"min_stock")
-c6=s.$2("Stock minimum",d0.j1(c6==null?e0.ax:c6))
-e1=m?d1:J.i(e1,"shelf_location")
-e1=s.$2("Emplacement",d0.j1(e1==null?e0.db:e1))
+c0=s.$2("Classe th\xe9rapeutique",d1.j1(d))
+c1=s.$2("Pathologie",d5)
+c2=s.$2("Indication",d5)
+c3=s.$2("RCP",d5)
+c4=r.$1("Stock")
+c5=n==null
+c6=s.$2("Quantit\xe9",c5?"Non suivi":A.fY(0,"fr_MA").da(n))
+if(c5)c5=d5
+else c5=n>0?"En stock":"Sans stock"
+c5=s.$2("Disponibilit\xe9",c5)
+c7=m?d2:J.i(e1,"min_stock")
+c7=s.$2("Stock minimum",d1.j1(c7==null?e0.ax:c7))
+e1=m?d2:J.i(e1,"shelf_location")
+e1=s.$2("Emplacement",d1.j1(e1==null?e0.db:e1))
 r=r.$1("Source")
 m=p==null
-c7=s.$2("Source",d0.j1(m?d1:J.i(p,"source")))
-if((m?d1:J.i(p,d7))==null)c8=d6
+c8=s.$2("Source",d1.j1(m?d2:J.i(p,"source")))
+if((m?d2:J.i(p,d7))==null)c9=d5
 else{p.toString
-c8=A.c(J.i(p,d7))}c8=s.$2("URL source",c8)
-c9=s.$2("Date source",d0.j1(m?d1:J.i(p,"date_source")))
-e1=A.b([b,B.cj,a,a0,l,a1,a2,a3,a4,a5,a6,a7,a8,a9,b0,b1,b2,b3,b5,b6,b7,b8,b9,c0,c1,c2,c3,c5,c4,c6,e1,r,c7,c8,c9,s.$2("Date import",d0.j1(m?d1:J.i(p,"date_import")))],c)
+c9=A.c(J.i(p,d7))}c9=s.$2("URL source",c9)
+d0=s.$2("Date source",d1.j1(m?d2:J.i(p,"date_source")))
+e1=A.b([b,B.cj,a,a0,l,a1,a2,a3,a4,a5,a6,a7,a8,a9,b0,b1,b2,b3,b5,b6,b7,b8,b9,c0,c1,c2,c3,c4,c6,c5,c7,e1,r,c8,c9,d0,s.$2("Date import",d1.j1(m?d2:J.i(p,"date_import")))],c)
 if(!b4){r=J.S(o)
-B.m.U(e1,A.b([s.$2("N\xb0 AMM",d0.j1(r.h(o,"amm_number"))),s.$2("Code produit",d0.j1(r.h(o,"code_produit")))],c))}e1.push(B.eh)
-e1.push(A.c_(A.lW(B.agp,A.h(A.l("viewInPlan",d9),d1,d1,d1,d1,d1,d1,d1,d1),new A.b1q(e2,e0),d1),d1,1/0))
-return A.dO(!0,A.f3(A.a5(e1,B.y,B.r,B.ab),d1,B.H,B.N,d1,B.at),!1,B.ad,!0)}}
+B.m.U(e1,A.b([s.$2("N\xb0 AMM",d1.j1(r.h(o,"amm_number"))),s.$2("Code produit",d1.j1(r.h(o,"code_produit")))],c))}e1.push(B.eh)
+e1.push(A.c_(A.lW(B.agp,A.h(A.l("viewInPlan",d9),d2,d2,d2,d2,d2,d2,d2,d2),new A.b1q(e2,e0),d2),d2,1/0))
+return A.dO(!0,A.f3(A.a5(e1,B.y,B.r,B.ab),d2,B.H,B.N,d2,B.at),!1,B.ad,!0)}}
 A.b1o.prototype={
 $0(){var s=this.b
 if(s.a&&t.f.b(s.b))this.a.d=A.cv(t.f.a(s.b),t.N,t.z)

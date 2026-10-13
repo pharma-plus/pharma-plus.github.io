@@ -1,0 +1,18 @@
+[
+  {
+    "name": "EXEMPLE Grossiste XYZ",
+    "contact_name": "",
+    "email": "",
+    "phone": "",
+    "address": "Adresse professionnelle vérifiée",
+    "city": "Casablanca",
+    "tax_id": "",
+    "ice": "",
+    "website": "",
+    "whatsapp": "",
+    "type": "grossiste",
+    "status": "active",
+    "payment_terms": "",
+    "notes": "Ligne exemple — remplacer par des données vérifiées"
+  }
+]
