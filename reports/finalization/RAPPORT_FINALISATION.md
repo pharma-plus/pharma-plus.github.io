@@ -41,12 +41,12 @@ Rapports antérieurs : conservés dans `_validation_backup/` à côté du projet
 - Rapports : `reports/imports/import_laboratories_*.json` + `laboratories_backup_*.json`.
 - Variantes orthographiques proches signalées, **jamais fusionnées automatiquement**.
 
-### Fournisseurs — outil + templates (aucune donnée inventée)
-- Script `data/imports/import_suppliers.mjs` (dry-run par défaut, champs absents = valeurs existantes intactes, rapport + backup).
-- **Test dry-run** sur le template : détection correcte (1 création candidate), **aucune écriture prod** (le template est un exemple marqué, jamais appliqué).
-- 23 fournisseurs existants inchangés. **« Deva Pharmaceutique » vérifié = laboratoire** (`laboratory_name` du catalogue), **pas un fournisseur** — aucun faux fournisseur créé.
-- Templates : `data/imports/templates/{laboratories,suppliers}/*.csv` + `data/imports/TEMPLATES_README.md`.
-- **Blocage signalé** : aucune source de données fournisseurs réels (ICE, contacts) n'a été fournie — mécanisme prêt, en attente de données vérifiées.
+### Fournisseurs — 50 grossistes-répartiteurs réels importés (13/10, source publique)
+- **Source officielle** : page publique `medicament.ma/grossistes-repartiteurs/` (mise à jour 11/10/2026) — **50 sociétés** (nom, adresse, ville, tél, fax) : BUMAGECO, C.P.M., COPHAG, COOPER CHAOUIA, COOPER BENISNASSEN, C.P.R.E., CHRONOPHARM, DIPHARM, DISPHANAD, DISMEDIC, DISPHAT, DISTRIPHACK, GIPHAR, G.P.F, G.P.M., GLOBALDIS, IMPEX PHARMA, MAROC PHAGRO, MEDIREP, MD5, MAREPHA, ORIENTAL MEDICA, OUEST REPARTITION, PHARMACOOP, PHARMANORD, PHARMASMIR, REPHAL, REPHAR, RECAMED, SARP, S.E.R.P., SOPHAFAS, SOPHASALE, SOPHAGHARB, SOPHATLANTIC, SOPHANAD, SOPHANORD, SOPHACHARK, SOREPHA, SOPHACENTRE, SOPHACA, SOPHADIM, SOPHADET, S.P.R., SO.RE.MED., TADLA PHARM, U.P.M., U.G.P., UPHAR, UNIFARMA, UPHAG.
+- Import via `data/imports/import_suppliers.mjs` : **50 créés, 0 rejet, idempotence prouvée** (relance = 0), backup `reports/imports/suppliers_backup_2026-10-131409.json`, notes de chaque fiche = URL source + date de récupération + mention « à vérifier avant usage commercial ».
+- Total fournisseurs : **73** (23 antérieurs + 50 grossistes). « Deva Pharmaceutique » vérifié = **laboratoire**, pas un fournisseur — aucun faux fournisseur créé.
+- Outil + templates conservés : `data/imports/templates/{laboratories,suppliers}/*.csv` + `TEMPLATES_README.md` (aucune donnée inventée).
+- **Preuve complémentaire medicament.ma** : page produit live vérifiée (ALFAMOX) — **aucun EAN, aucun RCP, aucune indication** présents (3ᵉ preuve indépendante).
 
 ### Arborescences créées
 `data/imports/{laboratories,suppliers,templates/…}`, `reports/imports/`, `reports/finalization/`.
@@ -91,19 +91,18 @@ Rapports antérieurs : conservés dans `_validation_backup/` à côté du projet
 |---|---|---|
 | Edge `pharma-api` | **2.4.0 LIVE** sur Supabase (13/10) | postdeploy 23/23 (pin de version) |
 | Rollback Edge | Prêt | `_validation_backup/edge_predeploy_2.3.0_20261013_111901.ts` |
-| Flutter web | **Build local release OK** — **non publié** | `frontend/build/web` ; publication GitHub Pages = push, **non autorisé à ce jour** |
-| Backend | Aucune migration prod supplémentaire cette session | imports labs : écriture contrôlée + backup |
-| Données | TVA, merges, EAN, labs : écrits avec backups JSON réversibles | cf. Phase 2/3 |
+| Flutter web | **Publié** via `deploy_web.ps1` (stamp anti-cache `main.202610131343.dart.js`) + push GitHub Pages | commits `68758fb` + `40b4064`, tag `v-finalisation-20261013` poussé |
+| Git | **Fix credential.helper** : helper global invalide `credentials` retiré (restent `cache` + `manager` système), auth push vérifiée | `git ls-remote` + pushes OK |
+| Backend | Aucune migration prod supplémentaire cette session | imports labs/grossistes : écritures contrôlées + backups JSON |
 
 ## Blocages restants (exactement, externes ou matériels)
 
-1. **~3 676 EAN** inexistants dans tout référentiel public → saisie scanner terrain (outil GS1 validé prêt).
-2. **RCP / indications** : boutons AMMPS désactivés + formulaire 404, medicament.ma sans API → table prête, en attente source fiable.
-3. **e-facture transport** : décret art. 145-IX non publié (BORM 7488–7548) → export `pharma-facture-v1` déployé, surveillance BORM.
+1. **~3 676 EAN** inexistants dans tout référentiel public — **confirmé** : page produit medicament.ma live sans EAN (3ᵉ preuve) → saisie scanner terrain (outil GS1 validé prêt).
+2. **RCP / indications** : boutons AMMPS désactivés + formulaire 404, medicament.ma sans API **ni contenu RCP/indications sur page produit (preuve live)** → table prête, en attente source fiable.
+3. **e-facture transport** : décret art. 145-IX non publié — **sites BORM/DGI/Économie injoignables depuis cet environnement** (transport error systématique) → surveillance à faire depuis un navigateur local ; export `pharma-facture-v1` déjà déployé.
 4. **2ᵉ pharmacie** : identité légale réelle requise (données fictives interdites en prod) ; isolation 21/21 testée.
-5. **Fournisseurs réels** : aucune source ICE/contacts fournie → outil + templates prêts.
-6. **Recette physique** : scanner, imprimante, multi-caisses — matériel pilote requis.
-7. **Publication web** : push GitHub Pages / déploiement prod nécessitent une autorisation explicite.
+5. **Recette physique** : scanner, imprimante, multi-caisses — matériel pilote requis.
+6. **Recherche web** : quota du moteur de recherche externe épuisé (clé API Exa requise pour débloquer) — sources traitées via accès direct (fetch) à la place.
 
 ---
 

@@ -1,0 +1,217 @@
+{
+ "import": "suppliers",
+ "source": "data\\imports\\suppliers\\grossistes_medicament_ma.csv",
+ "mode": "APPLY",
+ "at": "2026-10-13T14:09:59.209Z",
+ "lignes_source": 50,
+ "existants": 23,
+ "a_creer": 50,
+ "a_mettre_a_jour": 0,
+ "inchanges": 0,
+ "rejets": 0,
+ "motifs_rejet": [],
+ "crees": [
+  {
+   "id": "2b6f9443-3d99-4ec9-b533-8d4f166f78ec",
+   "name": "SOCIETE BUMAGECO"
+  },
+  {
+   "id": "1eb88406-e106-4447-a0c3-95f34c724535",
+   "name": "SOCIETE C.P.M."
+  },
+  {
+   "id": "5aca06f5-f564-4926-9aa1-15fa551d3596",
+   "name": "SOCIETE COPHAG"
+  },
+  {
+   "id": "92f007bb-facb-4aba-82d0-581c5df42300",
+   "name": "SOCIETE COOPER CHAOUIA"
+  },
+  {
+   "id": "12abef8a-57e8-4c14-91ca-74f76e01964f",
+   "name": "SOCIETE COOPER BENISNASSEN"
+  },
+  {
+   "id": "f62d6857-6ede-44d1-8a31-6eff3e3f5618",
+   "name": "SOCIETE C.P.R.E."
+  },
+  {
+   "id": "d5e14cfc-aa07-4d70-bb94-1ec2a9847e4b",
+   "name": "SOCIETE DIPHARM"
+  },
+  {
+   "id": "78970f57-6e33-4154-84db-dc87ebdce67e",
+   "name": "SOCIETE DISPHANAD"
+  },
+  {
+   "id": "af4d9fd4-07fa-4ade-9310-176f82d203ab",
+   "name": "SOCIETE DISMEDIC"
+  },
+  {
+   "id": "50839e65-3ea2-4ddc-9b93-3922a0c914e0",
+   "name": "SOCIETE DISPHAT"
+  },
+  {
+   "id": "a249f51b-5a64-4be9-9748-c498198786a2",
+   "name": "SOCIETE DISTRIPHACK"
+  },
+  {
+   "id": "5ee54666-367b-430c-b6bb-33bfd22639de",
+   "name": "SOCIETE GIPHAR"
+  },
+  {
+   "id": "bc4aaf40-ee1b-4827-a523-0f08d628d483",
+   "name": "SOCIETE G. P. F"
+  },
+  {
+   "id": "8b09e1d2-9f20-4339-af2b-7b6f7ab1efe9",
+   "name": "SOCIET G.P.M."
+  },
+  {
+   "id": "6f400f26-85ae-4f40-ad58-71bd3df2b36d",
+   "name": "SOCIETE GLOBALDIS"
+  },
+  {
+   "id": "3fb97834-b50d-4eb1-bbb0-d0c32b3ddab6",
+   "name": "SOCIETE IMPEX PHARMA"
+  },
+  {
+   "id": "2cc5a6db-822f-4b85-9ffc-090cb4c7a152",
+   "name": "SOCIETE MAROC PHAGRO"
+  },
+  {
+   "id": "baddb415-478c-423a-9a78-66a66c61a910",
+   "name": "SOCIETE MEDIREP"
+  },
+  {
+   "id": "8f0090b5-52fc-4175-95eb-ca140632c5c1",
+   "name": "SOCIETE MD5"
+  },
+  {
+   "id": "a7e732ed-800d-4119-8447-498b16509e91",
+   "name": "SOCIETE MAREPHA"
+  },
+  {
+   "id": "be6e5b31-163e-476e-82a7-defe103277c0",
+   "name": "SOCIETE ORIENTAL MEDICA"
+  },
+  {
+   "id": "5814cd1f-81bf-4ff6-807d-1ada018081c9",
+   "name": "SOCIETE OUEST REPARTITION PHARMACEUTIQUE"
+  },
+  {
+   "id": "03d75cf4-c4b4-4258-a502-530af0b9f265",
+   "name": "SOCIETE PHARMACOOP"
+  },
+  {
+   "id": "52e1cfe2-17d9-4722-b54e-c4297bf48866",
+   "name": "SOCIETE PHARMANORD"
+  },
+  {
+   "id": "e4b9c173-96b5-49b2-8cdf-286255fc176f",
+   "name": "SOCIETE PHARMASMIR"
+  },
+  {
+   "id": "4001c3a3-8e1c-4238-a3eb-0846d495403b",
+   "name": "SOCIETE REPHAL"
+  },
+  {
+   "id": "8fc3834d-939b-4388-9d78-e6c1dfe7db0e",
+   "name": "SOCIETE REPHAR"
+  },
+  {
+   "id": "6c4b8ee7-9422-48b0-8a52-25f8722d9e8b",
+   "name": "SOCIETE RECAMED"
+  },
+  {
+   "id": "a1f6cdb4-30db-4cda-80b9-f273c01c29bb",
+   "name": "SOCIETE SARP"
+  },
+  {
+   "id": "74cdd6eb-86fc-49bf-95ed-cea6f52e6479",
+   "name": "SOCIETE S.E.R.P."
+  },
+  {
+   "id": "c8460127-f5c1-4086-a3dc-ba663f2a86d1",
+   "name": "SOCIETE SOPHAFAS"
+  },
+  {
+   "id": "3e92a51d-c59e-418a-a2a3-66906185e0cf",
+   "name": "SOCIETE SOPHASALE"
+  },
+  {
+   "id": "1229596b-26d6-4f9c-8d99-0dc18601c74b",
+   "name": "SOCIETE SOPHAGHARB"
+  },
+  {
+   "id": "4470d272-22be-462c-a06a-39a9dd6d05fe",
+   "name": "SOCIETE SOPHATLANTIC"
+  },
+  {
+   "id": "fc4577fc-909b-41e7-b3b1-31dc6f47b15a",
+   "name": "SOCIETE SOPHANAD"
+  },
+  {
+   "id": "43b22650-b1a8-4707-a242-fa89bf65df91",
+   "name": "SOCIETE SOPHANORD"
+  },
+  {
+   "id": "b03e7ce2-16c5-4084-8d85-e7cb88b3201e",
+   "name": "SOCIETE SOPHACHARK"
+  },
+  {
+   "id": "7f54f560-d7a4-4147-b842-19cc9fef9bd4",
+   "name": "SOCIETE SOREPHA"
+  },
+  {
+   "id": "1878a7a7-7957-4d33-85b7-e09d3a8c59bb",
+   "name": "SOPHACENTRE"
+  },
+  {
+   "id": "206550d7-d627-4aab-a310-beccd2b69f28",
+   "name": "SOCIETE SOPHACA"
+  },
+  {
+   "id": "eb80c8fd-ccbc-4a4e-a077-72ac4f645a17",
+   "name": "SOCIETE SOPHADIM"
+  },
+  {
+   "id": "0272b0d6-9927-4357-ae96-572961d5cb30",
+   "name": "SOCIETE SOPHADET"
+  },
+  {
+   "id": "294ec5ad-6af8-4069-b209-fcfaea73b2b3",
+   "name": "SOCIETE S.P.R."
+  },
+  {
+   "id": "f40e33f9-2bb1-48cb-8eea-d66aaaad1199",
+   "name": "SOCIETE SO.RE.MED."
+  },
+  {
+   "id": "21d3bb09-1acb-40c2-8bf0-ed430cfe9669",
+   "name": "SOCIETE TADLA PHARM"
+  },
+  {
+   "id": "ca1dbe8c-8fe5-4b8b-811f-72e2116df477",
+   "name": "U.P.M., RUE AGUELMANE"
+  },
+  {
+   "id": "6a5d38ac-23a0-40b4-b717-dc39ca8fab07",
+   "name": "U.G.P."
+  },
+  {
+   "id": "e0a5d9da-c2b1-4ad2-81b7-397a31d7a01c",
+   "name": "SOCIETE UPHAR"
+  },
+  {
+   "id": "123e712e-545c-4621-8e2d-ebf024adae3b",
+   "name": "SOCIETE UNIFARMA"
+  },
+  {
+   "id": "6928cb80-4848-463f-ad1b-491c46c3ace5",
+   "name": "SOCIETE UPHAG"
+  }
+ ],
+ "mis_a_jour": [],
+ "erreurs": []
+}

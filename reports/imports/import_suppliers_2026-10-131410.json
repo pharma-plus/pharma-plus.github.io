@@ -1,0 +1,16 @@
+{
+ "import": "suppliers",
+ "source": "data\\imports\\suppliers\\grossistes_medicament_ma.csv",
+ "mode": "DRY-RUN",
+ "at": "2026-10-13T14:10:04.189Z",
+ "lignes_source": 50,
+ "existants": 73,
+ "a_creer": 0,
+ "a_mettre_a_jour": 0,
+ "inchanges": 50,
+ "rejets": 0,
+ "motifs_rejet": [],
+ "crees": [],
+ "mis_a_jour": [],
+ "erreurs": []
+}
