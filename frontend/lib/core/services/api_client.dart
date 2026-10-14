@@ -154,13 +154,14 @@ class ApiClient {
   }
 
   Future<ApiResult<dynamic>> post(String path,
-      {Object? body, bool auth = true}) async {
+      {Object? body, bool auth = true, Duration? timeout}) async {
     return _send(
       () => _http.post(
         _uri(path),
         headers: _headers(auth: auth),
         body: body is String ? body : jsonEncode(body ?? {}),
       ),
+      timeoutOverride: timeout,
     );
   }
 
@@ -181,7 +182,8 @@ class ApiClient {
   ///  - le renouvellement de session unique en cas de 401 ;
   ///  - les erreurs réseau / timeout.
   Future<ApiResult<dynamic>> _send(Future<http.Response> Function() request,
-      {bool retried = false}) async {
+      {bool retried = false, Duration? timeoutOverride}) async {
+    final timeout = timeoutOverride ?? ApiClient.timeout;
     // Ancien plafond : 10 × 4 s + timeouts 25 s = jusqu'à ~315-650 s de blocage.
     // On borne maintenant à 3 tentatives + un délai total maximal de 45 s.
     const maxWakeRetries = 3;
@@ -217,7 +219,8 @@ class ApiClient {
         if (res.statusCode == 401 && !retried) {
           final renewed = await _auth.tryRefresh();
           if (renewed) {
-            return _send(request, retried: true);
+            return _send(request,
+                retried: true, timeoutOverride: timeoutOverride);
           }
           _auth.signOut();
         }

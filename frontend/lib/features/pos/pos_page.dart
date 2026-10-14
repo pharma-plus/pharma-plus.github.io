@@ -540,8 +540,8 @@ class _PosPageState extends State<PosPage> {
         if (_customerId != null) 'customerId': _customerId,
         'payments': [pay.toPayload()],
       };
-      final result =
-          await ApiClient.instance.post('/sales', body: saleBody);
+      final result = await ApiClient.instance.post('/sales',
+          body: saleBody, timeout: const Duration(seconds: 60));
       if (result.success) {
         final change = pay.change ??
             calculateChange(received: pay.amount, total: _cart.total);
@@ -556,19 +556,23 @@ class _PosPageState extends State<PosPage> {
         final gdp = _cart.globalDiscountPercent;
         final discountAmount = _totals.discount;
         final pharmacyName = _branchName();
+        final saleNumber = (result.data is Map)
+            ? '${(result.data as Map)['number'] ?? ''}'
+            : '';
         _cart.clear();
         _received = 0;
         _receivedVN.value = 0;
         _receivedCtrl.clear();
         _paymentMode = 'cash';
         if (mounted) {
-          final msg = pay.method == 'card'
-              ? '${S.t('saleSuccess', auth.locale)} · Carte ${pay.cardType ?? ''}'
-              : change > 0
-                  ? '${S.t('saleSuccess', auth.locale)} · Monnaie : ${Fmt.money(change)} MAD'
-                  : S.t('saleSuccess', auth.locale);
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(msg)));
+          final msg = (pay.method == 'card'
+                  ? '${S.t('saleSuccess', auth.locale)} · Carte ${pay.cardType ?? ''}'
+                  : change > 0
+                      ? '${S.t('saleSuccess', auth.locale)} · Monnaie : ${Fmt.money(change)} MAD'
+                      : S.t('saleSuccess', auth.locale)) +
+              (saleNumber.isNotEmpty ? ' · $saleNumber' : '');
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              duration: const Duration(seconds: 6), content: Text(msg)));
           ReceiptPdf.printSaleReceipt(
             lines: lines,
             pharmacyName: pharmacyName,
@@ -594,10 +598,41 @@ class _PosPageState extends State<PosPage> {
               SnackBar(content: Text(S.t('offline', auth.locale))));
         }
       } else {
+        // DIALOG PERSISTANT : une erreur de vente doit être LUE, jamais
+        // un SnackBar éphémère que l'opérateur rate pendant la caisse.
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(result.error?.readableMessage ?? 'Erreur')));
+          await showDialog<void>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Vente non enregistrée'),
+              content: Text(result.error?.readableMessage ??
+                  'Erreur serveur (code ${result.statusCode}).'),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('OK — réessayer')),
+              ],
+            ),
+          );
         }
+      }
+    } catch (e) {
+      // EXCEPTION VISIBLE EN DIALOG (jamais masquée) : le texte exact
+      // permet de corriger la cause racine au retour utilisateur.
+      debugPrint('[POS] _checkoutFlow exception: $e');
+      if (mounted) {
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Erreur de vente'),
+            content: Text('$e'),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('OK')),
+            ],
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _checkout = false);

@@ -436,15 +436,21 @@ class _PosPanelState extends State<PosPanel> {
         if (_customerId != null) 'customerId': _customerId,
         'payments': [pay.toPayload()],
       };
-      final result = await ApiClient.instance.post('/sales', body: saleBody);
+      final result = await ApiClient.instance.post('/sales',
+          body: saleBody, timeout: const Duration(seconds: 60));
       if (!mounted) return;
       if (result.success) {
-        final msg = pay.method == 'card'
-            ? 'Vente enregistrée · Carte ${pay.cardType ?? ''}'
-            : (pay.change != null && pay.change! > 0)
-                ? 'Vente enregistrée · Monnaie : ${Fmt.money(pay.change!)} MAD'
-                : 'Vente enregistrée · ${Fmt.money(pay.amount)} MAD';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+        final saleNumber = (result.data is Map)
+            ? '${(result.data as Map)['number'] ?? ''}'
+            : '';
+        final msg = (pay.method == 'card'
+                ? 'Vente enregistrée · Carte ${pay.cardType ?? ''}'
+                : (pay.change != null && pay.change! > 0)
+                    ? 'Vente enregistrée · Monnaie : ${Fmt.money(pay.change!)} MAD'
+                    : 'Vente enregistrée · ${Fmt.money(pay.amount)} MAD') +
+            (saleNumber.isNotEmpty ? ' · $saleNumber' : '');
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            duration: const Duration(seconds: 6), content: Text(msg)));
         // Impression ticket (même service que le POS complet).
         final receiptLines = [
           for (final m in _cart.values)
@@ -466,8 +472,36 @@ class _PosPanelState extends State<PosPanel> {
         );
         _clearCart();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result.error?.readableMessage ?? 'Erreur lors de la vente')),
+        // DIALOG PERSISTANT : l'erreur de vente doit être LUE.
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Vente non enregistrée'),
+            content: Text(result.error?.readableMessage ??
+                'Erreur serveur (code ${result.statusCode}).'),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('OK — réessayer')),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      // EXCEPTION VISIBLE EN DIALOG (jamais masquée).
+      debugPrint('[PosPanel] _executeSale exception: $e');
+      if (mounted) {
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Erreur de vente'),
+            content: Text('$e'),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('OK')),
+            ],
+          ),
         );
       }
     } finally {
