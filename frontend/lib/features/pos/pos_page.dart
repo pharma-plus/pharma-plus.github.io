@@ -511,6 +511,13 @@ class _PosPageState extends State<PosPage> {
       return;
     }
     setState(() => _checkout = true);
+    // Feedback IMMEDIAT (avant la réponse réseau) : le bouton ne doit
+    // jamais sembler « mort » pendant l'enregistrement.
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          duration: Duration(seconds: 2),
+          content: Text('Enregistrement de la vente…')),
+    );
     try {
       final pay = payment ??
           PaymentResult.cash(
@@ -1883,12 +1890,14 @@ class _PosPageState extends State<PosPage> {
         const SizedBox(width: 6),
         Expanded(
           child: _PayButton(
-            label: canPay
-                ? 'Payer'
-                : _paymentMode == 'cash' && _received > 0 && !_cashSufficient
-                    ? 'Montant insuffisant'
-                    : 'Payer',
-            enabled: canPay,
+            label: _checkout
+                ? 'Enregistrement…'
+                : canPay
+                    ? 'Payer'
+                    : _paymentMode == 'cash' && _received > 0 && !_cashSufficient
+                        ? 'Montant insuffisant'
+                        : 'Payer',
+            enabled: canPay || _checkout,
             onTap: canPay ? () => _confirmPayment() : null,
             // Feedback EXPLICITE : le tap ne doit JAMAIS sembler « mort ».
             onDisabledTap: () {

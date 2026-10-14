@@ -408,6 +408,12 @@ class _PosPanelState extends State<PosPanel> {
       return;
     }
     setState(() => _checkout = true);
+    // Feedback IMMEDIAT : le bouton ne doit jamais sembler « mort ».
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          duration: Duration(seconds: 2),
+          content: Text('Enregistrement de la vente…')),
+    );
     try {
       final clientSaleId =
           '${DateTime.now().millisecondsSinceEpoch}-${math.Random().nextInt(1 << 32)}'
@@ -1013,7 +1019,7 @@ class _PosPanelState extends State<PosPanel> {
           const SizedBox(width: 6),
           Expanded(
               child: _PayButton(
-                  label: 'Payer',
+                  label: _checkout ? 'Enregistrement…' : 'Payer',
                   onTap: _pay)),
         ]),
       ]),
