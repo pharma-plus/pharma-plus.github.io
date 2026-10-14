@@ -556,24 +556,19 @@ class _PosPageState extends State<PosPage> {
         final gdp = _cart.globalDiscountPercent;
         final discountAmount = _totals.discount;
         final pharmacyName = _branchName();
-        final saleNumber = (result.data is Map)
-            ? '${(result.data as Map)['number'] ?? ''}'
-            : '';
         _cart.clear();
         _received = 0;
         _receivedVN.value = 0;
         _receivedCtrl.clear();
         _paymentMode = 'cash';
         if (mounted) {
-          final base = pay.method == 'card'
+          final msg = pay.method == 'card'
               ? '${S.t('saleSuccess', auth.locale)} · Carte ${pay.cardType ?? ''}'
               : change > 0
                   ? '${S.t('saleSuccess', auth.locale)} · Monnaie : ${Fmt.money(change)} MAD'
                   : S.t('saleSuccess', auth.locale);
-          final msg =
-              saleNumber.isNotEmpty ? '$base · Ticket $saleNumber' : base;
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              duration: const Duration(seconds: 4), content: Text(msg)));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(msg)));
           ReceiptPdf.printSaleReceipt(
             lines: lines,
             pharmacyName: pharmacyName,
@@ -582,17 +577,7 @@ class _PosPageState extends State<PosPage> {
             globalDiscountAmount: discountAmount,
             amountReceived: pay.received ?? pay.amount,
             change: change,
-          ).catchError((e) {
-            // Impression bloquée (popup / navigateur) : ne JAMAIS masquer
-            // la vente — on le dit et on propose la réimpression.
-            debugPrint('[POS] impression ticket: $e');
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text(
-                      'Vente enregistrée mais ticket non imprimé — utilisez Réimpression.')));
-            }
-            return null;
-          });
+          );
         }
       } else if (result.error?.code == 'NETWORK_ERROR') {
         // File hors-ligne : vente COMPLÈTE (articles + remise + paiement),
@@ -611,17 +596,8 @@ class _PosPageState extends State<PosPage> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              duration: const Duration(seconds: 6),
               content: Text(result.error?.readableMessage ?? 'Erreur')));
         }
-      }
-    } catch (e) {
-      // AUCUNE exception n'est masquée : tout crash est visible à l'écran.
-      debugPrint('[POS] _checkoutFlow exception: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            duration: const Duration(seconds: 8),
-            content: Text('Erreur inattendue : $e')));
       }
     } finally {
       if (mounted) setState(() => _checkout = false);
