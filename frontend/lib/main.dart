@@ -142,7 +142,15 @@ class PharmaGoldApp extends StatelessWidget {
           ],
           builder: (context, child) => Directionality(
             textDirection: rtl ? TextDirection.rtl : TextDirection.ltr,
-            child: child ?? const SizedBox.shrink(),
+            child: Listener(
+              // Tracking d'activité global : chaque tap/clavier réinitialise
+              // le minuteur de verrouillage inactivité (sinon il ne se
+              // déclenche jamais car aucune interaction ne reset le timer).
+              onPointerDown: (_) => AuthStore.instance.resetInactivityTimer(),
+              onPointerMove: (_) => AuthStore.instance.resetInactivityTimer(),
+              behavior: HitTestBehavior.translucent,
+              child: child ?? const SizedBox.shrink(),
+            ),
           ),
           home: const RootGate(),
         );

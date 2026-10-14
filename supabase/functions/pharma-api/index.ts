@@ -378,7 +378,11 @@ async function hasPermission(
     .eq("id", userId)
     .maybeSingle();
   if (!u) return { allowed: false, userId };
-  if (u.is_super_admin || !u.role_id) return { allowed: true, userId };
+  // SUPER ADMIN uniquement bypass. Un compte SANS role_id est REFUSÉ
+  // (fix escalade de privilèges : !u.role_id → allowed:true laissait
+  // tout compte sans rôle avoir toutes les permissions).
+  if (u.is_super_admin) return { allowed: true, userId };
+  if (!u.role_id) return { allowed: false, userId };
   const { data: perms } = await sb
     .from("role_permissions")
     .select("permission_code")
@@ -1599,26 +1603,41 @@ Deno.serve(async (req) => {
   if (path === "auth/signup" || path === "/auth/signup") {
     if (req.method !== "POST")
       return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+    // SÉCURITÉ : signup n'est pas anonyme — il crée un compte dans
+    // public.users. Exige users:create (sauf super admin) et force le
+    // pharmacy_id du demandeur (fix escalade : pharmacy_id arbitraire).
+    const signupAuth = await hasPermission(sb, req, "users:create");
+    if (!signupAuth.allowed)
+      return json({ error: { code: "FORBIDDEN" } }, 403);
     const body = await req.json().catch(() => ({}));
     const { email, password, first_name, last_name, pharmacy_id: pId } =
       body as any;
     if (!email || !password)
       return json({ error: { code: "VALIDATION" } }, 400);
+    const { data: caller } = await sb
+      .from("users")
+      .select("pharmacy_id, is_super_admin")
+      .eq("id", signupAuth.userId)
+      .maybeSingle();
+    // Pharmacy_id : celui du demandeur, sauf super admin qui peut
+    // spécifier une autre pharmacie.
+    const effectivePharmacyId =
+      caller?.is_super_admin && pId ? pId : caller?.pharmacy_id;
+    if (!effectivePharmacyId)
+      return json({ error: { code: "VALIDATION", message: "pharmacy_id manquant" } }, 400);
     const { data, error } = await sbAuth.auth.signUp({ email, password });
     if (error)
       return json(
         { error: { code: "SIGNUP_FAILED", message: error.message } },
         400,
       );
-    if (pId) {
-      await sb.from("users").insert({
-        email,
-        first_name: first_name ?? "New",
-        last_name: last_name ?? "User",
-        pharmacy_id: pId,
-        password_hash: "supabase-auth",
-      });
-    }
+    await sb.from("users").insert({
+      email,
+      first_name: first_name ?? "New",
+      last_name: last_name ?? "User",
+      pharmacy_id: effectivePharmacyId,
+      password_hash: "supabase-auth",
+    });
     return json({ data });
   }
 
@@ -1630,6 +1649,13 @@ Deno.serve(async (req) => {
   if (path === "auth/provision" || path === "/auth/provision") {
     if (req.method !== "POST")
       return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+    // SÉCURITÉ : provision crée un compte Supabase Auth pour un email
+    // donné. Exige users:edit (fix prise de compte : n'importe quel
+    // utilisateur connecté pouvait provisionner un compte pour tout
+    // email présent dans public.users).
+    const provAuth = await hasPermission(sb, req, "users:edit");
+    if (!provAuth.allowed)
+      return json({ error: { code: "FORBIDDEN" } }, 403);
     const body = await req.json().catch(() => ({}));
     const { email, password } = body as any;
     if (!email || !password)
@@ -2355,6 +2381,11 @@ Deno.serve(async (req) => {
   }
 
   if (path === "__diag" || path === "/__diag") {
+    // DIAG INTERNE — super admin uniquement (fix fuite cross-tenant :
+    // exposait sale_items/payments/stock_movements + schéma à tout
+    // utilisateur connecté, sans filtre pharmacy_id).
+    const diagAuth = await hasPermission(sb, req, "settings:edit");
+    if (!diagAuth.allowed) return json({ error: { code: "FORBIDDEN" } }, 403);
     try {
       const r1 = await sb
         .from("users")

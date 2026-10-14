@@ -351,18 +351,26 @@ class _EmployeeFormState extends State<_EmployeeForm> {
       TextEditingController(text: '${widget.employee?['cin'] ?? ''}');
   late final _salary =
       TextEditingController(text: '${widget.employee?['salary'] ?? 0}');
+  late final _cnss =
+      TextEditingController(text: '${widget.employee?['cnss'] ?? ''}');
+  late final _address =
+      TextEditingController(text: '${widget.employee?['address'] ?? ''}');
   String? _contractType;
+  DateTime? _hireDate;
   bool _saving = false;
+  String? _validationError;
 
   @override
   void initState() {
     super.initState();
     _contractType = widget.employee?['contract_type'] as String?;
+    final hd = widget.employee?['hire_date'];
+    if (hd != null) _hireDate = DateTime.tryParse('$hd');
   }
 
   @override
   void dispose() {
-    for (final c in [_first, _last, _position, _phone, _email, _cin, _salary]) {
+    for (final c in [_first, _last, _position, _phone, _email, _cin, _salary, _cnss, _address]) {
       c.dispose();
     }
     super.dispose();
@@ -372,9 +380,14 @@ class _EmployeeFormState extends State<_EmployeeForm> {
     if (_first.text.trim().isEmpty ||
         _last.text.trim().isEmpty ||
         _position.text.trim().isEmpty) {
+      setState(() =>
+          _validationError = 'Prénom, nom et fonction sont obligatoires.');
       return;
     }
-    setState(() => _saving = true);
+    setState(() {
+      _saving = true;
+      _validationError = null;
+    });
     final body = {
       'firstName': _first.text.trim(),
       'lastName': _last.text.trim(),
@@ -384,6 +397,10 @@ class _EmployeeFormState extends State<_EmployeeForm> {
       'cin': _cin.text.trim().isEmpty ? null : _cin.text.trim(),
       'salary': double.tryParse(_salary.text) ?? 0,
       'contractType': _contractType,
+      if (_cnss.text.trim().isNotEmpty) 'cnss': _cnss.text.trim(),
+      if (_address.text.trim().isNotEmpty) 'address': _address.text.trim(),
+      if (_hireDate != null)
+        'hireDate': _hireDate!.toIso8601String().substring(0, 10),
     };
     final result = widget.employee == null
         ? await ApiClient.instance.post('/employees', body: body)
@@ -400,98 +417,165 @@ class _EmployeeFormState extends State<_EmployeeForm> {
     }
   }
 
+  /// Construit une rangée de 2 champs côte à côte (PC) ou empilés (mobile).
+  Widget _row2(Widget a, Widget b, bool wide) {
+    if (!wide) {
+      return Column(children: [a, const SizedBox(height: 12), b]);
+    }
+    return Row(children: [
+      Expanded(child: a),
+      const SizedBox(width: 12),
+      Expanded(child: b),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
-    return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                        controller: _first,
-                        decoration: InputDecoration(
-                            labelText: S.t('firstName', locale))),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                        controller: _last,
-                        decoration: InputDecoration(
-                            labelText: S.t('lastName', locale))),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                  controller: _position,
-                  decoration:
-                      InputDecoration(labelText: S.t('position', locale))),
-              const SizedBox(height: 12),
-              TextField(
-                  controller: _phone,
-                  decoration: InputDecoration(labelText: S.t('phone', locale))),
-              const SizedBox(height: 12),
-              TextField(
-                  controller: _email,
-                  decoration: InputDecoration(labelText: S.t('email', locale))),
-              const SizedBox(height: 12),
-              TextField(
-                  controller: _cin,
-                  decoration: InputDecoration(labelText: S.t('cin', locale))),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                        controller: _salary,
-                        keyboardType: TextInputType.number,
-                        decoration:
-                            InputDecoration(labelText: S.t('salary', locale))),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _contractType,
+    final wide = MediaQuery.of(context).size.width >= 700;
+    return Dialog(
+      backgroundColor: AppColors.pharmaSurface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.employee == null ? 'Nouvel employé' : 'Modifier l\'employé',
+                  style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.pharmaText),
+                ),
+                const SizedBox(height: 16),
+                _row2(
+                  TextField(
+                      controller: _first,
                       decoration: InputDecoration(
-                          labelText: S.t('contractType', locale)),
-                      items: ['cdi', 'cdd', 'stage', 'interim']
-                          .map((c) => DropdownMenuItem(
-                              value: c, child: Text(S.t(c, locale))))
-                          .toList(),
-                      onChanged: (v) => setState(() => _contractType = v),
+                          labelText: S.t('firstName', locale))),
+                  TextField(
+                      controller: _last,
+                      decoration: InputDecoration(
+                          labelText: S.t('lastName', locale))),
+                  wide,
+                ),
+                const SizedBox(height: 12),
+                _row2(
+                  TextField(
+                      controller: _position,
+                      decoration: InputDecoration(
+                          labelText: S.t('position', locale))),
+                  TextField(
+                      controller: _phone,
+                      keyboardType: TextInputType.phone,
+                      decoration:
+                          InputDecoration(labelText: S.t('phone', locale))),
+                  wide,
+                ),
+                const SizedBox(height: 12),
+                _row2(
+                  TextField(
+                      controller: _email,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration:
+                          InputDecoration(labelText: S.t('email', locale))),
+                  TextField(
+                      controller: _cin,
+                      decoration: InputDecoration(labelText: S.t('cin', locale))),
+                  wide,
+                ),
+                const SizedBox(height: 12),
+                _row2(
+                  TextField(
+                      controller: _cnss,
+                      decoration: const InputDecoration(labelText: 'CNSS')),
+                  TextField(
+                      controller: _address,
+                      decoration:
+                          const InputDecoration(labelText: 'Adresse')),
+                  wide,
+                ),
+                const SizedBox(height: 12),
+                _row2(
+                  TextField(
+                      controller: _salary,
+                      keyboardType: TextInputType.number,
+                      decoration:
+                          InputDecoration(labelText: S.t('salary', locale))),
+                  DropdownButtonFormField<String>(
+                    initialValue: _contractType,
+                    decoration: InputDecoration(
+                        labelText: S.t('contractType', locale)),
+                    items: ['cdi', 'cdd', 'stage', 'interim']
+                        .map((c) => DropdownMenuItem(
+                            value: c, child: Text(S.t(c, locale))))
+                        .toList(),
+                    onChanged: (v) => setState(() => _contractType = v),
+                  ),
+                  wide,
+                ),
+                const SizedBox(height: 12),
+                // Date d'embauche
+                InkWell(
+                  onTap: () async {
+                    final d = await showDatePicker(
+                      context: context,
+                      initialDate: _hireDate ?? DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime.now(),
+                    );
+                    if (d != null) setState(() => _hireDate = d);
+                  },
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                        labelText: 'Date d\'embauche',
+                        suffixIcon: Icon(Icons.calendar_today, size: 18)),
+                    child: Text(
+                      _hireDate != null
+                          ? '${_hireDate!.day.toString().padLeft(2, '0')}/${_hireDate!.month.toString().padLeft(2, '0')}/${_hireDate!.year}'
+                          : 'Sélectionner une date',
+                      style: TextStyle(
+                        color: _hireDate != null
+                            ? AppColors.pharmaText
+                            : AppColors.pharmaMuted,
+                      ),
                     ),
                   ),
+                ),
+                if (_validationError != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    _validationError!,
+                    style: const TextStyle(color: AppColors.danger, fontSize: 13),
+                  ),
                 ],
-              ),
-              const SizedBox(height: 20),
-              Row(children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                    label: Text(S.t('cancel', locale)),
+                const SizedBox(height: 20),
+                Row(children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                      label: Text(S.t('cancel', locale)),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: GradientButton(
-                    label: S.t('save', locale),
-                    icon: Icons.check,
-                    loading: _saving,
-                    onPressed: _save,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GradientButton(
+                      label: S.t('save', locale),
+                      icon: Icons.check,
+                      loading: _saving,
+                      onPressed: _save,
+                    ),
                   ),
-                ),
-              ]),
-            ],
+                ]),
+              ],
+            ),
           ),
         ),
       ),

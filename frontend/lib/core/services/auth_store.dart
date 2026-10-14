@@ -275,7 +275,11 @@ class AuthStore extends ChangeNotifier {
         await OfflineStore.instance.clearCatalog();
       } catch (_) {}
     }
-    // Au login, démarrer le minuteur d'inactivité
+    // Au login, démarrer le minuteur d'inactivité.
+    // FIX : _lastActivity doit être initialisé SINON la condition
+    // `_lastActivity != null` dans le timer échoue toujours →
+    // verrouillage automatique JAMAIS déclenché.
+    _lastActivity = DateTime.now();
     _startInactivityTimer();
     notifyListeners();
   }
