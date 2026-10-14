@@ -197,6 +197,21 @@ class _PosPanelState extends State<PosPanel> {
   }
 
   void _add(Medication m) {
+    // Vérifier le stock avant ajout
+    final stock = m.stockQuantity;
+    if (stock == null) {
+      _showStockUnknownDialog();
+      return;
+    }
+    if (stock <= 0) {
+      _showStockZeroDialog();
+      return;
+    }
+    final inCart = _qty[m.id] ?? 0;
+    if (inCart + 1 > stock) {
+      _showStockInsufficientDialog(m.name, stock - inCart);
+      return;
+    }
     setState(() {
       _qty[m.id] = (_qty[m.id] ?? 0) + 1;
       _cart[m.id] = m;
@@ -205,7 +220,76 @@ class _PosPanelState extends State<PosPanel> {
     });
   }
 
+  void _showStockZeroDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Produit indisponible'),
+        content: const Text(
+          "Ce médicament figure dans le catalogue, mais il n'est actuellement pas disponible en stock dans votre pharmacie. "
+          "Il ne peut pas être ajouté au panier. Enregistrez une réception de stock avant de procéder à la vente.\n\n"
+          "Stock disponible : 0",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Compris'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showStockUnknownDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Stock non vérifiable'),
+        content: const Text(
+          "Disponibilité du stock impossible à vérifier. Veuillez vérifier le stock avant de continuer.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Compris'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showStockInsufficientDialog(String name, double available) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Stock insuffisant'),
+        content: Text(
+          "Quantité disponible pour « $name » : ${available.round()}. "
+          "Vous ne pouvez pas ajouter plus que la quantité en stock.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Compris'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _bump(String id, int delta) {
+    // Vérifier le stock si on augmente la quantité
+    if (delta > 0) {
+      final m = _cart[id];
+      final stock = m?.stockQuantity;
+      if (stock != null) {
+        final current = _qty[id] ?? 0;
+        if (current + delta > stock) {
+          _showStockInsufficientDialog(m!.name, stock - current);
+          return;
+        }
+      }
+    }
     final q = (_qty[id] ?? 1) + delta;
     setState(() {
       if (q <= 0) {

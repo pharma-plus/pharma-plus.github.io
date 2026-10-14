@@ -311,6 +311,111 @@ class _PosPageState extends State<PosPage> {
     });
   }
 
+  /// Vérifie le stock avant ajout au panier. Retourne true si l'ajout est autorisé.
+  /// - Stock inconnu (null) → dialog « impossible à vérifier »
+  /// - Stock = 0 → dialog « Produit indisponible »
+  /// - Stock insuffisant → dialog avec quantité disponible
+  Future<bool> _checkStockAndAdd(Medication m, {double quantity = 1}) async {
+    // S'assurer que le stock est chargé pour ce médicament
+    if (!_stock.containsKey(m.id)) {
+      try {
+        final r = await ApiClient.instance
+            .get('/catalog/medications/stock', query: {'ids': m.id});
+        if (r.success && r.data is List) {
+          for (final e in r.data as List) {
+            if (e is Map) {
+              _stock['${e['medication_id']}'] =
+                  (e['quantity'] as num?)?.toDouble() ?? 0;
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    final available = _stock[m.id];
+
+    // Stock inconnu / non initialisé
+    if (available == null) {
+      _showStockUnknownDialog();
+      return false;
+    }
+
+    // Stock zéro
+    if (available <= 0) {
+      _showStockZeroDialog();
+      return false;
+    }
+
+    // Vérifier la quantité déjà dans le panier + celle qu'on ajoute
+    final inCart = _cart.lines
+        .where((l) => l.medication.id == m.id)
+        .fold<double>(0, (sum, l) => sum + l.quantity);
+    if (inCart + quantity > available) {
+      _showStockInsufficientDialog(m.name, available - inCart);
+      return false;
+    }
+
+    setState(() => _cart.add(m, quantity: quantity));
+    return true;
+  }
+
+  void _showStockZeroDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Produit indisponible'),
+        content: const Text(
+          "Ce médicament figure dans le catalogue, mais il n'est actuellement pas disponible en stock dans votre pharmacie. "
+          "Il ne peut pas être ajouté au panier. Enregistrez une réception de stock avant de procéder à la vente.\n\n"
+          "Stock disponible : 0",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Compris'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showStockUnknownDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Stock non vérifiable'),
+        content: const Text(
+          "Disponibilité du stock impossible à vérifier. Veuillez vérifier le stock avant de continuer.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Compris'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showStockInsufficientDialog(String name, double available) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Stock insuffisant'),
+        content: Text(
+          "Quantité disponible pour « $name » : ${available.round()}. "
+          "Vous ne pouvez pas ajouter plus que la quantité en stock.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Compris'),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Fiche rapide POS : infos complètes sans quitter la caisse.
   /// GET /catalog/medications/{id}/details (médicament + labo + stock +
   /// provenance + référence liée), fallback sur les données locales.
@@ -393,9 +498,9 @@ class _PosPageState extends State<PosPage> {
                     foregroundColor: Colors.white),
                 icon: const Icon(Icons.add_shopping_cart_rounded, size: 18),
                 label: const Text('Ajouter au panier'),
-                onPressed: () {
+                onPressed: () async {
                   Navigator.pop(context);
-                  setState(() => _cart.add(m));
+                  await _checkStockAndAdd(m);
                 },
               ),
             ),
@@ -437,16 +542,16 @@ class _PosPageState extends State<PosPage> {
       );
       return;
     }
-    setState(() {
-      final medMap = medication is Map ? Map<String, dynamic>.from(medication) : <String, dynamic>{};
-      _cart.add(Medication.fromJson(medMap));
-    });
+    final medMap = medication is Map ? Map<String, dynamic>.from(medication) : <String, dynamic>{};
+    final med = Medication.fromJson(medMap);
+    final added = await _checkStockAndAdd(med);
+    if (!added) return;
     if (continuous) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           duration: const Duration(seconds: 1),
           content: Text(
-              '+ ${medication is Map ? medication['name'] : 'Produit'} — panier : ${_cart.lines.length} ligne(s)')));
+              '+ ${med.name} — panier : ${_cart.lines.length} ligne(s)')));
     }
   }
 
@@ -1411,7 +1516,15 @@ class _PosPageState extends State<PosPage> {
                     }
                   });
                 },
-                onPlus: () => setState(() => line.quantity += 1),
+                onPlus: () {
+                  final stock = _stock[line.medication.id];
+                  if (stock != null && line.quantity + 1 > stock) {
+                    _showStockInsufficientDialog(
+                        line.medication.name, stock - line.quantity);
+                    return;
+                  }
+                  setState(() => line.quantity += 1);
+                },
                 onDelete: () => setState(
                     () => _cart.removeLine(line.medication.id)),
               );
@@ -1428,7 +1541,7 @@ class _PosPageState extends State<PosPage> {
                 if ((m.presentation ?? '').trim().isNotEmpty) m.presentation!,
               ].join(' · ');
               return InkWell(
-                onTap: () => setState(() => _cart.add(m)),
+                onTap: () => _checkStockAndAdd(m),
                 child: Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
