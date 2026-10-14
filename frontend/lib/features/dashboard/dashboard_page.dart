@@ -476,9 +476,9 @@ class _DashboardPageState extends State<DashboardPage> {
           badge: Icons.point_of_sale_rounded,
           badgeColor: green),
       _KpiDef(
-          label: 'PRODUITS EN STOCK',
-          value: Fmt.number(_productsInStock),
-          sub: 'Références stockées',
+          label: 'MÉDICAMENTS',
+          value: Fmt.number(_medications),
+          sub: 'Références catalogue',
           image: 'assets/images/kpi_bg_2.webp',
           badge: Icons.medication_rounded,
           badgeColor: green),

@@ -55,8 +55,53 @@ class _StockPageState extends State<StockPage> {
       });
       return;
     }
+    final rows = ApiList.of(result.data);
+
+    // Enrichir chaque ligne avec le nom, la forme, le dosage et le prix
+    // du médicament (stock_balances ne contient que medication_id).
+    final medIds = rows
+        .map((r) => '${r['medication_id']}')
+        .where((id) =>
+            id.isNotEmpty && id != 'null' && RegExp(r'^[0-9a-f-]{36}$').hasMatch(id))
+        .toSet()
+        .toList();
+    final Map<String, Map<String, dynamic>> medInfo = {};
+    if (medIds.isNotEmpty) {
+      final medRes = await ApiClient.instance.get(
+        '/catalog/medications',
+        query: {'limit': 500, 'id': 'in.(${medIds.join(',')})'},
+      );
+      if (medRes.success) {
+        for (final m in ApiList.of(medRes.data)) {
+          if (m['id'] != null) medInfo['${m['id']}'] = m;
+        }
+      }
+    }
+
+    // Fusionner : quantity depuis stock_balances, name/price depuis medications
+    for (final row in rows) {
+      final id = '${row['medication_id']}';
+      final med = medInfo[id];
+      if (med != null) {
+        row['medication_name'] = med['name'] ?? '—';
+        row['price_sale'] = med['price_sale'] ?? 0;
+        // Détail : forme · dosage · laboratoire
+        final parts = [
+          if ((med['dosage'] ?? '').toString().isNotEmpty) med['dosage'],
+          if ((med['form'] ?? '').toString().isNotEmpty) med['form'],
+          if ((med['laboratory_name'] ?? '').toString().isNotEmpty)
+            med['laboratory_name'],
+        ];
+        if (parts.isNotEmpty) row['med_detail'] = parts.join(' · ');
+      }
+      // Quantité disponible = quantity - reserved
+      final qty = (row['quantity'] as num?)?.toDouble() ?? 0;
+      final reserved = (row['reserved_quantity'] as num?)?.toDouble() ?? 0;
+      row['available'] = qty - reserved;
+    }
+
     setState(() {
-      _items = ApiList.of(result.data);
+      _items = rows;
       _loading = false;
     });
   }
@@ -107,15 +152,31 @@ class _StockPageState extends State<StockPage> {
   }
 
   List<Map<String, dynamic>> get _filtered {
-    if (_alertFilter == null) return _items;
-    if (_alertFilter == 'low') {
-      return _items.where((item) {
-        return _number(item['available']) <= _number(item['reorder_level']);
+    var list = _items;
+    // Filtre alerte
+    if (_alertFilter != null) {
+      if (_alertFilter == 'low') {
+        list = list
+            .where((item) =>
+                _number(item['available']) <= _number(item['reorder_level']))
+            .toList();
+      } else {
+        list = list
+            .where((item) => item['expiry_status'] == _alertFilter)
+            .toList();
+      }
+    }
+    // Filtre recherche côté client sur le nom enrichi
+    final q = _search.text.trim().toLowerCase();
+    if (q.isNotEmpty) {
+      list = list.where((item) {
+        final name = '${item['medication_name'] ?? ''}'.toLowerCase();
+        final detail = '${item['med_detail'] ?? ''}'.toLowerCase();
+        final lot = '${item['lot_number'] ?? ''}'.toLowerCase();
+        return name.contains(q) || detail.contains(q) || lot.contains(q);
       }).toList();
     }
-    return _items
-        .where((item) => item['expiry_status'] == _alertFilter)
-        .toList();
+    return list;
   }
 
   double _number(dynamic value) {
@@ -372,14 +433,21 @@ class _StockPageState extends State<StockPage> {
                                 final available = _number(item['available']);
                                 final reorder = _number(item['reorder_level']);
                                 final low = available <= reorder;
-                                final location = item['locationId'] != null
-                                    ? '${item['aisle'] ?? ''}-${item['shelf'] ?? ''}-${item['level'] ?? ''}-${item['position'] ?? ''}'
-                                    : 'Non défini';
+                                // Détail : forme · dosage · labo (pas de
+                                // lot/branche qui est souvent vide)
+                                final medDetail =
+                                    '${item['med_detail'] ?? ''}';
+                                final lotInfo =
+                                    '${item['lot_number'] ?? ''}';
+                                final detail = [
+                                  if (medDetail.isNotEmpty) medDetail,
+                                  if (lotInfo.isNotEmpty && lotInfo != 'null')
+                                    'Lot: $lotInfo',
+                                ].join(' · ');
                                 return _StockTile(
                                   name: (item['medication_name'] as String?) ??
                                       '—',
-                                  detail:
-                                      '${item['lot_number'] ?? '—'} · ${item['branch_name'] ?? ''} · $location',
+                                  detail: detail.isEmpty ? '—' : detail,
                                   expiry: item['expiry_date'] as String?,
                                   quantity: available,
                                   price: _number(item['price_sale']),
@@ -387,7 +455,7 @@ class _StockPageState extends State<StockPage> {
                                       ? _StockAlert.expired
                                       : expiring
                                           ? _StockAlert.expiring
-                                          : low
+                                          : low && available > 0
                                               ? _StockAlert.low
                                               : _StockAlert.none,
                                   onTap: () => _showStockActions(item),
@@ -478,11 +546,35 @@ class _StockTile extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(Fmt.number(quantity),
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w800)),
-                Text(Fmt.money(price),
-                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                // Quantité disponible
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: quantity <= 0
+                        ? AppColors.danger.withValues(alpha: 0.15)
+                        : AppColors.emerald.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '${Fmt.number(quantity)} u.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: quantity <= 0 ? AppColors.danger : AppColors.emerald,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                // Prix unitaire
+                Text(
+                  '${Fmt.money(price)} MAD',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.pharmaGold,
+                  ),
+                ),
               ],
             ),
           ],
