@@ -2525,15 +2525,27 @@ Deno.serve(async (req) => {
       const monthRows = sales.filter((s) => inRange(s, startOfMonth));
       const lastMonthRows = sales.filter((s) => inRange(s, startLastMonth, startOfMonth));
 
-      /* Alertes stock (portage dashboard/service.js). */
+      /* Alertes stock — SEULEMENT les produits RÉELLEMENT stockés.
+         FIX : l'ancien code comptait tout médicament sans stock_balances
+         (stockOf=0 ≤ reorder_level=0 → vrai) → 4971 "stock bas" pour un
+         catalogue de 5000+ références jamais reçues. Désormais :
+         - lowStock = produits AVEC une ligne stock_balances dont la
+           quantité est ≤ au seuil de réappro.
+         - productsInStock = nombre de produits avec stock > 0. */
       const medRows = (medsPaged as any[]).filter((m) => m.status === "available");
       const balRows = balances as any[];
       const stockOf = (medId: string) =>
         balRows.filter((b) => b.medication_id === medId)
           .reduce((s, b) => s + Number(b.quantity ?? 0), 0);
+      // Produits ayant AU MOINS une ligne stock_balances (réellement stockés)
+      const stockedIds = new Set(balRows.map((b) => b.medication_id));
       const lowStock = medRows.filter(
-        (m) => stockOf(m.id) <= Number(m.reorder_level ?? 0),
+        (m) => stockedIds.has(m.id) && stockOf(m.id) <= Number(m.reorder_level ?? 0),
       ).length;
+      // Nombre de produits avec stock réel > 0
+      const productsInStock = new Set(
+        balRows.filter((b) => Number(b.quantity ?? 0) > 0).map((b) => b.medication_id)
+      ).size;
       const todayStr = iso(startOfDay).slice(0, 10);
       const plus90 = new Date(startOfDay.getTime() + 90 * 86400000);
       const lotById = new Map(lotsAll.map((l: any) => [l.id, l]));
@@ -2658,6 +2670,7 @@ Deno.serve(async (req) => {
             expiring,
             expired,
             pending_orders: purchasesPending.count ?? 0,
+            products_in_stock: productsInStock,
           },
           counts: {
             medications: {

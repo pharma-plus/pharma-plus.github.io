@@ -141283,25 +141283,25 @@ if(r.e)return B.bqD
 s=r.f
 if(s!=null)return A.dG(q,B.X,A.bp(new A.a0(B.d3,A.a4(A.b([B.agU,B.a9,A.f(s,q,q,q,q,B.a1l,B.bg,q,q),B.bN,A.kr(B.df,B.bCD,r.gate())],t.p),B.y,B.q,B.aa),q),q,q),q,q)
 return A.dG(q,B.X,A.n7(new A.aVX(r)),q,q)},
-aqR(a2){var s,r,q,p,o,n,m,l,k,j=this,i=null,h="revenue",g="revenue_today",f="counts",e="total",d="fr_MA",c="profit_month",b=new A.aVr(),a=A.bC(j.fB(A.dH(j.d,h,g,i))),a0=b.$1(A.pc(j.fB(A.dH(j.d,h,g,i)),j.fB(A.dH(j.d,h,"revenue_yesterday",i)))),a1=j.mH(A.dH(j.d,f,"medications",e))
-a1=A.fY(0,d).da(a1)
-s=j.mH(A.dH(j.d,"alerts","low_stock",i))
-r=j.mH(A.dH(j.d,"alerts","pending_orders",i))
-q=j.mH(A.dH(j.d,f,"suppliers",e))
-q=A.fY(0,d).da(q)
-p=j.mH(A.dH(j.d,f,"customers",e))
-p=A.fY(0,d).da(p)
+aqR(a1){var s,r,q,p,o,n,m,l,k,j=this,i=null,h="revenue",g="revenue_today",f="alerts",e="fr_MA",d="profit_month",c=new A.aVr(),b=A.bC(j.fB(A.dH(j.d,h,g,i))),a=c.$1(A.pc(j.fB(A.dH(j.d,h,g,i)),j.fB(A.dH(j.d,h,"revenue_yesterday",i)))),a0=j.mH(A.dH(j.d,f,"products_in_stock",i))
+a0=A.fY(0,e).da(a0)
+s=j.mH(A.dH(j.d,f,"low_stock",i))
+r=j.mH(A.dH(j.d,f,"pending_orders",i))
+q=j.mH(A.dH(j.d,"counts","suppliers","total"))
+q=A.fY(0,e).da(q)
+p=j.mH(A.dH(j.d,"counts","customers","total"))
+p=A.fY(0,e).da(p)
 o=j.d
-n=[new A.p4("VENTES DU JOUR",a,"",a0,"vs hier","assets/images/kpi_bg_1.webp",B.ow,B.fc),new A.p4("M\xc9DICAMENTS",a1,"R\xe9f\xe9rences actives",i,"","assets/images/kpi_bg_2.webp",B.wd,B.fc),new A.p4("STOCK FAIBLE",""+s,"Produits",i,"","assets/images/kpi_bg_3.webp",B.ox,B.a9_),new A.p4("COMMANDES",""+r,"En attente",i,"","assets/images/kpi_bg_4.webp",B.E5,B.fc),new A.p4("FOURNISSEURS",q,"Fournisseurs",i,"","assets/images/kpi_bg_5.webp",B.E9,B.fc),new A.p4("CLIENTS",p,"Clients",i,"","assets/images/kpi_bg_6.webp",B.afw,B.fc),new A.p4("EMPLOY\xc9S",""+j.mH(o==null?i:J.i(o,"employees_present")),"Employ\xe9s",i,"","assets/images/kpi_bg_7.webp",B.Ee,B.fc),new A.p4("B\xc9N\xc9FICE MOIS",A.bC(j.fB(A.dH(j.d,h,c,i))),"",b.$1(A.pc(j.fB(A.dH(j.d,h,c,i)),j.fB(A.dH(j.d,h,"profit_last_month",i)))),"vs mois dernier","assets/images/kpi_bg_8.webp",B.afp,B.fc)]
-a=j.c
-a.toString
-m=A.bV(a,i,t.l).w.a.a>=980?4:2
-a=a2?10:12
-a0=a2?10:12
-a1=a2?1:0.95
+n=[new A.p4("VENTES DU JOUR",b,"",a,"vs hier","assets/images/kpi_bg_1.webp",B.ow,B.fc),new A.p4("PRODUITS EN STOCK",a0,"R\xe9f\xe9rences stock\xe9es",i,"","assets/images/kpi_bg_2.webp",B.wd,B.fc),new A.p4("STOCK FAIBLE",""+s,"Produits",i,"","assets/images/kpi_bg_3.webp",B.ox,B.a9_),new A.p4("COMMANDES",""+r,"En attente",i,"","assets/images/kpi_bg_4.webp",B.E5,B.fc),new A.p4("FOURNISSEURS",q,"Fournisseurs",i,"","assets/images/kpi_bg_5.webp",B.E9,B.fc),new A.p4("CLIENTS",p,"Clients",i,"","assets/images/kpi_bg_6.webp",B.afw,B.fc),new A.p4("EMPLOY\xc9S",""+j.mH(o==null?i:J.i(o,"employees_present")),"Employ\xe9s",i,"","assets/images/kpi_bg_7.webp",B.Ee,B.fc),new A.p4("B\xc9N\xc9FICE MOIS",A.bC(j.fB(A.dH(j.d,h,d,i))),"",c.$1(A.pc(j.fB(A.dH(j.d,h,d,i)),j.fB(A.dH(j.d,h,"profit_last_month",i)))),"vs mois dernier","assets/images/kpi_bg_8.webp",B.afp,B.fc)]
+b=j.c
+b.toString
+m=A.bV(b,i,t.l).w.a.a>=980?4:2
+b=a1?10:12
+a=a1?10:12
+a0=a1?1:0.95
 s=A.b([],t.p)
 for(r=t.kK,l=0;l<8;l=k){k=l+1
-s.push(new A.Rq(k,n[l],j.aBV(l),new A.dZ("kpi-"+l,r)))}return A.axj(a1,s,m,a,a0,i,B.k5,!0)}}
+s.push(new A.Rq(k,n[l],j.aBV(l),new A.dZ("kpi-"+l,r)))}return A.axj(a0,s,m,b,a,i,B.k5,!0)}}
 A.aVB.prototype={
 $0(){var s=A.k_(J.i(this.b.a,"pmg_dashboard_sidebar_collapsed"))
 return this.a.r=s===!0},

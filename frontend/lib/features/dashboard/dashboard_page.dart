@@ -153,6 +153,7 @@ class _DashboardPageState extends State<DashboardPage> {
   double get _profitLastMonth =>
       _num(_flat0(_data, 'revenue', 'profit_last_month'));
   int get _medications => _int(_nested(_data, 'counts', 'medications', 'total'));
+  int get _productsInStock => _int(_flat0(_data, 'alerts', 'products_in_stock'));
   int get _lowStock => _int(_flat0(_data, 'alerts', 'low_stock'));
   int get _expiring => _int(_flat0(_data, 'alerts', 'expiring'));
   int get _expired => _int(_flat0(_data, 'alerts', 'expired'));
@@ -475,9 +476,9 @@ class _DashboardPageState extends State<DashboardPage> {
           badge: Icons.point_of_sale_rounded,
           badgeColor: green),
       _KpiDef(
-          label: 'MÉDICAMENTS',
-          value: Fmt.number(_medications),
-          sub: 'Références actives',
+          label: 'PRODUITS EN STOCK',
+          value: Fmt.number(_productsInStock),
+          sub: 'Références stockées',
           image: 'assets/images/kpi_bg_2.webp',
           badge: Icons.medication_rounded,
           badgeColor: green),
