@@ -40,11 +40,11 @@ class _StockPageState extends State<StockPage> {
       _loading = true;
       _error = null;
     });
+    // 1. Récupérer les lignes de stock
     final result = await ApiClient.instance.get(
       '/stock/balances',
       query: {
         'limit': 200,
-        if (_search.text.trim().isNotEmpty) 'q': _search.text.trim(),
       },
     );
     if (!mounted) return;
@@ -57,44 +57,48 @@ class _StockPageState extends State<StockPage> {
     }
     final rows = ApiList.of(result.data);
 
-    // Enrichir chaque ligne avec le nom, la forme, le dosage et le prix
-    // du médicament (stock_balances ne contient que medication_id).
+    // 2. Enrichir avec nom, prix, dosage, forme via /catalog/medications/stock
     final medIds = rows
         .map((r) => '${r['medication_id']}')
         .where((id) =>
-            id.isNotEmpty && id != 'null' && RegExp(r'^[0-9a-f-]{36}$').hasMatch(id))
+            id.isNotEmpty &&
+            id != 'null' &&
+            RegExp(r'^[0-9a-f-]{36}$').hasMatch(id))
         .toSet()
         .toList();
-    final Map<String, Map<String, dynamic>> medInfo = {};
     if (medIds.isNotEmpty) {
-      final medRes = await ApiClient.instance.get(
-        '/catalog/medications',
-        query: {'limit': 500, 'id': 'in.(${medIds.join(',')})'},
+      final stockRes = await ApiClient.instance.get(
+        '/catalog/medications/stock',
+        query: {'ids': medIds.join(',')},
       );
-      if (medRes.success) {
-        for (final m in ApiList.of(medRes.data)) {
-          if (m['id'] != null) medInfo['${m['id']}'] = m;
+      if (stockRes.success) {
+        final Map<String, Map<String, dynamic>> medInfo = {};
+        for (final m in ApiList.of(stockRes.data)) {
+          if (m['medication_id'] != null) {
+            medInfo['${m['medication_id']}'] = m;
+          }
+        }
+        for (final row in rows) {
+          final id = '${row['medication_id']}';
+          final med = medInfo[id];
+          if (med != null) {
+            row['medication_name'] = med['name'] ?? '—';
+            row['price_sale'] = med['price_sale'] ?? 0;
+            final parts = [
+              if ((med['dosage'] ?? '').toString().isNotEmpty)
+                '${med['dosage']}',
+              if ((med['form'] ?? '').toString().isNotEmpty) '${med['form']}',
+              if ((med['laboratory_name'] ?? '').toString().isNotEmpty)
+                '${med['laboratory_name']}',
+            ];
+            if (parts.isNotEmpty) row['med_detail'] = parts.join(' · ');
+          }
         }
       }
     }
 
-    // Fusionner : quantity depuis stock_balances, name/price depuis medications
+    // 3. Calculer available = quantity - reserved
     for (final row in rows) {
-      final id = '${row['medication_id']}';
-      final med = medInfo[id];
-      if (med != null) {
-        row['medication_name'] = med['name'] ?? '—';
-        row['price_sale'] = med['price_sale'] ?? 0;
-        // Détail : forme · dosage · laboratoire
-        final parts = [
-          if ((med['dosage'] ?? '').toString().isNotEmpty) med['dosage'],
-          if ((med['form'] ?? '').toString().isNotEmpty) med['form'],
-          if ((med['laboratory_name'] ?? '').toString().isNotEmpty)
-            med['laboratory_name'],
-        ];
-        if (parts.isNotEmpty) row['med_detail'] = parts.join(' · ');
-      }
-      // Quantité disponible = quantity - reserved
       final qty = (row['quantity'] as num?)?.toDouble() ?? 0;
       final reserved = (row['reserved_quantity'] as num?)?.toDouble() ?? 0;
       row['available'] = qty - reserved;

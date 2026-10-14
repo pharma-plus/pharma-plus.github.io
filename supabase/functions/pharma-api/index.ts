@@ -6033,7 +6033,20 @@ Deno.serve(async (req) => {
     if (error) {
       return json({ error: { code: "STOCK_MAP_FAILED", message: error.message } }, 400);
     }
-    return json({ data: data ?? [] });
+    // Enrichir avec nom, prix, dosage, forme, laboratoire
+    const stockRows = data ?? [];
+    const { data: meds } = await sb
+      .from("medications")
+      .select("id, name, price_sale, dosage, form, laboratory_name")
+      .eq("pharmacy_id", pid)
+      .in("id", ids);
+    const medMap = new Map<string, any>();
+    for (const m of meds ?? []) medMap.set(m.id, m);
+    const enriched = stockRows.map((r: any) => ({
+      ...r,
+      ...(medMap.get(r.medication_id) ?? {}),
+    }));
+    return json({ data: enriched });
   }
 
   /* ===========================================================
