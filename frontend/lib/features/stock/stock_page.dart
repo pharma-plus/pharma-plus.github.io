@@ -160,10 +160,14 @@ class _StockPageState extends State<StockPage> {
     // Filtre alerte
     if (_alertFilter != null) {
       if (_alertFilter == 'low') {
-        list = list
-            .where((item) =>
-                _number(item['available']) <= _number(item['reorder_level']))
-            .toList();
+        list = list.where((item) {
+          final avail = _number(item['available']);
+          final reorder = _number(item['reorder_level']);
+          // Si reorder_level n'existe pas (stock_balances), on considère
+          // que le seuil est la quantité totale : stock faible = qty < 10.
+          final threshold = reorder > 0 ? reorder : 10;
+          return avail > 0 && avail < threshold;
+        }).toList();
       } else {
         list = list
             .where((item) => item['expiry_status'] == _alertFilter)
