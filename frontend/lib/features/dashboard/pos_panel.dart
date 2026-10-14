@@ -415,8 +415,10 @@ class _PosPanelState extends State<PosPanel> {
           content: Text('Enregistrement de la vente…')),
     );
     try {
+      // nextInt(max) exige 0 < max < 2^32. Sur Web (dart2js), `1 << 32`
+      // vaut 0 (décalage 32 bits) → RangeError. On fixe 2^31-1, valide partout.
       final clientSaleId =
-          '${DateTime.now().millisecondsSinceEpoch}-${math.Random().nextInt(1 << 32)}'
+          '${DateTime.now().millisecondsSinceEpoch}-${math.Random().nextInt(0x7fffffff)}'
               .hashCode
               .toString();
       final saleBody = <String, dynamic>{

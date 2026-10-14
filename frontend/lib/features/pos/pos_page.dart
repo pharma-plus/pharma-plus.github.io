@@ -524,8 +524,10 @@ class _PosPageState extends State<PosPage> {
               amount: _cart.total, received: _cart.total, change: 0);
       // Identifiant unique de vente (idempotence hors-ligne) : le serveur
       // refuse tout doublon → une vente n'est JAMAIS enregistrée 2 fois.
+      // nextInt(max) exige 0 < max < 2^32. Sur Web (dart2js), `1 << 32`
+      // vaut 0 (décalage 32 bits) → RangeError. On fixe 2^31-1, valide partout.
       final clientSaleId =
-          '${DateTime.now().millisecondsSinceEpoch}-${math.Random().nextInt(1 << 32)}'
+          '${DateTime.now().millisecondsSinceEpoch}-${math.Random().nextInt(0x7fffffff)}'
               .hashCode
               .toString();
       final saleBody = <String, dynamic>{
