@@ -439,12 +439,18 @@ class _PosPanelState extends State<PosPanel> {
       final result = await ApiClient.instance.post('/sales', body: saleBody);
       if (!mounted) return;
       if (result.success) {
-        final msg = pay.method == 'card'
+        final saleNumber = (result.data is Map)
+            ? '${(result.data as Map)['number'] ?? ''}'
+            : '';
+        final base = pay.method == 'card'
             ? 'Vente enregistrée · Carte ${pay.cardType ?? ''}'
             : (pay.change != null && pay.change! > 0)
                 ? 'Vente enregistrée · Monnaie : ${Fmt.money(pay.change!)} MAD'
                 : 'Vente enregistrée · ${Fmt.money(pay.amount)} MAD';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+        final msg =
+            saleNumber.isNotEmpty ? '$base · Ticket $saleNumber' : base;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            duration: const Duration(seconds: 4), content: Text(msg)));
         // Impression ticket (même service que le POS complet).
         final receiptLines = [
           for (final m in _cart.values)
@@ -465,12 +471,27 @@ class _PosPanelState extends State<PosPanel> {
           change: pay.change ?? 0,
         ).catchError((e) {
           debugPrint('[PosPanel] impression ticket échouée: $e');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Text(
+                    'Vente enregistrée mais ticket non imprimé — réessayez.')));
+          }
+          return null;
         });
         _clearCart();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result.error?.readableMessage ?? 'Erreur lors de la vente')),
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            duration: const Duration(seconds: 6),
+            content: Text(result.error?.readableMessage ?? 'Erreur lors de la vente')),
         );
+      }
+    } catch (e) {
+      // AUCUNE exception masquée : tout crash est visible à l'écran.
+      debugPrint('[PosPanel] _executeSale exception: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            duration: const Duration(seconds: 8),
+            content: Text('Erreur inattendue : $e')));
       }
     } finally {
       if (mounted) setState(() => _checkout = false);
