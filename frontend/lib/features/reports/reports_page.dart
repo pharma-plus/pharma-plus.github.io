@@ -4,6 +4,7 @@ import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
+import '../../core/services/report_export.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
@@ -92,6 +93,85 @@ class _ReportsPageState extends State<ReportsPage> {
     _load();
   }
 
+  // ============================================================
+  // EXPORTS — PDF · Excel (CSV) · Word (.doc)
+  // ============================================================
+  String get _periodLabel =>
+      'Période : ${Fmt.shortDate(_from)} → ${Fmt.shortDate(_to)}';
+
+  List<Map<String, dynamic>> _exportSections() {
+    final fin = _financial ?? const <String, dynamic>{};
+    final revenue = (fin['revenue'] is Map<String, dynamic>)
+        ? fin['revenue'] as Map<String, dynamic>
+        : const <String, dynamic>{};
+    final stock = _stock ?? const <String, dynamic>{};
+    final value = (stock['value'] is Map<String, dynamic>)
+        ? stock['value'] as Map<String, dynamic>
+        : const <String, dynamic>{};
+    return [
+      ReportExport.section(
+          'Synthèse financière', ['Indicateur', 'Montant'], [
+        ['CA période', ReportExport.numStr(revenue['revenue'])],
+        ['Dépenses', ReportExport.numStr(fin['expenses'])],
+        ['Bénéfice net', ReportExport.numStr(fin['net_profit'])],
+        ['Créances', ReportExport.numStr(fin['receivables'])],
+        ['Dettes', ReportExport.numStr(fin['payables'])],
+      ]),
+      ReportExport.section('Instantané stock', ['Indicateur', 'Valeur'], [
+        ['Valeur du stock', ReportExport.numStr(value['stock_value'])],
+        ['Coût du stock', ReportExport.numStr(value['stock_cost'])],
+        ['Nb produits', '${value['nb_products'] ?? 0}'],
+        ['Stock faible', '${stock['low_stock'] ?? 0}'],
+        ['Péremptions proches', '${stock['expiring'] ?? 0}'],
+        ['Périmés', '${stock['expired'] ?? 0}'],
+      ]),
+      ReportExport.section('Ventes',
+          ['Période', 'Nb ventes', 'Total', 'Bénéfice'],
+          _sales.map((s) => [
+                '${s['period'] ?? ''}',
+                '${s['nb_sales'] ?? 0}',
+                ReportExport.numStr(s['total']),
+                ReportExport.numStr(s['profit']),
+              ]).toList()),
+      ReportExport.section(
+          'Top produits', ['Produit', 'Catégorie', 'Qté vendue', 'CA'],
+          _products.map((p) => [
+                '${p['name'] ?? ''}',
+                '${p['category_name'] ?? '—'}',
+                '${p['qty_sold'] ?? 0}',
+                ReportExport.numStr(p['revenue']),
+              ]).toList()),
+      ReportExport.section(
+          'Employés', ['Nom', 'Nb ventes', 'CA', 'Bénéfice'],
+          _employees.map((e) => [
+                '${e['first_name'] ?? ''} ${e['last_name'] ?? ''}',
+                '${e['nb_sales'] ?? 0}',
+                ReportExport.numStr(e['revenue']),
+                ReportExport.numStr(e['profit']),
+              ]).toList()),
+    ];
+  }
+
+  Future<void> _export(String fmt) async {
+    final sections = _exportSections();
+    switch (fmt) {
+      case 'pdf':
+        await ReportExport.exportPdf('Rapports', sections, _periodLabel);
+        break;
+      case 'csv':
+        ReportExport.exportCsv('Rapports', sections);
+        break;
+      case 'doc':
+        ReportExport.exportDoc('Rapports', sections, _periodLabel);
+        break;
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('Export ${fmt.toUpperCase()} généré'),
+      backgroundColor: AppColors.success,
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
@@ -101,6 +181,18 @@ class _ReportsPageState extends State<ReportsPage> {
         leading: const ShellBackButton(),
         title: Text(S.t('reports', locale)),
         actions: [
+          PopupMenuButton<String>(
+            tooltip: 'Exporter',
+            icon: const Icon(Icons.ios_share_rounded),
+            onSelected: (fmt) => _export(fmt),
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: 'pdf', child: Text('Exporter en PDF')),
+              PopupMenuItem(
+                  value: 'csv', child: Text('Exporter en Excel (CSV)')),
+              PopupMenuItem(
+                  value: 'doc', child: Text('Exporter en Word (.doc)')),
+            ],
+          ),
           IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
         ],
       ),

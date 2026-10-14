@@ -3659,6 +3659,38 @@ Deno.serve(async (req) => {
   }
 
   /* ===========================================================
+     USERS — PUT /users/:id/pin (admin définit le PIN d'un autre
+     utilisateur). Nécessite users:edit. PIN 4-6 chiffres argon2id.
+     =========================================================== */
+  if (/^users\/[^/]+\/pin$/.test(path) && req.method === "PUT") {
+    const perm = await hasPermission(sb, req, "users:edit");
+    if (!perm.allowed) return json({ error: { code: "FORBIDDEN", message: perm.reason ?? "Accès refusé" } }, 403);
+    const targetUserId = path.split("/")[1];
+    const body = await req.json().catch(() => ({}));
+    const pin = String((body as any)?.pin ?? "");
+    if (!/^\d{4,6}$/.test(pin))
+      return json({ error: { code: "VALIDATION", message: "PIN : 4 à 6 chiffres" } }, 400);
+    try {
+      const wasm = await import("https://esm.sh/hash-wasm@4.9.0");
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      const encoded = await wasm.argon2id({
+        password: pin,
+        salt,
+        parallelism: 1,
+        iterations: 2,
+        memorySize: 19456,
+        hashLength: 32,
+        outputType: "encoded",
+      });
+      const { error } = await sb.from("users").update({ pin_hash: encoded }).eq("id", targetUserId);
+      if (error) return json({ error: { code: "PIN_SET_FAILED", message: error.message } }, 400);
+      return json({ data: { message: "PIN défini pour l'utilisateur" } });
+    } catch (e) {
+      return json({ error: { code: "PIN_SET_FAILED", message: String(e) } }, 500);
+    }
+  }
+
+  /* ===========================================================
      NOTIFICATIONS — read, read-all
      =========================================================== */
   if (/^notifications\/[^/]+\/read$/.test(path) && req.method === "POST") {
