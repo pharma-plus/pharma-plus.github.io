@@ -2480,7 +2480,7 @@ Deno.serve(async (req) => {
         salesRows, purchasesPending,
         attPresent, camsTotal, camsOnline, camsRec,
         aiRequests, aiSuccess, refRun,
-        medsPaged,
+        medsPaged, empTotal,
       ] = await Promise.all([
         sb.from("medications").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid),
         sb.from("medications").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid).eq("status", "available"),
@@ -2509,6 +2509,7 @@ Deno.serve(async (req) => {
         sb.from("reference_sync_runs").select("status, source, finished_at, started_at, new_count, modified_count, price_changed_count").order("started_at", { ascending: false }).limit(1).maybeSingle(),
         fetchPaged(sb, "medications", "id, reorder_level, price_sale, status, is_parapharmacie, name, dosage",
           (q) => q.eq("pharmacy_id", pid)),
+        sb.from("employees").select("id", { count: "exact", head: true }).eq("pharmacy_id", pid),
       ]);
 
       /* Ventes par periode (comparatifs reels consommes par le frontend). */
@@ -2709,7 +2710,7 @@ Deno.serve(async (req) => {
             },
             reference: { total: labCount.count ?? 0, last_sync: refRun.data ?? null },
           },
-          employees_present: attPresent.count ?? 0,
+          employees_present: empTotal.count ?? 0,
           categories: catCount.count ?? 0,
         },
       });

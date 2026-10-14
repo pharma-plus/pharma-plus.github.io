@@ -290,8 +290,8 @@ class _DashboardPageState extends State<DashboardPage> {
       case 1:
         return () => ShellNav.index.value = 3; // catalogue
       case 2:
-        // Filtre « stock bas » → paramètre : push conservé (volontaire).
-        return () => _push(const StockPage(initialFilter: 'low'));
+        // Carte « Produits en stock » → page Stock complète.
+        return () => _push(const StockPage());
       case 3:
         return () => ShellNav.index.value = 6; // achats
       case 4:
@@ -483,9 +483,9 @@ class _DashboardPageState extends State<DashboardPage> {
           badge: Icons.medication_rounded,
           badgeColor: green),
       _KpiDef(
-          label: 'STOCK FAIBLE',
-          value: '$_lowStock',
-          sub: 'Produits',
+          label: 'PRODUITS EN STOCK',
+          value: Fmt.number(_productsInStock),
+          sub: 'En pharmacie',
           image: 'assets/images/kpi_bg_3.webp',
           badge: Icons.warning_amber_rounded,
           badgeColor: amber),
