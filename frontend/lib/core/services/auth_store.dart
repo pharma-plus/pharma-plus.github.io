@@ -127,6 +127,17 @@ class AuthStore extends ChangeNotifier {
   bool get canViewUsers => isSuperAdmin || permissions.contains('users:view');
   bool get canViewReports => isSuperAdmin || permissions.contains('reports:view');
 
+  /// Visibilité d'un module par l'utilisateur connecté.
+  /// `visibleModules == null` → tous les modules visibles (défaut).
+  /// `visibleModules == []` → aucun module visible.
+  /// Sinon → seul les modules listés sont visibles.
+  bool canSeeModule(String key) {
+    if (isSuperAdmin) return true;
+    final modules = _user?.visibleModules;
+    if (modules == null) return true;
+    return modules.contains(key);
+  }
+
   /// URL par défaut : si l'app web est servie depuis localhost / 127.0.0.1
   /// (développement local), on cible le backend local (port 4000) ;
   /// sinon on utilise l'API distante (Supabase / Bonto).

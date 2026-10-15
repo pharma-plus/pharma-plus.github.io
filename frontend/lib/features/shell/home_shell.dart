@@ -23,12 +23,31 @@ import '../floor_plan/pharmacy_plan_page.dart';
 import '../settings/settings_page.dart';
 
 /// Coquille principale : sidebar 3D + navigation.
+/// La navigation est filtrée par `AuthStore.canSeeModule(key)` :
+/// les modules non visibles pour le rôle sont masqués de la bottom bar
+/// et de la page Modules. Le dashboard (index 0) reste toujours visible.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
   @override
   State<HomeShell> createState() => _HomeShellState();
 }
+
+/// Clé de module par index de page (null = toujours visible).
+const _pageModuleKeys = <int, String?>{
+  0: null, // Dashboard — toujours visible
+  1: null, // Modules — toujours visible (hub)
+  2: 'pos',
+  3: 'catalog',
+  4: 'stock',
+  5: 'suppliers',
+  6: 'purchases',
+  7: 'customers',
+  8: 'employees',
+  9: 'reports',
+  10: 'plan',
+  11: 'settings',
+};
 
 class _HomeShellState extends State<HomeShell> {
   bool _syncing = false;
@@ -115,13 +134,14 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    final locale = context.watch<AuthStore>().locale;
+    final auth = context.watch<AuthStore>();
+    final locale = auth.locale;
     final deviceType =
         ResponsiveHelper.getDeviceType(MediaQuery.of(context).size.width);
     final showBottomNav = deviceType == DeviceType.mobile;
 
-    // Navigation items
-    const mobileItems = <(IconData, IconData, String, int)>[
+    // Navigation items — filtrés par visibilité de module.
+    const allMobileItems = <(IconData, IconData, String, int)>[
       (Icons.dashboard_outlined, Icons.dashboard, 'dashboard', 0),
       (Icons.grid_view_rounded, Icons.grid_view_rounded, 'modules', 1),
       (Icons.point_of_sale_outlined, Icons.point_of_sale, 'pos', 2),
@@ -130,6 +150,24 @@ class _HomeShellState extends State<HomeShell> {
       (Icons.storefront_outlined, Icons.storefront, 'pharmacyPlan', 10),
       (Icons.settings_outlined, Icons.settings, 'settings', 11),
     ];
+
+    // Clé de module pour les items de la bottom bar mobile.
+    const mobileModuleKeys = <int, String?>{
+      0: null, // dashboard — toujours visible
+      1: null, // modules — toujours visible
+      2: 'pos',
+      3: 'catalog',
+      4: 'stock',
+      10: 'plan',
+      11: 'settings',
+    };
+
+    final mobileItems = allMobileItems
+        .where((m) {
+          final key = mobileModuleKeys[m.$4];
+          return key == null || auth.canSeeModule(key);
+        })
+        .toList();
 
     final mobileDestinations = [
       for (final (ic, icS, key, _) in mobileItems)
@@ -143,7 +181,17 @@ class _HomeShellState extends State<HomeShell> {
     return ValueListenableBuilder<int>(
       valueListenable: ShellNav.index,
       builder: (context, shellIndex, _) {
-        _visit(shellIndex);
+        // Garde-fou : si l'index courant pointe un module masqué,
+        // on revient au dashboard (index 0).
+        var effectiveIndex = shellIndex;
+        final moduleKey = _pageModuleKeys[shellIndex];
+        if (moduleKey != null && !auth.canSeeModule(moduleKey)) {
+          effectiveIndex = 0;
+          if (ShellNav.index.value != 0) {
+            ShellNav.index.value = 0;
+          }
+        }
+        _visit(effectiveIndex);
         return Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
@@ -176,7 +224,7 @@ class _HomeShellState extends State<HomeShell> {
               child: Stack(
                 children: [
                   IndexedStack(
-                    index: shellIndex,
+                    index: effectiveIndex,
                     children: [for (var i = 0; i < _pages.length; i++) _page(i)],
                   ),
                   if (_syncing) _SyncBanner(label: S.t('syncing', locale)),
@@ -191,11 +239,13 @@ class _HomeShellState extends State<HomeShell> {
                   final idx = mobileItems
                       .map((m) => m.$4)
                       .toList()
-                      .indexOf(shellIndex);
+                      .indexOf(effectiveIndex);
                   // Pages hors barre mobile (ex : fournisseurs, achats,
                   // clients, employés, rapports) : repli non-destructif sur
                   // l'onglet Modules au lieu de -1 (crash/assert).
-                  return idx < 0 ? 1 : idx;
+                  // Si Modules n'est pas visible non plus → dashboard (0).
+                  if (idx >= 0) return idx;
+                  return mobileItems.any((m) => m.$4 == 1) ? 1 : 0;
                 }(),
                 onDestinationSelected: (i) =>
                     ShellNav.index.value = mobileItems[i].$4,

@@ -12,6 +12,9 @@ class User {
   final String? pharmacyName;
   final String? roleName;
 
+  /// Modules visibles par cet utilisateur (null = tous visibles).
+  final List<String>? visibleModules;
+
   const User({
     required this.id,
     this.pharmacyId,
@@ -24,6 +27,7 @@ class User {
     this.permissions = const {},
     this.pharmacyName,
     this.roleName,
+    this.visibleModules,
   });
 
   String get fullName => '$firstName $lastName';
@@ -67,6 +71,11 @@ class User {
             json['pharmacyName'] as String?,
         roleName:
             json['role_name'] as String? ?? json['roleName'] as String?,
+        visibleModules: json['visible_modules'] is List
+            ? (json['visible_modules'] as List).whereType<String>().toList()
+            : json['visibleModules'] is List
+                ? (json['visibleModules'] as List).whereType<String>().toList()
+                : null,
       );
 
   Map<String, dynamic> toJson() => {
@@ -81,5 +90,6 @@ class User {
         'permissions': permissions.toList(),
         if (pharmacyName != null) 'pharmacy_name': pharmacyName,
         if (roleName != null) 'role_name': roleName,
+        if (visibleModules != null) 'visible_modules': visibleModules,
       };
 }

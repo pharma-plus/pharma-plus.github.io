@@ -283,22 +283,22 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  VoidCallback? _kpiTap(int index) {
-    switch (index) {
-      case 0:
+  VoidCallback? _kpiTap(String label) {
+    switch (label) {
+      case 'VENTES DU JOUR':
         return () => ShellNav.index.value = 2; // ventes du jour → POS
-      case 1:
+      case 'MÉDICAMENTS':
         return () => ShellNav.index.value = 3; // catalogue
-      case 2:
+      case 'PRODUITS EN STOCK':
         // Carte « Produits en stock » → page Stock complète.
         return () => _push(const StockPage());
-      case 3:
+      case 'COMMANDES':
         return () => ShellNav.index.value = 6; // achats
-      case 4:
+      case 'FOURNISSEURS':
         return () => ShellNav.index.value = 5; // fournisseurs
-      case 5:
+      case 'CLIENTS':
         return () => ShellNav.index.value = 7; // clients
-      case 6:
+      case 'EMPLOYÉS':
         return () => ShellNav.index.value = 8; // employés
       default:
         return () => ShellNav.index.value = 9; // rapports
@@ -466,6 +466,7 @@ class _DashboardPageState extends State<DashboardPage> {
     // Tendance affichée UNIQUEMENT si un comparatif réel existe.
     String? pct(double? v) =>
         v == null ? null : '${v >= 0 ? '+' : ''}${v.toStringAsFixed(1)}%';
+    final auth = AuthStore.instance;
     final kpis = <_KpiDef>[
       _KpiDef(
           label: 'VENTES DU JOUR',
@@ -474,49 +475,56 @@ class _DashboardPageState extends State<DashboardPage> {
           trendVs: 'vs hier',
           image: 'assets/images/kpi_bg_1.webp',
           badge: Icons.point_of_sale_rounded,
-          badgeColor: green),
+          badgeColor: green,
+          module: 'pos'),
       _KpiDef(
           label: 'MÉDICAMENTS',
           value: Fmt.number(_medications),
           sub: 'Références catalogue',
           image: 'assets/images/kpi_bg_2.webp',
           badge: Icons.medication_rounded,
-          badgeColor: green),
+          badgeColor: green,
+          module: 'catalog'),
       _KpiDef(
           label: 'PRODUITS EN STOCK',
           value: Fmt.number(_productsInStock),
           sub: 'En pharmacie',
           image: 'assets/images/kpi_bg_3.webp',
           badge: Icons.warning_amber_rounded,
-          badgeColor: amber),
+          badgeColor: amber,
+          module: 'stock'),
       _KpiDef(
           label: 'COMMANDES',
           value: '$_pendingOrders',
           sub: 'En attente',
           image: 'assets/images/kpi_bg_4.webp',
           badge: Icons.fact_check_rounded,
-          badgeColor: green),
+          badgeColor: green,
+          module: 'purchases'),
       _KpiDef(
           label: 'FOURNISSEURS',
           value: Fmt.number(_suppliers),
           sub: 'Fournisseurs',
           image: 'assets/images/kpi_bg_5.webp',
           badge: Icons.local_shipping_rounded,
-          badgeColor: green),
+          badgeColor: green,
+          module: 'suppliers'),
       _KpiDef(
           label: 'CLIENTS',
           value: Fmt.number(_customers),
           sub: 'Clients',
           image: 'assets/images/kpi_bg_6.webp',
           badge: Icons.groups_rounded,
-          badgeColor: green),
+          badgeColor: green,
+          module: 'customers'),
       _KpiDef(
           label: 'EMPLOYÉS',
           value: '$_employees',
           sub: 'Employés',
           image: 'assets/images/kpi_bg_7.webp',
           badge: Icons.person_rounded,
-          badgeColor: green),
+          badgeColor: green,
+          module: 'employees'),
       _KpiDef(
           label: 'BÉNÉFICE MOIS',
           value: Fmt.money(_profitMonth),
@@ -524,8 +532,9 @@ class _DashboardPageState extends State<DashboardPage> {
           trendVs: 'vs mois dernier',
           image: 'assets/images/kpi_bg_8.webp',
           badge: Icons.bar_chart_rounded,
-          badgeColor: green),
-    ];
+          badgeColor: green,
+          module: 'reports'),
+    ].where((k) => k.module == null || auth.canSeeModule(k.module!)).toList();
     // 4 colonnes sur desktop ; 2 sur les écrans étroits (lisible partout).
     // Ratio plus haut (cartes plus hautes) → le webp portrait remplit
     // la case (cover ancré en bas, podium intact).
@@ -540,10 +549,10 @@ class _DashboardPageState extends State<DashboardPage> {
       children: [
         for (var i = 0; i < kpis.length; i++)
           _KpiCard(
-            key: ValueKey('kpi-$i'),
+            key: ValueKey('kpi-${kpis[i].label}'),
             index: i + 1,
             def: kpis[i],
-            onTap: _kpiTap(i),
+            onTap: _kpiTap(kpis[i].label),
           ),
       ],
     );
@@ -564,6 +573,8 @@ class _KpiDef {
   final String image;
   final IconData badge;
   final Color badgeColor;
+  /// Clé de module visible (null = toujours visible).
+  final String? module;
   const _KpiDef({
     required this.label,
     required this.value,
@@ -573,6 +584,7 @@ class _KpiDef {
     required this.image,
     required this.badge,
     required this.badgeColor,
+    this.module,
   });
 }
 
@@ -760,6 +772,9 @@ class _NavItem {
   /// Code permission requis (null = toujours visible).
   final String? permission;
 
+  /// Clé de module visible (null = toujours visible).
+  final String? module;
+
   /// Index ShellNav de destination (null = page poussée hors shell).
   final int? shellIndex;
 
@@ -770,6 +785,7 @@ class _NavItem {
     this.icon,
     this.label, {
     this.permission,
+    this.module,
     this.shellIndex,
     this.pageBuilder,
   });
@@ -801,36 +817,39 @@ class _SidebarState extends State<_Sidebar> {
   DateTime _now = DateTime.now();
 
   /// Entrées visibles : filtrées par permissions réelles de l'utilisateur
-  /// (AuthStore.user.permissions, renvoyées par le backend à la connexion).
+  /// (AuthStore.user.permissions, renvoyées par le backend à la connexion)
+  /// ET par les modules visibles (AuthStore.canSeeModule).
   List<_NavItem> get _visibleItems {
     final user = AuthStore.instance.user;
     bool p(String code) => user?.hasPermission(code) ?? true;
+    bool m(String? key) => key == null || AuthStore.instance.canSeeModule(key);
     return <_NavItem>[
       const _NavItem(Icons.home_outlined, 'Tableau de bord', shellIndex: 0),
       const _NavItem(Icons.shopping_cart_outlined, 'Point de vente',
-          permission: 'sales:view', shellIndex: 2),
+          permission: 'sales:view', module: 'pos', shellIndex: 2),
       const _NavItem(Icons.medication_outlined, 'Catalogue',
-          permission: 'catalog:view', shellIndex: 3),
+          permission: 'catalog:view', module: 'catalog', shellIndex: 3),
       const _NavItem(Icons.inventory_2_outlined, 'Stock',
-          permission: 'stock:view', shellIndex: 4),
+          permission: 'stock:view', module: 'stock', shellIndex: 4),
       const _NavItem(Icons.local_shipping_outlined, 'Fournisseurs',
-          permission: 'suppliers:view', shellIndex: 5),
+          permission: 'suppliers:view', module: 'suppliers', shellIndex: 5),
       const _NavItem(Icons.assignment_outlined, 'Commandes',
-          permission: 'purchases:view', shellIndex: 6),
+          permission: 'purchases:view', module: 'purchases', shellIndex: 6),
       const _NavItem(Icons.people_alt_outlined, 'Clients',
-          permission: 'customers:view', shellIndex: 7),
+          permission: 'customers:view', module: 'customers', shellIndex: 7),
       const _NavItem(Icons.badge_outlined, 'Employés',
-          permission: 'employees:view', shellIndex: 8),
+          permission: 'employees:view', module: 'employees', shellIndex: 8),
       const _NavItem(Icons.insert_chart_outlined, 'Rapports',
-          permission: 'reports:view', shellIndex: 9),
-      const _NavItem(Icons.view_in_ar_outlined, 'Plan 3D', shellIndex: 10),
+          permission: 'reports:view', module: 'reports', shellIndex: 9),
+      const _NavItem(Icons.view_in_ar_outlined, 'Plan 3D',
+          module: 'plan', shellIndex: 10),
       _NavItem(Icons.videocam_outlined, 'Caméras',
           pageBuilder: () => const CamerasPage()),
       _NavItem(Icons.qr_code_scanner, 'Scanner',
           pageBuilder: () => const ScannerPage()),
       const _NavItem(Icons.settings_outlined, 'Tableau de contrôle',
-          permission: 'settings:view', shellIndex: 11),
-    ].where((i) => i.permission == null || p(i.permission!)).toList();
+          permission: 'settings:view', module: 'settings', shellIndex: 11),
+    ].where((i) => (i.permission == null || p(i.permission!)) && m(i.module)).toList();
   }
 
   @override

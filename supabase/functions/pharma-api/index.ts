@@ -850,7 +850,7 @@ async function finishLogin(
   const { data: profile, error: profileErr } = await sb
     .from("users")
     .select(
-      "id, pharmacy_id, branch_id, role_id, first_name, last_name, email, username, phone, is_super_admin",
+      "id, pharmacy_id, branch_id, role_id, first_name, last_name, email, username, phone, is_super_admin, visible_modules",
     )
     .ilike("email", normalized)
     .maybeSingle();
@@ -1736,7 +1736,7 @@ Deno.serve(async (req) => {
     const { data: profile, error } = await sb
       .from("users")
       .select(
-        "id, pharmacy_id, branch_id, role_id, first_name, last_name, email, username, phone, is_super_admin, status",
+        "id, pharmacy_id, branch_id, role_id, first_name, last_name, email, username, phone, is_super_admin, status, visible_modules",
       )
       .eq("id", uid)
       .maybeSingle();
@@ -1761,9 +1761,9 @@ Deno.serve(async (req) => {
     if (req.method === "GET") {
       const { data, error } = await sb
         .from("users")
-        .select(
-          "id, first_name, last_name, email, phone, role_id, status, is_super_admin, last_login_at, created_at, roles(name)",
-        )
+      .select(
+        "id, first_name, last_name, email, phone, role_id, status, is_super_admin, last_login_at, created_at, visible_modules, roles(name)",
+      )
         .eq("pharmacy_id", pid)
         .order("created_at", { ascending: false })
         .limit(200);
@@ -1802,6 +1802,17 @@ Deno.serve(async (req) => {
       const body = await req.json().catch(() => ({}));
       const { email, password, first_name, last_name, role_id, employee_id } =
         body ?? {};
+      /* Modules visibles (optionnel) : liste de cles string ou null. */
+      const rawVm = (body as any)?.visible_modules;
+      let visibleModules: string[] | null = null;
+      if (rawVm !== undefined && rawVm !== null) {
+        if (!Array.isArray(rawVm) || rawVm.some((m: any) => typeof m !== "string"))
+          return json(
+            { error: { code: "VALIDATION", message: "visible_modules invalide" } },
+            400,
+          );
+        visibleModules = rawVm as string[];
+      }
       if (!email || !password || !role_id)
         return json(
           {
@@ -1901,6 +1912,7 @@ Deno.serve(async (req) => {
         role_id: String(role_id),
         password_hash: "supabase-auth",
         status: "active",
+        ...(visibleModules !== null ? { visible_modules: visibleModules } : {}),
       });
       if (insErr) {
         if (authId)
@@ -1941,6 +1953,21 @@ Deno.serve(async (req) => {
     if (req.method === "PUT") {
       const body = await req.json().catch(() => ({}));
       const { first_name, last_name, role_id, status, employee_id } = body ?? {};
+      /* Modules visibles : null = tout visible, [] = rien, [...] = liste. */
+      const rawVmPut = (body as any)?.visible_modules;
+      let visibleModulesPut: string[] | null | undefined;
+      if (rawVmPut !== undefined) {
+        if (rawVmPut !== null) {
+          if (!Array.isArray(rawVmPut) || rawVmPut.some((m: any) => typeof m !== "string"))
+            return json(
+              { error: { code: "VALIDATION", message: "visible_modules invalide" } },
+              400,
+            );
+          visibleModulesPut = rawVmPut as string[];
+        } else {
+          visibleModulesPut = null;
+        }
+      }
       const patch: any = {};
       if (first_name !== undefined)
         patch.first_name = String(first_name).trim() || null;
@@ -1996,6 +2023,8 @@ Deno.serve(async (req) => {
             );
         }
       }
+      if (visibleModulesPut !== undefined)
+        patch.visible_modules = visibleModulesPut;
       if (Object.keys(patch).length === 0 && employee_id === undefined)
         return json(
           {

@@ -202,6 +202,9 @@ class _UsersManagementState extends State<UsersManagementPage> {
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
+    final auth = context.watch<AuthStore>();
+    // Seul un admin/super-admin (users:view) peut créer un utilisateur.
+    final canCreate = auth.isSuperAdmin || auth.permissions.contains('users:view');
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
@@ -212,10 +215,11 @@ class _UsersManagementState extends State<UsersManagementPage> {
             icon: const Icon(Icons.refresh),
             onPressed: _loadAll,
           ),
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: _addUser,
-          ),
+          if (canCreate)
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: _addUser,
+            ),
         ],
       ),
       body: _buildBody(locale),
@@ -388,6 +392,24 @@ class _UserFormDialogState extends State<_UserFormDialog> {
   bool _saving = false;
   String? _err;
 
+  /// Modules cochables : clé = slug, libellé affiché.
+  static const _moduleOptions = <(String, String)>[
+    ('pos', 'Point de vente'),
+    ('catalog', 'Catalogue'),
+    ('stock', 'Stock'),
+    ('suppliers', 'Fournisseurs'),
+    ('purchases', 'Achats'),
+    ('customers', 'Clients'),
+    ('employees', 'Employés'),
+    ('reports', 'Rapports'),
+    ('plan', 'Plan 3D'),
+    ('settings', 'Paramètres'),
+  ];
+
+  /// État des cases à cocher : true = module visible.
+  /// Initialisé depuis `visible_modules` de l'utilisateur (null = tout visible).
+  late final Map<String, bool> _visibleModules;
+
   bool get _isEdit => widget.user != null;
 
   /// Employés rattachables : non archivés et soit libres, soit déjà
@@ -406,6 +428,13 @@ class _UserFormDialogState extends State<_UserFormDialog> {
     _roleId = widget.user?['role_id']?.toString();
     final emp = widget.user?['employee_id'];
     _employeeId = emp == null ? '' : '$emp';
+    // Initialisation des checkboxes : si l'utilisateur a déjà des
+    // visible_modules, on coche ceux-ci ; sinon tout est coché (défaut).
+    final existing = widget.user?['visible_modules'];
+    _visibleModules = {
+      for (final (key, _) in _moduleOptions)
+        key: existing is List ? existing.contains(key) : true,
+    };
   }
 
   @override
@@ -440,6 +469,11 @@ class _UserFormDialogState extends State<_UserFormDialog> {
       if (!_isEdit && _pass.text.isNotEmpty) 'password': _pass.text,
       // Association employé <-> compte : null = aucun (PUT délie).
       'employee_id': _employeeId.isEmpty ? null : _employeeId,
+      // Modules visibles : liste des clés cochées (null = tout visible).
+      'visible_modules': _moduleOptions
+          .where((m) => _visibleModules[m.$1] == true)
+          .map((m) => m.$1)
+          .toList(),
     };
     final res = _isEdit
         ? await ApiClient.instance
@@ -536,6 +570,48 @@ class _UserFormDialogState extends State<_UserFormDialog> {
                     ),
                 ],
                 onChanged: (v) => setState(() => _employeeId = v ?? ''),
+              ),
+              const SizedBox(height: 14),
+              // Section : modules visibles sur le dashboard.
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Modules visibles',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Décochez les modules à masquer pour cet utilisateur.',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppColors.pharmaMuted,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 4,
+                runSpacing: 0,
+                children: [
+                  for (final (key, label) in _moduleOptions)
+                    SizedBox(
+                      width: 180,
+                      child: CheckboxListTile(
+                        value: _visibleModules[key] ?? true,
+                        onChanged: (v) =>
+                            setState(() => _visibleModules[key] = v ?? true),
+                        title: Text(label,
+                            style: const TextStyle(fontSize: 12)),
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        controlAffinity: ListTileControlAffinity.leading,
+                      ),
+                    ),
+                ],
               ),
               if (_err != null) ...[
                 const SizedBox(height: 10),

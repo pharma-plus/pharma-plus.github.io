@@ -15,12 +15,15 @@ import '../website/website_page.dart';
 import '../shell/shell_nav.dart';
 
 /// Grille des modules : point d'entrée vers toutes les sections.
+/// Les modules masqués par `AuthStore.canSeeModule` sont filtrés.
 class ModulesPage extends StatelessWidget {
   const ModulesPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
+    final auth = context.watch<AuthStore>();
+    bool vis(String? key) => key == null || auth.canSeeModule(key);
     final tiles = <_ModuleTile>[
       _ModuleTile(
           icon: Icons.dashboard_outlined,
@@ -29,18 +32,22 @@ class ModulesPage extends StatelessWidget {
       _ModuleTile(
           icon: Icons.point_of_sale_outlined,
           label: S.t('pos', locale),
+          module: 'pos',
           shellIndex: 2),
       _ModuleTile(
           icon: Icons.medication_outlined,
           label: S.t('catalog', locale),
+          module: 'catalog',
           shellIndex: 3),
       _ModuleTile(
           icon: Icons.inventory_2_outlined,
           label: S.t('stock', locale),
+          module: 'stock',
           shellIndex: 4),
       _ModuleTile(
           icon: Icons.people_alt_outlined,
           label: S.t('customers', locale),
+          module: 'customers',
           shellIndex: 7),
       _ModuleTile(
           icon: Icons.description_outlined,
@@ -49,6 +56,7 @@ class ModulesPage extends StatelessWidget {
       _ModuleTile(
           icon: Icons.badge_outlined,
           label: S.t('employees', locale),
+          module: 'employees',
           shellIndex: 8),
       _ModuleTile(
           icon: Icons.schedule_outlined,
@@ -57,10 +65,12 @@ class ModulesPage extends StatelessWidget {
       _ModuleTile(
           icon: Icons.shopping_cart_outlined,
           label: S.t('purchases', locale),
+          module: 'purchases',
           shellIndex: 6),
       _ModuleTile(
           icon: Icons.local_shipping_outlined,
           label: S.t('suppliers', locale),
+          module: 'suppliers',
           shellIndex: 5),
       _ModuleTile(
           icon: Icons.account_balance_outlined,
@@ -69,6 +79,7 @@ class ModulesPage extends StatelessWidget {
       _ModuleTile(
           icon: Icons.bar_chart_outlined,
           label: S.t('reports', locale),
+          module: 'reports',
           shellIndex: 9),
       _ModuleTile(
           icon: Icons.language_outlined,
@@ -93,8 +104,9 @@ class ModulesPage extends StatelessWidget {
       _ModuleTile(
           icon: Icons.settings_outlined,
           label: S.t('settings', locale),
+          module: 'settings',
           shellIndex: 11),
-    ];
+    ].where((t) => vis(t.module)).toList();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -121,6 +133,9 @@ class _ModuleTile extends StatelessWidget {
   final String label;
   final WidgetBuilder? builder;
 
+  /// Clé de module visible (null = toujours visible).
+  final String? module;
+
   /// Index de la page dans le shell : si défini, on change d'onglet au lieu
   /// de pousser un doublon de page (double appel API, pile Navigator).
   final int? shellIndex;
@@ -129,6 +144,7 @@ class _ModuleTile extends StatelessWidget {
     required this.icon,
     required this.label,
     this.builder,
+    this.module,
     this.shellIndex,
   });
 
