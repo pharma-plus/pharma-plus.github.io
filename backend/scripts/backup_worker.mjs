@@ -61,6 +61,10 @@ async function reconnectDb() {
   try { await db.end(); } catch (_) {}
   db = new Client({ connectionString: pgUrl, ssl: { rejectUnauthorized: false } });
   await db.connect();
+  const w = await db.query(
+    "select current_database() as db, to_regclass('backups') as bak",
+  );
+  console.log(`reconnecte : db=${w.rows[0].db} backups=${w.rows[0].bak ?? "ABSENT"}`);
 }
 
 const BACKUP_DIR = resolve(process.env.BACKUP_DIR || join(dirname(fileURLToPath(import.meta.url)), "..", "backups"));
@@ -154,7 +158,17 @@ async function failJob(id, message) {
       [String(message).slice(0, 500), id],
     );
   } catch (e2) {
-    console.error(`  failJob : update impossible (${e2.message}) — job ${id} laissee en l'etat`);
+    console.error(`  failJob : update impossible (${e2.message}) — reconnexion + 1 nouvelle tentative`);
+    try {
+      await reconnectDb();
+      await db.query(
+        "update backups set status='failed', error=$1, completed_at=now() where id=$2",
+        [String(message).slice(0, 500), id],
+      );
+      console.log(`  failJob : marquee failed apres reconnexion`);
+    } catch (e3) {
+      console.error(`  failJob : echec definitif (${e3.message}) — job ${id} laissee en l'etat`);
+    }
   }
 }
 

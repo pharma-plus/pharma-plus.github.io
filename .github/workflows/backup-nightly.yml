@@ -27,8 +27,13 @@ jobs:
       - name: Outils PostgreSQL
         if: steps.cfg.outputs.has_db == 'true' && steps.cfg.outputs.has_key == 'true'
         run: |
+          # Client PG 17 (serveur Supabase = 17.x) — le client apt 16 refuse
+          # le dump sur mismatch de version ("server version: 17.6").
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client
+          sudo apt-get install -y -qq postgresql-client-17
 
       - uses: actions/setup-node@v4
         if: steps.cfg.outputs.has_db == 'true' && steps.cfg.outputs.has_key == 'true'
@@ -48,7 +53,7 @@ jobs:
           BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
           SUPER_ADMIN_EMAIL: ${{ secrets.BACKUP_SUPER_ADMIN_EMAIL }}
           SUPER_ADMIN_PASSWORD: ${{ secrets.BACKUP_SUPER_ADMIN_PASSWORD }}
-          PG_DUMP_PATH: pg_dump
+          PG_DUMP_PATH: /usr/lib/postgresql/17/bin/pg_dump
         run: |
           node scripts/backup_worker.mjs --create
           node scripts/backup_worker.mjs --verify
