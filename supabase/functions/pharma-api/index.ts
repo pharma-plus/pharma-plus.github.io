@@ -3715,47 +3715,185 @@ Deno.serve(async (req) => {
   }
 
   /* ===========================================================
-     REPORTS
+     REPORTS — contrat aligné avec le frontend (agrégations)
      =========================================================== */
-  if (path === "reports/sales") {
-    const d = new Date(); d.setDate(d.getDate() - 30);
-    const { data } = await sb.from("sales").select("id, total, cost_total, created_at").eq("pharmacy_id", pid).eq("status", "completed").gte("created_at", d.toISOString()).order("created_at", { ascending: false });
-    return json({ data: data ?? [] });
+  const qp = new URL(req.url).searchParams;
+  const rFrom = qp.get("from");
+  const rTo = qp.get("to");
+  const rFromIso = rFrom ? new Date(rFrom + "T00:00:00").toISOString() : new Date(Date.now() - 30 * 86400000).toISOString();
+  const rToIso = rTo ? new Date(rTo + "T23:59:59").toISOString() : new Date().toISOString();
+
+  if (path === "reports/sales" && req.method === "GET") {
+    const { data: sales } = await sb.from("sales")
+      .select("id, total, cost_total, created_at")
+      .eq("pharmacy_id", pid).eq("status", "completed")
+      .gte("created_at", rFromIso).lte("created_at", rToIso);
+    // Agrégation par jour
+    const byDay = new Map<string, { total: number; count: number; profit: number }>();
+    for (const s of (sales ?? []) as any[]) {
+      const day = String(s.created_at).slice(0, 10);
+      const e = byDay.get(day) ?? { total: 0, count: 0, profit: 0 };
+      e.total += Number(s.total ?? 0);
+      e.count += 1;
+      e.profit += Number(s.total ?? 0) - Number(s.cost_total ?? 0);
+      byDay.set(day, e);
+    }
+    const rows = [...byDay.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([period, e]) => ({ period, total: e.total, nb_sales: e.count, profit: e.profit }));
+    return json({ data: rows });
   }
-  if (path === "reports/products") {
-    const { data } = await sb.from("medications").select("id, name, price_sale").eq("pharmacy_id", pid).eq("status", "available");
-    return json({ data: data ?? [] });
+
+  if (path === "reports/products" && req.method === "GET") {
+    const { data: items } = await sb.from("sale_items")
+      .select("medication_id, quantity, unit_price, sale_id")
+      .eq("pharmacy_id", pid);
+    const { data: salesIn } = await sb.from("sales")
+      .select("id").eq("pharmacy_id", pid).eq("status", "completed")
+      .gte("created_at", rFromIso).lte("created_at", rToIso);
+    const saleIds = new Set((salesIn ?? []).map((s: any) => s.id));
+    const soldIds = [...new Set((items ?? [])
+      .filter((it: any) => saleIds.has(it.sale_id))
+      .map((it: any) => it.medication_id))];
+    const medMap = new Map<string, any>();
+    if (soldIds.length > 0) {
+      const { data: meds } = await sb.from("medications")
+        .select("id, name, category_id").in("id", soldIds);
+      for (const m of (meds ?? []) as any[]) medMap.set(m.id, m);
+    }
+    const { data: cats } = await sb.from("categories").select("id, name").eq("pharmacy_id", pid);
+    const catMap = new Map((cats ?? []).map((c: any) => [c.id, c.name]));
+    const byMed = new Map<string, { qty: number; revenue: number }>();
+    for (const it of (items ?? []) as any[]) {
+      if (!saleIds.has(it.sale_id)) continue;
+      const e = byMed.get(it.medication_id) ?? { qty: 0, revenue: 0 };
+      e.qty += Number(it.quantity ?? 0);
+      e.revenue += Number(it.quantity ?? 0) * Number(it.unit_price ?? 0);
+      byMed.set(it.medication_id, e);
+    }
+    const rows = [...byMed.entries()]
+      .sort((a, b) => b[1].revenue - a[1].revenue)
+      .slice(0, 20)
+      .map(([medId, e]) => {
+        const m: any = medMap.get(medId);
+        return {
+          name: m?.name ?? "—",
+          category_name: m ? (catMap.get(m.category_id) ?? "—") : "—",
+          qty_sold: e.qty,
+          revenue: e.revenue,
+        };
+      });
+    return json({ data: rows });
   }
-  if (path === "reports/stock") {
-    const { data: meds } = await sb.from("medications").select("id, name, reorder_level").eq("pharmacy_id", pid).eq("status", "available");
-    const { data: bal } = await sb.from("stock_balances").select("medication_id, quantity").eq("pharmacy_id", pid);
-    const report = (meds ?? []).map((m: any) => ({
-      ...m,
-      current_stock: (bal ?? []).filter((b: any) => b.medication_id === m.id).reduce((s: number, r: any) => s + Number(r.quantity ?? 0), 0),
-    }));
-    return json({ data: report });
+
+  if (path === "reports/stock" && req.method === "GET") {
+    const { data: meds } = await sb.from("medications")
+      .select("id, price_sale, price_purchase, reorder_level, status").eq("pharmacy_id", pid)
+      .eq("status", "available");
+    const { data: bal } = await sb.from("stock_balances")
+      .select("medication_id, quantity").eq("pharmacy_id", pid);
+    const stockOf = new Map<string, number>();
+    for (const b of (bal ?? []) as any[]) {
+      stockOf.set(b.medication_id, (stockOf.get(b.medication_id) ?? 0) + Number(b.quantity ?? 0));
+    }
+    let stockValue = 0, stockCost = 0, lowStock = 0, expired = 0, expiring = 0;
+    const now = Date.now();
+    const soon = now + 90 * 86400000;
+    for (const m of (meds ?? []) as any[]) {
+      const q = stockOf.get(m.id) ?? 0;
+      if (q > 0) {
+        stockValue += q * Number(m.price_sale ?? 0);
+        stockCost += q * Number(m.price_purchase ?? 0);
+        const threshold = Number(m.reorder_level ?? 0) > 0 ? Number(m.reorder_level) : 10;
+        if (q < threshold) lowStock++;
+      }
+    }
+    // Péremptions via stock_balances → lots → expiry_date
+    const { data: balLots } = await sb.from("stock_balances")
+      .select("medication_id, lot_id, quantity").eq("pharmacy_id", pid).not("lot_id", "is", null);
+    const lotIds = [...new Set((balLots ?? []).map((b: any) => b.lot_id))];
+    let expRows: any[] = [];
+    if (lotIds.length > 0) {
+      const { data } = await sb.from("lots").select("id, expiry_date").in("id", lotIds);
+      expRows = data ?? [];
+    }
+    const expMap = new Map(expRows.map((l: any) => [l.id, l.expiry_date]));
+    for (const b of (balLots ?? []) as any[]) {
+      const exp = expMap.get(b.lot_id);
+      if (!exp) continue;
+      const t = new Date(exp).getTime();
+      if (t < now) expired++;
+      else if (t < soon) expiring++;
+    }
+    return json({
+      data: {
+        value: {
+          stock_value: Math.round(stockValue * 100) / 100,
+          stock_cost: Math.round(stockCost * 100) / 100,
+          nb_products: stockOf.size,
+        },
+        low_stock: lowStock,
+        expiring,
+        expired,
+      },
+    });
   }
-  if (path === "reports/employees") {
-    const { data } = await sb.from("employees").select("id, first_name, last_name, department, status").eq("pharmacy_id", pid);
-    return json({ data: data ?? [] });
+
+  if (path === "reports/employees" && req.method === "GET") {
+    const { data: sales } = await sb.from("sales")
+      .select("id, total, cost_total, user_id")
+      .eq("pharmacy_id", pid).eq("status", "completed")
+      .gte("created_at", rFromIso).lte("created_at", rToIso);
+    const userIds = [...new Set((sales ?? []).map((s: any) => s.user_id).filter(Boolean))];
+    const userMap = new Map<string, any>();
+    if (userIds.length > 0) {
+      const { data: users } = await sb.from("users")
+        .select("id, first_name, last_name").in("id", userIds);
+      for (const u of (users ?? []) as any[]) userMap.set(u.id, u);
+    }
+    const byUser = new Map<string, { count: number; revenue: number; profit: number }>();
+    for (const s of (sales ?? []) as any[]) {
+      if (!s.user_id) continue;
+      const e = byUser.get(s.user_id) ?? { count: 0, revenue: 0, profit: 0 };
+      e.count += 1;
+      e.revenue += Number(s.total ?? 0);
+      e.profit += Number(s.total ?? 0) - Number(s.cost_total ?? 0);
+      byUser.set(s.user_id, e);
+    }
+    const rows = [...byUser.entries()].map(([uid, e]) => {
+      const u: any = userMap.get(uid);
+      return {
+        first_name: u?.first_name ?? "",
+        last_name: u?.last_name ?? "",
+        nb_sales: e.count,
+        revenue: e.revenue,
+        profit: e.profit,
+      };
+    }).sort((a, b) => b.revenue - a.revenue);
+    return json({ data: rows });
   }
-  if (path === "reports/financial") {
-    const d30 = new Date(); d30.setDate(d30.getDate() - 30);
-    const { data: sales } = await sb.from("sales").select("id, total, cost_total, created_at, payment_method").eq("pharmacy_id", pid).eq("status", "completed").gte("created_at", d30.toISOString());
-    const { data: expenses } = await sb.from("accounting_entries").select("id, amount, entry_type, created_at").eq("pharmacy_id", pid).gte("created_at", d30.toISOString()).in("entry_type", ["expense", "withdrawal"]);
+
+  if (path === "reports/financial" && req.method === "GET") {
+    const { data: sales } = await sb.from("sales")
+      .select("id, total, cost_total, created_at")
+      .eq("pharmacy_id", pid).eq("status", "completed")
+      .gte("created_at", rFromIso).lte("created_at", rToIso);
+    const { data: expenses } = await sb.from("accounting_entries")
+      .select("id, amount, entry_type").eq("pharmacy_id", pid)
+      .gte("created_at", rFromIso).lte("created_at", rToIso)
+      .in("entry_type", ["expense", "withdrawal"]);
     const totalSales = (sales ?? []).reduce((s: number, r: any) => s + Number(r.total ?? 0), 0);
     const totalCost = (sales ?? []).reduce((s: number, r: any) => s + Number(r.cost_total ?? 0), 0);
     const totalExpenses = (expenses ?? []).reduce((s: number, r: any) => s + Number(r.amount ?? 0), 0);
     return json({
       data: {
+        revenue: { revenue: totalSales },
+        expenses: totalExpenses,
+        net_profit: totalSales - totalCost - totalExpenses,
+        receivables: 0,
+        payables: 0,
         total_sales: totalSales,
         total_cost: totalCost,
-        gross_margin: totalSales - totalCost,
-        total_expenses: totalExpenses,
-        net_profit: totalSales - totalCost - totalExpenses,
         sales_count: (sales ?? []).length,
-        sales: sales ?? [],
-        expenses: expenses ?? [],
       },
     });
   }
