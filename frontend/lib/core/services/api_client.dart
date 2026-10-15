@@ -172,6 +172,16 @@ class ApiClient {
     );
   }
 
+  /// Mise à jour partielle (PostgREST PATCH) : seuls les champs envoyés
+  /// sont modifiés. Contrairement à PUT (remplace toute la ligne et
+  /// remet à défaut les colonnes absentes), PATCH est sans risque.
+  Future<ApiResult<dynamic>> patch(String path, {Object? body}) async {
+    return _send(
+      () => _http.patch(_uri(path),
+          headers: _headers(), body: jsonEncode(body ?? {})),
+    );
+  }
+
   Future<ApiResult<dynamic>> delete(String path) async {
     return _send(() => _http.delete(_uri(path), headers: _headers()));
   }

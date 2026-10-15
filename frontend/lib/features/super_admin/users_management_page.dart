@@ -19,6 +19,7 @@ class UsersManagementPage extends StatefulWidget {
 class _UsersManagementState extends State<UsersManagementPage> {
   List<Map<String, dynamic>> _users = [];
   List<Map<String, dynamic>> _roles = [];
+  List<Map<String, dynamic>> _employees = [];
   bool _loading = true;
   String? _error;
   String? _filterStatus;
@@ -41,10 +42,12 @@ class _UsersManagementState extends State<UsersManagementPage> {
           if (_filterStatus != null) 'status': _filterStatus,
         }),
         ApiClient.instance.get('/roles', query: {'limit': 50}),
+        ApiClient.instance.get('/employees', query: {'limit': 500}),
       ]);
       if (!mounted) return;
       final usersRes = results[0];
       final rolesRes = results[1];
+      final empRes = results[2];
       if (!usersRes.success) {
         setState(() {
           _error = usersRes.error?.message ?? 'Erreur de chargement';
@@ -55,6 +58,7 @@ class _UsersManagementState extends State<UsersManagementPage> {
       setState(() {
         _users = ApiList.of(usersRes.data ?? []);
         _roles = rolesRes.success ? ApiList.of(rolesRes.data ?? []) : [];
+        _employees = empRes.success ? ApiList.of(empRes.data ?? []) : [];
         _loading = false;
       });
     } catch (e) {
@@ -68,7 +72,8 @@ class _UsersManagementState extends State<UsersManagementPage> {
   Future<void> _addUser() async {
     final saved = await showDialog<bool>(
       context: context,
-      builder: (_) => _UserFormDialog(roles: _roles),
+      builder: (_) =>
+          _UserFormDialog(roles: _roles, employees: _employees),
     );
     if (saved == true) _loadAll();
   }
@@ -76,7 +81,8 @@ class _UsersManagementState extends State<UsersManagementPage> {
   Future<void> _editUser(Map<String, dynamic> user) async {
     final saved = await showDialog<bool>(
       context: context,
-      builder: (_) => _UserFormDialog(user: user, roles: _roles),
+      builder: (_) => _UserFormDialog(
+          user: user, roles: _roles, employees: _employees),
     );
     if (saved == true) _loadAll();
   }
@@ -300,6 +306,7 @@ class _UsersManagementState extends State<UsersManagementPage> {
                         ),
                         subtitle: Text(
                           '${u['email'] ?? ''} · ${u['role_name'] ?? u['role'] ?? 'Aucun rôle'}'
+                          '${u['employee_name'] != null && '${u['employee_name']}'.isNotEmpty ? ' · Employé : ${u['employee_name']}' : ''}'
                           '${isActive ? '' : ' · DÉSACTIVÉ'}',
                           style: TextStyle(
                             color: isActive
@@ -357,7 +364,9 @@ class _UsersManagementState extends State<UsersManagementPage> {
 class _UserFormDialog extends StatefulWidget {
   final Map<String, dynamic>? user;
   final List<Map<String, dynamic>> roles;
-  const _UserFormDialog({this.user, required this.roles});
+  final List<Map<String, dynamic>> employees;
+  const _UserFormDialog(
+      {this.user, required this.roles, this.employees = const []});
 
   @override
   State<_UserFormDialog> createState() => _UserFormDialogState();
@@ -374,15 +383,29 @@ class _UserFormDialogState extends State<_UserFormDialog> {
       TextEditingController(text: '${widget.user?['phone'] ?? ''}');
   late final _pass = TextEditingController();
   String? _roleId;
+  // '' = aucun employé (sentinelle « Aucun » du dropdown)
+  String _employeeId = '';
   bool _saving = false;
   String? _err;
 
   bool get _isEdit => widget.user != null;
 
+  /// Employés rattachables : non archivés et soit libres, soit déjà
+  /// rattachés à CET utilisateur (relation 1-1).
+  List<Map<String, dynamic>> get _linkableEmployees => widget.employees
+      .where((e) {
+        if ('${e['status'] ?? ''}' == 'archived') return false;
+        final linked = e['user_id'];
+        return linked == null || '$linked' == '${widget.user?['id']}';
+      })
+      .toList();
+
   @override
   void initState() {
     super.initState();
     _roleId = widget.user?['role_id']?.toString();
+    final emp = widget.user?['employee_id'];
+    _employeeId = emp == null ? '' : '$emp';
   }
 
   @override
@@ -415,6 +438,8 @@ class _UserFormDialogState extends State<_UserFormDialog> {
       'phone': _phone.text.trim().isEmpty ? null : _phone.text.trim(),
       if (_roleId != null) 'role_id': _roleId,
       if (!_isEdit && _pass.text.isNotEmpty) 'password': _pass.text,
+      // Association employé <-> compte : null = aucun (PUT délie).
+      'employee_id': _employeeId.isEmpty ? null : _employeeId,
     };
     final res = _isEdit
         ? await ApiClient.instance
@@ -484,6 +509,33 @@ class _UserFormDialogState extends State<_UserFormDialog> {
                         value: '${r['id']}', child: Text('${r['name']}')))
                     .toList(),
                 onChanged: (v) => setState(() => _roleId = v),
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                initialValue: _employeeId,
+                decoration: const InputDecoration(
+                    labelText: 'Employé associé (optionnel)'),
+                items: [
+                  const DropdownMenuItem<String>(
+                      value: '', child: Text('Aucun')),
+                  ..._linkableEmployees.map((e) => DropdownMenuItem<String>(
+                        value: '${e['id']}',
+                        child: Text(
+                            '${e['first_name'] ?? ''} ${e['last_name'] ?? ''}'
+                                .trim()),
+                      )),
+                  // Employé lié non présent dans la page chargée : on
+                  // l'ajoute pour que la valeur initiale existe.
+                  if (_employeeId.isNotEmpty &&
+                      !_linkableEmployees
+                          .any((e) => '${e['id']}' == _employeeId))
+                    DropdownMenuItem<String>(
+                      value: _employeeId,
+                      child: Text(
+                          '${widget.user?['employee_name'] ?? 'Employé lié'}'),
+                    ),
+                ],
+                onChanged: (v) => setState(() => _employeeId = v ?? ''),
               ),
               if (_err != null) ...[
                 const SizedBox(height: 10),

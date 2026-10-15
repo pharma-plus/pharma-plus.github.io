@@ -262,7 +262,7 @@ Future<void> _editServerUrl() async {
               Text(S.t('choisirMinuterie', auth.locale)),
               const SizedBox(height: 16),
               ListTile(
-                title: Text('1 minute'),
+                title: const Text('1 minute'),
                 trailing: Checkbox(
                   value: auth.inactivityMinutes == 1,
                   onChanged: (bool? value) {
@@ -271,7 +271,7 @@ Future<void> _editServerUrl() async {
                 ),
               ),
               ListTile(
-                title: Text('5 minutes'),
+                title: const Text('5 minutes'),
                 trailing: Checkbox(
                   value: auth.inactivityMinutes == 5,
                   onChanged: (bool? value) {
@@ -280,7 +280,7 @@ Future<void> _editServerUrl() async {
                 ),
               ),
               ListTile(
-                title: Text('15 minutes'),
+                title: const Text('15 minutes'),
                 trailing: Checkbox(
                   value: auth.inactivityMinutes == 15,
                   onChanged: (bool? value) {
@@ -289,7 +289,7 @@ Future<void> _editServerUrl() async {
                 ),
               ),
               ListTile(
-                title: Text('30 minutes'),
+                title: const Text('30 minutes'),
                 trailing: Checkbox(
                   value: auth.inactivityMinutes == 30,
                   onChanged: (bool? value) {

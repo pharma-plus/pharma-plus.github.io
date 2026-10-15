@@ -15,6 +15,15 @@
 - RLS : active + deny-by-default sur `roles`, `permissions`, `role_permissions`, `audit_logs`
 - Contrat API rapports : 5 endpoints corrigés + testés (forme conforme)
 
+**Avancée du 15 octobre** :
+- **Phase 7 — Caisse partagée (switch-user PIN)** : route Edge `POST /auth/switch-user`, mode « Changer d'utilisateur » dans `lock_screen.dart`, paniers suspendus scopés par utilisateur + auto-suspend au switch, bouton Suspendre persistant.
+- **Phase 8 — Association employé ↔ compte** : `employee_id` dans POST/PUT `/users`, conflit 409 si déjà rattaché, enrichissement GET `/users` (`employee_id`, `employee_name`), dropdown dans la page utilisateurs, création de compte depuis le formulaire employé.
+- **Phase 9 — Archivage employés** : statut `archived` ajouté au CHECK DB, action Archiver/Rétablir, filtres Actifs/Archivés/Tous.
+- **Phase 17.C — Tests caisse partagée** : 15/15 PASS (lock 423, switch sous verrou, `/auth/me`, permissions caissier, PIN incorrect, retour superadmin, sessions parallèles).
+- **Phase 17.F — Tests isolation multi-pharmacies** : 9/9 PASS (création pharmacie B, isolation utilisateurs/employés, switch cross-tenant 401, suppression pharmacie test).
+- **Corrections transversales** : PUT destructeur → PATCH (customers, employees), 404 uuid write (proxyToTable), route `POST /pharmacies` (provision admin), CORS `PATCH`, `deno check` 0 erreur.
+- **Recherche médicaments** : dialog de recherche implémenté dans `doctor_page.dart` (remplace le TODO).
+
 ---
 
 ## 1. Correction paiement POS (RangeError)
@@ -174,39 +183,49 @@
 | Test | Résultat |
 |---|---|
 | `flutter test` | **40/40** (dont 3 nouveaux tests régression RangeError) |
-| `dart analyze` (fichiers modifiés) | **0 erreur** |
-| `dart analyze` (projet complet) | 0 erreur |
+| `dart analyze` (projet complet) | **0 erreur** |
+| `deno check` (Edge Function) | **0 erreur** |
 | Build web release | ✅ Succès |
-| Déploiement frontend | ✅ `main.202610142345` vérifié live |
-| Déploiement Edge Function | ✅ Succès |
+| Déploiement frontend | ✅ `main.202610150831` vérifié live |
+| Déploiement Edge Function | ✅ Succès (5 redéploiements) |
 | API rapports (5 endpoints) | ✅ Testés — formes conformes au frontend |
 | API PIN (`PUT /auth/pin`) | ✅ Testé (200) |
 | API users PIN (`PUT /users/:id/pin`) | ✅ Testé (400 PIN invalide / 200 PIN valide) |
+| API caisse partagée (17.C) | ✅ **15/15 PASS** (`_test_switch_user.mjs`) |
+| API association employé↔compte | ✅ **9/9 PASS** (POST/GET/PUT/DELETE + 409) |
+| API isolation multi-pharmacies (17.F) | ✅ **9/9 PASS** |
+| **Total API tests** | ✅ **42 PASS / 0 FAIL** |
 
 ---
 
 ## 9. Fichiers modifiés
 
 ### Frontend (Flutter)
-- `lib/features/pos/pos_page.dart` — RangeError fix, stock check, dialogs
-- `lib/features/dashboard/pos_panel.dart` — RangeError fix, stock check, dialogs
+- `lib/features/pos/pos_page.dart` — RangeError fix, stock check, dialogs, _holdCart + auto-hold switch
+- `lib/features/dashboard/pos_panel.dart` — RangeError fix, stock check, dialogs, paniers scopés userId
 - `lib/features/dashboard/dashboard_page.dart` — Cartes KPI, liens, helpers
 - `lib/features/stock/stock_page.dart` — Page stock enrichie (nom, qté, prix)
 - `lib/features/reports/reports_page.dart` — Menu export PDF/Excel/Word
-- `lib/features/security/lock_screen.dart` — Clavier PIN restructuré, flux définition PIN
+- `lib/features/security/lock_screen.dart` — Clavier PIN, flux définition PIN, mode « Changer d'utilisateur »
 - `lib/core/services/auth_store.dart` — Fix auto-lock (_lastActivity init)
 - `lib/main.dart` — Listener global activité
-- `lib/features/employees/employees_page.dart` — Formulaire 2 colonnes, cadre Dialog, champs ajoutés
-- `lib/features/super_admin/users_management_page.dart` — CRUD complet
+- `lib/features/employees/employees_page.dart` — Formulaire 2 colonnes + création compte + archivage + filtres
+- `lib/features/super_admin/users_management_page.dart` — CRUD complet + dropdown employé associé
+- `lib/features/customers/customers_page.dart` — PUT → PATCH (fix destructeur)
+- `lib/features/doctors/doctor_page.dart` — Dialog de recherche médicaments
+- `lib/features/settings/settings_page.dart` — const cleanups
+- `lib/features/shell/home_shell.dart` — const cleanups
+- `lib/core/services/api_client.dart` — Ajout `patch()`
 - `lib/core/services/report_export.dart` — Export PDF/CSV/Doc (nouveau)
 - `lib/core/services/download_file.dart` + `_web.dart` + `_stub.dart` — Téléchargement web (nouveau)
 - `test/client_sale_id_test.dart` — Nouveau (3 tests régression)
 
 ### Backend (Supabase Edge Function)
-- `supabase/functions/pharma-api/index.ts` — 4 fixes sécurité + rapport contrat API + route PUT /users/:id/pin + enrichissement stock/medications
+- `supabase/functions/pharma-api/index.ts` — 4 fixes sécurité + rapport + PIN + switch-user + POST /pharmacies + CORS PATCH + 404 uuid write + enrichissement stock/medications + association employé
 
 ### Base de données
 - `employees.cnss` + `employees.address` ajoutées (migration)
+- `employees.status` CHECK étendu à `'archived'` (migration additive)
 
 ### Scripts (backend/_*.mjs)
 - `_check_test_products.mjs` — Inspection produits TEST
@@ -228,6 +247,14 @@
 - `_check_schema.mjs` — Vérification RLS
 - `_test_pin_employees.mjs` — Test PIN/employés
 - `_check_dashboard_api.mjs` — Vérification dashboard API
+- `_check_emp_status.mjs` — Vérification employees.status CHECK
+- `_migrate_employees_archived.mjs` — Migration `'archived'` (exécutée ✓)
+- `_check_switch_users.mjs` — Inspection comptes switch
+- `_check_users_cols.mjs` — Vérification colonnes users
+- `_check_pharmacies.mjs` — Inspection pharmacies
+- `_check_pharmacy_cols.mjs` — Vérification colonnes pharmacies
+- `_check_test_residue.mjs` — Vérification résidus de test
+- `_test_switch_user.mjs` — **Tests 17.C + association employé + 17.F (42/42 PASS)**
 
 ---
 
@@ -236,12 +263,18 @@
 | Domaine | Statut | Raison |
 |---|---|---|
 | Impression ticket physique | NON VÉRIFIÉ | Pas d'imprimante dans l'environnement |
-| Caisse partagée A→B (PIN) | NON VÉRIFIÉ | Test manuel requis (2 comptes, 2 PIN) |
+| Caisse partagée A→B (PIN) | **VALIDÉ** | 15/15 PASS (switch-user + verrou paniers + auto-suspend) |
+| Association employé↔compte | **VALIDÉ** | 9/9 PASS (create/relink/unlink/409) |
+| Isolation multi-pharmacies | **VALIDÉ** | 9/9 PASS (cross-tenant 401/404/400) |
+| Archivage employés | **VALIDÉ** | Statut `archived` + UI Archiver/Rétablir + filtres |
+| Recherche médicaments (doctors) | **VALIDÉ** | Dialog `q=` implémenté (remplace TODO) |
 | Rapports PDF/Word/Excel | **VALIDÉ** | Export implémenté, menu dans AppBar rapports |
 | Données rapports (Edge) | **VALIDÉ** | 5 endpoints corrigés + testés (forme conforme) |
 | RLS `audit_logs`, `roles`, `role_permissions` | **VALIDÉ** | RLS active + deny-by-default, Edge en service_role |
 | CNSS/adresse dans DB `employees` | **VALIDÉ** | `cnss` + `address` ajoutées (migration) |
 | Route `PUT /users/{id}/pin` | **VALIDÉ** | Ajoutée + testée (400/200) |
+| `PATCH` générique (proxyToTable) | **VALIDÉ** | ApiClient.patch + CORS PATCH + 404 uuid write |
+| `POST /pharmacies` (provision admin) | **VALIDÉ** | Route custom tolère ré-exécution |
 | 3676 EAN terrain | BLOQUÉ | Source fermée, pas d'accès |
 | RCP (Notice) | BLOQUÉ | Source ANSM fermée |
 
@@ -253,12 +286,16 @@
 2. **Stock zéro** : Même recherche → cliquer un produit avec stock 0 → dialog « Produit indisponible » → panier inchangé.
 3. **Verrouillage** : Bouton verrouillage (AppBar) → écran PIN → si aucun PIN, flux de définition → saisir PIN → déverrouillage.
 4. **Auto-lock** : Ne rien faire 15 min → écran PIN automatique.
-5. **Gestion utilisateurs** : Dashboard → Settings → Gestion utilisateurs → créer/modifier/PIN/désactiver.
-6. **Formulaire employé** : Dashboard → Employés → + → formulaire 2 colonnes avec CNSS/adresse/date.
-7. **Dashboard** : Vérifier MÉDICAMENTS=5036, PRODUITS EN STOCK=27, EMPLOYÉS=3 → cliquer chaque carte → lien vers la page correspondante.
-8. **Page Stock** : Dashboard → carte PRODUITS EN STOCK → page Stock affiche nom, quantité, prix unitaire des 27 produits.
-9. **Rapports** : Dashboard → Rapports → menu export (⋮) → PDF / Excel (CSV) / Word (.doc).
-10. **PIN admin** : Settings → Gestion utilisateurs → cliquer un utilisateur → « Définir PIN » → saisir 4 chiffres → enregistrer.
+5. **Changer d'utilisateur (caisse partagée)** : Sur l'écran PIN → « Changer d'utilisateur » → saisir email/username + PIN → session du nouvel employé, panier du précédent suspendu automatiquement.
+6. **Suspendre une vente** : POS → bouton « Suspendre » → panier sauvegardé, peut être repris plus tard.
+7. **Association employé↔compte** : Settings → Gestion utilisateurs → créer/modifier → dropdown « Employé associé ».
+8. **Créer un compte depuis un employé** : Employés → + → remplir le formulaire → cocher « Créer également un compte utilisateur » → mot de passe + rôle.
+9. **Archiver un employé** : Employés → menu ⋮ d'une carte → Archiver → confirmé → filtre « Archivés » pour voir les archivés.
+10. **Recherche médicaments** : Doctors → bouton recherche → saisir nom/DCI → résultats filtrés.
+11. **Dashboard** : Vérifier MÉDICAMENTS=5036, PRODUITS EN STOCK=27, EMPLOYÉS=3 → cliquer chaque carte → lien vers la page correspondante.
+12. **Page Stock** : Dashboard → carte PRODUITS EN STOCK → page Stock affiche nom, quantité, prix unitaire des 27 produits.
+13. **Rapports** : Dashboard → Rapports → menu export (⋮) → PDF / Excel (CSV) / Word (.doc).
+14. **PIN admin** : Settings → Gestion utilisateurs → cliquer un utilisateur → « Définir PIN » → saisir 4 chiffres → enregistrer.
 
 ---
 
@@ -305,10 +342,13 @@
 ## 14. Commit final
 
 ```
+d2c856e DASHBOARD: const fix + RAPPORT FINAL mis a jour (toutes taches validees)
 6356e84 REPORTS: contrat API aligne — aggregations sales/products/stock/employees/financial + fix price_purchase
 a7c78d0 EXPORTS RAPPORTS: PDF/Excel CSV/Word + route PUT users/:id/pin + colonnes employees cnss/address
 8ccc23d Dashboard: carte3 PRODUITS EN STOCK + EMPLOYÉS=3 + liens KPI
 cef21f3 main.dart.js push (fix CDN)
 ```
 
-**Déploiement** : Frontend `main.202610142345` live. Edge Function déployée (reports + PIN + sécurité).
+**Prochain commit** : PHASE 7-9 + 17.C/17.F — switch-user, association employé, archivage, isolation, PATCH, deno check, build 202610150831.
+
+**Déploiement** : Frontend `main.202610150831` live. Edge Function déployée (switch-user + POST /pharmacies + CORS PATCH + 404 uuid write).

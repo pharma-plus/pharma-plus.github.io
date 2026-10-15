@@ -4,7 +4,7 @@ const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-pharmacy-id",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 };
 
 function json(data: unknown, status = 200) {
@@ -564,12 +564,14 @@ async function sessionActive(sb: any, req: Request): Promise<boolean> {
 }
 
 /* Routes autorisees meme sur une session VERROUILLEE (locked_at non NULL) :
-   deblocage PIN, verrouillage, deconnexion. Toutes les autres routes
+   deblocage PIN, verrouillage, deconnexion, changement d'employe (la
+   cible est authentifiee par son propre PIN). Toutes les autres routes
    renvoient 423 SESSION_LOCKED tant que le verrou est actif. */
 const LOCK_EXEMPT = new Set([
   "auth/pin/verify",
   "auth/lock",
   "auth/logout",
+  "auth/switch-user",
 ]);
 
 /* Applique un patch a la session courante identifiee par le jeton porteur.
@@ -1291,6 +1293,26 @@ async function proxyToTable(
     } catch (_) { /* fallback to raw */ }
   }
 
+  /* UUID introuvable (ou autre pharmacie) : PostgREST repond 200 + []
+     sur PATCH/DELETE/PUT sans correspondance — un faux succes masquerait
+     une ecriture ignoree. On repond 404 explicite. */
+  if (
+    isUuidLookup &&
+    (method === "PATCH" || method === "DELETE" || method === "PUT") &&
+    res.status >= 200 &&
+    res.status < 300
+  ) {
+    try {
+      const arr = JSON.parse(text);
+      if (Array.isArray(arr) && arr.length === 0) {
+        return json(
+          { error: { code: "NOT_FOUND", message: "Not found" } },
+          404,
+        );
+      }
+    } catch (_) { /* corps non-JSON : on laisse passer */ }
+  }
+
   // Liste GET : exposer meta.total (Content-Range "0-39/5016") pour que
   // l'app connaisse le vrai total et active "Load more" (sinon total = longueur
   // de page et la pagination se verrouille a la premiere page).
@@ -1750,11 +1772,36 @@ Deno.serve(async (req) => {
           { error: { code: "QUERY_FAILED", message: error.message } },
           500,
         );
-      return json({ data });
+      /* Enrichit avec l'employe rattache (employees.user_id -> users.id). */
+      let rows = data ?? [];
+      try {
+        const { data: emps } = await sb
+          .from("employees")
+          .select("id, user_id, first_name, last_name")
+          .eq("pharmacy_id", pid)
+          .not("user_id", "is", null);
+        const byUser = new Map(
+          (emps ?? []).map((e: any) => [e.user_id, e]),
+        );
+        rows = rows.map((u: any) => {
+          const e: any = byUser.get(u.id);
+          return {
+            ...u,
+            employee_id: e?.id ?? null,
+            employee_name: e
+              ? `${e.first_name ?? ""} ${e.last_name ?? ""}`.trim()
+              : null,
+          };
+        });
+      } catch (e) {
+        console.error("[users] employee enrich:", String(e));
+      }
+      return json({ data: rows });
     }
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
-      const { email, password, first_name, last_name, role_id } = body ?? {};
+      const { email, password, first_name, last_name, role_id, employee_id } =
+        body ?? {};
       if (!email || !password || !role_id)
         return json(
           {
@@ -1791,6 +1838,31 @@ Deno.serve(async (req) => {
           { error: { code: "VALIDATION", message: "role inconnu" } },
           400,
         );
+      /* Association a un employe existant (optionnelle) : l'employe
+         doit appartenir a la meme pharmacie. */
+      if (employee_id != null && String(employee_id) !== "") {
+        const { data: emp } = await sb
+          .from("employees")
+          .select("id, user_id")
+          .eq("id", String(employee_id))
+          .eq("pharmacy_id", pid)
+          .maybeSingle();
+        if (!emp)
+          return json(
+            { error: { code: "VALIDATION", message: "employe inconnu" } },
+            400,
+          );
+        if (emp.user_id)
+          return json(
+            {
+              error: {
+                code: "CONFLICT",
+                message: "employe deja rattache a un autre compte",
+              },
+            },
+            409,
+          );
+      }
       const { data: dup } = await sb
         .from("users")
         .select("id")
@@ -1838,6 +1910,16 @@ Deno.serve(async (req) => {
           400,
         );
       }
+      /* Lier l'employe choisi a ce compte (employees.user_id). */
+      if (employee_id != null && String(employee_id) !== "") {
+        const { error: linkErr } = await sb
+          .from("employees")
+          .update({ user_id: authId })
+          .eq("id", String(employee_id))
+          .eq("pharmacy_id", pid);
+        if (linkErr)
+          console.error("[users] employee link:", linkErr.message);
+      }
       return json({ data: { id: authId, email: normalized } }, 201);
     }
     return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
@@ -1858,7 +1940,7 @@ Deno.serve(async (req) => {
       );
     if (req.method === "PUT") {
       const body = await req.json().catch(() => ({}));
-      const { first_name, last_name, role_id, status } = body ?? {};
+      const { first_name, last_name, role_id, status, employee_id } = body ?? {};
       const patch: any = {};
       if (first_name !== undefined)
         patch.first_name = String(first_name).trim() || null;
@@ -1885,7 +1967,36 @@ Deno.serve(async (req) => {
           );
         patch.status = String(status);
       }
-      if (Object.keys(patch).length === 0)
+      /* Association employe <-> utilisateur :
+         employee_id = uuid  -> lie (et delie l'ancien employe du compte)
+         employee_id = null  -> delie tout employe de ce compte
+         absent              -> inchange. */
+      if (employee_id !== undefined) {
+        if (employee_id != null && String(employee_id) !== "") {
+          const { data: emp } = await sb
+            .from("employees")
+            .select("id, user_id")
+            .eq("id", String(employee_id))
+            .eq("pharmacy_id", pid)
+            .maybeSingle();
+          if (!emp)
+            return json(
+              { error: { code: "VALIDATION", message: "employe inconnu" } },
+              400,
+            );
+          if (emp.user_id && emp.user_id !== targetId)
+            return json(
+              {
+                error: {
+                  code: "CONFLICT",
+                  message: "employe deja rattache a un autre compte",
+                },
+              },
+              409,
+            );
+        }
+      }
+      if (Object.keys(patch).length === 0 && employee_id === undefined)
         return json(
           {
             error: {
@@ -1895,15 +2006,38 @@ Deno.serve(async (req) => {
           },
           400,
         );
-      const { error: upErr } = await sb
-        .from("users")
-        .update(patch)
-        .eq("id", targetId);
-      if (upErr)
-        return json(
-          { error: { code: "UPDATE_FAILED", message: upErr.message } },
-          400,
-        );
+      if (Object.keys(patch).length > 0) {
+        const { error: upErr } = await sb
+          .from("users")
+          .update(patch)
+          .eq("id", targetId);
+        if (upErr)
+          return json(
+            { error: { code: "UPDATE_FAILED", message: upErr.message } },
+            400,
+          );
+      }
+      if (employee_id !== undefined) {
+        // Delie d'abord tout employe rattache a ce compte (relation 1-1).
+        await sb
+          .from("employees")
+          .update({ user_id: null })
+          .eq("user_id", targetId)
+          .eq("pharmacy_id", pid);
+        if (employee_id != null && String(employee_id) !== "") {
+          const { error: linkErr } = await sb
+            .from("employees")
+            .update({ user_id: targetId })
+            .eq("id", String(employee_id))
+            .eq("pharmacy_id", pid);
+          if (linkErr)
+            return json(
+              { error: { code: "UPDATE_FAILED", message: linkErr.message } },
+              400,
+            );
+        }
+        patch.employee_id = employee_id ?? null;
+      }
       return json({ data: { id: targetId, ...patch } });
     }
     if (req.method === "DELETE") {
@@ -2073,6 +2207,159 @@ Deno.serve(async (req) => {
     // Deblocage serveur : retire locked_at sur la session courante.
     await updateCurrentSession(sb, req, { locked_at: null });
     return json({ data: { valid: true } });
+  }
+
+  /* ===========================================================
+     AUTH — switch-user : changement d'employe sur la caisse
+     partagee (une seule machine, un employe apres l'autre).
+     L'appelant est DEJA connecte (session A active, exempt du
+     verrou). La cible s'identifie par IDENTIFIANT (e-mail ou
+     username) + PIN propre — jamais par mot de passe partage.
+     Le PIN argon2 de la cible est verifie avec le MESME compteur
+     d'echecs/lockout que le login. La session de la cible est creee
+     par Supabase Auth (generateLink + verifyOtp : le mot de passe
+     n'est ni connu ni modifie). La session A n'est PAS revoquee
+     (sessions independantes preservees), l'operation est auditee.
+     =========================================================== */
+  if (path === "auth/switch-user" && req.method === "POST") {
+    const callerId = await currentUserId(req);
+    if (!callerId)
+      return json({ error: { code: "UNAUTHORIZED" } }, 401);
+    const body = await req.json().catch(() => ({}));
+    const ident = String((body as any)?.identifier ?? "").trim().toLowerCase();
+    const pin = String((body as any)?.pin ?? "");
+    if (!ident || !pin)
+      return json(
+        { error: { code: "VALIDATION", message: "identifiant + PIN requis" } },
+        400,
+      );
+
+    const { data: target } = await sb
+      .from("users")
+      .select(
+        "id, email, username, pharmacy_id, status, pin_hash, locked_until, two_factor_enabled",
+      )
+      .or(`email.ilike.${ident},username.ilike.${ident}`)
+      .maybeSingle();
+    // Reponse identique que login pour un identifiant inconnu (pas d'enumeration).
+    const invalid = () =>
+      json(
+        { error: { code: "INVALID_CREDENTIALS", message: "Identifiants invalides" } },
+        401,
+      );
+    if (!target || !target.id) return invalid();
+    if (target.pharmacy_id && pid && target.pharmacy_id !== pid)
+      return invalid();
+    if (target.status === "inactive")
+      return json(
+        {
+          error: {
+            code: "ACCOUNT_INACTIVE",
+            message: "Compte désactivé — contactez l'administrateur",
+          },
+        },
+        403,
+      );
+    if (target.locked_until && new Date(target.locked_until).getTime() > Date.now()) {
+      const mins = Math.ceil(
+        (new Date(target.locked_until).getTime() - Date.now()) / 60000,
+      );
+      return json(
+        {
+          error: {
+            code: "ACCOUNT_LOCKED",
+            message: `Compte verrouillé — réessayez dans ${mins} min`,
+          },
+        },
+        423,
+      );
+    }
+    if (!target.pin_hash)
+      return json(
+        { error: { code: "PIN_NOT_SET", message: "Aucun PIN enregistré" } },
+        400,
+      );
+    if (target.two_factor_enabled)
+      return json(
+        {
+          error: {
+            code: "TWOFA_REQUIRED",
+            message: "Compte à double facteur — connexion par mot de passe requise",
+          },
+        },
+        403,
+      );
+
+    const ok = await verifyArgon2phc(String(target.pin_hash), pin);
+    if (!ok) {
+      try {
+        await registerFailedLogin(sb, target.id);
+      } catch (e) {
+        console.error("[switch-user] registerFailedLogin:", String(e));
+      }
+      return invalid();
+    }
+    try {
+      await clearFailedLogin(sb, target.id);
+    } catch (e) {
+      console.error("[switch-user] clearFailedLogin:", String(e));
+    }
+
+    const email = String(target.email ?? "").trim().toLowerCase();
+    if (!email)
+      return json(
+        { error: { code: "VALIDATION", message: "Compte sans e-mail" } },
+        400,
+      );
+
+    // Session Supabase Auth pour la cible (magic link = echange de session,
+    // le lien lui-meme n'est jamais affiche ni utilise).
+    const { data: linkData, error: linkErr } = await sb.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+    });
+    const hashedToken = (linkData as any)?.properties?.hashed_token;
+    if (linkErr || !hashedToken)
+      return json(
+        {
+          error: {
+            code: "SESSION_FAILED",
+            message: linkErr?.message ?? "création de session impossible",
+          },
+        },
+        500,
+      );
+    const { data: otpData, error: otpErr } = await sbAuth.auth.verifyOtp({
+      token_hash: String(hashedToken),
+      type: "magiclink",
+    });
+    if (otpErr || !otpData?.session)
+      return json(
+        {
+          error: {
+            code: "SESSION_FAILED",
+            message: otpErr?.message ?? "session invalide",
+          },
+        },
+        500,
+      );
+
+    try {
+      await _logAction(sb, pid, {
+        action: "user_switched",
+        module: "auth",
+        entity: "users",
+        entityId: String(target.id),
+        performedBy: callerId,
+        oldValues: { from_user_id: callerId },
+        newValues: { to_user_id: target.id, method: "pin" },
+        req,
+      });
+    } catch (e) {
+      console.error("[switch-user] audit:", String(e));
+    }
+
+    return await finishLogin(sb, req, email, otpData.session, body, pid);
   }
 
   /* ===========================================================
@@ -3260,6 +3547,133 @@ Deno.serve(async (req) => {
     return json({ data });
   }
 
+  /* ===========================================================
+     SUPER-ADMIN — creation de pharmacie + compte administrateur.
+     Le portail envoyait admin_email/admin_password/license_type :
+     colonnes inexistantes sur `pharmacies` (PostgREST rejetait le
+     POST brut du proxy generic). Route custom : pharmacie valide
+     + provision du compte admin (Supabase Auth + public.users).
+     RBAC : settings:create via la grille globale (super admin OK).
+     =========================================================== */
+  if (path === "pharmacies" && req.method === "POST") {
+    const b = (await req.json().catch(() => ({}))) as any;
+    const name = String(b?.name ?? "").trim();
+    const slug = String(b?.slug ?? "").trim().toLowerCase();
+    if (!name || !slug)
+      return json(
+        { error: { code: "VALIDATION", message: "name et slug requis" } },
+        400,
+      );
+    const { data: dupPh } = await sb
+      .from("pharmacies")
+      .select("id")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (dupPh)
+      return json(
+        { error: { code: "CONFLICT", message: "slug deja utilise" } },
+        409,
+      );
+    const { data: ph, error: phErr } = await sb
+      .from("pharmacies")
+      .insert({
+        name,
+        slug,
+        city: b?.city ?? null,
+        phone: b?.phone ?? null,
+        email: String(b?.admin_email ?? b?.email ?? "").trim() || null,
+        status: "active",
+      })
+      .select()
+      .single();
+    if (phErr)
+      return json(
+        { error: { code: "CREATE_FAILED", message: phErr.message } },
+        400,
+      );
+
+    const adminEmail = String(b?.admin_email ?? "").trim().toLowerCase();
+    const adminPass = String(b?.admin_password ?? "");
+    let adminUserId: string | null = null;
+    let authNote: string | null = null;
+    if (adminEmail) {
+      let authOk = false;
+      if (adminPass) {
+        const { error: cErr } = await sb.auth.admin.createUser({
+          email: adminEmail,
+          password: adminPass,
+          email_confirm: true,
+          user_metadata: { pharmacy_id: ph.id },
+        });
+        if (!cErr) authOk = true;
+        else if (String(cErr.message).includes("already been registered"))
+          authOk = true; // compte Auth existant (relance de test/demo)
+        else authNote = cErr.message;
+      }
+      if (authOk || !adminPass) {
+        // public.users : profil applicatif (jamais supprime silencieusement
+        // si present — on recupere l'id existant).
+        const { data: existing } = await sb
+          .from("users")
+          .select("id")
+          .ilike("email", adminEmail)
+          .maybeSingle();
+        if (existing?.id) {
+          adminUserId = existing.id;
+          await sb
+            .from("users")
+            .update({ pharmacy_id: ph.id })
+            .eq("id", existing.id);
+        } else {
+          const { data: role } = await sb
+            .from("roles")
+            .select("id")
+            .eq("name", "Pharmacien Administrateur")
+            .maybeSingle();
+          const { data: urow, error: uErr } = await sb
+            .from("users")
+            .insert({
+              email: adminEmail,
+              first_name: "Admin",
+              last_name: name,
+              pharmacy_id: ph.id,
+              role_id: role?.id ?? null,
+              password_hash: "supabase-auth",
+            })
+            .select("id")
+            .maybeSingle();
+          if (!uErr) adminUserId = urow?.id ?? null;
+          else authNote = authNote ?? uErr.message;
+        }
+      }
+    }
+
+    const uidCreator = await currentUserId(req);
+    try {
+      await _logAction(sb, String(ph.id), {
+        action: "pharmacy_create",
+        module: "settings",
+        entity: "pharmacies",
+        entityId: String(ph.id),
+        performedBy: uidCreator,
+        newValues: { name, slug, admin_email: adminEmail || null },
+        req,
+      });
+    } catch (e) {
+      console.error("[pharmacies] audit:", String(e));
+    }
+    return json(
+      {
+        data: {
+          ...ph,
+          admin_user_id: adminUserId,
+          ...(authNote ? { admin_note: authNote } : {}),
+        },
+      },
+      201,
+    );
+  }
+
   /* ==== SUPER-ADMIN : statistiques d'une pharmacie (portage Node) ==== */
   const mPhStats = path.match(/^pharmacies\/([0-9a-f-]{36})\/stats$/i);
   if (mPhStats && req.method === "GET") {
@@ -3664,7 +4078,7 @@ Deno.serve(async (req) => {
      =========================================================== */
   if (/^users\/[^/]+\/pin$/.test(path) && req.method === "PUT") {
     const perm = await hasPermission(sb, req, "users:edit");
-    if (!perm.allowed) return json({ error: { code: "FORBIDDEN", message: perm.reason ?? "Accès refusé" } }, 403);
+    if (!perm.allowed) return json({ error: { code: "FORBIDDEN", message: "Permission users:edit requise" } }, 403);
     const targetUserId = path.split("/")[1];
     const body = await req.json().catch(() => ({}));
     const pin = String((body as any)?.pin ?? "");

@@ -27,12 +27,14 @@ class _DoctorPageState extends State<DoctorPage> {
     _loadMedications();
   }
 
-  Future<void> _loadMedications({String? dci, String? laboratory}) async {
+  Future<void> _loadMedications(
+      {String? dci, String? laboratory, String? q}) async {
     setState(() => _loading = true);
     try {
       final params = <String, String>{};
       if (dci != null && dci.isNotEmpty) params['dci'] = dci;
       if (laboratory != null && laboratory.isNotEmpty) params['laboratory'] = laboratory;
+      if (q != null && q.isNotEmpty) params['q'] = q;
 
       final result = await ApiClient.instance.get(
         '/medications',
@@ -129,6 +131,46 @@ class _DoctorPageState extends State<DoctorPage> {
     );
   }
 
+  /// Dialogue de recherche (nom, DCI, substance, dosage, forme, labo, EAN).
+  Future<void> _openSearch() async {
+    final ctrl = TextEditingController();
+    final q = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Rechercher un médicament'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          textInputAction: TextInputAction.search,
+          decoration: const InputDecoration(
+            hintText: 'Nom, DCI, substance, dosage, forme, labo, EAN…',
+            prefixIcon: Icon(Icons.search),
+          ),
+          onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Annuler')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+              child: const Text('Rechercher')),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    if (q == null) return;
+    if (q.isEmpty) {
+      await _loadMedications();
+    } else {
+      await _loadMedications(q: q);
+      if (mounted && _medications.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Aucun résultat pour « $q ».')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
@@ -142,9 +184,7 @@ class _DoctorPageState extends State<DoctorPage> {
           if (hasViewPermission)
             IconButton(
               icon: const Icon(Icons.search),
-              onPressed: () {
-                // TODO: ouvrir dialogue de recherche
-              },
+              onPressed: _openSearch,
             ),
         ],
       ),

@@ -27,6 +27,8 @@ class _EmployeesPageState extends State<EmployeesPage> {
   Map<String, dynamic>? _summary;
   bool _loading = true;
   String? _error;
+  // Filtre d'état : actifs (défaut) | archivés | tous
+  String _statusFilter = 'active';
 
   @override
   void initState() {
@@ -45,6 +47,7 @@ class _EmployeesPageState extends State<EmployeesPage> {
         query: {
           'limit': 100,
           if (_search.text.trim().isNotEmpty) 'q': _search.text.trim(),
+          if (_statusFilter != 'all') 'status': _statusFilter,
         },
       ),
       ApiClient.instance.get('/employees/summary'),
@@ -94,6 +97,45 @@ class _EmployeesPageState extends State<EmployeesPage> {
           SnackBar(content: Text(S.t('employeeCreated', locale))),
         );
       }
+    }
+  }
+
+  /// Archivage logique / restauration d'un employé (soft-delete).
+  Future<void> _setStatus(
+      Map<String, dynamic> e, String status, String confirmLabel) async {
+    final locale = context.read<AuthStore>().locale;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(confirmLabel),
+        content: Text(
+            '« ${e['first_name'] ?? ''} ${e['last_name'] ?? ''} ». '
+            'L\'historique (ventes, pointages) est conservé.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(S.t('cancel', locale))),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(confirmLabel)),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final r = await ApiClient.instance
+        .patch('/employees/${e['id']}', body: {'status': status});
+    if (!mounted) return;
+    if (r.success) {
+      _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(status == 'archived'
+                ? 'Employé archivé.'
+                : 'Employé rétabli comme actif.')));
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(r.error?.readableMessage ?? 'Erreur lors de la mise à jour')));
     }
   }
 
@@ -172,6 +214,40 @@ class _EmployeesPageState extends State<EmployeesPage> {
               ),
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                ChoiceChip(
+                  label: const Text('Actifs'),
+                  selected: _statusFilter == 'active',
+                  onSelected: (_) => setState(() {
+                    _statusFilter = 'active';
+                    _load();
+                  }),
+                ),
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  label: const Text('Archivés'),
+                  selected: _statusFilter == 'archived',
+                  onSelected: (_) => setState(() {
+                    _statusFilter = 'archived';
+                    _load();
+                  }),
+                ),
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  label: const Text('Tous'),
+                  selected: _statusFilter == 'all',
+                  onSelected: (_) => setState(() {
+                    _statusFilter = 'all';
+                    _load();
+                  }),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
@@ -251,6 +327,30 @@ class _EmployeesPageState extends State<EmployeesPage> {
                                                 style: const TextStyle(
                                                     fontWeight: FontWeight.w700,
                                                     fontSize: 13)),
+                                          ],
+                                        ),
+                                        const SizedBox(width: 4),
+                                        PopupMenuButton<String>(
+                                          icon: const Icon(Icons.more_vert,
+                                              size: 20),
+                                          onSelected: (v) {
+                                            if (v == 'archive') {
+                                              _setStatus(e, 'archived',
+                                                  'Archiver cet employé ?');
+                                            } else if (v == 'restore') {
+                                              _setStatus(e, 'active',
+                                                  'Rétablir cet employé ?');
+                                            }
+                                          },
+                                          itemBuilder: (_) => [
+                                            if ('${e['status']}' != 'archived')
+                                              const PopupMenuItem(
+                                                  value: 'archive',
+                                                  child: Text('Archiver')),
+                                            if ('${e['status']}' == 'archived')
+                                              const PopupMenuItem(
+                                                  value: 'restore',
+                                                  child: Text('Rétablir')),
                                           ],
                                         ),
                                       ],
@@ -360,16 +460,45 @@ class _EmployeeFormState extends State<_EmployeeForm> {
   bool _saving = false;
   String? _validationError;
 
+  // ── Option « Créer également un compte utilisateur » (création) ──
+  bool _createAccount = false;
+  final _accountPass = TextEditingController();
+  String? _accountRoleId;
+  List<Map<String, dynamic>> _roles = [];
+
   @override
   void initState() {
     super.initState();
     _contractType = widget.employee?['contract_type'] as String?;
     final hd = widget.employee?['hire_date'];
     if (hd != null) _hireDate = DateTime.tryParse('$hd');
+    if (widget.employee == null) _loadRoles();
+  }
+
+  Future<void> _loadRoles() async {
+    final r = await ApiClient.instance.get('/roles', query: {'limit': 50});
+    if (!mounted || !r.success) return;
+    final list = ApiList.of(r.data ?? []);
+    setState(() {
+      _roles = list;
+      // Rôle par défaut : caissier/vendeur s'il existe, sinon le premier.
+      final preferred = list.firstWhere(
+        (x) {
+          final n = '${x['name'] ?? ''}'.toLowerCase();
+          return n.contains('caiss') || n.contains('vendeur');
+        },
+        orElse: () => const <String, dynamic>{},
+      );
+      _accountRoleId = (preferred.isNotEmpty
+              ? preferred['id']
+              : (list.isNotEmpty ? list.first['id'] : null))
+          ?.toString();
+    });
   }
 
   @override
   void dispose() {
+    _accountPass.dispose();
     for (final c in [_first, _last, _position, _phone, _email, _cin, _salary, _cnss, _address]) {
       c.dispose();
     }
@@ -383,6 +512,23 @@ class _EmployeeFormState extends State<_EmployeeForm> {
       setState(() =>
           _validationError = 'Prénom, nom et fonction sont obligatoires.');
       return;
+    }
+    if (widget.employee == null && _createAccount) {
+      if (_email.text.trim().isEmpty) {
+        setState(() => _validationError =
+            'Un email est requis pour créer le compte utilisateur.');
+        return;
+      }
+      if (_accountPass.text.length < 8) {
+        setState(() => _validationError =
+            'Mot de passe du compte : minimum 8 caractères.');
+        return;
+      }
+      if (_accountRoleId == null) {
+        setState(() =>
+            _validationError = 'Choisissez le rôle du compte utilisateur.');
+        return;
+      }
     }
     setState(() {
       _saving = true;
@@ -405,16 +551,60 @@ class _EmployeeFormState extends State<_EmployeeForm> {
     final result = widget.employee == null
         ? await ApiClient.instance.post('/employees', body: body)
         : await ApiClient.instance
-            .put('/employees/${widget.employee!['id']}', body: body);
+            .patch('/employees/${widget.employee!['id']}', body: body);
     if (!mounted) return;
-    if (result.success) {
-      Navigator.pop(context, true);
-    } else {
+    if (!result.success) {
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result.error?.readableMessage ?? 'Erreur')),
       );
+      return;
     }
+    // Option « Créer également un compte utilisateur » (creation seule) :
+    // on rattache ensuite le compte a l'employe via employees.user_id.
+    String? accountMsg;
+    if (widget.employee == null && _createAccount) {
+      accountMsg = await _createLinkedAccount(result);
+      if (!mounted) return;
+    }
+    if (accountMsg != null && mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(accountMsg)));
+    }
+    Navigator.pop(context, true);
+  }
+
+  /// Crée le compte utilisateur (POST /users + employee_id) puis laisse
+  /// l'employé créer l'association. En cas d'échec, l'employé reste créé
+  /// (message d'avertissement affiché par l'appelant).
+  Future<String?> _createLinkedAccount(ApiResult<dynamic> empRes) async {
+    final empData = resultDataRow(empRes);
+    final empId = empData?['id']?.toString();
+    if (empId == null) {
+      return 'Employé créé — compte utilisateur non créé (id employé absent).';
+    }
+    final ures = await ApiClient.instance.post('/users', body: {
+      'first_name': _first.text.trim(),
+      'last_name': _last.text.trim(),
+      'email': _email.text.trim(),
+      'password': _accountPass.text,
+      'role_id': _accountRoleId,
+      'employee_id': empId,
+    });
+    if (ures.success) {
+      return 'Employé et compte utilisateur créés (login : ${_email.text.trim()}).';
+    }
+    return 'Employé créé — compte utilisateur NON créé : ${ures.error?.readableMessage ?? 'erreur'}';
+  }
+
+  /// Extrait la ligne créée d'une réponse PostgREST brute (liste) ou wrappée.
+  Map<String, dynamic>? resultDataRow(ApiResult<dynamic>? res) {
+    final d = res?.data;
+    if (d is List && d.isNotEmpty && d.first is Map) {
+      return Map<String, dynamic>.from(d.first as Map);
+    }
+    if (d is Map) return Map<String, dynamic>.from(d);
+    return null;
   }
 
   /// Construit une rangée de 2 champs côte à côte (PC) ou empilés (mobile).
@@ -548,6 +738,45 @@ class _EmployeeFormState extends State<_EmployeeForm> {
                     ),
                   ),
                 ),
+                if (widget.employee == null) ...[
+                  const SizedBox(height: 16),
+                  CheckboxListTile(
+                    value: _createAccount,
+                    onChanged: (v) =>
+                        setState(() => _createAccount = v ?? false),
+                    title: const Text('Créer également un compte utilisateur'),
+                    subtitle: const Text(
+                        'Login : email ci-dessus · PIN à définir après la création',
+                        style: TextStyle(fontSize: 12)),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                  ),
+                  if (_createAccount) ...[
+                    const SizedBox(height: 8),
+                    _row2(
+                      TextField(
+                        controller: _accountPass,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                            labelText: 'Mot de passe du compte (min. 8)'),
+                      ),
+                      DropdownButtonFormField<String>(
+                        initialValue: _accountRoleId,
+                        decoration:
+                            const InputDecoration(labelText: 'Rôle du compte'),
+                        items: _roles
+                            .map((r) => DropdownMenuItem(
+                                value: '${r['id']}',
+                                child: Text('${r['name']}')))
+                            .toList(),
+                        onChanged: (v) =>
+                            setState(() => _accountRoleId = v),
+                      ),
+                      wide,
+                    ),
+                  ],
+                ],
                 if (_validationError != null) ...[
                   const SizedBox(height: 12),
                   Text(

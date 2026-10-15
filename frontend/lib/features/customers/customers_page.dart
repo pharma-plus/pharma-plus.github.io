@@ -308,7 +308,7 @@ class _CustomerFormState extends State<_CustomerForm> {
     final result = widget.customer == null
         ? await ApiClient.instance.post('/customers', body: body)
         : await ApiClient.instance
-            .put('/customers/${widget.customer!['id']}', body: body);
+            .patch('/customers/${widget.customer!['id']}', body: body);
     if (!mounted) return;
     if (result.success) {
       Navigator.pop(context, true);

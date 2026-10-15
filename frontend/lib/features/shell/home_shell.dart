@@ -46,18 +46,18 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   static final _pages = [
-    DashboardPage(),
-    ModulesPage(),
-    PosPage(),
-    CatalogPage(),
-    StockPage(),
-    SuppliersPage(),
-    PurchasesPage(),
-    CustomersPage(),
-    EmployeesPage(),
-    ReportsPage(),
-    PharmacyPlanPage(),
-    SettingsPage(),
+    const DashboardPage(),
+    const ModulesPage(),
+    const PosPage(),
+    const CatalogPage(),
+    const StockPage(),
+    const SuppliersPage(),
+    const PurchasesPage(),
+    const CustomersPage(),
+    const EmployeesPage(),
+    const ReportsPage(),
+    const PharmacyPlanPage(),
+    const SettingsPage(),
   ];
 
   @override
@@ -153,8 +153,7 @@ class _HomeShellState extends State<HomeShell> {
       onPressed: () => context.read<AuthStore>().lockSession(manual: true),
     ),
           title: const Text('PHARMA+'),
-          actions: [
-          ],
+          actions: const [],
         ),
         body: PharmaBackground(
           assetImage: 'assets/images/background.webp',

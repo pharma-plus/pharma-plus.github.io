@@ -76,6 +76,10 @@ class _PosPanelState extends State<PosPanel> {
 
   static const _kHeldKey = 'pmg_pos_held_sales';
 
+  // Dernier utilisateur connu : permet de détecter un changement de
+  // caissier (caisse partagée) et de suspendre le panier en cours.
+  String? _lastUserId;
+
   /// Facettes réelles du catalogue : formes les plus fréquentes (API
   /// /catalog/medications/facets), plus de mots-clés en dur.
   List<Map<String, dynamic>> _facetForms = [];
@@ -86,11 +90,29 @@ class _PosPanelState extends State<PosPanel> {
   @override
   void initState() {
     super.initState();
+    _lastUserId = AuthStore.instance.user?.id;
+    AuthStore.instance.addListener(_onAuthChanged);
     _loadHeld();
     _loadCustomers();
     _loadFacets();
     _loadBranchId();
     _doSearch(_search.text.trim());
+  }
+
+  /// Changement d'utilisateur détecté (changement de caissier) :
+  /// le panier en cours est suspendu POUR l'employé précédent puis la
+  /// liste des ventes suspendues est rechargée pour le nouvel employé.
+  void _onAuthChanged() {
+    final uid = AuthStore.instance.user?.id;
+    if (uid == _lastUserId) return;
+    final prev = _lastUserId;
+    _lastUserId = uid;
+    if (_cart.isEmpty && _heldIds.isEmpty) return;
+    if (_cart.isNotEmpty && prev != null) {
+      _hold(asUserId: prev).whenComplete(_loadHeld);
+    } else {
+      _loadHeld();
+    }
   }
 
   /// Résout le branchId : AuthStore d'abord, sinon première branche de l'API
@@ -125,6 +147,7 @@ class _PosPanelState extends State<PosPanel> {
 
   @override
   void dispose() {
+    AuthStore.instance.removeListener(_onAuthChanged);
     _search.dispose();
     _discountCtrl.dispose();
     _receivedCtrl.dispose();
@@ -226,9 +249,9 @@ class _PosPanelState extends State<PosPanel> {
       builder: (ctx) => AlertDialog(
         title: const Text('Produit indisponible'),
         content: const Text(
-          "Ce médicament figure dans le catalogue, mais il n'est actuellement pas disponible en stock dans votre pharmacie. "
-          "Il ne peut pas être ajouté au panier. Enregistrez une réception de stock avant de procéder à la vente.\n\n"
-          "Stock disponible : 0",
+          'Ce médicament figure dans le catalogue, mais il n\'est actuellement pas disponible en stock dans votre pharmacie. '
+          'Il ne peut pas être ajouté au panier. Enregistrez une réception de stock avant de procéder à la vente.\n\n'
+          'Stock disponible : 0',
         ),
         actions: [
           TextButton(
@@ -246,7 +269,7 @@ class _PosPanelState extends State<PosPanel> {
       builder: (ctx) => AlertDialog(
         title: const Text('Stock non vérifiable'),
         content: const Text(
-          "Disponibilité du stock impossible à vérifier. Veuillez vérifier le stock avant de continuer.",
+          'Disponibilité du stock impossible à vérifier. Veuillez vérifier le stock avant de continuer.',
         ),
         actions: [
           TextButton(
@@ -264,8 +287,8 @@ class _PosPanelState extends State<PosPanel> {
       builder: (ctx) => AlertDialog(
         title: const Text('Stock insuffisant'),
         content: Text(
-          "Quantité disponible pour « $name » : ${available.round()}. "
-          "Vous ne pouvez pas ajouter plus que la quantité en stock.",
+          'Quantité disponible pour « $name » : ${available.round()}. '
+          'Vous ne pouvez pas ajouter plus que la quantité en stock.',
         ),
         actions: [
           TextButton(
@@ -356,8 +379,15 @@ class _PosPanelState extends State<PosPanel> {
     final raw = prefs.getString(_kHeldKey);
     if (raw == null) return;
     try {
+      final uid = AuthStore.instance.user?.id;
+      // Verrou multi-employés : chaque employé ne voit QUE ses propres
+      // ventes suspendues (aucun panier transféré à un collègue).
       final list = (jsonDecode(raw) as List? ?? const [])
           .whereType<Map<String, dynamic>>()
+          .where((e) {
+            final owner = e['userId'];
+            return owner == null || owner == uid; // entrées héritées: visibles
+          })
           .toList();
       setState(() {
         _heldIds = list.map((e) => '${e['id']}').toList();
@@ -382,7 +412,7 @@ class _PosPanelState extends State<PosPanel> {
     }
   }
 
-  Future<void> _hold() async {
+  Future<void> _hold({String? asUserId}) async {
     if (_cart.isEmpty) return;
     final prefs = await SharedPreferences.getInstance();
     final existing =
@@ -390,6 +420,9 @@ class _PosPanelState extends State<PosPanel> {
     final id = 'H${DateTime.now().millisecondsSinceEpoch}';
     existing.add({
       'id': id,
+      // Portée multi-employés : la vente suspendue est propriété de
+      // l'employé qui l'a créée (pas de transfert de panier).
+      'userId': asUserId ?? AuthStore.instance.user?.id,
       'savedAt': DateTime.now().toIso8601String(),
       'discount': _discount,
       'isPercent': _discountPercent,
@@ -424,6 +457,16 @@ class _PosPanelState extends State<PosPanel> {
     }
     if (held == null) return;
     final Map<String, dynamic> h = held;
+    // Un employé ne peut reprendre qu'une vente qu'il a suspendue lui-même.
+    final owner = h['userId'];
+    if (owner != null && owner != AuthStore.instance.user?.id) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Vente suspendue par un autre employé.')));
+      }
+      await _loadHeld();
+      return;
+    }
     final items = (h['items'] as List? ?? const [])
         .whereType<Map<String, dynamic>>()
         .toList();

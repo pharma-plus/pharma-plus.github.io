@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
+import '../../core/models/user.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
@@ -22,8 +23,18 @@ class _LockScreenState extends State<LockScreen> {
   String _newPin = '';
   String _confirmPin = '';
   int _setupStep = 0; // 0=verify, 1=enter new, 2=confirm
+  // Mode « Changer d'utilisateur » : le prochain employé s'identifie
+  // par identifiant + PIN propre (caisse partagée).
+  bool _switchMode = false;
+  final TextEditingController _identCtrl = TextEditingController();
 
   static const int _pinLength = 4;
+
+  @override
+  void dispose() {
+    _identCtrl.dispose();
+    super.dispose();
+  }
 
   void _addDigit(String digit) {
     if (_verifying) return;
@@ -66,7 +77,66 @@ class _LockScreenState extends State<LockScreen> {
 
   Future<void> _autoVerify() async {
     if (_pin.length != _pinLength) return;
-    await _verifyPin();
+    if (_switchMode) {
+      await _switchUser();
+    } else {
+      await _verifyPin();
+    }
+  }
+
+  /// Changement d'employé : identifiant (e-mail ou nom d'utilisateur) +
+  /// PIN de l'employé. Établit une NOUVELLE session pour l'employé B
+  /// sans mot de passe et sans fermer la session générale de la pharmacie.
+  Future<void> _switchUser() async {
+    if (_pin.length != _pinLength) return;
+    final ident = _identCtrl.text.trim();
+    if (ident.isEmpty) {
+      setState(() {
+        _error = 'Saisissez votre identifiant (e-mail ou nom d\'utilisateur).';
+        _pin = '';
+      });
+      return;
+    }
+    setState(() => _verifying = true);
+    final result = await ApiClient.instance.post(
+      '/auth/switch-user',
+      body: {'identifier': ident, 'pin': _pin},
+      timeout: const Duration(seconds: 30),
+    );
+    if (!mounted) return;
+    setState(() => _verifying = false);
+    if (result.success && result.data is Map) {
+      final map = Map<String, dynamic>.from(result.data as Map);
+      final store = context.read<AuthStore>();
+      await store.saveSession(
+        accessToken: map['accessToken'] as String,
+        refreshToken: map['refreshToken'] as String,
+        user: User.fromSession(map),
+      );
+      if (!mounted) return;
+      store.unlock();
+      Navigator.pop(context);
+      return;
+    }
+    final code = result.error?.code;
+    setState(() {
+      if (code == 'ACCOUNT_LOCKED') {
+        _error = result.error?.message ?? 'Compte verrouillé — réessayez plus tard.';
+      } else if (code == 'ACCOUNT_INACTIVE') {
+        _error = result.error?.message ?? 'Compte désactivé.';
+      } else if (code == 'PIN_NOT_SET') {
+        _error = 'Aucun PIN configuré pour cet identifiant.';
+      } else if (code == 'TWOFA_REQUIRED') {
+        _error = 'Compte à double facteur — connexion par mot de passe requise.';
+      } else if (code == 'SESSION_FAILED') {
+        _error = 'Établissement de session impossible — réessayez.';
+      } else if (code == 'NETWORK_ERROR' || result.statusCode == 0) {
+        _error = 'Connexion au serveur impossible — réessayez.';
+      } else {
+        _error = 'Identifiant ou PIN incorrect.';
+      }
+      _pin = '';
+    });
   }
 
   Future<void> _verifyPin() async {
@@ -154,19 +224,23 @@ class _LockScreenState extends State<LockScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    _pinNotSet && _setupStep > 0
-                        ? Icons.pin_outlined
-                        : Icons.lock_outlined,
+                    _switchMode
+                        ? Icons.swap_horiz_rounded
+                        : _pinNotSet && _setupStep > 0
+                            ? Icons.pin_outlined
+                            : Icons.lock_outlined,
                     size: 80,
                     color: AppColors.pharmaGold,
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    _pinNotSet && _setupStep > 0
-                        ? (_setupStep == 1
-                            ? 'Définissez votre code PIN'
-                            : 'Confirmez votre code PIN')
-                        : S.t('verrouillage_verrouille', locale),
+                    _switchMode
+                        ? S.t('changer_utilisateur', locale)
+                        : _pinNotSet && _setupStep > 0
+                            ? (_setupStep == 1
+                                ? 'Définissez votre code PIN'
+                                : 'Confirmez votre code PIN')
+                            : S.t('verrouillage_verrouille', locale),
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -174,6 +248,39 @@ class _LockScreenState extends State<LockScreen> {
                     ),
                     textAlign: TextAlign.center,
                   ),
+                  if (_switchMode) ...[
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Identifiez le prochain employé (identifiant + PIN).',
+                      style: TextStyle(
+                          fontSize: 13, color: AppColors.pharmaMuted),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _identCtrl,
+                      enabled: !_verifying,
+                      keyboardType: TextInputType.emailAddress,
+                      autofillHints: const [AutofillHints.username],
+                      style: const TextStyle(color: AppColors.pharmaText),
+                      decoration: InputDecoration(
+                        labelText: 'Identifiant (e-mail ou nom d\'utilisateur)',
+                        labelStyle:
+                            const TextStyle(color: AppColors.pharmaMuted),
+                        prefixIcon: const Icon(Icons.person_outline,
+                            color: AppColors.pharmaMuted),
+                        filled: true,
+                        fillColor: AppColors.pharmaSurface2,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      onSubmitted: (_) {
+                        if (_pin.length == _pinLength) _switchUser();
+                      },
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   // Affichage des points PIN
                   Row(
@@ -236,19 +343,72 @@ class _LockScreenState extends State<LockScreen> {
                       ),
                     ),
                   const SizedBox(height: 12),
-                  // Changer d'utilisateur
-                  TextButton(
-                    onPressed: () async {
-                      final nav = Navigator.of(context);
-                      await context.read<AuthStore>().signOut();
-                      nav.pop();
-                    },
-                    child: Text(
-                      S.t('changer_utilisateur', locale),
-                      style: const TextStyle(color: AppColors.pharmaMuted),
+                  // Changer d'utilisateur (identifiant + PIN du prochain employé)
+                  if (_switchMode) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: (_verifying || _pin.length != _pinLength)
+                            ? null
+                            : _switchUser,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.emerald,
+                          foregroundColor: Colors.white,
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: const Text('Identifier cet employé'),
+                      ),
                     ),
-                  ),
-                  if (canDismiss) ...[
+                    const SizedBox(height: 4),
+                    TextButton(
+                      onPressed: _verifying
+                          ? null
+                          : () {
+                              setState(() {
+                                _switchMode = false;
+                                _pin = '';
+                                _error = null;
+                              });
+                            },
+                      child: const Text(
+                        'Retour au PIN',
+                        style: TextStyle(color: AppColors.pharmaMuted),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _verifying
+                          ? null
+                          : () async {
+                              final nav = Navigator.of(context);
+                              await context.read<AuthStore>().signOut();
+                              nav.pop();
+                            },
+                      child: const Text(
+                        'Se déconnecter complètement',
+                        style: TextStyle(
+                            color: AppColors.pharmaMuted, fontSize: 12),
+                      ),
+                    ),
+                  ] else
+                    TextButton(
+                      onPressed: _verifying
+                          ? null
+                          : () {
+                              setState(() {
+                                _switchMode = true;
+                                _pinNotSet = false;
+                                _setupStep = 0;
+                                _pin = '';
+                                _error = null;
+                              });
+                            },
+                      child: Text(
+                        S.t('changer_utilisateur', locale),
+                        style: const TextStyle(color: AppColors.pharmaMuted),
+                      ),
+                    ),
+                  if (canDismiss && !_switchMode) ...[
                     const SizedBox(height: 4),
                     TextButton(
                       onPressed: () {

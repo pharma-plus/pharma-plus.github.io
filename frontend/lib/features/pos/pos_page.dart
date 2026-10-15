@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/models/medication.dart';
 import '../../core/services/api_client.dart';
@@ -83,9 +85,17 @@ class _PosPageState extends State<PosPage> {
   List<Map<String, dynamic>> _pathologies = const [];
   final Map<String, double> _stock = {};
 
+  // Dernier utilisateur connu : détection du changement de caissier
+  // (caisse partagée) pour ne jamais transférer le panier en cours.
+  String? _lastUserId;
+
+  static const _kHeldKey = 'pmg_pos_held_sales';
+
   @override
   void initState() {
     super.initState();
+    _lastUserId = AuthStore.instance.user?.id;
+    AuthStore.instance.addListener(_onAuthChanged);
     _loadBranches();
     _loadCustomers();
     _loadFacets();
@@ -119,12 +129,65 @@ class _PosPageState extends State<PosPage> {
 
   @override
   void dispose() {
+    AuthStore.instance.removeListener(_onAuthChanged);
     _search.dispose();
     _receivedCtrl.dispose();
     _discountCtrl.dispose();
     _searchDebounce?.cancel();
     _receivedVN.dispose();
     super.dispose();
+  }
+
+  /// Changement d'utilisateur détecté : le panier en cours est suspendu
+  /// (sauvegardé sous le nom de l'employé précédent) puis vidé — aucun
+  /// panier n'est jamais transféré au nouvel employé.
+  void _onAuthChanged() {
+    final uid = AuthStore.instance.user?.id;
+    if (uid == _lastUserId) return;
+    final prev = _lastUserId;
+    _lastUserId = uid;
+    if (_cart.isEmpty || prev == null) return;
+    _holdCart(asUserId: prev).whenComplete(() {
+      if (!mounted) return;
+      setState(() {
+        _cart.clear();
+        _received = 0;
+        _receivedCtrl.clear();
+        _discountCtrl.clear();
+        _discountIsPercent = true;
+      });
+      _receivedVN.value = 0;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Panier suspendu — reprenez-le après la vente.')));
+    });
+  }
+
+  /// Sauvegarde le panier courant dans les ventes suspendues locales
+  /// (même magasin que PosPanel, portée par userId).
+  Future<void> _holdCart({String? asUserId}) async {
+    if (_cart.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    final existing =
+        jsonDecode(prefs.getString(_kHeldKey) ?? '[]') as List? ?? [];
+    existing.add({
+      'id': 'H${DateTime.now().millisecondsSinceEpoch}',
+      'userId': asUserId ?? AuthStore.instance.user?.id,
+      'savedAt': DateTime.now().toIso8601String(),
+      'discount': _discountIsPercent
+          ? _cart.globalDiscountPercent
+          : _cart.globalDiscountFixed,
+      'isPercent': _discountIsPercent,
+      'items': [
+        for (final l in _cart.lines)
+          {
+            'id': l.medication.id,
+            'name': l.medication.name,
+            'price_sale': l.unitPrice,
+            'qty': l.quantity,
+          }
+      ],
+    });
+    await prefs.setString(_kHeldKey, jsonEncode(existing));
   }
 
   /// Recherche avec debounce (350 ms) : sans lui, chaque frappe = 1 requête
@@ -365,9 +428,9 @@ class _PosPageState extends State<PosPage> {
       builder: (ctx) => AlertDialog(
         title: const Text('Produit indisponible'),
         content: const Text(
-          "Ce médicament figure dans le catalogue, mais il n'est actuellement pas disponible en stock dans votre pharmacie. "
-          "Il ne peut pas être ajouté au panier. Enregistrez une réception de stock avant de procéder à la vente.\n\n"
-          "Stock disponible : 0",
+          'Ce médicament figure dans le catalogue, mais il n\'est actuellement pas disponible en stock dans votre pharmacie. '
+          'Il ne peut pas être ajouté au panier. Enregistrez une réception de stock avant de procéder à la vente.\n\n'
+          'Stock disponible : 0',
         ),
         actions: [
           TextButton(
@@ -385,7 +448,7 @@ class _PosPageState extends State<PosPage> {
       builder: (ctx) => AlertDialog(
         title: const Text('Stock non vérifiable'),
         content: const Text(
-          "Disponibilité du stock impossible à vérifier. Veuillez vérifier le stock avant de continuer.",
+          'Disponibilité du stock impossible à vérifier. Veuillez vérifier le stock avant de continuer.',
         ),
         actions: [
           TextButton(
@@ -403,8 +466,8 @@ class _PosPageState extends State<PosPage> {
       builder: (ctx) => AlertDialog(
         title: const Text('Stock insuffisant'),
         content: Text(
-          "Quantité disponible pour « $name » : ${available.round()}. "
-          "Vous ne pouvez pas ajouter plus que la quantité en stock.",
+          'Quantité disponible pour « $name » : ${available.round()}. '
+          'Vous ne pouvez pas ajouter plus que la quantité en stock.',
         ),
         actions: [
           TextButton(
@@ -545,7 +608,7 @@ class _PosPageState extends State<PosPage> {
     final medMap = medication is Map ? Map<String, dynamic>.from(medication) : <String, dynamic>{};
     final med = Medication.fromJson(medMap);
     final added = await _checkStockAndAdd(med);
-    if (!added) return;
+    if (!added || !mounted) return;
     if (continuous) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -2026,14 +2089,24 @@ class _PosPageState extends State<PosPage> {
             icon: Icons.pause_circle_outline_rounded,
             color: const Color(0xFFB98A1F),
             enabled: !_cart.isEmpty,
-            onTap: () {
+            onTap: () async {
               if (_cart.isEmpty) return;
+              await _holdCart();
+              if (!mounted) return;
+              setState(() {
+                _cart.clear();
+                _received = 0;
+                _receivedCtrl.clear();
+                _discountCtrl.clear();
+                _discountIsPercent = true;
+              });
+              _receivedVN.value = 0;
+              if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                     content:
                         Text('Vente suspendue — reprenez-la ici.')),
               );
-              setState(() => _cart.clear());
             },
           ),
         ),
