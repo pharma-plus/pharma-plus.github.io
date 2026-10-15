@@ -15,6 +15,9 @@ class User {
   /// Modules visibles par cet utilisateur (null = tous visibles).
   final List<String>? visibleModules;
 
+  /// Un PIN est-il configuré (jamais la valeur ni le hash).
+  final bool hasPin;
+
   const User({
     required this.id,
     this.pharmacyId,
@@ -28,6 +31,7 @@ class User {
     this.pharmacyName,
     this.roleName,
     this.visibleModules,
+    this.hasPin = false,
   });
 
   String get fullName => '$firstName $lastName';
@@ -76,6 +80,7 @@ class User {
             : json['visibleModules'] is List
                 ? (json['visibleModules'] as List).whereType<String>().toList()
                 : null,
+        hasPin: json['has_pin'] as bool? ?? json['hasPin'] as bool? ?? false,
       );
 
   Map<String, dynamic> toJson() => {
@@ -91,5 +96,6 @@ class User {
         if (pharmacyName != null) 'pharmacy_name': pharmacyName,
         if (roleName != null) 'role_name': roleName,
         if (visibleModules != null) 'visible_modules': visibleModules,
+        'has_pin': hasPin,
       };
 }

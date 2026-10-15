@@ -253,8 +253,11 @@ async function enrichProfile(sb: any, profile: any): Promise<any> {
         .select("permission_code")
         .eq("role_id", profile.role_id)
     : { data: null };
+  /* pin_hash n'est JAMAIS exposé : seul un booléen d'état est renvoyé. */
+  const { pin_hash: _pinHash, ...safe } = profile;
   return {
-    ...profile,
+    ...safe,
+    has_pin: !!_pinHash,
     is_super_admin: profile.is_super_admin ?? false,
     permissions: (perms ?? []).map((p: any) => p.permission_code),
     pharmacy_name: pharmacy?.name ?? null,
@@ -850,7 +853,7 @@ async function finishLogin(
   const { data: profile, error: profileErr } = await sb
     .from("users")
     .select(
-      "id, pharmacy_id, branch_id, role_id, first_name, last_name, email, username, phone, is_super_admin, visible_modules",
+      "id, pharmacy_id, branch_id, role_id, first_name, last_name, email, username, phone, is_super_admin, visible_modules, pin_hash, two_factor_enabled",
     )
     .ilike("email", normalized)
     .maybeSingle();
@@ -1736,7 +1739,7 @@ Deno.serve(async (req) => {
     const { data: profile, error } = await sb
       .from("users")
       .select(
-        "id, pharmacy_id, branch_id, role_id, first_name, last_name, email, username, phone, is_super_admin, status, visible_modules",
+        "id, pharmacy_id, branch_id, role_id, first_name, last_name, email, username, phone, is_super_admin, status, visible_modules, two_factor_enabled, pin_hash",
       )
       .eq("id", uid)
       .maybeSingle();
@@ -1762,7 +1765,7 @@ Deno.serve(async (req) => {
       const { data, error } = await sb
         .from("users")
       .select(
-        "id, first_name, last_name, email, phone, role_id, status, is_super_admin, last_login_at, created_at, visible_modules, roles(name)",
+        "id, first_name, last_name, email, phone, role_id, status, is_super_admin, last_login_at, created_at, visible_modules, pin_hash, roles(name)",
       )
         .eq("pharmacy_id", pid)
         .order("created_at", { ascending: false })
@@ -1772,8 +1775,13 @@ Deno.serve(async (req) => {
           { error: { code: "QUERY_FAILED", message: error.message } },
           500,
         );
-      /* Enrichit avec l'employe rattache (employees.user_id -> users.id). */
+      /* Enrichit avec l'employe rattache (employees.user_id -> users.id).
+         pin_hash n'est jamais renvoyé : seul l'état has_pin l'est. */
       let rows = data ?? [];
+      rows = rows.map((u: any) => {
+        const { pin_hash, ...safe } = u;
+        return { ...safe, has_pin: !!pin_hash };
+      });
       try {
         const { data: emps } = await sb
           .from("employees")
@@ -4127,10 +4135,53 @@ Deno.serve(async (req) => {
       });
       const { error } = await sb.from("users").update({ pin_hash: encoded }).eq("id", targetUserId);
       if (error) return json({ error: { code: "PIN_SET_FAILED", message: error.message } }, 400);
+      const callerId = await currentUserId(req);
+      try {
+        await _logAction(sb, pid, {
+          action: "user_pin_set",
+          module: "auth",
+          entity: "users",
+          entityId: targetUserId,
+          performedBy: callerId,
+          req,
+        });
+      } catch (e) {
+        return json(
+          { error: { code: "AUDIT_FAILED", message: String(e) } },
+          500,
+        );
+      }
       return json({ data: { message: "PIN défini pour l'utilisateur" } });
     } catch (e) {
       return json({ error: { code: "PIN_SET_FAILED", message: String(e) } }, 500);
     }
+  }
+
+  /* USERS — DELETE /users/:id/pin (désactive le PIN : pin_hash = null).
+     users:edit requis. Ne supprime ni le compte ni les historiques. */
+  if (/^users\/[^/]+\/pin$/.test(path) && req.method === "DELETE") {
+    const perm = await hasPermission(sb, req, "users:edit");
+    if (!perm.allowed) return json({ error: { code: "FORBIDDEN", message: "Permission users:edit requise" } }, 403);
+    const targetUserId = path.split("/")[1];
+    const { error } = await sb.from("users").update({ pin_hash: null }).eq("id", targetUserId);
+    if (error) return json({ error: { code: "PIN_CLEAR_FAILED", message: error.message } }, 400);
+    const callerId = await currentUserId(req);
+    try {
+      await _logAction(sb, pid, {
+        action: "user_pin_cleared",
+        module: "auth",
+        entity: "users",
+        entityId: targetUserId,
+        performedBy: callerId,
+        req,
+      });
+    } catch (e) {
+      return json(
+        { error: { code: "AUDIT_FAILED", message: String(e) } },
+        500,
+      );
+    }
+    return json({ data: { message: "PIN désactivé pour l'utilisateur" } });
   }
 
   /* ===========================================================

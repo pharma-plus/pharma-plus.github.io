@@ -43,7 +43,13 @@ void main() {
         quantity: 3,
         discountPercent: 33.33,
       );
-      expect((line.total * 100).round(), (line.total * 100).round());
+      // Attendu indépendant :
+      //   brut = 99.99 × 3 = 299.97
+      //   remise 33.33 % = 299.97 × 0.3333 = 99.980001 → net = 199.989999
+      //   TVA 20 % = 39.9979998 → total = 239.9879988
+      //   au centime : 23999 (= 239.99 MAD)
+      expect(line.net, closeTo(199.989999, 1e-9));
+      expect((line.total * 100).round(), 23999);
     });
 
     test('payload en snake_case conforme API', () {

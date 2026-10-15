@@ -55,6 +55,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _backupsLoading = true;
   bool _devicesLoading = true;
   bool _backupBusy = false;
+  bool? _pinConfigured;
   String? _usersError;
   String? _auditError;
   String? _paymentsError;
@@ -584,12 +585,28 @@ class _SettingsPageState extends State<SettingsPage> {
         return [
           _Section(
             title: S.t('accountSecurity', locale),
-            child: ListTile(
-              leading:
-                  const Icon(Icons.lock_outline, color: AppColors.primary),
-              title: Text(S.t('changePassword', locale)),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: _changePassword,
+            child: Column(
+              children: [
+                ListTile(
+                  leading:
+                      const Icon(Icons.lock_outline, color: AppColors.primary),
+                  title: Text(S.t('changePassword', locale)),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: _changePassword,
+                ),
+                // Code PIN : création / modification du PIN personnel
+                // (verrouillage et changement d'employé sur poste partagé).
+                ListTile(
+                  leading: const Icon(Icons.pin_outlined,
+                      color: AppColors.primary),
+                  title: Text(S.t('code_pin', locale)),
+                  subtitle: Text(_myPinConfigured
+                      ? 'PIN configuré — toucher pour modifier'
+                      : 'Aucun PIN configuré'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: _editMyPin,
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
@@ -854,6 +871,100 @@ class _SettingsPageState extends State<SettingsPage> {
           SnackBar(content: Text(S.t('passwordChanged', locale))));
     }
   }
+
+  /// Crée ou modifie le PIN de l'utilisateur CONNECTÉ (PUT /auth/pin).
+  /// Le PIN n'est jamais stocké côté client ni journalisé : seul le serveur
+  /// conserve un hash argon2id.
+  Future<void> _editMyPin() async {
+    final locale = context.read<AuthStore>().locale;
+    final pinCtrl = TextEditingController();
+    final confirmCtrl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(S.t('code_pin', locale)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _myPinConfigured
+                  ? 'Saisissez un nouveau PIN à 4 à 6 chiffres.'
+                  : 'Définissez votre PIN personnel (4 à 6 chiffres).',
+              style: const TextStyle(fontSize: 13, color: Colors.grey),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: pinCtrl,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Nouveau PIN',
+                counterText: '',
+              ),
+            ),
+            TextField(
+              controller: confirmCtrl,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Confirmer le PIN',
+                counterText: '',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(S.t('cancel', locale))),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(S.t('save', locale)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final pin = pinCtrl.text.trim();
+    final confirm = confirmCtrl.text.trim();
+    if (!RegExp(r'^\d{4,6}$').hasMatch(pin)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Le PIN doit contenir 4 à 6 chiffres.'),
+        backgroundColor: AppColors.danger,
+      ));
+      return;
+    }
+    if (pin != confirm) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Les deux codes PIN ne correspondent pas.'),
+        backgroundColor: AppColors.danger,
+      ));
+      return;
+    }
+    final res =
+        await ApiClient.instance.put('/auth/pin', body: {'pin': pin});
+    if (!mounted) return;
+    if (res.success) {
+      setState(() => _pinConfigured = true);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(res.data is Map && res.data['message'] != null
+            ? '${res.data['message']}'
+            : 'PIN enregistré.'),
+        backgroundColor: AppColors.success,
+      ));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(res.error?.readableMessage ??
+            'Enregistrement du PIN impossible. Réessayez.'),
+        backgroundColor: AppColors.danger,
+      ));
+    }
+  }
+
+  bool get _myPinConfigured =>
+      _pinConfigured ?? (context.read<AuthStore>().user?.hasPin ?? false);
 }
 
 class _PharmacyProfileTile extends StatelessWidget {

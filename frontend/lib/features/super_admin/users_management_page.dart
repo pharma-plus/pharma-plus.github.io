@@ -162,6 +162,79 @@ class _UsersManagementState extends State<UsersManagementPage> {
     ));
   }
 
+  Future<void> _clearPin(Map<String, dynamic> user) async {
+    final locale = context.read<AuthStore>().locale;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Désactiver le PIN'),
+        content: Text(
+          'Le PIN de ${user['email']} sera supprimé. '
+          'Cette personne devra utiliser son mot de passe pour se connecter '
+          'et ne pourra plus utiliser le changement rapide d\'employé.',
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(S.t('cancel', locale))),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Désactiver')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final res = await ApiClient.instance.delete('/users/${user['id']}/pin');
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(res.success
+          ? 'PIN désactivé pour ${user['email']}.'
+          : res.error?.readableMessage ?? 'Erreur'),
+    ));
+    if (res.success) _loadAll();
+  }
+
+  Future<void> _deleteUser(Map<String, dynamic> user) async {
+    final locale = context.read<AuthStore>().locale;
+    final meId = context.read<AuthStore>().user?.id;
+    if (meId != null && '${user['id']}' == meId) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Vous ne pouvez pas supprimer votre propre compte.')));
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Supprimer le compte'),
+        content: Text(
+          'Désactiver définitivement le compte de ${user['email']} ?\n\n'
+          '· Les ventes et opérations déjà enregistrées sont conservées.\n'
+          '· Le dossier historique de l\'employé rattaché n\'est pas effacé.\n'
+          '· Le compte ne pourra plus se connecter.',
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(S.t('cancel', locale))),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final res = await ApiClient.instance.delete('/users/${user['id']}');
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(res.success
+          ? 'Compte désactivé : ${user['email']}.'
+          : res.error?.readableMessage ?? 'Erreur'),
+    ));
+    if (res.success) _loadAll();
+  }
+
   Future<void> _toggleStatus(Map<String, dynamic> user) async {
     final current = '${user['status'] ?? 'active'}';
     final newStatus = current == 'active' ? 'inactive' : 'active';
@@ -310,6 +383,7 @@ class _UsersManagementState extends State<UsersManagementPage> {
                         ),
                         subtitle: Text(
                           '${u['email'] ?? ''} · ${u['role_name'] ?? u['role'] ?? 'Aucun rôle'}'
+                          '${u['has_pin'] == true ? ' · PIN configuré' : ''}'
                           '${u['employee_name'] != null && '${u['employee_name']}'.isNotEmpty ? ' · Employé : ${u['employee_name']}' : ''}'
                           '${isActive ? '' : ' · DÉSACTIVÉ'}',
                           style: TextStyle(
@@ -331,6 +405,12 @@ class _UsersManagementState extends State<UsersManagementPage> {
                               case 'pin':
                                 _resetPin(u);
                                 break;
+                              case 'pin-clear':
+                                _clearPin(u);
+                                break;
+                              case 'delete':
+                                _deleteUser(u);
+                                break;
                               case 'status':
                                 _toggleStatus(u);
                                 break;
@@ -340,16 +420,22 @@ class _UsersManagementState extends State<UsersManagementPage> {
                             const PopupMenuItem(
                                 value: 'modifier', child: Text('Modifier')),
                             const PopupMenuItem(
-                                value: 'password',
-                                child: Text('Mot de passe')),
+                                value: 'password', child: Text('Mot de passe')),
                             const PopupMenuItem(
                                 value: 'pin', child: Text('PIN')),
+                            if (u['has_pin'] == true)
+                              const PopupMenuItem(
+                                  value: 'pin-clear',
+                                  child: Text('Désactiver le PIN')),
                             PopupMenuItem(
                               value: 'status',
                               child: Text(isActive
                                   ? 'Désactiver'
                                   : 'Réactiver'),
                             ),
+                            const PopupMenuItem(
+                                value: 'delete',
+                                child: Text('Supprimer le compte')),
                           ],
                         ),
                       ),

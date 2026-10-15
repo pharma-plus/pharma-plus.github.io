@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
   <!--
@@ -19,7 +19,7 @@
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <meta name="description" content="PHARMA+ — Suite de gestion de pharmacie (caisse, stock, ordonnances, parapharmacie, IA).">
+  <meta name="description" content="PHARMA+ â€” Suite de gestion de pharmacie (caisse, stock, ordonnances, parapharmacie, IA).">
   <meta name="theme-color" content="#03100D">
 
   <!-- iOS meta tags & icons -->
@@ -32,17 +32,17 @@
   <link rel="icon" type="image/png" sizes="64x64" href="favicon.png"/>
   <link rel="icon" type="image/png" sizes="192x192" href="icons/Icon-192.png"/>
 
-  <title>PHARMA+ — Gestion de pharmacie</title>
+  <title>PHARMA+ â€” Gestion de pharmacie</title>
   <link rel="manifest" href="manifest.json">
-  <!-- Préchargement des ressources visibles du splash (logo + fond) -->
+  <!-- PrÃ©chargement des ressources visibles du splash (logo + fond) -->
   <link rel="preload" as="image" href="assets/assets/branding/pharma-logo-full.webp" fetchpriority="high">
   <link rel="preload" as="image" href="assets/assets/images/background.webp">
   <style>
     html, body { margin: 0; padding: 0; background: #03100D; }
     /* ============================================================
-       ÉCRAN DE CHARGEMENT PHARMA+ — conforme maquette :
-       logo officiel complet + « Bienvenue » or + sous-titre +
-       VRAIE barre de progression animée (HTML/CSS/JS, 0→100 %).
+       Ã‰CRAN DE CHARGEMENT PHARMA+ â€” conforme maquette :
+       logo officiel complet + Â« Bienvenue Â» or + sous-titre +
+       VRAIE barre de progression animÃ©e (HTML/CSS/JS, 0â†’100 %).
        Fond image background.webp + barre OR + rayons du soleil.
        ============================================================ */
     #pmg-loading {
@@ -75,7 +75,7 @@
       color: #9BAEA7;
       animation: pmg-in 0.9s ease-out 0.25s both;
     }
-    /* Barre de progression RÉELLE — or + rayons du soleil. */
+    /* Barre de progression RÃ‰ELLE â€” or + rayons du soleil. */
     #pmg-loading .pmg-progress-row {
       position: relative;
       margin-top: 26px;
@@ -161,8 +161,8 @@
 <body>
   <!-- Bloquer WebGL AVANT Flutter : force Canvas2D (fix Safari Mac context lost) -->
   <script>
-    // Blocage WebGL UNIQUEMENT Safari/macOS (fix « context lost ») :
-    // ne pas pénaliser Chrome/Firefox/Edge qui gèrent WebGL correctement.
+    // Blocage WebGL UNIQUEMENT Safari/macOS (fix Â« context lost Â») :
+    // ne pas pÃ©naliser Chrome/Firefox/Edge qui gÃ¨rent WebGL correctement.
     (function(){
       var isSafari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
       var isMac = navigator.platform && navigator.platform.indexOf('Mac') === 0;
@@ -176,10 +176,10 @@
       };
     })();
   </script>
-  <!-- Écran de chargement PHARMA+ (masqué une fois Flutter initialisé) -->
+  <!-- Ã‰cran de chargement PHARMA+ (masquÃ© une fois Flutter initialisÃ©) -->
   <div id="pmg-loading">
     <img class="pmg-logo" src="assets/assets/branding/pharma-logo-full.webp"
-         alt="PHARMA+ — Gestion intelligente de votre pharmacie"
+         alt="PHARMA+ â€” Gestion intelligente de votre pharmacie"
          decoding="async" fetchpriority="high"
          onerror="this.style.display='none'">
     <div class="pmg-welcome">Bienvenue</div>
@@ -216,7 +216,7 @@
       }
     } catch (e) {}
   </script>
-  <script src="flutter_bootstrap.js?v=202610151401" async></script>
+  <script src="flutter_bootstrap.js?v=202610151724" async></script>
   <script>
     (function () {
       var fill = document.getElementById('pmg-fill');

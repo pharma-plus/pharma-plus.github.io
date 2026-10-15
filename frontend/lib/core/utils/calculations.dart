@@ -101,11 +101,14 @@ SaleTotals calculateSaleTotalExcl(
   final discount = calculateDiscount(subtotal, discountValue,
       isPercent: discountIsPercent);
   final net = subtotal - discount;
-  final tva = lines.fold<double>(0, (s, l) {
-    if (l.tvaRate <= 0) return s;
-    final netLine = l.unitPrice * l.quantity / subtotal * net;
-    return s + netLine * l.tvaRate;
-  });
+  // Garde division par zéro : panier vide ou lignes à prix nul.
+  final tva = subtotal <= 0
+      ? 0.0
+      : lines.fold<double>(0, (s, l) {
+          if (l.tvaRate <= 0) return s;
+          final netLine = l.unitPrice * l.quantity / subtotal * net;
+          return s + netLine * l.tvaRate;
+        });
   return SaleTotals(
     subtotal: subtotal,
     discount: discount,
