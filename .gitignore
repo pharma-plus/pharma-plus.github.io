@@ -43,3 +43,6 @@ backend/_db_audit.mjs
 backend/_db_audit2.mjs
 backend/_db_audit3.mjs
 main.202609261917.dart.js
+
+# Sauvegardes pg_dump chiffrées + backups locaux (données prod, jamais en git)
+backend/backups/

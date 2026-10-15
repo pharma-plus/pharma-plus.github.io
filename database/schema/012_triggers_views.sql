@@ -229,6 +229,23 @@ CREATE TRIGGER trg_refresh_daily_sales
   AFTER INSERT OR UPDATE OR DELETE ON sales
   FOR EACH STATEMENT EXECUTE FUNCTION fn_refresh_daily_sales();
 
+-- Taux de TVA d'une ligne de vente = tva_rate de la fiche produit, figé à
+-- l'insertion (migrations 15/10 : historique fiscal jamais réécrit, plus de
+-- DEFAULT 20.00 silencieux sur sale_items.tax_rate).
+CREATE OR REPLACE FUNCTION fn_sale_item_tax_from_product() RETURNS trigger AS $$
+BEGIN
+  NEW.tax_rate := COALESCE(
+    (SELECT tva_rate FROM medications WHERE id = NEW.medication_id),
+    NEW.tax_rate);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_sale_item_tax_from_product ON sale_items;
+CREATE TRIGGER trg_sale_item_tax_from_product
+  BEFORE INSERT ON sale_items
+  FOR EACH ROW EXECUTE FUNCTION fn_sale_item_tax_from_product();
+
 -- ------------------------------------------------------------
 -- Index supplémentaires
 -- ------------------------------------------------------------

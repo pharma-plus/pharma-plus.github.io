@@ -224,7 +224,7 @@ if (swToken) {
           unit_price: 35,
         },
       ],
-      payments: [{ method: "cash", amount: 35 }],
+      payments: [{ method: "cash", amount: 42 }], // TTC : 35 net + TVA 20 % (fiche produit)
       notes: "PIN_FLOW_TEST",
     },
   });

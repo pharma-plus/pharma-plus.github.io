@@ -1,0 +1,58 @@
+name: backup-nightly
+
+# Sauvegarde quotidienne PHARMA+ (worker pg_dump chiffré).
+# Secrets requis (dégradé propre si absents — les étapes sont ignorées) :
+#   BACKUP_DATABASE_URL, BACKUP_ENCRYPTION_KEY,
+#   BACKUP_SUPER_ADMIN_EMAIL, BACKUP_SUPER_ADMIN_PASSWORD
+on:
+  schedule:
+    - cron: "30 3 * * *" # 03:30 UTC = 05:30 Maroc
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Secrets disponibles ?
+        id: cfg
+        env:
+          HAS_DB: ${{ secrets.BACKUP_DATABASE_URL != '' }}
+          HAS_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY != '' }}
+        run: |
+          echo "has_db=$HAS_DB" >> "$GITHUB_OUTPUT"
+          echo "has_key=$HAS_KEY" >> "$GITHUB_OUTPUT"
+
+      - name: Outils PostgreSQL
+        if: steps.cfg.outputs.has_db == 'true' && steps.cfg.outputs.has_key == 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+
+      - uses: actions/setup-node@v4
+        if: steps.cfg.outputs.has_db == 'true' && steps.cfg.outputs.has_key == 'true'
+        with:
+          node-version: 20
+
+      - name: Dépendances minimales (pg + dotenv)
+        if: steps.cfg.outputs.has_db == 'true' && steps.cfg.outputs.has_key == 'true'
+        working-directory: backend
+        run: npm install pg dotenv --no-save --no-audit --no-fund
+
+      - name: Sauvegarde + vérification
+        if: steps.cfg.outputs.has_db == 'true' && steps.cfg.outputs.has_key == 'true'
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          SUPER_ADMIN_EMAIL: ${{ secrets.BACKUP_SUPER_ADMIN_EMAIL }}
+          SUPER_ADMIN_PASSWORD: ${{ secrets.BACKUP_SUPER_ADMIN_PASSWORD }}
+          PG_DUMP_PATH: pg_dump
+        run: |
+          node scripts/backup_worker.mjs --create
+          node scripts/backup_worker.mjs --verify
+
+      - name: Secrets manquants (information)
+        if: steps.cfg.outputs.has_db != 'true' || steps.cfg.outputs.has_key != 'true'
+        run: echo "::notice::Secrets BACKUP_* absents — sauvegarde ignorée ce tour."

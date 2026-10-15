@@ -343,7 +343,7 @@ const DEFAULT_PHARMACY_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 /* Version unique de la fonction (routes /health et /). La version
    deploiee (2.1.0) ne porte pas les corrections de ce depot : le
    bump marque l'ecart jusqu'au prochain deploiement autorise. */
-const EDGE_VERSION = "2.4.1";
+const EDGE_VERSION = "2.5.0";
 
 function publicPharmacyId(req: Request): string {
   const hdr = req.headers.get("x-pharmacy-id");
@@ -4185,6 +4185,116 @@ Deno.serve(async (req) => {
   }
 
   /* ===========================================================
+     BACKUPS — artefact réel (pg_dump chiffré AES-256-GCM).
+     POST /backups/:id/artifact — téléversement binaire (worker)
+       backend/scripts/backup_worker.mjs : pg_dump → SHA-256 →
+       chiffrement → cet endpoint (bucket Storage `backups`).
+     GET  /backups/:id/artifact — téléchargement (vérification,
+       restauration manuelle après déschiffrement local).
+     Le body binaire porte les octets chiffrés ; le SHA-256 (avant
+     chiffrement) voyage en en-tête x-checksum.
+     =========================================================== */
+  const bkMatch = path.match(/^\/?backups\/([0-9a-f-]{36})\/artifact$/i);
+  if (bkMatch && (req.method === "POST" || req.method === "GET")) {
+    const backupId = bkMatch[1].toLowerCase();
+    const action = req.method === "POST" ? "backups:create" : "backups:view";
+    const perm = await hasPermission(sb, req, action);
+    if (!perm.allowed)
+      return json(
+        { error: { code: "FORBIDDEN", message: `Permission ${action} requise` } },
+        403,
+      );
+    const pid = await pharmacyId(req);
+    const { data: job } = await sb
+      .from("backups")
+      .select("id, pharmacy_id, status, file_url, checksum")
+      .eq("id", backupId)
+      .maybeSingle();
+    // Cloisonnement pharmacie : ni liste, ni 403 différentiel (pas d'énumération).
+    if (!job || job.pharmacy_id !== pid)
+      return json(
+        { error: { code: "NOT_FOUND", message: "Sauvegarde introuvable" } },
+        404,
+      );
+    const BUCKET = "backups";
+    const objPath = `${pid}/${backupId}.dump.enc`;
+
+    if (req.method === "POST") {
+      const checksum = String(req.headers.get("x-checksum") ?? "").toLowerCase();
+      if (!/^[a-f0-9]{64}$/.test(checksum))
+        return json(
+          { error: { code: "VALIDATION", message: "x-checksum SHA-256 (64 hex) requis" } },
+          400,
+        );
+      const buf = new Uint8Array(await req.arrayBuffer());
+      if (buf.byteLength === 0)
+        return json({ error: { code: "VALIDATION", message: "Corps vide" } }, 400);
+      if (buf.byteLength > 64 * 1024 * 1024)
+        return json({ error: { code: "VALIDATION", message: "Artefact > 64 Mo" } }, 413);
+      try {
+        await sb.storage.createBucket(BUCKET, { public: false });
+      } catch (_) {
+        /* bucket déjà présent */
+      }
+      const up = await sb.storage
+        .from(BUCKET)
+        .upload(objPath, buf, { contentType: "application/octet-stream", upsert: true });
+      if (up.error) {
+        await sb
+          .from("backups")
+          .update({ status: "failed", error: `storage: ${up.error.message}` })
+          .eq("id", backupId);
+        return json(
+          { error: { code: "STORAGE_UPLOAD", message: up.error.message } },
+          502,
+        );
+      }
+      const { data: upd, error: rowErr } = await sb
+        .from("backups")
+        .update({
+          status: "completed",
+          file_url: `${BUCKET}/${objPath}`,
+          checksum,
+          size_bytes: buf.byteLength,
+          encrypted: true,
+          completed_at: new Date().toISOString(),
+          error: null,
+        })
+        .eq("id", backupId)
+        .select("id, status, file_url, checksum, size_bytes, completed_at")
+        .single();
+      if (rowErr)
+        return json({ error: { code: "DB", message: rowErr.message } }, 500);
+      return json({ data: upd }, 201);
+    }
+
+    // GET — téléchargement de l'artefact chiffré.
+    if (!job.file_url)
+      return json(
+        { error: { code: "NOT_READY", message: "Aucun artefact pour cette sauvegarde" } },
+        409,
+      );
+    const dl = await sb.storage
+      .from(BUCKET)
+      .download(String(job.file_url).replace(/^backups\//, ""));
+    if (dl.error || !dl.data)
+      return json(
+        { error: { code: "STORAGE_DOWNLOAD", message: dl.error?.message ?? "introuvable" } },
+        404,
+      );
+    return new Response(dl.data, {
+      status: 200,
+      headers: {
+        "content-type": "application/octet-stream",
+        "content-length": String(dl.data.size),
+        "x-checksum": String(job.checksum ?? ""),
+        "content-disposition": `attachment; filename="${backupId}.dump.enc"`,
+        "access-control-expose-headers": "x-checksum, content-disposition",
+      },
+    });
+  }
+
+  /* ===========================================================
      NOTIFICATIONS — read, read-all
      =========================================================== */
   if (/^notifications\/[^/]+\/read$/.test(path) && req.method === "POST") {
@@ -5153,6 +5263,35 @@ Deno.serve(async (req) => {
         payments.reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
       const changeAmount = Math.max(0, paidAmount - total);
       const paymentMethod = payments[0]?.method ?? "cash";
+      /* Validation du paiement (fix 15/10) : une vente comptée (pos, cash,
+         online) ne peut être acceptée pour moins que son total TTC — avant
+         ce contrôle un sous-paiement silencieux passait (35 encaissés pour
+         42 dus, le reste en « monnaie » nulle). Les ventes à crédit (solde
+         facturé) et les réservations (acompte) sont exemptées à dessein.
+         Tolérance d'arrondi identique au client Flutter (+0.009). */
+      for (const p of payments) {
+        const amt = Number(p.amount ?? 0);
+        if (!Number.isFinite(amt) || amt < 0) {
+          return json(
+            { error: { code: "VALIDATION", message: "Montant de paiement invalide (>= 0 attendu)" } },
+            400,
+          );
+        }
+      }
+      if (
+        ["pos", "cash", "online"].includes(saleType) &&
+        paidAmount + 0.009 < total
+      ) {
+        return json(
+          {
+            error: {
+              code: "PAYMENT_INSUFFISANT",
+              message: `Montant encaissé (${paidAmount.toFixed(2)}) inférieur au total TTC (${total.toFixed(2)})`,
+            },
+          },
+          400,
+        );
+      }
 
       // Numéro de vente séquentiel atomique par pharmacie (FN next_number,
       // INSERT .. ON CONFLICT DO UPDATE : sans collision concurrente).
@@ -5319,11 +5458,9 @@ Deno.serve(async (req) => {
 
       /* Contrôle de cohérence TVA : compare le total Edge (calculé avec le
          vraie tva_rate de chaque médicament) à la somme des line_total
-         générés par la base. Si la base utilise encore la formule historique
-         à 20 % codé en dur, l'écart est loggé (non bloquant — la vente est
-         correcte côté Edge/Flutter ; la migration de fix est en attente
-         d'autorisation). Après application de la migration, l'écart doit
-         être nul. */
+         générés par la base. Migration appliquée (15/10) : DEFAULT 20 supprimé
+         + trigger trg_sale_item_tax_from_product — l'écart doit être nul ; un
+         écart résiduel signalerait une régression et reste loggé. */
       try {
         const { data: liRows } = await sb
           .from("sale_items")
@@ -5336,7 +5473,7 @@ Deno.serve(async (req) => {
         const edgeLineSum = subtotal + taxTotal;
         if (Math.abs(dbLineSum - edgeLineSum) > 0.011) {
           console.warn(
-            `[sales] TVA_DIVERGENCE sale=${sale.id} edge=${edgeLineSum.toFixed(2)} db=${dbLineSum.toFixed(2)} — migration fix TVA requise`,
+            `[sales] TVA_DIVERGENCE sale=${sale.id} edge=${edgeLineSum.toFixed(2)} db=${dbLineSum.toFixed(2)} — divergence inattendue (trigger trg_sale_item_tax_from_product actif)`,
           );
         }
       } catch (_) {

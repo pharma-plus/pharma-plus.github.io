@@ -5,6 +5,10 @@ import 'dart:typed_data';
 
 bool get downloadSupported => true;
 
+/// Sur le web le navigateur gère le fichier : pas de chemin local.
+String? get lastSavedPath => null;
+String? get lastSaveError => null;
+
 /// Déclenche le téléchargement d'un fichier binaire côté navigateur.
 void downloadBytes(String filename, List<int> bytes, String mimeType) {
   final blob = html.Blob([Uint8List.fromList(bytes)], mimeType);

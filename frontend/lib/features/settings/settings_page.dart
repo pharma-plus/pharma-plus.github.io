@@ -1684,8 +1684,9 @@ class _BackupsTile extends StatelessWidget {
               const Icon(Icons.backup_outlined, color: AppColors.primary),
           title: Text(S.t('newBackup', locale)),
           subtitle: const Text(
-              'Crée un enregistrement de sauvegarde (table backups). '
-              "L'export réel (pg_dump chiffré) est délégué à un worker serveur.",
+              'Lance une sauvegarde réelle : pg_dump chiffré AES-256 '
+              '(worker backup_worker.mjs) téléversé en stockage + copie locale, '
+              'état tracé dans la table backups (pending → completed → vérifié).',
               style: TextStyle(fontSize: 11.5)),
           trailing: busy
               ? const SizedBox(
@@ -1702,7 +1703,8 @@ class _BackupsTile extends StatelessWidget {
               const Icon(Icons.settings_backup_restore, color: AppColors.danger),
           title: Text(S.t('restoreBackup', locale)),
           subtitle: const Text(
-              'Nécessite une approbation backups:approve et le worker de restauration',
+              'Approbation backups:approve, puis backup_worker.mjs --decrypt '
+              '<id> dump et pg_restore (restauration manuelle).',
               style: TextStyle(fontSize: 11.5)),
         ),
         if (error != null)

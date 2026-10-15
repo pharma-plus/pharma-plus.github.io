@@ -165,20 +165,32 @@ class _ReportsPageState extends State<ReportsPage> {
       return;
     }
     final sections = _exportSections();
-    switch (fmt) {
-      case 'pdf':
-        await ReportExport.exportPdf('Rapports', sections, _periodLabel);
-        break;
-      case 'csv':
-        ReportExport.exportCsv('Rapports', sections);
-        break;
-      case 'doc':
-        ReportExport.exportDoc('Rapports', sections, _periodLabel);
-        break;
+    try {
+      switch (fmt) {
+        case 'pdf':
+          await ReportExport.exportPdf('Rapports', sections, _periodLabel);
+          break;
+        case 'csv':
+          ReportExport.exportCsv('Rapports', sections);
+          break;
+        case 'doc':
+          ReportExport.exportDoc('Rapports', sections, _periodLabel);
+          break;
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Export ${fmt.toUpperCase()} impossible : $e'),
+        backgroundColor: AppColors.danger,
+      ));
+      return;
     }
     if (!mounted) return;
+    final saved = lastSavedPath;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('Export ${fmt.toUpperCase()} généré'),
+      content: Text(saved != null && saved.isNotEmpty
+          ? 'Export ${fmt.toUpperCase()} enregistré : $saved'
+          : 'Export ${fmt.toUpperCase()} généré'),
       backgroundColor: AppColors.success,
     ));
   }

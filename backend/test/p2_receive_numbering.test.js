@@ -32,7 +32,7 @@ test("receive : AUCUN repli timestamp — echec de numerotation = refus explicit
 test("ventes : AUCUN repli timestamp — echec de numerotation = refus explicite", () => {
   const at = edge.indexOf('path === "sales" && req.method === "POST"');
   assert.ok(at >= 0, "route POST /sales absente");
-  const b = edge.slice(at, at + 9000);
+  const b = edge.slice(at, at + 13000);
   assert.ok(
     !/POS-\$\{Date\.now\(\)\}/.test(b),
     "repli POS-<timestamp> residuel : numerotation non sequentielle",

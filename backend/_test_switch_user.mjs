@@ -63,10 +63,8 @@ const users = usersRes.json?.data ?? [];
 const byEmail = (e) => users.find((u) => (u.email ?? "").toLowerCase() === e);
 const dach = byEmail("d.ach@pharma.ma");
 const userRbac = byEmail("test.rbac@pharma-demo.ma");
-const noPin = byEmail("admin@pharma.ma");
 check(!!dach, "utilisateur caissier d.ach present");
 check(!!userRbac, "utilisateur test.rbac present");
-check(!!noPin, "utilisateur sans PIN admin@pharma.ma present");
 
 // PINs connus pour le test
 const pinDach = await req("PUT", `/users/${dach.id}/pin`, {
@@ -92,6 +90,26 @@ const roleCaissier =
   roles[0]?.id ??
   null;
 check(!!roleCaissier, "role pour le compte de test", `role=${roleCaissier}`);
+
+// Compte de test DEDIQUE sans PIN (fixture autonome : un compte demo peut
+// porter un PIN selon les seeds — l'etat ne doit jamais etre suppose).
+const noPinEmail = "sanspin.switch@test.ma";
+const noPinCreate = await req("POST", "/users", {
+  token: T1,
+  body: {
+    email: noPinEmail,
+    password: "SansPinTest123!",
+    role_id: roleCaissier,
+    first_name: "Sans",
+    last_name: "PIN",
+  },
+});
+check(
+  noPinCreate.status === 200 || noPinCreate.status === 201,
+  "creation du compte sans PIN",
+  `status=${noPinCreate.status}`,
+);
+const noPinId = noPinCreate.json?.data?.id ?? null;
 
 // ------------------------------------------------- 17.C : CAISSE PARTAGEE
 console.log("\n=== 17.C CAISSE PARTAGEE / SWITCH-USER ===");
@@ -159,7 +177,7 @@ check(
 );
 const swNoPin = await req("POST", "/auth/switch-user", {
   token: T1,
-  body: { identifier: "admin@pharma.ma", pin: "1234" },
+  body: { identifier: noPinEmail, pin: "1234" },
 });
 check(
   swNoPin.status === 400 && swNoPin.json?.error?.code === "PIN_NOT_SET",
@@ -218,6 +236,12 @@ check(
   "T1 deverrouillee : GET /users 200",
   `status=${afterUnlock.status}`,
 );
+
+// Retrait du compte sans PIN (T1 deverrouillee ici — sinon 423 SESSION_LOCKED)
+if (noPinId) {
+  const delNoPin = await req("DELETE", `/users/${noPinId}`, { token: T1 });
+  check(delNoPin.status === 200 || delNoPin.status === 204, "retrait du compte sans PIN", `status=${delNoPin.status}`);
+}
 
 // --------------------------------------------- ASSOCIATION EMPLOYE-COMPTE
 console.log("\n=== ASSOCIATION EMPLOYE <-> COMPTE UTILISATEUR ===");
@@ -444,10 +468,10 @@ async function cleanupResidue(label) {
         "update employees set user_id = null where user_id in (select id from users where email like 'emp.link%')",
       );
       const d1 = await db.query(
-        "delete from users where email like 'emp.link%' or email like 'x.employees%'",
+        "delete from users where email like 'emp.link%' or email like 'x.employees%' or email like 'sanspin.switch%'",
       );
       const d2 = await db.query(
-        "delete from auth.users where email like 'emp.link%' or email like 'x.employees%' or email = 'iso.admin@test.ma'",
+        "delete from auth.users where email like 'emp.link%' or email like 'x.employees%' or email like 'sanspin.switch%' or email = 'iso.admin@test.ma'",
       );
       const d3 = await db.query(
         "delete from pharmacies where slug like 'pharma-test-iso%'",

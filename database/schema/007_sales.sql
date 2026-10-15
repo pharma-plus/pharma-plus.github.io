@@ -53,7 +53,7 @@ CREATE TABLE sale_items (
   cost_price      numeric(14,2) NOT NULL DEFAULT 0,
   unit_cost       numeric(14,2) NOT NULL DEFAULT 0,
   tva_rate        numeric(5,2) NOT NULL DEFAULT 20.00,
-  tax_rate        numeric(5,2) NOT NULL DEFAULT 20.00,
+  tax_rate        numeric(5,2) NOT NULL, -- 15/10 : plus de DEFAULT 20.00 — taux = tva_rate produit, forcé par trg_sale_item_tax_from_product
   discount        numeric(5,2) NOT NULL DEFAULT 0,
   discount_percent numeric(5,2) NOT NULL DEFAULT 0,
   line_total      numeric(14,2) NOT NULL DEFAULT 0
