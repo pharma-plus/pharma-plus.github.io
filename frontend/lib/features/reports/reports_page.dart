@@ -4,6 +4,7 @@ import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
+import '../../core/services/download_file.dart';
 import '../../core/services/report_export.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
@@ -153,6 +154,16 @@ class _ReportsPageState extends State<ReportsPage> {
   }
 
   Future<void> _export(String fmt) async {
+    if (fmt != 'pdf' && !downloadSupported) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(
+          'Export ${fmt.toUpperCase()} indisponible sur cet appareil — utilisez le PDF ou PHARMA+ sur le web.',
+        ),
+        backgroundColor: const Color(0xFF6B7280),
+      ));
+      return;
+    }
     final sections = _exportSections();
     switch (fmt) {
       case 'pdf':

@@ -222,11 +222,11 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-Future<void> _editServerUrl() async {
+  Future<void> _editServerUrl() async {
     final auth = context.read<AuthStore>();
     final locale = auth.locale;
     final controller = TextEditingController(text: auth.baseUrl);
-    await showDialog<String>(
+    final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(S.t('serverUrl', locale)),
@@ -247,6 +247,14 @@ Future<void> _editServerUrl() async {
         ],
       ),
     );
+    final url = (result ?? '').trim();
+    if (url.isEmpty) return;
+    await auth.setBaseUrl(url);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('URL serveur enregistrée : $url'),
+      backgroundColor: AppColors.success,
+    ));
   }
 
   void _showInactivityMenu(BuildContext context) {

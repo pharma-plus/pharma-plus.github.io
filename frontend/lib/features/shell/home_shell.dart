@@ -250,7 +250,7 @@ class _HomeShellState extends State<HomeShell> {
                 onDestinationSelected: (i) =>
                     ShellNav.index.value = mobileItems[i].$4,
                 destinations: mobileDestinations,
-                // Optimisation tactile : hauteur augmentÃ©e pour doigts
+                // Optimisation tactile : hauteur augmentée pour doigts
                 height: 80,
                 labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
               )

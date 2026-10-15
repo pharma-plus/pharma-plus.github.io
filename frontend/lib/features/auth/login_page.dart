@@ -512,7 +512,15 @@ class _LoginPageState extends State<LoginPage>
                 ),
               ),
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text(
+                      'La réinitialisation se fait par l’administrateur de la pharmacie : '
+                      'connectez-vous à votre espace admin puis Utilisateurs → Réinitialiser le mot de passe.',
+                    ),
+                    backgroundColor: Color(0xFF6B7280),
+                  ));
+                },
                 child: const Text(
                   'Mot de passe oublié ?',
                   style: TextStyle(

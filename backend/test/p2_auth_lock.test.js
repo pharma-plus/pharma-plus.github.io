@@ -70,9 +70,10 @@ test("frontend : l'etat locked est LOCAL et pose AVANT l'appel reseau", () => {
   assert.match(lockBody, /\.timeout\(const Duration\(seconds: 8\)\)/);
   // unlock est appele par LockScreen apres PIN valide.
   assert.match(lockScreen, /\.unlock\(\)/);
-  // Verrouillage auto non annulable : Annuler conditionne a isManualLock.
+  // Verrouillage auto non annulable : Annuler conditionne a isManualLock
+  // (masque en mode switch : le bouton ne sert qu'au verrouillage manuel).
   assert.match(lockScreen, /isManualLock/);
-  assert.match(lockScreen, /if \(canDismiss\)/);
+  assert.match(lockScreen, /if \(canDismiss/);
   assert.match(lockScreen, /PopScope/);
   // Le shell pose l'ecran PIN quand isLocked bascule.
   const shell = readFileSync(

@@ -66,9 +66,12 @@ test('audit : user_id valide (uuid) ou null, jamais "unknown"', () => {
   assert.ok(!helper.includes("'unknown'") && !helper.includes('"unknown"'));
 });
 
-test('audit : 6 routes + 1 delegation, tous les echecs visibles', () => {
+test('audit : 7 routes + 1 delegation, tous les echecs visibles', () => {
   const calls = [...edge.matchAll(/_logAction\(sb, pid, \{/g)];
-  assert.equal(calls.length, 7, `7 appels _logAction attendus (6 routes + auditAttendance), trouves ${calls.length}`);
+  // 7 routes (auth/lock, medications POST, medication_update,
+  // suppliers POST, supplier_update, stock_adjust,
+  // user_switched) + 1 delegation (auditAttendance).
+  assert.equal(calls.length, 8, `8 appels _logAction attendus (7 routes + auditAttendance), trouves ${calls.length}`);
 
   let idx = 0;
   let wrapped = 0;
@@ -83,7 +86,10 @@ test('audit : 6 routes + 1 delegation, tous les echecs visibles', () => {
     }
     idx = at + 10;
   }
-  assert.equal(wrapped, 6, `6 appels proteges par try/catch attendus, trouves ${wrapped}`);
+  // Seule la delegation auditAttendance n'est pas wrappée ici : son
+  // erreur remonte via le helper (throw) et les routes appeleuses
+  // sont deja protegees.
+  assert.equal(wrapped, 7, `7 appels proteges par try/catch attendus, trouves ${wrapped}`);
 });
 
 test('audit : plus aucune ecriture avec le contrat ancien', () => {

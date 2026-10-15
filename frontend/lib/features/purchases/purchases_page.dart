@@ -14,7 +14,7 @@ import '../../core/widgets/status_chip.dart';
 import '../shell/shell_nav.dart';
 import '../catalog/unknown_product_dialog.dart';
 
-/// Achats : commandes fournisseurs et rÃ©ceptions de stock.
+/// Achats : commandes fournisseurs et réceptions de stock.
 class PurchasesPage extends StatefulWidget {
   const PurchasesPage({super.key});
 
@@ -98,7 +98,7 @@ class _PurchasesPageState extends State<PurchasesPage>
 
   Future<void> _scanProduct() async {
     final result = await BarcodeScannerSheet.show(
-        context, title: 'Scanner produit pour rÃ©ception');
+        context, title: 'Scanner produit pour réception');
     if (result == null || !mounted) return;
     final code = result.lookupCode;
     if (code.isEmpty) return;
@@ -112,7 +112,7 @@ class _PurchasesPageState extends State<PurchasesPage>
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Produit trouvÃ© : ${apiResult.data['name']}')));
+        content: Text('Produit trouvé : ${apiResult.data['name']}')));
   }
 
   @override
@@ -201,7 +201,7 @@ class _OrderList extends StatelessWidget {
                         Text('${o['number']}',
                             style:
                                 const TextStyle(fontWeight: FontWeight.w800)),
-                        Text('${o['supplier_name']} Â· ${o['branch_name']}',
+                        Text('${o['supplier_name']} · ${o['branch_name']}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -681,7 +681,7 @@ class _OrderDetailState extends State<_OrderDetail> {
               ],
             ),
             const SizedBox(height: 8),
-            Text('${order['supplier_name']} Â· ${order['branch_name']}',
+            Text('${order['supplier_name']} · ${order['branch_name']}',
                 style: const TextStyle(color: Colors.grey)),
             Text(Fmt.shortDate(DateTime.tryParse('${order['order_date']}')),
                 style: const TextStyle(color: Colors.grey)),
@@ -698,7 +698,7 @@ class _OrderDetailState extends State<_OrderDetail> {
                       title: Text('${item['medication_name'] ?? 'â€”'}',
                           maxLines: 1, overflow: TextOverflow.ellipsis),
                       subtitle: Text(
-                        '${Fmt.number(double.tryParse('${item['quantity_ordered']}') ?? 0)} u. Â· ${Fmt.money(double.tryParse('${item['unit_cost']}') ?? 0)}',
+                        '${Fmt.number(double.tryParse('${item['quantity_ordered']}') ?? 0)} u. · ${Fmt.money(double.tryParse('${item['unit_cost']}') ?? 0)}',
                       ),
                       trailing: Text(
                         '${Fmt.number(double.tryParse('${item['quantity_received']}') ?? 0)}/'
@@ -773,12 +773,12 @@ class _ReceiveFormState extends State<_ReceiveForm> {
   final Map<String, TextEditingController> _qty = {};
   final Map<String, TextEditingController> _lot = {};
   final Map<String, TextEditingController> _expiry = {};
-  // Produits SUPPLÃ‰MENTAIRES (non prÃ©vus dans la commande).
+  // Produits SUPPLÃ‰MENTAIRES (non prévus dans la commande).
   final List<Map<String, dynamic>> _extras = [];
   final List<TextEditingController> _extraQty = [];
   final List<TextEditingController> _extraLot = [];
   final List<TextEditingController> _extraExpiry = [];
-  // Anti-doublon de scan : un mÃªme code ignorÃ© < 1.2 s.
+  // Anti-doublon de scan : un même code ignoré < 1.2 s.
   String? _lastCode;
   DateTime _lastScanAt = DateTime.fromMillisecondsSinceEpoch(0);
   bool _saving = false;
@@ -804,7 +804,7 @@ class _ReceiveFormState extends State<_ReceiveForm> {
   String _fmt(double v) =>
       v.truncateToDouble() == v ? v.toInt().toString() : '$v';
 
-  /// RESTE Ã  recevoir pour une ligne (commandÃ© âˆ’ dÃ©jÃ  reÃ§u).
+  /// RESTE à recevoir pour une ligne (commandé âˆ’ déjà reçu).
   double _remaining(Map<String, dynamic> item) {
     final r = _num(item['quantity_ordered']) - _num(item['quantity_received']);
     return r <= 0 ? 0 : r;
@@ -821,33 +821,33 @@ class _ReceiveFormState extends State<_ReceiveForm> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  /// SCAN (mode simple) : un scan, retour immÃ©diat.
+  /// SCAN (mode simple) : un scan, retour immédiat.
   Future<void> _scan() async {
     final result = await BarcodeScannerSheet.show(context,
-        title: 'Scanner produit (rÃ©ception)');
+        title: 'Scanner produit (réception)');
     if (result == null || !mounted) return;
     await _processScan(result);
   }
 
-  /// SCAN CONTINU : l'Ã©cran camÃ©ra reste ouvert, chaque lecture incrÃ©mente
-  /// la ligne correspondante (rÃ©ception de 50 produits sans rouvrir le scan).
+  /// SCAN CONTINU : l'écran caméra reste ouvert, chaque lecture incrémente
+  /// la ligne correspondante (réception de 50 produits sans rouvrir le scan).
   Future<void> _scanContinuous() async {
     await BarcodeScannerSheet.showContinuous(context,
-        title: 'Scan continu (rÃ©ception)',
+        title: 'Scan continu (réception)',
         onScan: (result) => _processScan(result, continuous: true));
     if (!mounted) return;
-    setState(() {}); // rafraÃ®chir l'UI aprÃ¨s fermeture du scan continu
+    setState(() {}); // rafraîchir l'UI après fermeture du scan continu
   }
 
-  /// Traitement d'une lecture : identifie le produit, incrÃ©mente la quantitÃ©
-  /// reÃ§ue (jamais au-delÃ  du reste) et prÃ©-remplit lot/expiration GS1.
+  /// Traitement d'une lecture : identifie le produit, incrémente la quantité
+  /// reçue (jamais au-delà du reste) et pré-remplit lot/expiration GS1.
   Future<void> _processScan(ScanResult result, {bool continuous = false}) async {
     final code = result.lookupCode;
     if (code.isEmpty || !mounted) return;
     final now = DateTime.now();
     if (code == _lastCode &&
         now.difference(_lastScanAt).inMilliseconds < 1200) {
-      if (!continuous) _toast('Scan identique ignorÃ© (protection anti-doublon)');
+      if (!continuous) _toast('Scan identique ignoré (protection anti-doublon)');
       return;
     }
     _lastCode = code;
@@ -857,10 +857,10 @@ class _ReceiveFormState extends State<_ReceiveForm> {
         .get('/catalog/medications/barcode/${Uri.encodeComponent(code)}');
     if (!mounted) return;
     if (!lookup.success || lookup.data == null) {
-      // PRODUIT NON TROUVÃ‰ : jamais de crÃ©ation automatique (anti-doublon).
+      // PRODUIT NON TROUVÃ‰ : jamais de création automatique (anti-doublon).
       if (continuous) {
         _toast('Produit non reconnu ($code) â€” utilisez le scan simple '
-            'pour le crÃ©er ou l\u2019associer.');
+            'pour le créer ou l\u2019associer.');
       } else {
         await _createUnknownProduct(code);
       }
@@ -876,10 +876,10 @@ class _ReceiveFormState extends State<_ReceiveForm> {
     }
     if (match == null) {
       if (continuous) {
-        _toast('${med['name']} : supplÃ©mentaire â€” utilisez le scan simple '
-            'pour l\u2019ajouter Ã  la rÃ©ception.');
+        _toast('${med['name']} : supplémentaire â€” utilisez le scan simple '
+            'pour l\u2019ajouter à la réception.');
       } else {
-        // Produit connu mais non prÃ©vu : PRODUIT SUPPLÃ‰MENTAIRE.
+        // Produit connu mais non prévu : PRODUIT SUPPLÃ‰MENTAIRE.
         await _proposeExtra(Map<String, dynamic>.from(med as Map));
       }
       return;
@@ -887,18 +887,18 @@ class _ReceiveFormState extends State<_ReceiveForm> {
     final item = match;
     final rem = _remaining(item);
     if (rem <= 0) {
-      _toast('${med['name']} : dÃ©jÃ  entiÃ¨rement reÃ§u.');
+      _toast('${med['name']} : déjà entièrement reçu.');
       return;
     }
     final cur =
         double.tryParse(_qtyCtrl(item).text.replaceAll(',', '.')) ?? 0;
     if (cur >= rem) {
-      _toast('${med['name']} : dÃ©jÃ  comptÃ© Ã  $cur pour un reste de $rem.');
+      _toast('${med['name']} : déjà compté à $cur pour un reste de $rem.');
       return;
     }
     setState(() {
       _qtyCtrl(item).text = _fmt((cur + 1).clamp(0, rem));
-      // DonnÃ©es GS1 extraites (DataMatrix) : prÃ©-remplir lot / expiration.
+      // Données GS1 extraites (DataMatrix) : pré-remplir lot / expiration.
       if (result.gs1.lot != null && result.gs1.lot!.isNotEmpty) {
         _lot.putIfAbsent('${item['id']}', () => TextEditingController())
             .text = result.gs1.lot!;
@@ -908,18 +908,18 @@ class _ReceiveFormState extends State<_ReceiveForm> {
             .text = result.gs1.expiry!;
       }
     });
-    _toast('${med['name']} â€” reÃ§u : ${_qtyCtrl(item).text} / $rem');
+    _toast('${med['name']} â€” reçu : ${_qtyCtrl(item).text} / $rem');
   }
 
-  /// Ajout d'un produit supplÃ©mentaire (commandÃ© = reÃ§u d'office cÃ´tÃ© API).
+  /// Ajout d'un produit supplémentaire (commandé = reçu d'office côté API).
   Future<void> _proposeExtra(Map<String, dynamic> med) async {
     final add = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Produit supplÃ©mentaire'),
+        title: const Text('Produit supplémentaire'),
         content: Text(
-            '${med['name']} n\u2019est pas prÃ©vu dans cette commande. '
-            'L\u2019ajouter Ã  la rÃ©ception ?'),
+            '${med['name']} n\u2019est pas prévu dans cette commande. '
+            'L\u2019ajouter à la réception ?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -939,9 +939,9 @@ class _ReceiveFormState extends State<_ReceiveForm> {
     });
   }
 
-  /// Produit inconnu : module unifiÃ© (rechercher / associer / crÃ©er /
-  /// annuler â€” jamais de doublon automatique). Si une fiche est crÃ©Ã©e ou
-  /// associÃ©e, on la propose immÃ©diatement comme produit de rÃ©ception.
+  /// Produit inconnu : module unifié (rechercher / associer / créer /
+  /// annuler â€” jamais de doublon automatique). Si une fiche est créée ou
+  /// associée, on la propose immédiatement comme produit de réception.
   Future<void> _createUnknownProduct(String code) async {
     final med = await showUnknownProductDialog(context, barcode: code);
     if (!mounted) return;
@@ -975,13 +975,13 @@ class _ReceiveFormState extends State<_ReceiveForm> {
       });
     }
     if (payload.isEmpty) {
-      _toast('Indiquez au moins une quantitÃ© reÃ§ue.');
+      _toast('Indiquez au moins une quantité reçue.');
       return;
     }
     final missingLot = payload.any((p) =>
         '${p['lot_number']}'.trim().isEmpty || p['expiry_date'] == null);
     if (missingLot) {
-      _toast('NumÃ©ro de lot et date de pÃ©remption obligatoires.');
+      _toast('Numéro de lot et date de péremption obligatoires.');
       return;
     }
     setState(() => _saving = true);
@@ -1019,7 +1019,7 @@ class _ReceiveFormState extends State<_ReceiveForm> {
             children: [
               Row(children: [
                 IconButton(
-                  tooltip: 'Scan continu (rÃ©ception)',
+                  tooltip: 'Scan continu (réception)',
                   onPressed: _scanContinuous,
                   icon: const Icon(Icons.all_inclusive_rounded,
                       color: AppColors.pharmaGold),
@@ -1050,7 +1050,7 @@ class _ReceiveFormState extends State<_ReceiveForm> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: GradientButton(
-                    label: 'Valider la rÃ©ception',
+                    label: 'Valider la réception',
                     icon: Icons.check,
                     loading: _saving,
                     onPressed: _save,
@@ -1078,8 +1078,8 @@ class _ReceiveFormState extends State<_ReceiveForm> {
           children: [
             Text('${item['medication_name']}',
                 style: const TextStyle(fontWeight: FontWeight.w700)),
-            Text('CommandÃ© ${_fmt(ordered)} Â· DÃ©jÃ  reÃ§u ${_fmt(received)}'
-                ' Â· Reste ${_fmt(rem)}',
+            Text('Commandé ${_fmt(ordered)} · Déjà reçu ${_fmt(received)}'
+                ' · Reste ${_fmt(rem)}',
                 style:
                     const TextStyle(fontSize: 11.5, color: Colors.white54)),
             const SizedBox(height: 6),
