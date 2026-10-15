@@ -48,8 +48,20 @@ if (!rawDbUrl || !process.env.BACKUP_ENCRYPTION_KEY || !process.env.SUPER_ADMIN_
   console.error("ENV manquante : DATABASE_URL, BACKUP_ENCRYPTION_KEY, SUPER_ADMIN_EMAIL");
   process.exit(2);
 }
-const db = new Client({ connectionString: pgUrl, ssl: { rejectUnauthorized: false } });
+let db = new Client({ connectionString: pgUrl, ssl: { rejectUnauthorized: false } });
 await db.connect();
+{
+  const who = await db.query("select current_database() as db, current_user as u");
+  console.log(`connecte : db=${who.rows[0].db} user=${who.rows[0].u}`);
+}
+// Reconnexion apres spawnSync(pg_dump) : le pooler Supabase peut re-router la
+// session pendant que le process bloque l'event-loop — une requete suivante
+// partait alors vers une base sans la table `backups` (42P01).
+async function reconnectDb() {
+  try { await db.end(); } catch (_) {}
+  db = new Client({ connectionString: pgUrl, ssl: { rejectUnauthorized: false } });
+  await db.connect();
+}
 
 const BACKUP_DIR = resolve(process.env.BACKUP_DIR || join(dirname(fileURLToPath(import.meta.url)), "..", "backups"));
 
@@ -136,10 +148,14 @@ async function login() {
 }
 
 async function failJob(id, message) {
-  await db.query(
-    "update backups set status='failed', error=$1, completed_at=now() where id=$2",
-    [String(message).slice(0, 500), id],
-  );
+  try {
+    await db.query(
+      "update backups set status='failed', error=$1, completed_at=now() where id=$2",
+      [String(message).slice(0, 500), id],
+    );
+  } catch (e2) {
+    console.error(`  failJob : update impossible (${e2.message}) — job ${id} laissee en l'etat`);
+  }
 }
 
 // ------------------------------------------------------------------- jobs
@@ -182,8 +198,9 @@ async function processJob(id, token) {
       encoding: "utf8",
       maxBuffer: 64 * 1024 * 1024,
     });
+    await reconnectDb();
     if (r.status !== 0)
-      throw new Error(`pg_dump exit ${r.status} : ${(r.stderr || "").split("\n")[0]}`);
+      throw new Error(`pg_dump exit ${r.status} : ${(r.stderr || "").split("\n").slice(0, 3).join(" | ")}`);
     const { statSync } = await import("node:fs");
     const dumpSize = statSync(dumpPath).size;
     const dumpBytes = (await import("node:fs")).readFileSync(dumpPath);
