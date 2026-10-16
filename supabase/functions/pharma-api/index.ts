@@ -344,7 +344,7 @@ const DEFAULT_PHARMACY_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 /* Version unique de la fonction (routes /health et /). La version
    deploiee (2.1.0) ne porte pas les corrections de ce depot : le
    bump marque l'ecart jusqu'au prochain deploiement autorise. */
-const EDGE_VERSION = "2.5.5";
+const EDGE_VERSION = "2.5.6";
 
 function publicPharmacyId(req: Request): string {
   const hdr = req.headers.get("x-pharmacy-id");
@@ -7047,6 +7047,16 @@ Deno.serve(async (req) => {
     }
     // Enrichir avec nom, prix, dosage, forme, laboratoire
     const stockRows = data ?? [];
+    /* Produits sans AUCUNE ligne stock_balances : la RPC ne les retourne
+       pas, le front ne definissait alors jamais la cle de stock et
+       affichait « Stock non vérifiable » au lieu du dialogue « Stock zéro »
+       (dialogue prevu, pos_page.dart). On complete avec quantity 0. */
+    const seenIds = new Set<string>(
+      stockRows.map((r: any) => String(r.medication_id)),
+    );
+    for (const id of ids) {
+      if (!seenIds.has(id)) stockRows.push({ medication_id: id, quantity: 0 });
+    }
     const { data: meds } = await sb
       .from("medications")
       .select("id, name, price_sale, dosage, form, laboratory_name")
