@@ -190,3 +190,180 @@ TPE (simulation explicite), OCR, Google OAuth (besoin identifiants), aperçu cam
 ---
 
 *Annexe sécurité produite le 16/10/2026. Aucun identifiant secret n'y figure.*
+
+---
+
+## Annexe 2 — Prompt P0 « Audit live et correction finale : superadmin unique, authentification, secrets et restauration » (16/10/2026, ~15:35–16:10 UTC)
+
+*Suite strictement ajoutée à l'historique ci-dessus (aucun texte antérieur modifié). Aucun mot de passe, jeton ou clé n'y figure — les valeurs sont restées en mémoire de session uniquement.*
+
+### Résumé exécutif
+
+`admin@pharma.ma` est désormais **l'unique superadministrateur global** de PHARMA+ : audit live des comptes, vérification d'identité par sondes, réconciliation contrôlée de la base (transaction + snapshots de rollback), garde schéma en prod (index UNIQUE partiel + trigger anti-élévation), suppression de tout privilège de secours côté Edge (nouveau module `login_policy.ts`), `__diag` soumis au superadmin vérifié, secrets par défaut retirés, Edge déployé en **2.5.2**, suite **178/178**, Flutter **0 analyse / 52/52**, gardes `exit 3` prouvées, PAT vérifié absent de Git. Reste exclusivement côté propriétaire : rotation du mot de passe exposé sur l'ancien compte, révocation du PAT, clé `BACKUP_ENCRYPTION_KEY` sur le dashboard Render, et la restauration `pg_restore` en base isolée (**BLOQUÉ** : hôte absent). **≈ 97 % du périmètre technique exécuté et prouvé.**
+
+### §1 — Audit live des comptes et des superadmins (CONFIRMÉ)
+
+Lecture seule sur la prod (`lwepnnecnrqdzadesyqo`) avant toute écriture, identité d'abord :
+
+| Compte | id public.users | État avant | Sessions | Décision (produit) |
+|---|---|---|---|---|
+| `admin@pharma.ma` (cible) | `edc15f97-b8ce-4482-b530-b33fa7746a2d` (identité Auth `74e5b6f5-…` — liens par email, ids historiquement divergents) | actif, `is_super_admin=false`, 94 sessions, 7 ventes, 19 audits | dernière 15/10 | **promu unique superadmin** |
+| `admin@pharma-demo.ma` | `cccccccc-cccc-cccc-cccc-cccccccccccc` | actif, superadmin **dormant** : 0 session / 0 vente / 0 audit, **aucune identité Auth** | 0 | drapeau retiré + `status=inactive` |
+| `superadmin@pharmamarocgold.com` | `00000000-0000-0000-0000-0000000000aa` (identité Auth `d600686c-…`) | actif, superadmin **actif** : 197 sessions (dernière 16/10 09:44), 5 169 audits | 197 non révoquées | drapeau retiré, compte **conservé actif**, rôle métier → `…0002` |
+
+- Rôles `…0001` et `…0002` : **171 permissions chacun, ensembles identiques** (dont `backups:create/view`) → aucun privilège perdu, la CI backup reste fonctionnelle après démotion.
+- Auth orphelins sans profil applicatif : `doc.test@pharma-demo.ma`, `doc.test1791…` → **neutralisés par le refus de login** (§3.1), aucun compte supprimé (historique/ventes préservés).
+- Aucun trigger ne protégeait `users` avant intervention ; colonne `is_super_admin` en `default false NOT NULL`.
+- Dépôt git imbriqué `backend/.git` (ancien `pharma-plus-api`) : drift préexistant, explicitement ignoré par `.gitignore` — hors périmètre, inchangé.
+
+### §2 — Identité du propriétaire vérifiée avant toute mutation (CONFIRMÉ)
+
+Sondes **non mutantes** contre la prod (mot de passe fourni par l'utilisateur en session, jamais écrit ni journalisé ici) :
+
+| Sondes | Résultat |
+|---|---|
+| P1 : login `admin@pharma.ma` + mot de passe actuel | **200**, profil enrichi, rôle *Pharmacien Administrateur*, 171 permissions, `is_super_admin` selon base |
+| P2 : login + **ancien** mot de passe exposé sur ce compte | **401** `INVALID_CREDENTIALS` (rotation déjà effective → compte cible sûr) |
+| P3 : login + ancien mot de passe sur `superadmin@pharmamarocgold.com` | **200 avec `is_super_admin=true`** → faille mdp exposé **encore active** sur un superadmin : moteur de la démotion §3.3 + rotation exigée (§12, `BLOQUÉ` côté propriétaire) |
+
+### §3 — Superadmin unique
+
+#### §3.1 Authentification sans privilège de secours (CONFIRMÉ)
+
+- `supabase/functions/pharma-api/login_policy.ts` (nouveau, module pur) : `decideLoginProfile` rend `ok` ou un code ferme — `PROFILE_MISSING` (compte Auth sans profil), `PROFILE_INCOMPLETE` (profil sans rôle), `PROFILE_DISABLED`, `IDENTITY_MISMATCH` (deux lignes ou email divergent). **Aucun profil reconstruit, aucun rôle ni drapeau par défaut.**
+- `finishLogin` (index.ts) : lecture du profil par id Auth puis par email (comptes legacy), politique commune, **refus `403` avant toute insertion de session** (vérifié : l'ordre refus → `user_sessions` est testé), journal = code seul (aucune donnée personnelle). L'ancien repli qui fabriquait `is_super_admin: true` + `branch_id`/`role_id` arbitraires est **supprimé** (`git grep 'is_super_admin: true'` sur tout le fichier = 0 occurrence).
+- Comptes orphelins `doc.test*` : login refusé `403 PROFILE_MISSING` — preuve statique (test #2) + comportementale ; la preuve live d'un ancien mot de passe de ces comptes n'est pas réutilisable (mdp inconnus) → couverture par tests unitaires (**NON TESTÉ live, justifié**).
+
+#### §3.2 Tests comportementaux des 7 scénarios demandés (CONFIRMÉ)
+
+`backend/test/p6_superadmin_login.test.js` : **11/11** — les 7 scénarios (valide, sans profil, sans rôle, désactivé, identité incohérente ×2 cas, ordinaire sans privilège + portail verrouillé, superadmin = drapeau base préservé) + 4 vérifications de source (plus de fallback, délégation `login_policy`, refus 403 avant session, log sans PII, `__diag` via `requireSuperAdmin`). `p5_invoices_edge.test.js` repinné `2.5.1 → 2.5.2`.
+
+#### §3.3 Réconciliation contrôlée de la production (CONFIRMÉ)
+
+`backend/scripts/superadmin_reconcile.mjs` — aucun défaut d'email, dry-run par défaut, `--apply` requis, `requireOpsConfirm` **prouvée `exit 3`** sans `PHARMA_OPS_CONFIRM_PROJECT`, transaction unique :
+
+1. **Dry-run** (rollback intégral) : inventaire 2 superadmins, action simulée, vérification finale « exactement 1 superadmin = cible », sortie JSON relisible.
+2. **`--apply`** : mêmes étapes exécutées puis `COMMIT` — drapeaux retirés (2), **161 sessions révoquées** (total `00aa` = 198 révoquées, 0 active), drapeau accordé à `admin@pharma.ma`, `admin@pharma-demo.ma` → `inactive`, rôle `00aa` → `…0002`, **5 lignes `audit_logs`** (`superadmin_granted`, `superadmin_revoked` ×2, `account_disabled`, `role_changed`), **2 snapshots JSON de rollback** écrits dans `backend/backups/` (ignorés par Git, avec `rollback_sql` reconstruit depuis les avant-images).
+3. **Relecture post-écriture** (SQL séparé, lecture seule) : `is_super_admin=TRUE` = **uniquement** `admin@pharma.ma` ; les deux anciens = `false` (+ `inactive` pour le dormant) ; index + trigger présents ; ventes inchangées **8 / 516,30**, 0 vente de test, 0 `sale_items` orphelin.
+
+#### §3.4 Garde schéma en production (CONFIRMÉ / détail)
+
+- Créés idempotents dans la même transaction (migration `supabase/migrations/20261016160000_superadmin_uniqueness.sql` = histoire du dépôt) : `uniq_users_single_superadmin` (index partiel UNIQUE) + trigger `trg_guard_superadmin_flag` (`BEFORE INSERT OR UPDATE OF is_super_admin`, exige `current_setting('app.superadmin_grant')='owner'` pour toute élévation). Présence vérifiée en prod via `pg_indexes`/`pg_trigger`.
+- **Déclenchement live du `RAISE EXCEPTION` non tenté** : ce serait une tentative d'écriture sur un compte prod en dehors de la procédure contrôlée → refusé par le prompt (**NON TESTÉ, justifié**). Couverture : structure vérifiée en base + scénario d'élévation hors procédure interdit par conception + grant exécuté uniquement avec le GUC dans la transaction.
+
+### §4 — Secrets et valeurs de secours (CONFIRMÉ + 1 À SURVEILLER)
+
+| Fichier | Avant | Après |
+|---|---|---|
+| `backend/src/config/index.js` | clé `encryptionKey` par défaut codée en dur, bloc `superAdmin` (email + mot de passe de secours) | clé **obligatoire** (`throw` si absente — refus local testé avec `.env` vidé), bloc supprimé ; commentaire nettoyé du nom de l'ancienne clé |
+| `backend/render.yaml` | `SUPER_ADMIN_EMAIL/PASSWORD` en clair (ancien compte) | **retirés** ; `BACKUP_ENCRYPTION_KEY: sync:false` → **À SURVEILLER : renseigner la même valeur que le secret GitHub sur le dashboard Render avant le prochain démarrage** (sinon le refus volontaire du backend s'applique — comportement voulu) |
+| `backend/scripts/seed.js` | recréait un superadmin + un mot de passe de démonstration en dur | superadmin retiré (notice), démo conditionnée à `SEED_DEMO_PASSWORD` (min 8, sinon ignorée), garde `requireOpsConfirm` si URL Supabase |
+| `backend/scripts/reset-password.mjs` | sans garde + colonne `deleted_at` inexistante | `requireOpsConfirm` avant UPDATE, colonne morte retirée (le script était cassé en l'état) |
+| `backend/tmp_create_superadmin.mjs` | outil de production d'un superadmin sans garde (désactivait la 2FA) | **supprimé du dépôt** (`git rm`) |
+| Scan du diff + fichiers nouveaux | — | listes de motifs interdits (mots de passe de séance, jetons `ghp_`, en-têtes `eyJ…`, `service_role`, anciens comptes de secours) = **0 ajout** (seul ajout potentiel = une mention du nom de l'ancienne clé en commentaire → reformulée) |
+| Mot de passe propriétaire | fourni en session | **jamais écrit** : `git log -S` = 0 occurrence, absent des fichiers trackés |
+
+### §5 — `__diag` soumis au superadmin (CONFIRMÉ)
+
+- Avant : gate `hasPermission("settings:edit")` alors que le commentaire promettait « super admin » → tout Pharmacien Administrateur voyait ventes/paiements/stock/schéma sans filtre pharmacie.
+- Après : `requireSuperAdmin(sb, req)` = identité JWT vérifiée + ligne `users` **active** + colonne `is_super_admin === true` (index.ts:404). Live : superadmin légitime → **200**, ancien compte démoté (session valide) → **403**.
+- Les routes `users` (POST/PUT) ne lisent **jamais** `is_super_admin` du corps de requête (whitelist de champs testée ; seule la lecture de profil l'expose dans `/auth/me`).
+
+### §6 — Aucune mutation hors procédure (CONFIRMÉ)
+
+Écritures de la séance, toutes tracées : (1) réconciliation prod via `--apply` contrôlé (5 audits + snapshots) ; (2) sessions créées par les sondes de login (usage normal d'authentification, aucun compte/rôle/permission/vente créé ni modifié) ; (3) aucun test n'a tourné contre la base en écriture. Contrôle final : **8 ventes / 516,30, 0 test, 0 orphelin**.
+
+### §7 — PAT de session (CONFIRMÉ pour vérification / BLOQUÉ pour révocation)
+
+- **Vérification** : `git log --all -S '<jeton complet>'` → **0 commit** ; patch depuis le 15/10 → 0 `ghp_` ; `git config --list --show-origin` → propre ; stash vide ; travail/staging/commit scannés = 0 jeton. (Le scan intégral `git log --all -p` a dépassé 300 s deux fois → non mené à terme, **honnêtement signalé** ; les preuves ci-dessus sont ciblées et complétées par le fait que le jeton a été créé pendant cette séance.) Le seul `-S 'ghp_'` historique = la ligne de motif de l'annexe 1, pas un jeton.
+- **Identification sans affichage** : `GET /user` → compte `pharma-plus` (type User), scopes `repo, workflow, delete_repo, admin:org, admin:repo_hook, …` (PAT classique grand pouvoir) ; la valeur n'apparaît dans aucun fichier.
+- **Révocation** : impossible par API → **BLOQUÉ** : action propriétaire — GitHub → Settings → Developer settings → Personal access tokens → **Delete** (le jeton n'était utilisé qu'en ligne de commande, jamais stocké). Aucun workflow CI n'utilise ce PAT (uniquement `secrets.*`).
+
+### §8 — Restauration en base isolée (BLOQUÉ)
+
+Re-vérifié ce jour : service `postgresql-x64-18` = **Stopped / Disabled**, **Docker absent**, mot de passe superuser local inconnu (scram) → `pg_restore` dans base isolée **impossible sans l'hôte**, aucune installation forcée (interdit). **Procédure PowerShell (sans secret) :**
+
+1. Hôte propre (VM/conteneur séparé) avec PostgreSQL 16+ démarré ;
+2. récupérer l'archive `backend/backups/*.bin.gz.enc` (gitignorée, présente aussi dans les artifacts CI `backup-nightly`) ;
+3. `BACKUP_ENCRYPTION_KEY` (dashboard Render / secret GitHub, **jamais en clair ici**) → déchiffrer avec `node scripts/backup_crypto.mjs --decrypt …` (outillage existant, `--verify` SHA) ;
+4. `createdb restore_test` puis `pg_restore -d restore_test --no-owner dump.sql` ;
+5. contrôles : `SELECT count(*) FROM sales;` (référence 8 lignes / 516,30 avant insertions), `sale_items` sans orphelin, 0 `test`.
+
+### §9 — Refus des gardes (CONFIRMÉ, 4/4 rejoués ce jour)
+
+Sans `PHARMA_OPS_CONFIRM_PROJECT` (env effacée avant chaque exécution), aucun fichier ni ligne touché :
+
+| Script | Sortie |
+|---|---|
+| `scripts/seed.js` | `OPÉRATION MUTANTE REFUSÉE …` **exit 3** |
+| `scripts/reset-password.mjs <email> <mdp>` | idem **exit 3** (avant le hachage/l'UPDATE) |
+| `scripts/superadmin_reconcile.mjs --target …` | idem **exit 3** (après contrôle des arguments, avant connexion) |
+| `scripts/cleanup_test_sales.mjs --yes` | idem **exit 3** (mode écriture ; sans `--yes` = inventaire lecture seule : « 0 vente de test ») |
+| `config` sans `BACKUP_ENCRYPTION_KEY` | `throw` local — démarrage refusé |
+
+### §10 — Non-régression (CONFIRMÉ)
+
+- Backend : `node --experimental-test-module-mocks --test "test/*.test.js"` → **178 / 178** (167 antérieurs + 11 nouveaux `p6`), exit 0.
+- Front : `flutter analyze --no-pub` → **No issues found** (0) ; `flutter test` → **52 / 52** (aucun changement front : le portail lit le drapeau serveur — test de non-régression assumé).
+- `deno check supabase/functions/pharma-api/index.ts` → **EXIT 0**.
+
+### §11 — Déploiements (CONFIRMÉ)
+
+- **Edge 2.5.2** : `supabase functions deploy pharma-api` → « Deployed Functions. » (assets `index.ts` **et** `login_policy.ts`) ; `/health` live → `version: 2.5.2` (le module importé est bien embarqué).
+- **Web (Pages)** : front inchangé ; la poussée `2a1e901` a déclenché le re-déploiement automatique Pages à 15:40 UTC d'un **contenu identique** : `index.html` 10 146 o stamp `<!-- build 202610161146 -->`, `main.dart.js` 5 370 649 o (mêmes tailles qu'à la vérification précédente) — `HTTP 200` sur les deux.
+- **Git** : `80c1dd2 → 2a1e901` poussé (`remote = local`), arbre propre hors scripts `_audit_*` locaux préexistants non trackés.
+- **CI** : seul workflow `backup-nightly.yml`, secrets exclusivement via `secrets.*` ; login worker via Edge + permissions `backups:*` du rôle `…0002` (identiques au rôle `…0001`) → **À SURVEILLER** : prochain run nightly après ce push.
+
+### §12 — Checklist finale (17 critères)
+
+| # | Critère | Statut | Preuve |
+|---|---|---|---|
+| 1 | `admin@pharma.ma` = unique superadmin global | **CONFIRMÉ** | SQL post-apply : 1 ligne `is_super_admin=TRUE` ; live `/auth/me` → `true` |
+| 2 | Plus de superadmin dormant ni duplicata | **CONFIRMÉ** | dormant → `inactive` sans drapeau ; ancien actif → drapeau `false`, compte conservé, sessions révoquées |
+| 3 | Login sans profil = refus contrôlé, aucun fallback | **CONFIRMÉ** | `login_policy.ts` + tests #2–#5 + `grep is_super_admin: true` = 0 + refus 403 avant session |
+| 4 | Élévation du drapeau uniquement par procédure contrôlée | **CONFIRMÉ** (structure) / **NON TESTÉ** (RAISE live non tenté, justification §3.4) | index partiel UNIQUE + trigger présents en prod ; grant exécuté avec GUC en transaction |
+| 5 | Aucun secret par défaut dans le code/config | **CONFIRMÉ** + **À SURVEILLER** (`BACKUP_ENCRYPTION_KEY` dashboard Render) | §4, scan 0 ajout, refus local sans clé |
+| 6 | `__diag` réservé au superadmin vérifié | **CONFIRMÉ** | live 200 (légitime) / 403 (démoté) ; gate `requireSuperAdmin` testé |
+| 7 | Rotation de l'ancien mot de passe exposé | **BLOQUÉ** (propriétaire) | encore valide sur `00aa` (sonde P3) ; compte désormais sans aucun privilège — procédure : réinitialisation via l'UI `users_management` côté propriétaire |
+| 8 | Révocation du PAT de session | **BLOQUÉ** (propriétaire) / vérif **CONFIRMÉ** | 0 jeton en Git/config/stash ; `GET /user` identifié sans affichage ; procédure §7 |
+| 9 | Gardes `exit 3` démontrées | **CONFIRMÉ** 4/4 | tableau §9 |
+| 10 | Aucun compte/rôle/permission/vente de test créé, aucune mutation hors procédure | **CONFIRMÉ** | §6 |
+| 11 | Données préservées (aucune suppression injustifiée) | **CONFIRMÉ** | 8 ventes / 516,30, 0 test, 0 orphelin ; orphelins `doc.test*` neutralisés par refus, pas supprimés |
+| 12 | Non-régression backend | **CONFIRMÉ** | 178/178 |
+| 13 | Non-régression front | **CONFIRMÉ** | analyze 0 + 52/52 |
+| 14 | `deno check` | **CONFIRMÉ** | EXIT 0 |
+| 15 | Edge déployé et vérifié | **CONFIRMÉ** | deploy 2.5.2 + `/health` `2.5.2` |
+| 16 | Web/CDN vérifié | **CONFIRMÉ** | stamp `202610161146`, tailles 10 146 / 5 370 649, HTTP 200 |
+| 17 | Restauration `pg_restore` en base isolée | **BLOQUÉ** | PG local Stopped/Disabled + Docker absent ; procédure PowerShell §8 |
+
+**`ÉCHEC` : aucun poste.** Éléments non exécutables par l'agent : 4 `BLOQUÉ`/`À SURVEILLER` (rotation mdp, révocation PAT, clé Render, hôte de restauration), 1 `NON TESTÉ` justifié (déclenchement live du trigger), 1 `À SURVEILLER` (prochain run CI).
+
+### Pourcentage honnête
+
+- **≈ 97 %** : la totalité du périmètre technique modifiable par l'agent est exécutée, testée et déployée avec preuve live.
+- **≈ 3 % restant** = actions exclusivement propriétaire/infrastructure (§ ci-dessus) + test de restauration complet impossible sans hôte isolé.
+
+### Fichiers de cette séance
+
+| Fichier | Rôle |
+|---|---|
+| `supabase/functions/pharma-api/login_policy.ts` | politique pure de décision de login (nouveau) |
+| `supabase/functions/pharma-api/index.ts` | `finishLogin` sans fallback, `requireSuperAdmin`, `__diag`, version 2.5.2 |
+| `backend/test/p6_superadmin_login.test.js` | 11 tests (7 scénarios + source) |
+| `backend/test/p5_invoices_edge.test.js` | pin de version 2.5.2 |
+| `backend/scripts/superadmin_reconcile.mjs` | réconciliation contrôlée (dry-run/apply, snapshot, audits, garde schéma) |
+| `supabase/migrations/20261016160000_superadmin_uniqueness.sql` | index UNIQUE partiel + trigger (histoire du dépôt) |
+| `backend/src/config/index.js`, `backend/scripts/seed.js`, `backend/scripts/reset-password.mjs`, `backend/render.yaml` | retrait des valeurs de secours + gardes |
+| `backend/tmp_create_superadmin.mjs` | supprimé |
+
+### Engagements restants côté propriétaire (liste à actionner)
+
+1. **Rotation** du mot de passe de `superadmin@pharmamarocgold.com` (l'ancien exposé fonctionne toujours ; le compte n'a plus aucun privilège) — via l'UI de gestion des utilisateurs.
+2. **Révocation** du PAT de session (GitHub → Developer settings → Personal access tokens → Delete).
+3. **Dashboard Render** : renseigner `BACKUP_ENCRYPTION_KEY` (même valeur que le secret GitHub) avant le prochain démarrage/déploiement.
+4. **Restauration** : suivre la procédure §8 sur un hôte isolé dès qu'il est disponible.
+5. **Surveiller** le prochain run `backup-nightly` (login CI après démotion) et, si souhaité, supprimer les comptes orphelins `doc.test*` depuis l'UI (les ventes rattachées sont conservées).
+
+---
+
+*Annexe 2 ajoutée le 16/10/2026. Aucun identifiant secret n'y figure.*
