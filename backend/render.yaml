@@ -31,11 +31,14 @@ services:
         value: local
       - key: CORS_ORIGINS
         value: "https://pharma-plus.github.io"
-      - key: SUPER_ADMIN_EMAIL
-        value: "admin@pharmaplus.com"
-      # Secret : valeur définie dans le dashboard Render (jamais dans Git).
-      - key: SUPER_ADMIN_PASSWORD
+      # Secrets : valeurs définies dans le dashboard Render (jamais dans Git).
+      # BACKUP_ENCRYPTION_KEY est OBLIGATOIRE au démarrage (config refuse de
+      # démarrer sans clé — aucune valeur par défaut, prompt sécurité §4).
+      # Utiliser la MÊME valeur que le secret GitHub BACKUP_ENCRYPTION_KEY.
+      - key: BACKUP_ENCRYPTION_KEY
         sync: false
+      # SUPER_ADMIN_EMAIL/PASSWORD supprimés : plus aucune valeur de secours,
+      # plus aucun consommateur backend (création superadmin retirée du seed).
 
 databases:
   - name: pharma-plus-db

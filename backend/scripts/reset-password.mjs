@@ -14,6 +14,7 @@
 import 'dotenv/config';
 import argon2 from 'argon2';
 import { pool } from '../src/db/pool.js';
+import { requireOpsConfirm } from './test_env.mjs';
 
 const [email, password, flag] = process.argv.slice(2);
 
@@ -22,9 +23,12 @@ if (!email || !password) {
   process.exit(1);
 }
 if (password.length < 8) {
-  console.error('Mot de passe trop court (8 caract├¿res minimum).');
+  console.error('Mot de passe trop court (8 caractères minimum).');
   process.exit(1);
 }
+// Garde (prompt sécurité §4/§6) : cible Supabase identifiée + confirmation
+// explicite du projet AVANT toute écriture — pas de rotation silencieuse.
+requireOpsConfirm(process.env.DATABASE_URL, { script: 'scripts/reset-password.mjs' });
 const forceChange = flag !== '--no-force-change';
 
 const hash = await argon2.hash(password, { type: argon2.argon2id });
@@ -36,7 +40,6 @@ const { rows } = await pool.query(
           must_change_password = $2,
           updated_at = now()
     WHERE lower(email) = lower($3)
-      AND deleted_at IS NULL
    RETURNING email, status, is_super_admin`,
   [hash, forceChange, email],
 );

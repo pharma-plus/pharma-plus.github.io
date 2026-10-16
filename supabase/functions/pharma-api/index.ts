@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { decideLoginProfile } from "./login_policy.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -343,7 +344,7 @@ const DEFAULT_PHARMACY_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 /* Version unique de la fonction (routes /health et /). La version
    deploiee (2.1.0) ne porte pas les corrections de ce depot : le
    bump marque l'ecart jusqu'au prochain deploiement autorise. */
-const EDGE_VERSION = "2.5.1";
+const EDGE_VERSION = "2.5.2";
 
 function publicPharmacyId(req: Request): string {
   const hdr = req.headers.get("x-pharmacy-id");
@@ -392,6 +393,27 @@ async function hasPermission(
     .eq("role_id", u.role_id);
   const granted = (perms ?? []).map((p: any) => p.permission_code);
   return { allowed: granted.includes(code), userId };
+}
+
+/**
+ * Vérification superadministrateur CÔTÉ SERVEUR : profil applicatif
+ * résolu depuis le JWT vérifié + colonne is_super_admin (source de vérité
+ * base) + compte actif. Une permission générique (ex. settings:edit) ne
+ * suffit jamais pour les routes diagnostiques/sensibles (prompt §5).
+ */
+async function requireSuperAdmin(
+  sb: any,
+  req: Request,
+): Promise<{ allowed: boolean; userId: string | null }> {
+  const userId = await currentUserId(req);
+  if (!userId) return { allowed: false, userId: null };
+  const { data: u } = await sb
+    .from("users")
+    .select("id, status, is_super_admin")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!u || u.status !== "active") return { allowed: false, userId };
+  return { allowed: u.is_super_admin === true, userId };
 }
 
 /* ===========================================================
@@ -850,33 +872,51 @@ async function finishLogin(
   fallbackPid: string,
 ): Promise<Response> {
   const normalized = String(email).trim().toLowerCase();
-  const { data: profile, error: profileErr } = await sb
+
+  /* Identité applicative : profil par id Auth (comptes créés par l'API)
+     puis par email (comptes legacy ou profils séparés de l'identité Auth).
+     Aucune reconstruction synthétique de profil : un compte Auth sans
+     profil valide = refus contrôlé (prompt sécurité §3.2). */
+  const COLS =
+    "id, pharmacy_id, branch_id, role_id, first_name, last_name, email, username, phone, status, is_super_admin, visible_modules, pin_hash, two_factor_enabled";
+  const sub = typeof session?.user?.id === "string" ? session.user.id : "";
+  let profileById: any = null;
+  if (sub && UUID_RE.test(sub)) {
+    const byId = await sb
+      .from("users")
+      .select(COLS)
+      .eq("id", sub)
+      .maybeSingle();
+    if (byId.error)
+      console.error("[login] profile-by-id error:", byId.error.message);
+    profileById = byId.data ?? null;
+  }
+  const byEmail = await sb
     .from("users")
-    .select(
-      "id, pharmacy_id, branch_id, role_id, first_name, last_name, email, username, phone, is_super_admin, visible_modules, pin_hash, two_factor_enabled",
-    )
+    .select(COLS)
     .ilike("email", normalized)
     .maybeSingle();
-  if (profileErr) console.error("[login] profile error:", profileErr.message);
+  if (byEmail.error)
+    console.error("[login] profile-by-email error:", byEmail.error.message);
 
-  let userProfile: any;
-  if (profile) {
-    userProfile = await enrichProfile(sb, profile);
-  } else {
-    userProfile = {
-      email: normalized,
-      id: session?.user?.id ?? crypto.randomUUID(),
-      pharmacy_id: fallbackPid,
-      branch_id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
-      role_id: "00000000-0000-0000-0000-000000000002",
-      first_name: "Admin",
-      last_name: "Pharma",
-      is_super_admin: true,
-      permissions: [],
-      pharmacy_name: null,
-      role_name: "Pharmacien Administrateur",
-    };
+  const decision = decideLoginProfile({
+    profileById,
+    profileByEmail: byEmail.data ?? null,
+    sessionEmail: normalized,
+  });
+  if (!decision.ok) {
+    /* Refus journalisé (code seul — aucune donnée personnelle) :
+       aucun privilège, aucune session, aucun jeton renvoyé. */
+    console.error(
+      `[login] refus profil ${decision.code} (sub=${sub ? "présent" : "absent"})`,
+    );
+    return json(
+      { error: { code: decision.code, message: decision.message } },
+      403,
+    );
   }
+
+  const userProfile = await enrichProfile(sb, decision.profile);
 
   try {
     await clearFailedLogin(sb, userProfile.id);
@@ -2705,10 +2745,12 @@ Deno.serve(async (req) => {
   }
 
   if (path === "__diag" || path === "/__diag") {
-    // DIAG INTERNE — super admin uniquement (fix fuite cross-tenant :
-    // exposait sale_items/payments/stock_movements + schéma à tout
-    // utilisateur connecté, sans filtre pharmacy_id).
-    const diagAuth = await hasPermission(sb, req, "settings:edit");
+    // DIAG INTERNE — super admin vérifié CÔTÉ SERVEUR uniquement (colonne
+    // is_super_admin + compte actif). Avant : gate settings:edit, alors que
+    // le commentaire promettait « super admin » — tout titulaire de
+    // settings:edit (ex. Pharmacien Administrateur) voyait ventes/paiements/
+    // mouvements de stock + schéma, sans filtre pharmacie (prompt §5).
+    const diagAuth = await requireSuperAdmin(sb, req);
     if (!diagAuth.allowed) return json({ error: { code: "FORBIDDEN" } }, 403);
     try {
       const r1 = await sb

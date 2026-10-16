@@ -39,11 +39,16 @@ export const config = {
   },
   backup: {
     dir: process.env.BACKUP_DIR || './backups',
-    encryptionKey: process.env.BACKUP_ENCRYPTION_KEY || 'insecure-backup-key',
+    // Clé de chiffrement OBLIGATOIRE : aucune valeur par défaut (prompt
+    // sécurité §4 — l'ancien repli codé en dur a été supprimé).
+    // Local : renseignée dans .env (non tracké). Production : dashboard
+    // Render / secrets GitHub. Démarrage refusé si absente.
+    encryptionKey: (() => {
+      const k = process.env.BACKUP_ENCRYPTION_KEY;
+      if (!k) throw new Error('BACKUP_ENCRYPTION_KEY environment variable is required (aucune valeur par défaut)');
+      return k;
+    })(),
   },
   corsOrigins: (process.env.CORS_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean),
-  superAdmin: {
-    email: process.env.SUPER_ADMIN_EMAIL || 'admin@pharmamarocgold.com',
-    password: process.env.SUPER_ADMIN_PASSWORD || 'ChangeMe_123!',
-  },
+  // superAdmin supprimé : plus aucun email/mot de passe de secours (§4).
 };

@@ -33,7 +33,7 @@ test('factures : le 501 NOT_IMPLEMENTED périmé a disparu', () => {
     !/la table invoices n'existe pas en production/i.test(edge),
     'commentaire périmé supprimé',
   );
-  assert.ok(edge.includes('EDGE_VERSION = "2.5.1"'), 'version bumpée (2.5.1 — reset-password sécurisé)');
+  assert.ok(edge.includes('EDGE_VERSION = "2.5.2"'), 'version bumpée (2.5.2 — login sans fallback superadmin + __diag superadmin)');
 });
 
 test('factures : GET /invoices, /invoices/:id, /invoice-items servis', () => {
