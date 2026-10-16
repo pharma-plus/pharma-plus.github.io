@@ -1,12 +1,15 @@
+import { requireIsolatedTestEnv, assertNonProductionDb } from "./scripts/test_env.mjs";
+const { BASE: ORIGIN, email, password } = requireIsolatedTestEnv({ script: "_neg_hash_test.mjs", mutations: true });
+assertNonProductionDb(process.env.DATABASE_URL, { script: "_neg_hash_test.mjs" });
+const API = ORIGIN + "/functions/v1/pharma-api";
 import "dotenv/config";
 import pg from "pg";
 const raw = process.env.DATABASE_URL;
 const c = new pg.Client({ connectionString: raw.replace(/[?&]sslmode=[^&]*/g, ""), ssl: { rejectUnauthorized: false } });
 await c.connect();
-const API = "https://lwepnnecnrqdzadesyqo.supabase.co/functions/v1/pharma-api";
 const login = await fetch(API + "/auth/login", {
   method: "POST", headers: { "content-type": "application/json" },
-  body: JSON.stringify({ email: process.env.SUPER_ADMIN_EMAIL, password: process.env.SUPER_ADMIN_PASSWORD }),
+  body: JSON.stringify({ email: email, password: password }),
 }).then((r) => r.json());
 const token = login?.data?.accessToken;
 const PID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";

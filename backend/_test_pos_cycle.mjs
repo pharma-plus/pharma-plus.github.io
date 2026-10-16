@@ -1,16 +1,17 @@
+import { requireIsolatedTestEnv } from "./scripts/test_env.mjs";
+const { BASE: ORIGIN, email, password } = requireIsolatedTestEnv({ script: "_test_pos_cycle.mjs", mutations: true });
+const BASE = ORIGIN + "/functions/v1/pharma-api/api/v1";
 // Cycle POS complet : sous-paiement refusé (400) + vente TTC correcte +
 // stock décrémenté (RPC medication_stock_map) + cohérence TVA interne.
 // Nettoyage : la vente porte notes=CYCLE_POS_TEST →
 // `node scripts/cleanup_test_sales.mjs --yes` la supprime (DELETE /sales : 405
 // par conception, jamais de dure suppression via l'API).
-const BASE = 'https://lwepnnecnrqdzadesyqo.supabase.co/functions/v1/pharma-api/api/v1';
-
 const loginRes = await fetch(`${BASE}/auth/login`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    email: 'superadmin@pharmamarocgold.com',
-    password: 'SuperAdmin_2026!',
+    email: email,
+    password: password,
   }),
 });
 const loginData = await loginRes.json();

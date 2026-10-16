@@ -1,12 +1,21 @@
 // Sonde tous les endpoints GET utilises par le frontend avec une session
-// PHARMACIE (meme mecanique que login : session + JWT signe). Usage local.
+// PHARMACIE (meme mecanique que login : session + JWT signe).
+// ENV ISOLE OBLIGATOIRE : cible + compte + base via PHARMA_TEST_* — refuse
+// la production (l'outil insère une session SQL = opération mutante).
 import 'dotenv/config';
 import crypto from 'node:crypto';
 import pg from 'pg';
 import jwt from 'jsonwebtoken';
+import { requireIsolatedTestEnv, assertNonProductionDb } from './test_env.mjs';
 
-const BASE = 'http://127.0.0.1:4000/api/v1';
-const EMAIL = 'admin@pharma.ma';
+const { BASE: ORIGIN, email } = requireIsolatedTestEnv({
+  script: 'probe-endpoints.mjs',
+  mutations: true,
+});
+assertNonProductionDb(process.env.DATABASE_URL, { script: 'probe-endpoints.mjs' });
+
+const BASE = ORIGIN + '/api/v1';
+const EMAIL = email;
 const sha256 = (s) => crypto.createHash('sha256').update(s).digest('hex');
 
 const url = (process.env.DATABASE_URL || '').replace(/[?&]sslmode=[^&]*/g, '');

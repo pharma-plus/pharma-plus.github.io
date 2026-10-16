@@ -1,3 +1,7 @@
+import { requireIsolatedTestEnv, assertNonProductionDb } from "./scripts/test_env.mjs";
+const { BASE: ORIGIN, email, password } = requireIsolatedTestEnv({ script: "_test_pin_flow.mjs", mutations: true });
+assertNonProductionDb(process.env.DATABASE_URL, { script: "_test_pin_flow.mjs" });
+const BASE = ORIGIN + "/functions/v1/pharma-api/api/v1";
 // =============================================================================
 // §3D — Tests PIN : état, création, vérification valide/invalide, sans PIN,
 // désactivation, permissions, switch-user + attribution de vente.
@@ -7,8 +11,6 @@
 import { Client } from "pg";
 import "dotenv/config";
 
-const BASE =
-  "https://lwepnnecnrqdzadesyqo.supabase.co/functions/v1/pharma-api/api/v1";
 const TEST_EMAIL = "pin.flow@test.ma";
 const TEST_PASS = "PinFlowTest123!";
 
@@ -88,8 +90,8 @@ await dbCleanup();
 // ---------------------------------------------------------------- SETUP
 console.log("=== SETUP ===");
 const admin = await login(
-  "superadmin@pharmamarocgold.com",
-  "SuperAdmin_2026!",
+  email,
+  password,
 );
 check(!!admin.token, "login superadmin");
 const T1 = admin.token;

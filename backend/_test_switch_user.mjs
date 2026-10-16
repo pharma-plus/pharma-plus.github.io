@@ -1,3 +1,7 @@
+import { requireIsolatedTestEnv, assertNonProductionDb } from "./scripts/test_env.mjs";
+const { BASE: ORIGIN, email, password } = requireIsolatedTestEnv({ script: "_test_switch_user.mjs", mutations: true });
+assertNonProductionDb(process.env.DATABASE_URL, { script: "_test_switch_user.mjs" });
+const BASE = ORIGIN + "/functions/v1/pharma-api/api/v1";
 // =============================================================================
 // TESTS 17.C (caisse partagee / changement d'utilisateur PIN) + association
 // employe <-> compte + 17.F (isolation deux pharmacies).
@@ -5,9 +9,6 @@
 // =============================================================================
 import { Client } from "pg";
 import "dotenv/config";
-
-const BASE =
-  "https://lwepnnecnrqdzadesyqo.supabase.co/functions/v1/pharma-api/api/v1";
 
 let pass = 0;
 let fail = 0;
@@ -52,8 +53,8 @@ await cleanupResidue("avant :");
 // ---------------------------------------------------------------- SETUP
 console.log("=== SETUP ===");
 const admin = await login(
-  "superadmin@pharmamarocgold.com",
-  "SuperAdmin_2026!",
+  email,
+  password,
 );
 check(!!admin.token, "login superadmin");
 const T1 = admin.token;
@@ -188,17 +189,17 @@ check(
 // Retour vers le superadmin (session generale preservee)
 const swBack = await req("POST", "/auth/switch-user", {
   token: T1,
-  body: { identifier: "superadmin@pharmamarocgold.com", pin: "9876" },
+  body: { identifier: email, pin: "9876" },
 });
 const T3 = swBack.json?.data?.accessToken ?? swBack.json?.accessToken ?? null;
 check(
   swBack.status === 200 && !!T3,
-  "retour switch -> superadmin@pharmamarocgold.com",
+  "retour switch -> email",
   `status=${swBack.status}`,
 );
 const me3 = await req("GET", "/auth/me", { token: T3 });
 const email3 = String(me3.json?.data?.email ?? me3.json?.email ?? "").toLowerCase();
-check(email3 === "superadmin@pharmamarocgold.com", "T3 = superadmin", `email=${email3}`);
+check(email3 === email, "T3 = superadmin", `email=${email3}`);
 
 // L'autre appareil (T2, caissier) n'a PAS ete deconnecte par les switches
 const stillT2 = await req("GET", "/auth/me", { token: T2 });
@@ -386,7 +387,7 @@ if (TB) {
   check(
     emailsB.length > 0 &&
         !emailsB.includes("d.ach@pharma.ma") &&
-        !emailsB.includes("superadmin@pharmamarocgold.com"),
+        !emailsB.includes(email),
     "B ne voit AUCUN utilisateur de la pharmacie A",
     `count=${emailsB.length}`,
   );

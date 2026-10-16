@@ -1,5 +1,7 @@
+import { requireIsolatedTestEnv } from "./scripts/test_env.mjs";
+const { BASE: ROOT, email, password } = requireIsolatedTestEnv({ script: "_cors_sales_test.mjs", mutations: true });
+const API = ROOT + "/functions/v1/pharma-api";
 // Reproduit EXACTEMENT le fetch du front web (Origin Pages + headers).
-const API = "https://lwepnnecnrqdzadesyqo.supabase.co/functions/v1/pharma-api";
 const ORIGIN = "https://pharma-plus.github.io";
 
 // 1) Preflight OPTIONS (déclenché par POST avec Content-Type json + Authorization)
@@ -20,7 +22,7 @@ for (const [k, v] of opt.headers) {
 const login = await fetch(API + "/auth/login", {
   method: "POST",
   headers: { "content-type": "application/json", "Origin": ORIGIN },
-  body: JSON.stringify({ email: process.env.SUPER_ADMIN_EMAIL, password: process.env.SUPER_ADMIN_PASSWORD }),
+  body: JSON.stringify({ email: email, password: password }),
 }).then((r) => r.json());
 const token = login?.data?.accessToken;
 

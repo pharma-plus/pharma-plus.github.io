@@ -14,8 +14,14 @@ import "dotenv/config";
 import { writeFileSync, mkdirSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { requireOpsConfirm } from "./test_env.mjs";
 
 const EXEC = process.argv.includes("--yes");
+if (EXEC) {
+  // Toute mutation exige la confirmation explicite du projet cible
+  // (PHARMA_OPS_CONFIRM_PROJECT = référence Supabase visée). Refus sinon.
+  requireOpsConfirm(process.env.DATABASE_URL, { script: "cleanup_test_sales.mjs --yes" });
+}
 const url = (process.env.DATABASE_URL ?? "").replace(/[?&]sslmode=[^&]*/g, "");
 const db = new Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
 await db.connect();

@@ -1,6 +1,7 @@
-const BASE =
-  "https://lwepnnecnrqdzadesyqo.supabase.co/functions/v1/pharma-api/api/v1";
-
+import { requireIsolatedTestEnv, assertNonProductionDb } from "./scripts/test_env.mjs";
+const { BASE: ORIGIN, email, password } = requireIsolatedTestEnv({ script: "_debug_users_create.mjs", mutations: true });
+assertNonProductionDb(process.env.DATABASE_URL, { script: "_debug_users_create.mjs" });
+const BASE = ORIGIN + "/functions/v1/pharma-api/api/v1";
 async function req(method, path, { token, body } = {}) {
   const res = await fetch(`${BASE}${path}`, {
     method,
@@ -19,8 +20,8 @@ async function req(method, path, { token, body } = {}) {
 
 const login = await req("POST", "/auth/login", {
   body: {
-    email: "superadmin@pharmamarocgold.com",
-    password: "SuperAdmin_2026!",
+    email: email,
+    password: password,
   },
 });
 const token = login.json?.accessToken || login.json?.data?.accessToken;

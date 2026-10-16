@@ -21,18 +21,15 @@
 // =============================================================================
 import { Client } from "pg";
 import "dotenv/config";
-import { createHash, createCipheriv, createDecipheriv } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync, existsSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
+import { keyFrom, encryptWith, decryptWith, sha256Hex } from "./backup_crypto.mjs";
 
 const API =
   "https://lwepnnecnrqdzadesyqo.supabase.co/functions/v1/pharma-api/api/v1";
-const MAGIC = Buffer.from("PHB1"); // magic + version du conteneur chiffré
-const IV_LEN = 12;
-const TAG_LEN = 16;
 
 const args = process.argv.slice(2);
 const has = (f) => args.includes(f);
@@ -98,27 +95,15 @@ function dumpConnectionUrl() {
 }
 
 // ------------------------------------------------------------- chiffrement
-function key() {
-  return createHash("sha256").update(String(process.env.BACKUP_ENCRYPTION_KEY)).digest();
-}
+// La logique (clé SHA-256, IV CSPRNG randomBytes(12), conteneur PHB1) est
+// isolée dans backup_crypto.mjs pour être couverte par test/backup_crypto.test.js.
 function encrypt(plain) {
-  const iv = Buffer.alloc(IV_LEN);
-  for (let i = 0; i < IV_LEN; i += 4)
-    iv.writeUInt32LE((Math.random() * 0xffffffff) >>> 0, i);
-  const c = createCipheriv("aes-256-gcm", key(), iv);
-  const ct = Buffer.concat([c.update(plain), c.final()]);
-  return Buffer.concat([MAGIC, iv, c.getAuthTag(), ct]);
+  return encryptWith(plain, keyFrom(process.env.BACKUP_ENCRYPTION_KEY));
 }
 function decrypt(blob) {
-  if (blob.subarray(0, 4).toString() !== "PHB1") throw new Error("magic PHB1 absent");
-  const iv = blob.subarray(4, 4 + IV_LEN);
-  const tag = blob.subarray(4 + IV_LEN, 4 + IV_LEN + TAG_LEN);
-  const ct = blob.subarray(4 + IV_LEN + TAG_LEN);
-  const d = createDecipheriv("aes-256-gcm", key(), iv);
-  d.setAuthTag(tag);
-  return Buffer.concat([d.update(ct), d.final()]);
+  return decryptWith(blob, keyFrom(process.env.BACKUP_ENCRYPTION_KEY));
 }
-const sha256 = (b) => createHash("sha256").update(b).digest("hex");
+const sha256 = sha256Hex;
 
 // ------------------------------------------------------------------- Edge
 async function edge(method, path, { token, body, raw, headers } = {}) {

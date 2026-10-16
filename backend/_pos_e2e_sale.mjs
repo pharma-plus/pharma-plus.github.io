@@ -1,10 +1,13 @@
+import { requireIsolatedTestEnv, assertNonProductionDb } from "./scripts/test_env.mjs";
+const { BASE: ORIGIN, email, password } = requireIsolatedTestEnv({ script: "_pos_e2e_sale.mjs", mutations: true });
+assertNonProductionDb(process.env.DATABASE_URL, { script: "_pos_e2e_sale.mjs" });
+const API = ORIGIN + "/functions/v1/pharma-api";
 // VENTE RÉELLE DE BOUT EN BOUT — validation du fix POS TVA 0 (Edge 2.4.1).
 // Login super admin (.env, jamais affiché) → POST /sales sur l'API publiée
 // avec un médicament TVA 0 → vérifs métier DB + idempotence rejeu.
 import "dotenv/config";
 import pg from "pg";
 
-const API = "https://lwepnnecnrqdzadesyqo.supabase.co/functions/v1/pharma-api";
 const PID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 
 const raw = process.env.DATABASE_URL;
@@ -22,7 +25,7 @@ ok("Edge live = 2.4.1", root?.version === "2.4.1", `v=${root?.version}`);
 const login = await fetch(API + "/auth/login", {
   method: "POST",
   headers: { "content-type": "application/json" },
-  body: JSON.stringify({ email: process.env.SUPER_ADMIN_EMAIL, password: process.env.SUPER_ADMIN_PASSWORD }),
+  body: JSON.stringify({ email: email, password: password }),
 }).then((r) => r.json());
 const token = login?.data?.accessToken;
 ok("Login super admin", Boolean(token), token ? "" : "pas de token");

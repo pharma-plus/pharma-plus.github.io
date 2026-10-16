@@ -89,25 +89,29 @@ class _UsersManagementState extends State<UsersManagementPage> {
 
   Future<void> _resetPassword(Map<String, dynamic> user) async {
     final locale = context.read<AuthStore>().locale;
-    final confirmed = await showDialog<bool>(
+    final ctl = TextEditingController();
+    final nv = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Réinitialiser le mot de passe'),
-        content: Text(
-            'Un nouveau mot de passe temporaire sera envoyé à ${user['email']}.'),
+        content: TextField(
+          controller: ctl,
+          obscureText: true,
+          decoration: const InputDecoration(labelText: 'Nouveau mot de passe (min. 8)'),
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
+              onPressed: () => Navigator.pop(ctx),
               child: Text(S.t('cancel', locale))),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
+              onPressed: () => Navigator.pop(ctx, ctl.text),
               child: const Text('Réinitialiser')),
         ],
       ),
     );
-    if (confirmed != true || !mounted) return;
+    if (nv == null || nv.length < 8 || !mounted) return;
     final res = await ApiClient.instance
-        .post('/users/${user['id']}/reset-password');
+        .post('/users/${user['id']}/reset-password', body: {'newPassword': nv});
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(res.success

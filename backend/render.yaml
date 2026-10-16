@@ -33,8 +33,9 @@ services:
         value: "https://pharma-plus.github.io"
       - key: SUPER_ADMIN_EMAIL
         value: "admin@pharmaplus.com"
+      # Secret : valeur définie dans le dashboard Render (jamais dans Git).
       - key: SUPER_ADMIN_PASSWORD
-        value: "SuperAdmin_2026!"
+        sync: false
 
 databases:
   - name: pharma-plus-db

@@ -1,9 +1,10 @@
-const BASE = 'https://lwepnnecnrqdzadesyqo.supabase.co/functions/v1/pharma-api/api/v1';
-
+import { requireIsolatedTestEnv } from "./scripts/test_env.mjs";
+const { BASE: ORIGIN, email, password } = requireIsolatedTestEnv({ script: "_test_pin_employees.mjs", mutations: true });
+const BASE = ORIGIN + "/functions/v1/pharma-api/api/v1";
 const loginRes = await fetch(`${BASE}/auth/login`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ email: 'superadmin@pharmamarocgold.com', password: 'SuperAdmin_2026!' }),
+  body: JSON.stringify({ email: email, password: password }),
 });
 const loginData = await loginRes.json();
 const token = loginData.accessToken || loginData.data?.accessToken;

@@ -1,12 +1,12 @@
+import { requireIsolatedTestEnv } from "./scripts/test_env.mjs";
 import "dotenv/config";
 
-const BASE = process.env.EDGE_BASE || "https://lwepnnecnrqdzadesyqo.supabase.co/functions/v1/pharma-api";
-const EMAIL = process.env.SUPER_ADMIN_EMAIL;
-const PASSWORD = process.env.SUPER_ADMIN_PASSWORD;
+const { BASE: ORIGIN, email, password } = requireIsolatedTestEnv({ script: "_test_products_api.mjs", mutations: false });
+const BASE = ORIGIN + "/functions/v1/pharma-api";
 
 const loginRes = await fetch(`${BASE}/auth/login`, {
   method: "POST", headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ email: EMAIL, password: PASSWORD }),
+  body: JSON.stringify({ email: email, password: password }),
 });
 const login = await loginRes.json();
 const token = login?.data?.accessToken;

@@ -343,7 +343,7 @@ const DEFAULT_PHARMACY_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 /* Version unique de la fonction (routes /health et /). La version
    deploiee (2.1.0) ne porte pas les corrections de ce depot : le
    bump marque l'ecart jusqu'au prochain deploiement autorise. */
-const EDGE_VERSION = "2.5.0";
+const EDGE_VERSION = "2.5.1";
 
 function publicPharmacyId(req: Request): string {
   const hdr = req.headers.get("x-pharmacy-id");
@@ -4102,10 +4102,33 @@ Deno.serve(async (req) => {
   /* ===========================================================
      USERS — reset-password
      =========================================================== */
+  /* USERS — POST /users/:id/reset-password (admin réinitialise le mot de
+     passe d'un autre utilisateur). Nécessite users:edit. newPassword EST
+     requis (min. 8 caractères) : aucun mot de passe défaut n'est appliqué.
+     Action auditable (user_password_reset). */
   if (/^users\/[^/]+\/reset-password$/.test(path) && req.method === "POST") {
-    const userId = path.split("/")[1];
-    const { error } = await sb.auth.admin.updateUserById(userId, { password: (await req.json().catch(() => ({}))).newPassword ?? "reset123" });
+    const perm = await hasPermission(sb, req, "users:edit");
+    if (!perm.allowed) return json({ error: { code: "FORBIDDEN", message: "Permission users:edit requise" } }, 403);
+    const targetUserId = path.split("/")[1];
+    const body = await req.json().catch(() => ({}));
+    const newPassword = String((body as any)?.newPassword ?? "");
+    if (newPassword.length < 8)
+      return json({ error: { code: "VALIDATION", message: "newPassword requis (min. 8 caractères)" } }, 400);
+    const { error } = await sb.auth.admin.updateUserById(targetUserId, { password: newPassword });
     if (error) return json({ error: { code: "RESET_FAILED", message: error.message } }, 400);
+    const callerId = await currentUserId(req);
+    try {
+      await _logAction(sb, pid, {
+        action: "user_password_reset",
+        module: "auth",
+        entity: "users",
+        entityId: targetUserId,
+        performedBy: callerId,
+        req,
+      });
+    } catch (e) {
+      return json({ error: { code: "AUDIT_FAILED", message: String(e) } }, 500);
+    }
     return json({ data: { message: "Mot de passe réinitialisé" } });
   }
 
