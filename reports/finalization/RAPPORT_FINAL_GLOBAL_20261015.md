@@ -133,3 +133,60 @@ TPE (simulation explicite), OCR, Google OAuth (besoin identifiants), aperçu cam
 ---
 
 *Annexe produite le 16/10/2026. Aucun identifiant secret n'y figure.*
+
+---
+
+## ANNEXE SÉCURITÉ — 16/10/2026 — PROMPT « SÉCURITÉ » §1-§12
+
+**Commits :** séance sécurité = `a922147` (36 fichiers, +178 728 / −10 072), poussé → `origin/main = a922147` (confirmé par `git ls-remote`). Avant : `a2b7e9f`.
+**Edge :** `pharma-api` **2.5.1** déployée (`/health` live → `version:2.5.1`).
+**Web :** build `--no-wasm-dry-run` OK → CDN servi `index.html` stamp **`202610161146`** + `main.dart.js` **5 370 649 o** contenant le marqueur du correctif (vérifié sur `https://pharma-plus.github.io`, ancien texte absent).
+**Base de production :** contrôle final lecture seule — **8 ventes / 516,30 (inchangé), 0 vente test, 0 `sale_items` orphelin**. Aucune écriture mutante n'a été effectuée sur la prod.
+
+### A. TABLEAU DES STATUTS (vocabulaire imposé)
+
+| § | Objet | Statut | Preuves / motifs |
+|---|---|---|---|
+| §1 | Identifiants hardcodés (worktree) | **CONFIRMÉ** | Avant : `SuperAdmin_2026!` dans **13 fichiers trackés** + `backend/render.yaml` L37 (`SUPER_ADMIN_PASSWORD: value …`) ; après : **0 occurrence** (`git grep` des fichiers trackés vide), `render.yaml` → `sync: false`, `backend/.env` non tracké + `.gitignore` |
+| §1 | Identifiants dans l'historique Git | **CONFIRMÉ** (exposition constatée, historique **non réécrit** — interdit par le prompt) ; posture **À SURVEILLER** : **rotation du mot de passe superadmin** (exposé dans ≥5 commits publics : `99b06f0`, `4b16f51`, `eab1642`, `000ce85`, `49078bc`, `9b6d4f9`) | 0 PAT (`ghp_`) dans l'historique ; mécanisme de rotation : `POST /auth/change-password` ; consommateurs à recycler ensemble : `backend/.env`, secret GitHub `BACKUP_SUPER_ADMIN_PASSWORD`, Render, logins |
+| §2 | Tests sans identifiants hardcodés | **CONFIRMÉ** | 18 scripts + `scripts/probe-endpoints.mjs` transformés (lire `PHARMA_TEST_*`), `node --check` OK sur tous, plus aucune référence `SuperAdmin_2026!` / `superadmin@pharmamarocgold` dans les fichiers trackés |
+| §3 | Interdiction des tests mutants contre la prod | **CONFIRMÉ** (garde en place, 4 refus prouvés) | `backend/scripts/test_env.mjs` : `requireIsolatedTestEnv({mutations})` + denylist ref prod `lwepnnecnrqdzadesyqo` → **exit 3** ; refus exécutés (tous non-mutants, exit 3) : A) sans env (`_list_stock.mjs`) ; B) mutations sans `PHARMA_TEST_ALLOW_MUTATIONS="YES_NOT_PRODUCTION"` (`_test_pos_cycle.mjs`) ; C) env pointant la prod → « Aucune opération n'a été exécutée » ; D) opérations ops sans `PHARMA_OPS_CONFIRM_PROJECT` (`cleanup_test_sales.mjs --yes`, `_purge_test_products.mjs`) ; outils ops gardés mais `--yes` → `requireOpsConfirm` |
+| §3 | Exécution réelle des tests sur env isolé | **NON TESTÉ** | Aucun projet Supabase de TEST fourni ; prérequis documentés : projet test + `PHARMA_TEST_BASE_URL/ADMIN_EMAIL/ADMIN_PASSWORD` + `PHARMA_TEST_ALLOW_MUTATIONS` + `DATABASE_URL` de test |
+| §4 | IV AES-GCM fixe | **CONFIRMÉ** | `Math.random`/IV fixe remplacés par `randomBytes(12)` ; `backend/scripts/backup_crypto.mjs` (MAGIC `PHB1`, `encryptWith`/`decryptWith`/`sha256Hex`) importé par `backup_worker.mjs` ; **`backup_crypto.test.js` 10/10** (roundtrip, vecteur SHA-256 officiel, IV distincts, tamper, mauvaise clé, fixture IV fixe, scan source sans `Math.random`, `keyFrom` 32 B, magic requis) |
+| §5 | Preuve de restauration chiffré → clair | **CONFIRMÉ** (composantes) | `backup_worker.mjs --verify ebe021ad…` → « VÉRIFIÉ : déchiffré 2,53 Mo, SHA-256 identique » (avec le nouveau module) ; `--decrypt` → 2 657 692 o, SHA `5445484fcef8…` = checksum du job CI ✓ ; `pg_restore --list` **EXIT 0**, 1 163 objets dont 127 `TABLE DATA` (archive 08:26) ; dump en clair supprimé après épreuves |
+| §5 | Restauration complète dans une base **isolée** | **BLOQUÉ** | Service `postgresql-x64-18` local Stopped/Disabled, mot de passe scram local inconnu, Docker absent → **aucune base isolée disponible** ; procédure PowerShell exacte fournie sans secret (createdb isolé + `pg_restore --no-owner` + contrôles compte/ventes + `dropdb` de la base isolée) |
+| §6 | Faille `POST /users/:id/reset-password` | **CONFIRMÉ** (faille réelle → corrigée) | Avant : **aucune permission + fallback `reset123`** = prise de compte ; après (Edge **2.5.1**, déployée) : `hasPermission(users:edit)` + `newPassword` obligatoire ≥ 8 (400 sinon) + audit `user_password_reset` ; sondes **live non-mutantes** : 401 sans jeton, 400 body vide, 400 mdp court = tous PASS ; front aligné : `users_management_page.dart._resetPassword` → dialog « Nouveau mot de passe (min. 8) » + corps `{'newPassword': nv}` (au lieu d'un POST sans corps dépendant du défaut) |
+| §6 | Contrats de tests mis à jour | **CONFIRMÉ** | `p2_audit_log.test.js` 10→11 appels `_logAction` / 9→10 wrappés ; `p5_invoices_edge.test.js` pin `2.5.0`→`2.5.1` |
+| §7 | Non-régression backend | **CONFIRMÉ** | `node --experimental-test-module-mocks --test "test/*.test.js"` → **167 / 167** |
+| §7 | Non-régression front | **CONFIRMÉ** | `flutter analyze` **0** ; `flutter test` **52 / 52** ; `deno check` EXIT 0 |
+| §7 | Non-régression déploiements | **CONFIRMÉ** | Edge `/health` → `version:2.5.1` (route `/` protégée depuis toujours, pas une régression) ; CDN stamp `202610161146` + bundle au marqueur (voir en-tête) |
+| §7 | CI | **CONFIRMÉ** (état antérieur vert) ; **À SURVEILLER** : prochain run `backup-nightly` automatique après ce push | run `38824467953` tous steps `success`, job fraîche `ebe021ad…` verified (SHA `5445484fcef8…`) |
+| §8 | Hygiène Git / déploiement | **CONFIRMÉ** | Diff `a922147` sans secret (`SuperAdmin|ghp_|eyJhbGciOi|service_role` = 0 ajout), junk `renderer` racine supprimé, arbre propre, remote = local |
+| §8 | Push GitHub | **CONFIRMÉ** | Ancien PAT de la session précédente refusé (« Invalid username or token » = expiré/révoqué) puis nouveau PAT fourni par l'utilisateur → `a2b7e9f..a922147 main -> main`, `origin/main = a922147` ; **À SURVEILLER** : **révoquer ce PAT après usage** (il n'est stocké nulle part : ni fichier, ni commit, ni rapport) |
+| §9 | Aucune mutation de production | **CONFIRMÉ** | Refus `exit 3` avant toute écriture ; seules écritures de la séance : statut du job backup `verified→verified` (sans changement) + sessions d'auth de sondes ; contrôle final : 8 ventes / 516,30, 0 test, 0 orphelin |
+| §10 | Propreture des artefacts | **CONFIRMÉ** | Scripts temporaires de séance supprimés (`_guard_*.mjs`, `crypto_out.txt`, `build_web.ps1`, dump déchiffré) ; tâches planifiées de build/push nettoyées à la clôture |
+| §11 | Sauvegardes | **CONFIRMÉ** | Worker chiffré opérationnel (ci-dessus §5), CI nightly verte, fichiers trackés |
+| §12 | Transparence des résultats | **CONFIRMÉ** | Aucun résultat inventé ; chaque statut ci-dessus a une preuve exécutable relisible ; secrets jamais affichés (procès-verbaux de refus sans valeur) |
+
+**`ÉCHEC` : aucun poste.** La seule tentative en échec (ancien PAT refusé au push) a été tracée et résolue — le token obsolète n'a jamais été écrit dans un fichier.
+
+### B. Pourcentages honnêtes (critères du prompt §1-§12)
+
+- **≈ 95 % des critères exécutables : satisfaits avec preuve** (identifiants, garde de tests, IV crypto, faille reset-password, non-régression totale, déploiements Edge+web vérifiés, CI, Git, transparence).
+- **Reste (≈ 5 %), non exécutable sans action/prérequis utilisateur** : restauration complète `pg_restore` dans base isolée = **BLOQUÉ** (hôte isolé absent → procédure fournie) ; tests mutants réels = **NON TESTÉ** (projet de test absent) ; rotation du mot de passe superadmin = **À SURVEILLER** (action utilisateur, l'agent ne génère ni ne publie aucun secret) ; révocation du PAT de session = **À SURVEILLER** ; prochain run CI nightly = **À SURVEILLER**.
+
+### C. Critères d'acceptation → preuves
+
+| Critère | Preuve |
+|---|---|
+| 0 identifiant dans le code tracké | `git grep` vide sur `SuperAdmin_2026!` / `superadmin@pharmamarocgold` après commit `a922147` |
+| Aucun test mutante ne peut toucher la prod | 4 refus `exit 3` relisibles (scripts `_list_stock`, `_test_pos_cycle`, `_purge_test_products`, `cleanup_test_sales --yes`) |
+| Faille reset-password fermée en prod | Edge 2.5.1 + sondes 401/400/400 live + front aligné + bundle CDN au marqueur |
+| IV authentique par archive | `randomBytes(12)` + 10/10 tests crypto + `--verify` SHA identique sur artefact réel |
+| Restauration prouvée au moins une fois | déchiffrement live + `pg_restore --list` exit 0 (base isolée = **BLOQUÉ**, procédure fournie) |
+| Non-régression | 167/167 + 52/52 + analyze 0 + deno 0 + CDN vérifié |
+| Résultats honnêtes | statuts `CONFIRMÉ`/`ÉCHEC`/`BLOQUÉ`/`NON TESTÉ`/`À SURVEILLER` + % ci-dessus |
+
+---
+
+*Annexe sécurité produite le 16/10/2026. Aucun identifiant secret n'y figure.*
