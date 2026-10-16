@@ -33,7 +33,7 @@ test('factures : le 501 NOT_IMPLEMENTED périmé a disparu', () => {
     !/la table invoices n'existe pas en production/i.test(edge),
     'commentaire périmé supprimé',
   );
-  assert.ok(edge.includes('EDGE_VERSION = "2.5.4"'), 'version bumpée (2.5.4 — change-password vérifie le mdp actuel, révoque les sessions par id profil, audite)');
+  assert.ok(edge.includes('EDGE_VERSION = "2.5.5"'), 'version bumpée (2.5.5 — reset-password résout le sub Auth depuis le profil cible)');
 });
 
 test('factures : GET /invoices, /invoices/:id, /invoice-items servis', () => {

@@ -344,7 +344,7 @@ const DEFAULT_PHARMACY_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 /* Version unique de la fonction (routes /health et /). La version
    deploiee (2.1.0) ne porte pas les corrections de ce depot : le
    bump marque l'ecart jusqu'au prochain deploiement autorise. */
-const EDGE_VERSION = "2.5.4";
+const EDGE_VERSION = "2.5.5";
 
 function publicPharmacyId(req: Request): string {
   const hdr = req.headers.get("x-pharmacy-id");
@@ -4241,16 +4241,68 @@ Deno.serve(async (req) => {
      passe d'un autre utilisateur). Nécessite users:edit. newPassword EST
      requis (min. 8 caractères) : aucun mot de passe défaut n'est appliqué.
      Action auditable (user_password_reset). */
-  if (/^users\/[^/]+\/reset-password$/.test(path) && req.method === "POST") {
+    if (/^users\/[^/]+\/reset-password$/.test(path) && req.method === "POST") {
     const perm = await hasPermission(sb, req, "users:edit");
     if (!perm.allowed) return json({ error: { code: "FORBIDDEN", message: "Permission users:edit requise" } }, 403);
     const targetUserId = path.split("/")[1];
+    if (!UUID_RE.test(targetUserId))
+      return json({ error: { code: "VALIDATION", message: "id utilisateur invalide" } }, 400);
     const body = await req.json().catch(() => ({}));
     const newPassword = String((body as any)?.newPassword ?? "");
     if (newPassword.length < 8)
       return json({ error: { code: "VALIDATION", message: "newPassword requis (min. 8 caractères)" } }, 400);
-    const { error } = await sb.auth.admin.updateUserById(targetUserId, { password: newPassword });
+    /* La cible (front : liste Paramètres / Gestion des utilisateurs) est
+       l'id PROFIL public.users, or Supabase Auth attend le sub
+       auth.users.id : sans resolution, updateUserById repond "User not found"
+       (rapporte en production). Resolution par email, meme mapprovisionnement
+       que auth/provision — sans elle, aucun reset de compte ancien ne peut
+       reussir. */
+    const { data: targetProfile, error: tpErr } = await sb
+      .from("users")
+      .select("id, email")
+      .eq("id", targetUserId)
+      .maybeSingle();
+    if (tpErr)
+      return json({ error: { code: "RESET_FAILED", message: tpErr.message } }, 400);
+    if (!targetProfile?.email)
+      return json({ error: { code: "NOT_FOUND", message: "Utilisateur absent de public.users" } }, 404);
+    const targetEmail = String(targetProfile.email).toLowerCase();
+    const { data: authList, error: listErr } = await sb.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    if (listErr)
+      return json({ error: { code: "RESET_FAILED", message: listErr.message } }, 400);
+    const authId = (authList?.users ?? [])
+      .find((x: any) => String(x.email ?? "").toLowerCase() === targetEmail)?.id ?? null;
+    if (!authId)
+      return json({ error: { code: "NOT_FOUND", message: "Compte Auth introuvable pour cet utilisateur" } }, 404);
+    const { error } = await sb.auth.admin.updateUserById(authId, { password: newPassword });
     if (error) return json({ error: { code: "RESET_FAILED", message: error.message } }, 400);
+    /* Rotation : sessions applicatives (id profil) ET sessions Auth de la
+       cible revoquees — la nouvelle valeur s'impose des la reconnexion. */
+    try {
+      await sb
+        .from("user_sessions")
+        .update({ revoked_at: new Date().toISOString() })
+        .eq("user_id", targetUserId)
+        .is("revoked_at", null);
+    } catch (e) {
+      console.error("[reset-password] revoke user_sessions:", String(e));
+    }
+    try {
+      const gout = await fetch(
+        `${supabaseUrl}/auth/v1/admin/users/${authId}/sessions`,
+        {
+          method: "DELETE",
+          headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+        },
+      );
+      if (!gout.ok)
+        console.error("[reset-password] deleteSessions HTTP", gout.status);
+    } catch (e) {
+      console.error("[reset-password] deleteSessions:", String(e));
+    }
     const callerId = await currentUserId(req);
     try {
       await _logAction(sb, pid, {

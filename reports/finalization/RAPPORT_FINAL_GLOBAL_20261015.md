@@ -462,7 +462,7 @@ Sans `PHARMA_OPS_CONFIRM_PROJECT` (env effacée avant chaque exécution), aucun 
 ### §11 - Secret-scan final
 
 - `git diff HEAD` (4 fichiers modifiés) : aucun motif sensible (`Teste142003|SuperAdmin_2026|ChangeMe_123|ghp_|insecure-backup-key|URL pg avec identifiants`).
-- Arbre tracké modifié : propre. Fichiers non trackés : 11 fichiers `backend/_*.mjs` (reliques de campagnes antérieures, hors commit, à purger par décision).
+- Arbre tracké modifié : propre. Fichiers non trackés : 58 fichiers `backend/_*.mjs` (reliques de campagnes antérieures, hors commit, à purger par décision ; les 3 fichiers `_*_test.mjs` qui falsifiaient le glob `node --test` ont été supprimés le 16/10).
 
 ### BLOQUÉ - ACTION HUMAINE REQUISE (liste exacte)
 
@@ -471,9 +471,38 @@ Sans `PHARMA_OPS_CONFIRM_PROJECT` (env effacée avant chaque exécution), aucun 
 3. **§2 Suite de la rotation - propriétaire** : utiliser le fichier de livraison puis le supprimer (cf. §2).
 4. **Rotation du compte propriétaire `superadmin@pharmamarocgold.com`** : mot de passe historiquement exposé, compte aujourd'hui `inactive` (état recommandé : le conserver inactif tant qu'un choix de propriétaire n'est pas fait ; s'il doit être réactivé, le mot de passe doit être pivoté en premier).
 5. **§8 Suppression des 2 comptes Auth sans profil** `doc.test@pharma-demo.ma` et `doc.test1791449625778@pharma-demo.ma` (destructif).
-6. **Purge des 11 fichiers `backend/_*.mjs`** non trackés (ou ajout d'une règle `.gitignore`) - choix de forme, sans impact de sécurité.
+6. **Purge des 58 fichiers `backend/_*.mjs`** non trackés (ou ajout d'une règle `.gitignore`) - choix de forme, sans impact de sécurité.
 
 ### NON TESTÉ
 
 - Restauration depuis le dashboard/la console Render (aucun accès) : seuls la restauration locale et la vérification CI ont été réalisées.
 - Réécriture de l'historique git et revue des routes sous mutants réels : interdit/indisponible dans cette séance.
+- `npm run lint` (eslint) : NON EXÉCUTÉ - `eslint` absent de l'installation (`node_modules/.bin/eslint.cmd` inexistant), constat préexistant, aucun lint exécuté dans les séances antérieures.
+
+---
+
+## ANNEXE 4 - 2026-10-16 : correctif Edge 2.5.5 (bug « User not found » du reset de mot de passe)
+
+**Signalement** : après la rotation §2, l'utilisateur final recevait « User not found » lors du changement de mot de passe depuis Paramètres (liste des comptes, icône « Réinitialiser ») ou Gestion des utilisateurs.
+
+**Cause** : `POST /users/:id/reset-password` transmettait l'**id profil** (`public.users.id`, fourni par le front) à `sb.auth.admin.updateUserById`, qui attend le **sub Auth** (`auth.users.id`) -> GoTrue répond 404 « User not found », message brut réinjecté dans la réponse (`RESET_FAILED`). Même famille de bug d'identifiant que le §2 (profil vs sub), non couverte par les épreuves §2 (qui exerçaient `/auth/change-password` via `authSubId`). Cas réel : `admin@pharma.ma` (profil `edc15f97-...` != sub `74e5b6f5-...`).
+
+**Correctif (2.5.5)** :
+- validation UUID de la cible -> 400 « id utilisateur invalide » ;
+- chargement du profil -> 404 « Utilisateur absent de public.users » ;
+- résolution profil -> compte Auth **par email** via `listUsers` (même approche que la route `auth/provision`) -> 404 « Compte Auth introuvable pour cet utilisateur » si absent ;
+- `updateUserById(authId, ...)` avec le bon identifiant ;
+- révocation des sessions applicatives (id profil) ET sessions Auth de la cible après rotation ;
+- audit `user_password_reset` inchangé (entité = id profil, acteur = appelant).
+
+**Déploiement** : `deno check` EXIT 0 ; `npx supabase functions deploy pharma-api` EXIT 0 (« Deployed Functions. ») ; `/health` = **2.5.5**, db connected (2026-10-16T21:51:35Z).
+
+**Épreuves (2026-10-16 ~21:55Z)** :
+- reset sur cobaye `h.oujnine@gmail.com` (profil `1f15e9ba-...`) -> **200 « Mot de passe réinitialisé »** (impossible avant correctif : « User not found ») ;
+- reconnexion de la cible avec le nouveau secret -> **403 ACCOUNT_INACTIVE** (compte de test inactif : le mot de passe EST accepté, sinon 401 « credentials invalides ») ;
+- `GET /audit` -> entrée `user_password_reset` à 21:55:06Z, acteur `admin@pharma.ma` ;
+- négatifs : profil inexistant -> **404 français** (fini « User not found ») ; id non-UUID -> **400 français** ;
+- compte `admin@pharma.ma` intact (relogin 200 avec le secret du fichier de livraison, aucun changement sur ce compte) ;
+- suite backend `node --experimental-test-module-mocks --test` -> **180/180** (EXIT 0), pins `EDGE_VERSION = "2.5.5"` mis à jour dans p5/p6.
+
+**Statuts § mis à jour** : §9 **TERMINÉ ET VÉRIFIÉ** (180/180, /health 2.5.5, front inchangé - 52/52 et `flutter analyze` 0 du 15/10 toujours valides) ; §13 **TERMINÉ ET VÉRIFIÉ** (annexes 1-4). Aucun secret présent dans ce rapport (motifs committés inchangés : aucun mdp, PAT, clé ou URL avec identifiants).

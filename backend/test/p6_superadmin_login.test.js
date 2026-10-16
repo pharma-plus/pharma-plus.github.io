@@ -207,9 +207,9 @@ test('__diag : superadmin vérifié côté serveur, plus settings:edit', () => {
 
 /* ---------------- §2/§9 : rotation du mot de passe ---------------- */
 
-test('version déploiement = 2.5.4', () => {
-  assert.ok(edge.includes('EDGE_VERSION = "2.5.4"'),
-    'bump 2.5.4 (change-password durci + id profil pour sessions/audit)');
+test('version déploiement = 2.5.5', () => {
+  assert.ok(edge.includes('EDGE_VERSION = "2.5.5"'),
+    'bump 2.5.5 (reset-password résout id profil → sub Auth par email, révoque sessions cible)');
 });
 
 test('change-password : mot de passe actuel vérifié, sessions révoquées, audité', () => {
