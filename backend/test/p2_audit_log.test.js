@@ -66,13 +66,14 @@ test('audit : user_id valide (uuid) ou null, jamais "unknown"', () => {
   assert.ok(!helper.includes("'unknown'") && !helper.includes('"unknown"'));
 });
 
-test('audit : 10 routes + 1 delegation, tous les echecs visibles', () => {
+test('audit : 11 routes + 1 delegation, tous les echecs visibles', () => {
   const calls = [...edge.matchAll(/_logAction\(sb, pid, \{/g)];
-  // 10 routes (auth/lock, medications POST, medication_update,
+  // 11 routes (auth/lock, medications POST, medication_update,
   // suppliers POST, supplier_update, stock_adjust, user_switched,
-  // user_pin_set, user_pin_cleared, user_password_reset)
+  // user_pin_set, user_pin_cleared, user_password_reset,
+  // user_password_changed [change-password durci 2.5.3])
   // + 1 delegation (auditAttendance).
-  assert.equal(calls.length, 11, `11 appels _logAction attendus (10 routes + auditAttendance), trouves ${calls.length}`);
+  assert.equal(calls.length, 12, `12 appels _logAction attendus (11 routes + auditAttendance), trouves ${calls.length}`);
 
   let idx = 0;
   let wrapped = 0;
@@ -90,7 +91,7 @@ test('audit : 10 routes + 1 delegation, tous les echecs visibles', () => {
   // Seule la delegation auditAttendance n'est pas wrappée ici : son
   // erreur remonte via le helper (throw) et les routes appeleuses
   // sont deja protegees.
-  assert.equal(wrapped, 10, `10 appels proteges par try/catch attendus, trouves ${wrapped}`);
+  assert.equal(wrapped, 11, `11 appels proteges par try/catch attendus, trouves ${wrapped}`);
 });
 
 test('audit : plus aucune ecriture avec le contrat ancien', () => {

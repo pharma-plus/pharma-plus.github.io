@@ -204,3 +204,46 @@ test('__diag : superadmin vérifié côté serveur, plus settings:edit', () => {
   assert.match(helperBlock, /is_super_admin === true/, 'flag base strict');
   assert.match(helperBlock, /u\.status !== "active"/, 'compte actif exigé');
 });
+
+/* ---------------- §2/§9 : rotation du mot de passe ---------------- */
+
+test('version déploiement = 2.5.4', () => {
+  assert.ok(edge.includes('EDGE_VERSION = "2.5.4"'),
+    'bump 2.5.4 (change-password durci + id profil pour sessions/audit)');
+});
+
+test('change-password : mot de passe actuel vérifié, sessions révoquées, audité', () => {
+  const cpStart = edge.indexOf('path === "auth/change-password"');
+  assert.ok(cpStart > 0, 'route auth/change-password trouvée');
+  const cpBlock = edge.slice(cpStart, cpStart + 4500);
+  // Le jeton seul ne suffit plus : il faut prouver le secret actuel.
+  assert.match(cpBlock, /currentPassword/, 'currentPassword lu du corps');
+  assert.match(cpBlock, /if \(!cur\)/, 'refus 400 sans currentPassword');
+  assert.match(cpBlock, /signInWithPassword\(\{/, 'vérification réelle via Supabase Auth');
+  assert.match(cpBlock, /INVALID_PASSWORD/, 'code de refus explicite');
+  assert.match(cpBlock, /\},\s*401,\s*\);/, '401 si mdp actuel faux');
+  assert.ok(cpBlock.indexOf('signInWithPassword') < cpBlock.indexOf('updateUserById'),
+    'la vérification précède toute mise à jour');
+  // Rotation : révocation applicative + sessions de rafraîchissement + audit.
+  assert.match(cpBlock, /\.from\("user_sessions"\)\s*\.update\(\{\s*revoked_at:/,
+    'sessions applicatives révoquées');
+  assert.ok(cpBlock.indexOf('currentUserId(req)') > 0,
+    'résolution de l\u0027id profil (user_sessions/audit_logs sont sur public.users.id)');
+  assert.match(cpBlock, /\.eq\("user_id",\s*profileId \?\? userId\)/,
+    'révocation par id profil (jamais le sub Auth)');
+  assert.match(cpBlock, /performedBy:\s*profileId \?\? userId/,
+    'audit rattaché à l\u0027id profil (FK public.users)');
+  assert.match(cpBlock, /\/auth\/v1\/admin\/users\/\$\{userId\}\/sessions/,
+    'sessions GoTrue supprimées (API admin)');
+  assert.match(cpBlock, /method: "DELETE"/, 'méthode DELETE sur les sessions');
+  assert.match(cpBlock, /user_password_changed/, 'audit de rotation');
+  // Route NON publique : jamais sans session active.
+  const pubStart = edge.indexOf('const PUBLIC_PATHS');
+  const pubBlock = edge.slice(pubStart, pubStart + 160);
+  assert.ok(!pubBlock.includes('change-password'),
+    'change-password hors PUBLIC_PATHS (session active requise)');
+  // Le front envoie déjà currentPassword (settings_page.dart) : pas de rupture.
+  const front = readRel('../../frontend/lib/features/settings/settings_page.dart');
+  assert.match(front, /'currentPassword': _cur\.text/,
+    'front envoie bien currentPassword');
+});

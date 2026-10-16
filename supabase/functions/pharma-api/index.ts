@@ -344,7 +344,7 @@ const DEFAULT_PHARMACY_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 /* Version unique de la fonction (routes /health et /). La version
    deploiee (2.1.0) ne porte pas les corrections de ce depot : le
    bump marque l'ecart jusqu'au prochain deploiement autorise. */
-const EDGE_VERSION = "2.5.2";
+const EDGE_VERSION = "2.5.4";
 
 function publicPharmacyId(req: Request): string {
   const hdr = req.headers.get("x-pharmacy-id");
@@ -2540,16 +2540,109 @@ Deno.serve(async (req) => {
     if (req.method !== "POST")
       return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
     const body = await req.json().catch(() => ({}));
-    const { newPassword } = body as any;
+    const { currentPassword, newPassword } = body as any;
     const userId = await authSubId(req);
-    if (!userId || !newPassword)
-      return json({ error: { code: "VALIDATION" } }, 400);
+    if (!userId)
+      return json(
+        { error: { code: "UNAUTHORIZED", message: "Session requise" } },
+        401,
+      );
+    /* Les tables applicatives (user_sessions, audit_logs.user_id) sont
+       référencées par l'id PROFIL (public.users.id), pas par le sub Auth :
+       tous les autres cheminements du fichier utilisent currentUserId(req). */
+    const profileId = await currentUserId(req);
+    const np = String(newPassword ?? "");
+    if (np.length < 8)
+      return json(
+        {
+          error: {
+            code: "VALIDATION",
+            message: "newPassword requis (min. 8 caractères)",
+          },
+        },
+        400,
+      );
+    /* Mot de passe ACTUEL exigé puis vérifié auprès de Supabase Auth :
+       un jeton volé ne suffit plus pour faire pivoter le secret
+       (prompt §2/§9 — le front envoie déjà ce champ). */
+    const cur = String(currentPassword ?? "");
+    if (!cur)
+      return json(
+        {
+          error: {
+            code: "VALIDATION",
+            message: "currentPassword requis",
+          },
+        },
+        400,
+      );
+    const { data: gu, error: gerr } = await sb.auth.admin.getUserById(userId);
+    if (gerr || !gu?.user?.email)
+      return json(
+        { error: { code: "NOT_FOUND", message: "Compte Auth introuvable" } },
+        404,
+      );
+    const { error: verr } = await sbAuth.auth.signInWithPassword({
+      email: gu.user.email,
+      password: cur,
+    });
+    if (verr)
+      return json(
+        {
+          error: {
+            code: "INVALID_PASSWORD",
+            message: "Mot de passe actuel incorrect",
+          },
+        },
+        401,
+      );
     const { error } = await sb.auth.admin.updateUserById(userId, {
-      password: newPassword,
+      password: np,
     });
     if (error)
       return json({ error: { code: "UPDATE_FAILED", message: error.message } }, 400);
-    return json({ data: { message: "Mot de passe mis à jour" } });
+    /* Rotation : sessions applicatives (revoked_at) ET sessions de
+       rafraîchissement (auth.sessions) révoquées — reconnexion exigée. */
+    try {
+      await sb
+        .from("user_sessions")
+        .update({ revoked_at: new Date().toISOString() })
+        .eq("user_id", profileId ?? userId)
+        .is("revoked_at", null);
+    } catch (e) {
+      console.error("[change-password] revoke user_sessions:", String(e));
+    }
+    try {
+      const gout = await fetch(
+        `${supabaseUrl}/auth/v1/admin/users/${userId}/sessions`,
+        {
+          method: "DELETE",
+          headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+        },
+      );
+      if (!gout.ok)
+        console.error("[change-password] deleteSessions HTTP", gout.status);
+    } catch (e) {
+      console.error("[change-password] deleteSessions:", String(e));
+    }
+    try {
+      await _logAction(sb, pid, {
+        action: "user_password_changed",
+        module: "auth",
+        entity: "users",
+        entityId: profileId ?? userId,
+        performedBy: profileId ?? userId,
+        req,
+      });
+    } catch (e) {
+      return json(
+        { error: { code: "AUDIT_FAILED", message: String((e as any)?.message ?? e) } },
+        500,
+      );
+    }
+    return json({
+      data: { message: "Mot de passe mis à jour — reconnectez-vous" },
+    });
   }
 
   /* ===========================================================
