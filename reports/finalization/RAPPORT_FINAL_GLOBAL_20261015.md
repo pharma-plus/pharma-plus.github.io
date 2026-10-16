@@ -261,7 +261,7 @@ Sondes **non mutantes** contre la prod (mot de passe fourni par l'utilisateur en
 | `backend/scripts/reset-password.mjs` | sans garde + colonne `deleted_at` inexistante | `requireOpsConfirm` avant UPDATE, colonne morte retirée (le script était cassé en l'état) |
 | `backend/tmp_create_superadmin.mjs` | outil de production d'un superadmin sans garde (désactivait la 2FA) | **supprimé du dépôt** (`git rm`) |
 | Scan du diff + fichiers nouveaux | — | listes de motifs interdits (mots de passe de séance, jetons `ghp_`, en-têtes `eyJ…`, `service_role`, anciens comptes de secours) = **0 ajout** (seul ajout potentiel = une mention du nom de l'ancienne clé en commentaire → reformulée) |
-| Mot de passe propriétaire | fourni en session | **jamais écrit** : `git log -S` = 0 occurrence, absent des fichiers trackés |
+| Mot de passe propriétaire | fourni en session | absent des fichiers et des diffs (`git log -S` = 0, `git grep` = 0) — **voir Erratum** : literal recopié dans le **message de commit `2a1e901`** (poussé) → **rotation exigée** |
 
 ### §5 — `__diag` soumis au superadmin (CONFIRMÉ)
 
@@ -358,7 +358,7 @@ Sans `PHARMA_OPS_CONFIRM_PROJECT` (env effacée avant chaque exécution), aucun 
 
 ### Engagements restants côté propriétaire (liste à actionner)
 
-1. **Rotation** du mot de passe de `superadmin@pharmamarocgold.com` (l'ancien exposé fonctionne toujours ; le compte n'a plus aucun privilège) — via l'UI de gestion des utilisateurs.
+1. **Rotation URGENTE du mot de passe de `admin@pharma.ma`** (divulgué dans le message de commit `2a1e901` — voir Erratum) **et de l'ancien mot de passe de `superadmin@pharmamarocgold.com`** (toujours valide, §2/§7) — depuis l'application ; l'agent ne génère ni n'affiche aucune valeur.
 2. **Révocation** du PAT de session (GitHub → Developer settings → Personal access tokens → Delete).
 3. **Dashboard Render** : renseigner `BACKUP_ENCRYPTION_KEY` (même valeur que le secret GitHub) avant le prochain démarrage/déploiement.
 4. **Restauration** : suivre la procédure §8 sur un hôte isolé dès qu'il est disponible.
@@ -367,3 +367,20 @@ Sans `PHARMA_OPS_CONFIRM_PROJECT` (env effacée avant chaque exécution), aucun 
 ---
 
 *Annexe 2 ajoutée le 16/10/2026. Aucun identifiant secret n'y figure.*
+
+---
+
+### Erratum de séance (16/10/2026, ~16:15 UTC) — divulgation dans un message de commit
+
+**Constat** : le mot de passe actuel du propriétaire (transmis en session) a été recopié **dans la liste de motifs du message de commit `2a1e901`** — le message énumérait littéralement les chaînes scannées, y compris celle-ci. Les contenus de fichiers et les diffs restent **propres** (`git log -S` = 0, `git grep` = 0, annexe 2 nettoyée avant push) ; le **message de commit, lui, est poussé sur GitHub**.
+
+**Conséquence** : ce mot de passe doit être considéré comme **exposé** au même titre que l'ancien (§2/§7) → **rotation prioritaire** (engagement n° 1 de la liste propriétaire ci-dessus).
+
+**Prises de position** :
+1. L'agent n'a **pas réécrit l'historique** : amend/force-push exigeraient une demande explicite du propriétaire (règle de séance). Une fois le mot de passe changé, l'exposition devient sans effet — c'est la remédiation recommandée.
+2. Alternative, **à la demande expresse du propriétaire uniquement** : réécriture des messages des commits `2a1e901` et `0174d77` + force-push (les SHA changeraient).
+3. **Leçon de procédure** : ne jamais placer de motif littéral sensible dans un message de commit ; le scan de contenu reste exigé, mais ses motifs doivent rester génériques dans le message.
+
+---
+
+*Erratum ajouté le 16/10/2026 — aucune valeur secrète n'y figure (l'exposition est décrite, pas reproduite).*
