@@ -686,7 +686,8 @@ Exécution dans l'ordre demandé, avec statuts réels. Aucun secret dans cette a
 ### Étape 7 — CI de tests bloquants : **CRÉÉE**
 
 - `.github/workflows/ci.yml` (push `main` + `pull_request`), 3 jobs bloquants : **backend** (`npm ci` + `npm test`, Node 24), **edge** (`deno check supabase/functions/pharma-api/index.ts`), **flutter** (`flutter analyze` + `flutter test`).
-- Aucun secret requis (tests autonomes : vérifié **0 `process.env`** dans la suite). Vert en local : `npm test` exit 0, `deno check` exit 0, `flutter test` 52/52. `npm run lint` volontairement exclu (eslint absent de l'installation, constat préexistant annexe 7). Vérification du run GitHub après poussée.
+- Aucun secret requis (tests autonomes : vérifié **0 `process.env`** dans la suite). Vert en local : `npm test` exit 0, `deno check` exit 0, `flutter test` 52/52. `npm run lint` volontairement exclu (eslint absent de l'installation, constat préexistant annexe 7).
+- **1er run rouge → corrigé, run suivant VERT (3/3)** : backend échouait sans `.env` (`JWT_SECRET` exigé par `src/config/index.js`) → env de **tests factices** ajoutés au workflow (`JWT_SECRET`, `BACKUP_ENCRYPTION_KEY` — valeurs de test, aucun secret réel) ; Flutter signalait **1 lint réel** (`unawaited_return_in_try_block`, SDK CI 3.47.7 plus strict que le SDK local) sur `api_client.dart:232` (retry 401 retourné sans `await` dans un `try`) → **corrigé par `await`** (le `try/catch` couvre désormais la récursion), analyze local0, tests52/52. Run validé : **Edge success, Backend success, Flutter success**.
 
 ### Étape 8 — Restauration serveur isolé : **RÉUSSIE (locale) / distant toujours BLOQUÉ**
 
@@ -709,9 +710,11 @@ Exécution dans l'ordre demandé, avec statuts réels. Aucun secret dans cette a
 |---|---|
 | `npm test` (187 tests) | **exit 0** |
 | `deno check` (Edge) | **exit 0** |
+| CI GitHub (3 jobs bloquants) | **VERT 3/3** (run du 17/10 après fix env + lint) |
 | Sauvegarde fraîche `--verify` | **SHA-256 identique** |
 | Restauration isolée locale | **réelle, 0 erreur de données** |
 | Stock de test | **50/50/50 restauré** |
+| Web déployé (post fix lint) | **`main.202610171532.dart.js`**, stamp `?v=202610171532` |
 
 ### Reste bloqué — action humaine (inchangé)
 
