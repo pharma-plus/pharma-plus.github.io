@@ -27,6 +27,10 @@ class _StockPageState extends State<StockPage> {
   bool _loading = true;
   String? _error;
   String? _alertFilter; // null | expired | expiring | low
+  // Totaux du stock (encart) : valeur de vente (même base que /reports/stock
+  // : quantité > 0 × price_sale) et quantité totale disponible.
+  double _totalValue = 0;
+  double _totalQty = 0;
 
   @override
   void initState() {
@@ -97,15 +101,24 @@ class _StockPageState extends State<StockPage> {
       }
     }
 
-    // 3. Calculer available = quantity - reserved
+    // 3. Calculer available = quantity - reserved + totaux de l'encart
+    double totalQty = 0;
+    double totalValue = 0;
     for (final row in rows) {
       final qty = (row['quantity'] as num?)?.toDouble() ?? 0;
       final reserved = (row['reserved_quantity'] as num?)?.toDouble() ?? 0;
-      row['available'] = qty - reserved;
+      final available = qty - reserved;
+      row['available'] = available;
+      if (available > 0) {
+        totalQty += available;
+        totalValue += available * _number(row['price_sale']);
+      }
     }
 
     setState(() {
       _items = rows;
+      _totalQty = totalQty;
+      _totalValue = totalValue;
       _loading = false;
     });
   }
@@ -392,6 +405,65 @@ class _StockPageState extends State<StockPage> {
               ),
             ),
           ),
+          // Encart totaux : valeur totale du stock + quantité totale.
+          if (!_loading && _error == null && _items.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+              child: GlassCard(
+                radius: BorderRadius.circular(16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Row(
+                  children: [
+                    const Icon(Icons.sell_outlined,
+                        size: 18, color: AppColors.pharmaGold),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(S.t('stockValue', locale),
+                              style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.pharmaMuted)),
+                          Text('${Fmt.money(_totalValue)} MAD',
+                              style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.pharmaText)),
+                        ],
+                      ),
+                    ),
+                    Container(
+                        width: 1,
+                        height: 30,
+                        color: AppColors.goldBorder),
+                    const SizedBox(width: 12),
+                    const Icon(Icons.storage_outlined,
+                        size: 18, color: AppColors.emerald),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(S.t('stockQtyTotal', locale),
+                              style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.pharmaMuted)),
+                          Text('${Fmt.number(_totalQty)} u.',
+                              style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.pharmaText)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           SizedBox(
             height: 48,
             child: ListView(

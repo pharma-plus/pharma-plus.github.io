@@ -344,7 +344,7 @@ const DEFAULT_PHARMACY_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 /* Version unique de la fonction (routes /health et /). La version
    deploiee (2.1.0) ne porte pas les corrections de ce depot : le
    bump marque l'ecart jusqu'au prochain deploiement autorise. */
-const EDGE_VERSION = "2.5.7";
+const EDGE_VERSION = "2.5.8";
 
 function publicPharmacyId(req: Request): string {
   const hdr = req.headers.get("x-pharmacy-id");
@@ -1200,17 +1200,25 @@ async function proxyToTable(
 
   // CRITICAL: Add pharmacy_id filter to ALL GET requests for tenant isolation
   const method = req.method;
-  if (method === "GET" && table !== "pharmacies" && table !== "roles") {
-    targetUrl.searchParams.set("pharmacy_id", `eq.${pid}`);
-  }
-  // Tenant isolation also on UPDATE/DELETE (uuid lookup): jamais d'ecriture
-  // cross-tenant par id. Tables globales (sans colonne pharmacy_id) exclues.
+  // Tables globales (sans colonne pharmacy_id) : ni GET ni ecriture filtree.
+  // Le filtre GET applique a ces tables renvoyait 42703 (colonne inexistante)
+  // — fix 2.5.8 : /permissions et /role_permissions redeviennent lisibles.
   const GLOBAL_TABLES = new Set([
     "pharmacies", "permissions", "role_permissions", "app_settings",
     "cities", "countries", "medication_equivalents", "reference_categories",
     "reference_product_provenance", "reference_product_updates",
     "reference_products", "reference_sync_runs", "update_releases",
   ]);
+  if (
+    method === "GET" &&
+    !GLOBAL_TABLES.has(table) &&
+    table !== "pharmacies" &&
+    table !== "roles"
+  ) {
+    targetUrl.searchParams.set("pharmacy_id", `eq.${pid}`);
+  }
+  // Tenant isolation also on UPDATE/DELETE (uuid lookup): jamais d'ecriture
+  // cross-tenant par id. Tables globales (sans colonne pharmacy_id) exclues.
   // Une table est isolee si elle porte pharmacy_id (toutes sauf globales,
   // pharmacies et roles qui suivent la logique de GET ci-dessus).
   const HAS_PHARMACY =
@@ -2140,6 +2148,21 @@ Deno.serve(async (req) => {
             { error: { code: "UPDATE_FAILED", message: upErr.message } },
             400,
           );
+        /* Désactivation/verrouillage (fix 2.5.8) : révocation IMMÉDIATE de
+           toutes les sessions actives du compte — un compte passé inactive
+           ne conserve aucun accès (l'ancien access/refresh token est rejeté
+           par le gate user_sessions dès la prochaine requête). */
+        if (patch.status !== undefined && patch.status !== "active") {
+          try {
+            await sb
+              .from("user_sessions")
+              .update({ revoked_at: new Date().toISOString() })
+              .eq("user_id", targetId)
+              .is("revoked_at", null);
+          } catch (e) {
+            console.error("[users] revoke sessions (PUT):", String(e));
+          }
+        }
       }
       return json({ data: { id: targetId, ...patch } });
     }
@@ -2153,6 +2176,16 @@ Deno.serve(async (req) => {
           { error: { code: "DELETE_FAILED", message: delErr.message } },
           400,
         );
+      /* Suppression douce (fix 2.5.8) : même révocation que PUT status. */
+      try {
+        await sb
+          .from("user_sessions")
+          .update({ revoked_at: new Date().toISOString() })
+          .eq("user_id", targetId)
+          .is("revoked_at", null);
+      } catch (e) {
+        console.error("[users] revoke sessions (DELETE):", String(e));
+      }
       return json({ data: { id: targetId, status: "inactive" } });
     }
     return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
@@ -2169,6 +2202,49 @@ Deno.serve(async (req) => {
     const { data, error } = await sbAuth.auth.refreshSession({ refresh_token: rt });
     if (error)
       return json({ error: { code: "REFRESH_FAILED", message: error.message } }, 401);
+    /* REFUS CONTRÔLÉ (fix 2.5.8) : le profil applicatif est vérifié AVANT
+       toute rotation. Pas de profil ou compte non actif => la session est
+       révoquée immédiatement : un compte désactivé/supprimé ne peut plus
+       prolonger son accès par refresh (aucun retour en arrière possible :
+       la branche d'insertion de session ci-dessous n'est jamais atteinte). */
+    const email = data.session?.user?.email ?? "";
+    const { data: profile } = await sb
+      .from("users")
+      .select(
+        "id, pharmacy_id, branch_id, role_id, first_name, last_name, email, username, phone, is_super_admin, status",
+      )
+      .ilike("email", email)
+      .maybeSingle();
+    if (!profile || profile.status !== "active") {
+      try {
+        await sb
+          .from("user_sessions")
+          .update({ revoked_at: new Date().toISOString() })
+          .eq("refresh_token_hash", await sha256Hex(String(rt)))
+          .is("revoked_at", null);
+      } catch (e) {
+        console.error("[refresh] revoke refused:", String(e));
+      }
+      if (!profile)
+        return json(
+          {
+            error: {
+              code: "PROFILE_MISSING",
+              message: "Profil applicatif introuvable — accès refusé",
+            },
+          },
+          401,
+        );
+      return json(
+        {
+          error: {
+            code: "ACCOUNT_INACTIVE",
+            message: "Compte désactivé — contactez l'administrateur",
+          },
+        },
+        403,
+      );
+    }
     /* Rotation de session : les hashes suivent les nouveaux tokens
        (sinon le controle de session rejetterait le client apres refresh). */
     try {
@@ -2187,14 +2263,9 @@ Deno.serve(async (req) => {
         .select("id");
       if (!rotated?.length) {
         // Session non tracee (login anterieur) : on la trace maintenant.
-        const { data: prof } = await sb
-          .from("users")
-          .select("id, pharmacy_id")
-          .ilike("email", String(data.session?.user?.email ?? "").toLowerCase())
-          .maybeSingle();
         await sb.from("user_sessions").insert({
-          user_id: prof?.id ?? data.session?.user?.id,
-          pharmacy_id: prof?.pharmacy_id ?? pid,
+          user_id: profile.id,
+          pharmacy_id: profile.pharmacy_id ?? pid,
           access_token_hash: newAccess,
           refresh_token_hash: newRefresh,
           device_name: req.headers.get("user-agent")?.slice(0, 120) ?? "App",
@@ -2205,27 +2276,12 @@ Deno.serve(async (req) => {
     } catch (e) {
       console.error("[refresh] session rotate:", String(e));
     }
-    const email = data.session?.user?.email ?? "";
-    const { data: profile } = await sb
-      .from("users")
-      .select(
-        "id, pharmacy_id, branch_id, role_id, first_name, last_name, email, username, phone, is_super_admin",
-      )
-      .ilike("email", email)
-      .maybeSingle();
-    const user = profile ? await enrichProfile(sb, profile) : null;
+    const user = await enrichProfile(sb, profile);
     return json({
       data: {
         accessToken: data.session?.access_token,
         refreshToken: data.session?.refresh_token,
-        user: user ?? {
-          email,
-          id: data.session?.user?.id ?? "",
-          pharmacy_id: pid,
-          first_name: "Admin",
-          last_name: "Pharma",
-          is_super_admin: false,
-        },
+        user,
       },
     });
   }

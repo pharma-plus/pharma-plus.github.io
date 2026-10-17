@@ -561,3 +561,78 @@ Sans `PHARMA_OPS_CONFIRM_PROJECT` (env effacée avant chaque exécution), aucun 
 - retour en arrière possible uniquement vers « PIN supprimé » (l'ancien hash est irréversible) : Gestion des utilisateurs → ⋯ → « Désactiver le PIN » ; garder `1234` pour tester ; PIN modifiable à volonté.
 
 **Mode d'emploi test** : connexion `d.ach@pharma.ma` = mot de passe (le sien) + **PIN `1234`**, ou changement rapide d'employé (identifiant `d.ach@pharma.ma` + PIN `1234`). **TERMINÉ ET VÉRIFIÉ** : aucune action serveur requise ; le PIN `1234` est un code de test positionné à dessein (pas un secret de production, aucun mdp/PAT/clé dans ce rapport).
+
+> **Mise à jour 17/10 (ANNEXE 7)** : le PIN de test `1234` a été **retiré** ce jour (P0.2 du prompt de mission) — d.ach revient à une connexion par mot de passe seul (voir ci-dessous).
+
+---
+
+## ANNEXE 7 - 2026-10-17 : mission finale P0-P1-P2-P3 (prompt §1-§15) — Edge 2.5.8
+
+### Résumé exécutif
+
+Mission en 4 volets : **P0** sécurité (PIN de test, secrets, sauvegardes, révocation de session), **P1** audits (POS, migrations, catalogue, workflows), **P2** UI, **P3** suites finales. Deux **failles P0 réelles trouvées et corrigées** (bump Edge **2.5.8**, déployé, testé live 7/7). Aucun secret dans cette annexe (ni mdp, ni PAT, ni clé).
+
+### P0 - Sécurité
+
+| Poste | Statut | Preuve |
+|---|---|---|
+| P0.1 sessions/RBAC/gates | **FAIT** (sessions antérieures) | session gate `user_sessions` (hash, revoked_at, expires_at, 423), `enforcePathPermission`, `is_super_admin` hors whitelist PUT, isolation tenant forcée |
+| P0.2 PIN de test `1234` sur d.ach | **RETIRÉ ET VÉRIFIÉ** | `DELETE /users/:id/pin` → 200 ; `has_pin=false` ; ancien PIN → 400 `PIN_NOT_SET` ; d.ach = connexion mot de passe seul |
+| P0.3 mdp actuel dans l'historique git | **ABSENT (relancé à completion ce jour)** | `git log --all -S"<mdp actuel>"` → **0 commit** (sortie = compteur seul) ; les 63 candidats de `2a1e901` testés en session antérieure = tous invalides |
+| P0.3b PATs exposés (repo public, anciens PAT d'autres projets) | **ACTION HUMAINE RESTE** (réf. annexe 3) | révocation impossible via API (GET /authorizations → 404) ; procédure propriétaire documentée |
+| P0.4 intégrité sauvegarde | **VÉRIFIÉ** | run CI n°8 (17/10 07:58Z) vert ; `--verify` local : déchiffré **2,48 Mo, SHA-256 identique**, statut `verified` |
+| P0.4 restauration — parité de contenu | **VÉRIFIÉ hors-ligne** | émission SQL complète `pg_restore` **0 erreur** ; comptes dump = prod sur **8/8 tables** (sales 12, sale_items 17, medications 5036, users 7, roles 10, permissions 171, stock_balances 27, invoices 0) |
+| P0.4 restauration — sur serveur isolé | **BLOQUÉ (environnement)** | sandbox : daemon PostgreSQL tué (shm code 487), service Windows refusé (droits), aucun serveur local — **non exécuté, non revendiqué** ; procédure de restauration documentée (backup_worker --decrypt + pg_restore) |
+| P0.4 hygiene jobs | **CORRIGÉ** | 3 jobs `running` orphelins (runs CI échoués 15-16/10) → `failed` + libellé ; synthèse : verified 6, completed 2, failed 3 |
+| `BACKUP_ENCRYPTION_KEY` sur Render | **ACTION HUMAINE RESTE** (réf. annexe 3 §4) | même clé que le secret GitHub (preuve de déchiffrement faite localement) ; dashboard Render service `pharma-plus-api` |
+
+### Failles P0 corrigées - Edge 2.5.8 (déployé)
+
+1. **`/auth/refresh` ne vérifiait pas `users.status`** : un compte désactivé pouvait rafraîchir ses tokens à l'infini (et un profil absent recevait un objet de secours synthétique). → contrôle du profil **avant** rotation, refus `PROFILE_MISSING` (401) / `ACCOUNT_INACTIVE` (403), révocation de la session sur place, fallback supprimé.
+2. **`PUT/DELETE /users` ne révoquait pas `user_sessions`** : un compte passé `inactive` conservait ses tokens actifs. → révocation immédiate (`revoked_at`) à la désactivation comme à la suppression douce.
+3. **Bug P1 annexe** : le proxy GET ajoutait `pharmacy_id` aux tables globales → `/permissions` et `/role_permissions` = 42703. → `GLOBAL_TABLES` déclaré avant le filtre, exemption GET ; **revérifié live : /permissions 200 (171), /role_permissions 200 (665), /roles 200 (10)**.
+
+**Preuves** : `deno check` 0 ; suite node **187/187** (7 nouveaux tests `p7_refresh_revocation.test.js`) ; déploy `npx supabase functions deploy pharma-api` OK ; `/health` = **2.5.8** ; **test live de bout en bout (7/7 PASS)** sur compte jeton créé puis supprimé : création 201 → login → `/auth/me` 200 → désactivation admin → **ancien access 401** → **refresh 403 ACCOUNT_INACTIVE** → login 403 → nettoyage SQL : **0 ligne restante** (users + auth.users).
+
+### P1 - Audits
+
+- **POS anti double-soumission : SOLIDE** — garde `if (_checkout) return` sur **les deux** surfaces (`pos_page.dart`, `pos_panel.dart`) ; `clientSaleId` envoyé ; idempotence serveur (rejeu → `duplicate: true`, vente existante renvoyée) ; **index unique DB** `uq_sales_client_sale (pharmacy_id, client_sale_id)` ; outbox hors-ligne séquentielle ; **0 doublon** en base. Course23505 théorique non atteignable depuis le client (un seul POST en vol par tentative, id = même corps au rejeu).
+- **Impression** : 1 appel `printSaleReceipt` par succès de checkout ; re-impression « dernier ticket » sous garde `_busy` — double-clic sans effet utile (cosmétique seul).
+- **Migrations : 16/16 effectives** — 10 tracées dans `schema_migrations` + **6 appliquées sans traçage** (locked_at, medication_merge_tables, amm_number, ai_insights_functions, ai_functions_least_privilege, superadmin_uniqueness) : **tous objets présents en base** (12/12 vérifiés, ACL `ai_*` = postgres+service_role uniquement). *Hygiène : insérer les 6 lignes manquantes dans `supabase_migrations` (bookkeeping, sans impact fonctionnel).*
+- **Catalogue** : 5036 médicaments / 1 pharmacie ; **0 doublon EAN** ; 0 stock négatif ; 0 orphelin `stock_movements`/`sale_items` ; sync référentiel : 3 `completed` + 1 `failed` (07/10, dernière exécution) ; **finding** : 445 références `available` sans prix de vente (aucune vendue) → à compléter côté catalogue, aucune vente impactée ; doublons nom+forme+labo = variantes de présentation (informatif).
+- **Workflows GitHub** : un seul workflow (`backup-nightly`, cron 03:30 UTC + dispatch), 8 runs : 5 verts, 3 rouges (15-16/10, corrigés), dernier vert ce jour ; secrets présents (les jobs tournent réellement). *Reco : ajouter une CI de tests (aucune).* Déploiements = scripts locaux (`deploy_func.bat`, `deploy_web.ps1`).
+- **GitHub/push** : accès pharma-plus vérifié (`fill`/`ls-remote`/push), PIN local `pharma-plus`, entrée meachbani-tech supprimée, dépôt public (constat, à fermer en privé = choix propriétaire).
+
+### P2 - UI
+
+- **Encart « valeur totale stock + quantité totale » ajouté à `stock_page.dart`** : base identique à `/reports/stock` (quantité > 0 × `price_sale`), libellés **fr/ar/en** (`stockQtyTotal`), layout responsive (2 colonnes `Expanded`), affiché hors chargement/erreur/vide.
+- Web **build --release** + `deploy_web.ps1` (anti-cache : `main.202610171347.dart.js`, `flutter_bootstrap.js?v=202610171347`, `index.html` patché).
+
+### P3 - Suites finales (toutes vertes)
+
+| Suite | Résultat |
+|---|---|
+| `node --experimental-test-module-mocks --test` (backend) | **187/187**, 0 échec |
+| `deno check supabase/functions/pharma-api/index.ts` | **0 erreur** |
+| `flutter analyze` | **No issues found** (0) |
+| `flutter test` | **52/52 All tests passed** |
+| `flutter build web --release` | Built (408,9 s) |
+| `git log -S` mdp actuel | **0 occurrence** |
+
+### Statuts honnêtes (pas de 100 % revendiqué)
+
+- **CORRIGÉ ET VÉRIFIÉ** : failles 2.5.8 (3/3), PIN test retiré, sauvegarde intégrité+parité, POS, migrations effectives, encart stock, suites.
+- **BLOQUÉ - ACTION HUMAINE** (liste inchangée, annexe 3) : révocation PAT propriétaire ; `BACKUP_ENCRYPTION_KEY` sur Render ; rotation suite ; suppression des 2 comptes Auth sans profil ; purge/`.gitignore` des `backend/_*.mjs` non trackés.
+- **BLOQUÉ - ENVIRONNEMENT** : restauration sur serveur isolé (sandbox : daemons PostgreSQL impossibles) — validée hors-ligne uniquement.
+- **NON TESTÉ** (constant) : `npm run lint` (eslint absent de l'installation), revue sous mutants, accès dashboard Render.
+- **NON CORRIGÉ assumé** (inchangé) : TPE, exports non-web, OCR, Google login, aperçus caméras.
+
+### Fichiers de cette session
+
+- `supabase/functions/pharma-api/index.ts` (2.5.8 : refresh contrôlé, révocation sessions, filtre GET global)
+- `backend/test/p7_refresh_revocation.test.js` (nouveau, 7 tests), `p5_invoices_edge`, `p6_superadmin_login` (pins 2.5.8), `p2_tenant_force` (fenêtre de lecture élargie)
+- `frontend/lib/features/stock/stock_page.dart`, `frontend/lib/core/l10n/strings.dart` (encart)
+- Build web racine : `index.html`, `main.dart.js`, `flutter_bootstrap.js`, `main.202610171347.dart.js`, `assets/fonts/MaterialIcons-Regular.otf`
+- `reports/finalization/RAPPORT_FINAL_GLOBAL_20261015.md` (cette annexe)
+
+*Aucun secret dans cette annexe. Fichiers non trackés laissés en place (choix propriétaire) : `backend/_*.mjs` (outils d'audit de séance, non committés), `supabase/supabase/`.*

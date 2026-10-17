@@ -207,9 +207,9 @@ test('__diag : superadmin vérifié côté serveur, plus settings:edit', () => {
 
 /* ---------------- §2/§9 : rotation du mot de passe ---------------- */
 
-test('version déploiement = 2.5.7', () => {
-  assert.ok(edge.includes('EDGE_VERSION = "2.5.7"'),
-    'bump 2.5.7 (route /branches : vraie table + PUT /users accepte branch_id → vente test débloquée)');
+test('version déploiement = 2.5.8', () => {
+  assert.ok(edge.includes('EDGE_VERSION = "2.5.8"'),
+    'bump 2.5.8 (refresh : contrôle users.status + révocation sessions à la désactivation/suppression, GET tables globales sans filtre pharmacy_id)');
 });
 
 test('change-password : mot de passe actuel vérifié, sessions révoquées, audité', () => {

@@ -10,7 +10,9 @@ const edge = readFileSync(
 const proxyBody = () => {
   const at = edge.indexOf("async function proxyToTable");
   assert.ok(at >= 0, "proxyToTable absent");
-  return edge.slice(at, at + 6000);
+  // Fenetre assez large pour couvrir le corps du proxy (filtre GET global +
+  // GLOBAL_TABLES + HAS_PHARMACY + blocs POST/PATCH/DELETE, commentaires 2.5.8).
+  return edge.slice(at, at + 9000);
 };
 
 test("proxy : POST force pharmacy_id a la session (jamais celui du client)", () => {
