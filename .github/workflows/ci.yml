@@ -19,6 +19,11 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    env:
+      # Valeurs factices de test (aucun secret réel) : les modules src exigent
+      # la présence de ces variables ; .env non versionné, donc fournie ici.
+      JWT_SECRET: ci-dummy-jwt-secret-for-tests-only
+      BACKUP_ENCRYPTION_KEY: ci-dummy-backup-key-for-tests-only
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

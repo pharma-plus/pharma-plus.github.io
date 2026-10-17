@@ -229,7 +229,7 @@ class ApiClient {
         if (res.statusCode == 401 && !retried) {
           final renewed = await _auth.tryRefresh();
           if (renewed) {
-            return _send(request,
+            return await _send(request,
                 retried: true, timeoutOverride: timeoutOverride);
           }
           _auth.signOut();
