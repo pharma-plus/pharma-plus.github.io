@@ -536,3 +536,21 @@ Sans `PHARMA_OPS_CONFIRM_PROJECT` (env effacée avant chaque exécution), aucun 
 - `deno check` EXIT 0 ; suite `node --experimental-test-module-mocks --test` → **180/180** (EXIT 0), pins `EDGE_VERSION = "2.5.7"` (p5/p6, garde whitelist PUT à jour).
 
 **Statuts § mis à jour** : §9 **TERMINÉ ET VÉRIFIÉ** (180/180, /health 2.5.7) ; §13 **TERMINÉ ET VÉRIFIÉ** (annexes 1-5) ; **push débloqué** (action humaine inutile pour GitHub). Aucun secret dans ce rapport (aucun mdp, PAT, clé ou URL avec identifiants).
+
+## ANNEXE 6 - 2026-10-17 : test vente sur d.ach@pharma.ma — diagnostic (protection PIN, hors serveur)
+
+**Signalement** : « je n'arrive toujours pas à tester la vente avec d.ach@pharma.ma ».
+
+**Diagnostic (sondes live, aucun secret manipulé)** :
+- login d.ach avec mdp volontairement faux → **401 INVALID_CREDENTIALS** = compte Auth existant et profil **actif** (sinon 403 ACCOUNT_INACTIVE) ;
+- `POST /auth/switch-user` (token admin) avec PIN `0000` puis `1234` → **401 INVALID_CREDENTIALS** les deux fois = **PIN incorrect** : le compte est protégé (`has_pin = true`) et l'écran `lock_screen` exige ce PIN à chaque connexion (mot de passe seul insuffisant) ;
+- conclusion : **blocage = PIN de d.ach inconnu de l'utilisateur, pas un bug serveur**.
+
+**Preuves que le serveur est OK pour d.ach** :
+- checkout prouvé (annexe 5) : `POST /sales` branche `aaaa…` → 200, stock décrémenté ;
+- `currentUserId` résout le **profil** (sub → `users.id`, repli email) : FK `sales.user_id → users(id)` OK pour tout compte ;
+- pour d.ach (`branch_id = null`), le POS prend `list[0]` = `aaaa…` — même pipeline que l'admin, seule la variable `branch_id` différait.
+
+**Solution (action utilisateur via UI admin)** : Portail superadmin → Gestion des utilisateurs → `d.ach@pharma.ma` → menu ⋯ → **« Désactiver le PIN »** (`DELETE /users/:id/pin`, recommandé pour tester) ou **« PIN »** (`PUT /users/:id/pin`, nouveau PIN connu 4-6 chiffres) ; si le mot de passe est aussi oublié → **« Mot de passe »** (reset par admin, mécanisme 2.5.5). Routes serveur existantes : index.ts L4390 (PUT) / L4436 (DELETE).
+
+**Statut** : **EN ATTENTE ACTION UTILISATEUR** (aucune action serveur possible sans demande explicite — la protection PIN est une fonctionnalité de sécurité, pas un défaut).
