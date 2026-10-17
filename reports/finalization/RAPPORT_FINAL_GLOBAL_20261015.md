@@ -553,4 +553,4 @@ Sans `PHARMA_OPS_CONFIRM_PROJECT` (env effacée avant chaque exécution), aucun 
 
 **Solution (action utilisateur via UI admin)** : Portail superadmin → Gestion des utilisateurs → `d.ach@pharma.ma` → menu ⋯ → **« Désactiver le PIN »** (`DELETE /users/:id/pin`, recommandé pour tester) ou **« PIN »** (`PUT /users/:id/pin`, nouveau PIN connu 4-6 chiffres) ; si le mot de passe est aussi oublié → **« Mot de passe »** (reset par admin, mécanisme 2.5.5). Routes serveur existantes : index.ts L4390 (PUT) / L4436 (DELETE).
 
-**Statut** : **EN ATTENTE ACTION UTILISATEUR** (aucune action serveur possible sans demande explicite — la protection PIN est une fonctionnalité de sécurité, pas un défaut).
+**Statut** : **REPORTÉ par le propriétaire (17/10)** — déblocage PIN/mdp d.ach volontairement **non exécuté** (« dépasse le changement du mot de passe et pin pour d.ach ») ; aucune modification effectuée sur ce compte. Procédure UI documentée ci-dessus, réutilisable à tout moment.
