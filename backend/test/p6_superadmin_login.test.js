@@ -133,8 +133,8 @@ test('6. compte ordinaire → aucun privilège global, portail superadmin verrou
     'POST /users : whitelist de champs (pas de is_super_admin dans le body)',
   );
   assert.ok(
-    edge.includes('const { first_name, last_name, role_id, status, employee_id } = body ?? {};'),
-    'PUT /users/:id : whitelist de champs (pas de is_super_admin dans le body)',
+    edge.includes('employee_id, branch_id } ='),
+    'PUT /users/:id : whitelist de champs (branch_id ajoute en 2.5.7, pas de is_super_admin dans le body)',
   );
   assert.ok(!/patch\.is_super_admin/.test(edge), 'aucun patch is_super_admin');
 });
@@ -207,9 +207,9 @@ test('__diag : superadmin vérifié côté serveur, plus settings:edit', () => {
 
 /* ---------------- §2/§9 : rotation du mot de passe ---------------- */
 
-test('version déploiement = 2.5.6', () => {
-  assert.ok(edge.includes('EDGE_VERSION = "2.5.6"'),
-    'bump 2.5.6 (stock route complete les ids sans ligne avec quantity 0 → dialogue Stock zéro)');
+test('version déploiement = 2.5.7', () => {
+  assert.ok(edge.includes('EDGE_VERSION = "2.5.7"'),
+    'bump 2.5.7 (route /branches : vraie table + PUT /users accepte branch_id → vente test débloquée)');
 });
 
 test('change-password : mot de passe actuel vérifié, sessions révoquées, audité', () => {

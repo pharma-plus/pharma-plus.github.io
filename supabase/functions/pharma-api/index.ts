@@ -344,7 +344,7 @@ const DEFAULT_PHARMACY_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 /* Version unique de la fonction (routes /health et /). La version
    deploiee (2.1.0) ne porte pas les corrections de ce depot : le
    bump marque l'ecart jusqu'au prochain deploiement autorise. */
-const EDGE_VERSION = "2.5.6";
+const EDGE_VERSION = "2.5.7";
 
 function publicPharmacyId(req: Request): string {
   const hdr = req.headers.get("x-pharmacy-id");
@@ -2000,7 +2000,8 @@ Deno.serve(async (req) => {
       );
     if (req.method === "PUT") {
       const body = await req.json().catch(() => ({}));
-      const { first_name, last_name, role_id, status, employee_id } = body ?? {};
+      const { first_name, last_name, role_id, status, employee_id, branch_id } =
+        body ?? {};
       /* Modules visibles : null = tout visible, [] = rien, [...] = liste. */
       const rawVmPut = (body as any)?.visible_modules;
       let visibleModulesPut: string[] | null | undefined;
@@ -2073,27 +2074,6 @@ Deno.serve(async (req) => {
       }
       if (visibleModulesPut !== undefined)
         patch.visible_modules = visibleModulesPut;
-      if (Object.keys(patch).length === 0 && employee_id === undefined)
-        return json(
-          {
-            error: {
-              code: "VALIDATION",
-              message: "aucun champ a mettre a jour",
-            },
-          },
-          400,
-        );
-      if (Object.keys(patch).length > 0) {
-        const { error: upErr } = await sb
-          .from("users")
-          .update(patch)
-          .eq("id", targetId);
-        if (upErr)
-          return json(
-            { error: { code: "UPDATE_FAILED", message: upErr.message } },
-            400,
-          );
-      }
       if (employee_id !== undefined) {
         // Delie d'abord tout employe rattache a ce compte (relation 1-1).
         await sb
@@ -2114,6 +2094,52 @@ Deno.serve(async (req) => {
             );
         }
         patch.employee_id = employee_id ?? null;
+      }
+      /* Branche du compte : null = aucune (le POS prend la premiere
+         branche disponible), uuid = doit exister dans branches de la
+         pharmacie (FK stock_balances.branch_id). */
+      if (branch_id !== undefined) {
+        const bid = branch_id === null ? null : String(branch_id);
+        if (bid !== null) {
+          if (!UUID_RE.test(bid))
+            return json(
+              { error: { code: "VALIDATION", message: "branche invalide" } },
+              400,
+            );
+          const { data: br } = await sb
+            .from("branches")
+            .select("id")
+            .eq("id", bid)
+            .eq("pharmacy_id", pid)
+            .maybeSingle();
+          if (!br)
+            return json(
+              { error: { code: "VALIDATION", message: "branche inconnue" } },
+              400,
+            );
+        }
+        patch.branch_id = bid;
+      }
+      if (Object.keys(patch).length === 0 && employee_id === undefined)
+        return json(
+          {
+            error: {
+              code: "VALIDATION",
+              message: "aucun champ a mettre a jour",
+            },
+          },
+          400,
+        );
+      if (Object.keys(patch).length > 0) {
+        const { error: upErr } = await sb
+          .from("users")
+          .update(patch)
+          .eq("id", targetId);
+        if (upErr)
+          return json(
+            { error: { code: "UPDATE_FAILED", message: upErr.message } },
+            400,
+          );
       }
       return json({ data: { id: targetId, ...patch } });
     }
@@ -3668,8 +3694,46 @@ Deno.serve(async (req) => {
      BRANCHES — alias for pharmacies (branches = pharmacies)
      =========================================================== */
   if (path === "branches") {
-    const { data } = await sb.from("pharmacies").select("id, name, city, address, phone, slug").limit(50);
-    return json({ data: data ?? [] });
+    if (req.method === "GET") {
+      const { data: real } = await sb
+        .from("branches")
+        .select("id, name, city, address, phone, slug")
+        .eq("pharmacy_id", pid)
+        .limit(50);
+      const { data: ph } = await sb
+        .from("pharmacies")
+        .select("id, name, city, address, phone, slug")
+        .eq("id", pid)
+        .maybeSingle();
+      const rows = [...(real ?? [])];
+      if (ph && !rows.some((b: any) => b.id === ph.id)) rows.unshift(ph);
+      return json({ data: rows });
+    }
+    if (req.method === "POST") {
+      const body = await req.json().catch(() => ({}));
+      const row = { ...(body ?? {}), pharmacy_id: pid };
+      const { data: existing } = row.id
+        ? await sb
+            .from("branches")
+            .select("id, name")
+            .eq("id", row.id)
+            .eq("pharmacy_id", pid)
+            .maybeSingle()
+        : { data: null };
+      if (existing) return json({ data: existing });
+      const { data, error } = await sb
+        .from("branches")
+        .insert(row)
+        .select("id, name")
+        .maybeSingle();
+      if (error)
+        return json(
+          { error: { code: "INSERT_FAILED", message: error.message } },
+          400,
+        );
+      return json({ data }, 201);
+    }
+    return await proxyToTable(serviceKey, supabaseUrl, req, "branches", "", pid);
   }
 
   /* ===========================================================

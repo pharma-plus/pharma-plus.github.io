@@ -506,3 +506,33 @@ Sans `PHARMA_OPS_CONFIRM_PROJECT` (env effacée avant chaque exécution), aucun 
 - suite backend `node --experimental-test-module-mocks --test` -> **180/180** (EXIT 0), pins `EDGE_VERSION = "2.5.5"` mis à jour dans p5/p6.
 
 **Statuts § mis à jour** : §9 **TERMINÉ ET VÉRIFIÉ** (180/180, /health 2.5.5, front inchangé - 52/52 et `flutter analyze` 0 du 15/10 toujours valides) ; §13 **TERMINÉ ET VÉRIFIÉ** (annexes 1-4). Aucun secret présent dans ce rapport (motifs committés inchangés : aucun mdp, PAT, clé ou URL avec identifiants).
+
+## ANNEXE 5 - 2026-10-17 : correctif Edge 2.5.7 (branche fantôme → vente test bloquée) + push débloqué
+
+**Signalements** : (1) le stock de test (27 produits) était invisible dans le checkout POS (« Stock insuffisant » / 409 `STOCK_INSUFFISANT`) pour la plupart des comptes ; (2) le push git vers GitHub restait impossible (`terminal prompts disabled`).
+
+**Causes** :
+- `stock_balances.branch_id` a un FK vers `branches(id)`. Les 27 lignes de test étaient sur `bbbbbbbb-…` (branche **supprimée**), l'ID `aaaaaaaa-…` (retourné par l'alias) n'existait **pas** dans `branches` (FK 23503) ; la table `branches` était en réalité **vide**.
+- `GET /branches` (L3670, historique) retourne `pharmacies` déguisée (« branches = pharmacies ») : la vraie table `branches` était **illisible et inscriptible** via l'API (la route custom intercepte toutes les méthodes).
+- Le profil `admin@pharma.ma` avait `branch_id = bbbb…` ; tous les autres comptes `branch_id = null` → POS : défaut `list[0]` = `aaaa…` → 0 ligne de stock → 409 au checkout.
+- Git : `credential.helper = cache` (vide) alors que le Gestionnaire d'identités Windows contient `git:https://pharma-plus@github.com` → GCM jamais consulté.
+
+**Correctif (2.5.7)** :
+- `GET /branches` : **union** des vraies branches (`branches` de la pharmacie) + pharmacie courante déguisée si absente (affichage inchangé côté UI).
+- `POST /branches` : INSERT réel dans la table (`pharmacy_id` forcé à la session, idempotence sur `id`) ; `PATCH/DELETE` délégués au proxy générique.
+- `PUT /users/:id` : accepte `branch_id` (null ou UUID validé dans `branches` de la pharmacie) — whitelist mise à jour ; le garde « aucun champ » et le bloc UPDATE ont été déplacés après le bloc `branch_id` (sinon l'écriture était silencieusement ignorée).
+
+**Données (opérations traçables, aucun secret)** :
+- INSERT `branches` : ligne `aaaaaaaa-…` (= ID pharmacie, cohérente avec l'alias), `code BR-001`, `is_main true` (modèle du seed `002_demo_pharmacy.sql`) ;
+- `PATCH /stock/balances?branch_id=eq.bbbb…` : 27 lignes transférées `bbbb… → aaaa…` (FK OK) ;
+- `PUT /users/edc15f97-…` (profil admin) : `branch_id = aaaa…` (vérifié `/auth/me` avec token frais).
+
+**Push débloqué** : `git config --local credential.helper manager` (dépôt seul, global inchangé) → GCM lit l'identité Windows existante ; `git push` : `62b850e..3453468` puis le commit de cette annexe, sans rien afficher de secret. SSH reste sans clé/hôte connu (voie non retenue).
+
+**Épreuves (2026-10-17 ~00:42Z)** :
+- micro-vente admin `POST /sales` (branche `aaaa…`, 1 × `TEST_PHARMA_PLUS_StockNormal_A`) → **200**, `POS-2026-000105`, total **42** (TVA 20 %) ; stock `50 → 49` sur la branche ;
+- second compte : `h.oujnine@gmail.com` → 403 `ACCOUNT_INACTIVE` (compte de test désactivé) ; le pipeline est identique pour tout compte sans branche (défaut `list[0]` = `aaaa…`), seule la variable `branch_id` différait ;
+- `GET /branches` → 1 ligne `aaaa…` (union dédupliquée) ; `/health` = **2.5.7**, db connected ;
+- `deno check` EXIT 0 ; suite `node --experimental-test-module-mocks --test` → **180/180** (EXIT 0), pins `EDGE_VERSION = "2.5.7"` (p5/p6, garde whitelist PUT à jour).
+
+**Statuts § mis à jour** : §9 **TERMINÉ ET VÉRIFIÉ** (180/180, /health 2.5.7) ; §13 **TERMINÉ ET VÉRIFIÉ** (annexes 1-5) ; **push débloqué** (action humaine inutile pour GitHub). Aucun secret dans ce rapport (aucun mdp, PAT, clé ou URL avec identifiants).
