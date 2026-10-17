@@ -643,11 +643,12 @@ Mission en 4 volets : **P0** sécurité (PIN de test, secrets, sauvegardes, rév
 
 Exécution dans l'ordre demandé, avec statuts réels. Aucun secret dans cette annexe (ni mdp, ni PAT, ni clé). Les statuts de l'annexe 7 concernant les comptes orphelins, la purge `_*.mjs`, les migrations non tracées et la restauration isolée sont **remplacés** par ceux-ci.
 
-### Étape 1 — Révocation du PAT GitHub + dépendances : **ACTION HUMAINE RESTE**
+### Étape 1 — Révocation du PAT GitHub + dépendances : **FERMÉ (17/10, exécuté par le propriétaire)**
+
+> **Mise à jour (annexe 8)** : effectué le 17/10 — jeton de remplacement créé (**scopes minimaux `repo, workflow`**, expiration 16/11), enregistré en mémoire locale (jamais affiché), vérifié (`ls-remote` + `/user` = login `pharma-plus`, scopes exacts), puis **anciens jetons révoqués** (16/10 + intermédiaires) : **un seul actif**. Remplacement effectué AVANT révocation (aucune coupure de poussée). Révocation API impossible (404) — faite via l'UI comme documenté.
 
 - **Dépendances vérifiées** : le seul workflow (`backup-nightly.yml`) n'utilise que `secrets.BACKUP_*` — **0 usage du PAT** ; **0 PAT embarqué** dans les remotes locaux (y compris `al-qaqa-ai` =0) ; le stockage d'identifiants Git local (GCM) ne contient que l'entrée `git:https://github.com` (user `pharma-plus`), usage unique = poussée de ce dépôt.
-- **Révocation API impossible (double preuve)** : `GET /user/personal_access_tokens` → **404**, `GET /applications/...` (jeton classique) → **404** ; le jeton est **encore actif** (`GET /user` → 200, login `pharma-plus`).
-- **Statut** : **BLOQUÉ — action humaine** : se rendre sur `https://github.com/settings/tokens`, révoquer le jeton créé le 16/10, **en dernier** (c'est l'accès de poussée), puis créer un jeton de remplacement.
+- **Révocation API impossible (double preuve)** : `GET /user/personal_access_tokens` → **404**, `GET /applications/...` (jeton classique) → **404** — motif du passage par l'UI.
 
 ### Étape 2 — Clé Render + sauvegarde fraîche : **FAIT (local) / ACTION HUMAINE (Render)**
 
@@ -716,10 +717,10 @@ Exécution dans l'ordre demandé, avec statuts réels. Aucun secret dans cette a
 | Stock de test | **50/50/50 restauré** |
 | Web déployé (post fix lint) | **`main.202610171532.dart.js`**, stamp `?v=202610171532` |
 
-### Reste bloqué — action humaine (inchangé)
+### Reste bloqué — action humaine
 
-- **PAT GitHub** : révocation manuelle sur `github.com/settings/tokens` (en dernier) + jeton de remplacement.
-- **`BACKUP_ENCRYPTION_KEY` sur Render** : dashboard `pharma-plus-api`.
+- ~~**PAT GitHub**~~ : **FERMÉ le 17/10** (voir étape 1).
+- **`BACKUP_ENCRYPTION_KEY` sur Render** : dashboard `pharma-plus-api` → Environment → comparer à `backend/.env` (secret GitHub write-only, illisible — comparaison visuelle possible entre les deux valeurs lisibles). Rien ne casse aujourd'hui (clé = garde de démarrage uniquement, `src/config/index.js:46`).
 - **Restauration sur serveur distant isolé** : dès qu'un environnement adapté (Docker/SSH/VM) est accessible — procédure `backup_worker --decrypt` + `pg_restore` désormais éprouvée de bout en bout en local.
 
 *Aucun secret dans cette annexe. Aucune donnée métier supprimée (hors 2 comptes Auth vides de toute donnée, explicitement autorisés).*
