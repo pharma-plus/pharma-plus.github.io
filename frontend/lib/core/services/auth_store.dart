@@ -390,6 +390,19 @@ class AuthStore extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
+    // Meilleur effort : révoquer la session côté serveur AVANT de purger le
+    // local. Les erreurs réseau ne doivent pas empêcher le logout local.
+    final token = _accessToken;
+    if (token != null && token.isNotEmpty) {
+      try {
+        await http
+            .post(
+              Uri.parse('$_baseUrl/auth/logout'),
+              headers: {'Authorization': 'Bearer $token'},
+            )
+            .timeout(const Duration(seconds: 5));
+      } catch (_) {}
+    }
     _accessToken = null;
     _refreshToken = null;
     _user = null;

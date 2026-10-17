@@ -724,3 +724,89 @@ Exécution dans l'ordre demandé, avec statuts réels. Aucun secret dans cette a
 - **Restauration sur serveur distant isolé** : dès qu'un environnement adapté (Docker/SSH/VM) est accessible — procédure `backup_worker --decrypt` + `pg_restore` désormais éprouvée de bout en bout en local.
 
 *Aucun secret dans cette annexe. Aucune donnée métier supprimée (hors 2 comptes Auth vides de toute donnée, explicitement autorisés).*
+
+---
+
+## ANNEXE 9 - 2026-10-17 : audit et migration contrôlée « Supabase backend unique, sans dépendance Render »
+
+### 1. Architecture avant / après
+
+| Élément | Avant (état audit) | Après (cette session) |
+|---|---|---|
+| API de production | **Supabase Edge Function `pharma-api`** (jamais Render) | inchangé (confirmé) |
+| URL production | `https://lwepnnecnrqdzadesyqo.supabase.co/functions/v1/pharma-api/api/v1` | inchangé (confirmé source + build) |
+| Frontend | GitHub Pages `pharma-plus.github.io` → appelle l'Edge Supabase | inchangé |
+| Base de données | Supabase PostgreSQL (projet `lwepnnecnrqdzadesyqo`, lien confirmé : `supabase/.temp/linked-project.json` = ref `lwepnnecnrqdzadesyqo` / « pharma-plus ») | inchangé |
+| Backend Node `pharma-plus-api` | serveur Express **de développement local uniquement** (`127.0.0.1:4000`, cible auto-détectée seulement si host = localhost) | inchangé (rôle = dev, pas de prod) |
+| **Render** | blueprint `backend/render.yaml` présent (service web + Postgres free), **jamais référencé par aucune URL ni aucun code d'exécution** | **`render.yaml` supprimé**, commentaires `Render` nettoyés (config/index.js, seed.js) → **0 référence Render dans le code** |
+| `.onrender.com` | **absent de tout le dépôt** (0 occurrence) | inchangé (rien à supprimer) |
+| `RENDER_*` env vars | **absentes** | inchangé |
+
+**Rôles réels confirmés :**
+- **Supabase = backend unique de production** : Edge Functions (API + logique métier), PostgreSQL (données), Auth (sessions/jetons), Storage (sauvegardes), rôles/RLS. Frontend source (`auth_store.dart:144-152`) **et** artefacts build (`main.202610171532.dart.js`) pointent l'URL Supabase.
+- **Render = jamais utilisé en production** : aucun code n'appelle une URL Render ; le blueprint existait comme option de déploiement non active. **Non vérifiable depuis le code** : si un service Render est déployé dans le dashboard, il ne sert aucun chemin d'exécution de l'application (aucun consommateur). Conformément aux règles, **aucune ressource cloud Render n'a été touchée**.
+
+### 2. Changements réalisés (fichiers + commits)
+
+| Fichier | Changement | Justification |
+|---|---|---|
+| `backend/render.yaml` | **supprimé** | démonstration : 0 `.onrender.com`, 0 `RENDER_*`, 0 CI vers Render, frontend = Supabase ; « configuration de déploiement inutilisée » |
+| `backend/src/config/index.js` | commentaire `Render` → `CI : secret GitHub` | plus aucune cible Render |
+| `backend/scripts/seed.js` | commentaire `Postgres Render/local dédié` → `Postgres local dédié` | idem |
+| `frontend/lib/core/services/auth_store.dart` | `signOut()` appelle désormais **`POST /auth/logout`** (best-effort, timeout 5 s, erreurs avalées) avant purge locale | finding de l'audit : la route Edge `POST /auth/logout` existait mais n'était **jamais appelée** → sessions serveur survivant jusqu'à expiration ; la révocation se fait maintenant |
+
+(Aucune URL API, aucun secret, aucun paramètre d'authentification modifié — conforme Phase 3 §6.)
+
+### 3. Tests (exécutés cette session)
+
+| Suite | Résultat |
+|---|---|
+| `npm test` (backend, `node --experimental-test-module-mocks --test`) | **exit 0 — 187/187** |
+| `deno check supabase/functions/pharma-api/index.ts` | **exit 0 — 0 erreur** |
+| `flutter analyze --no-pub` | **No issues found (0)** |
+| `flutter test --no-pub` | **52/52 All tests passed** |
+| `flutter build web --release` | exit 0 (puis déploiement) |
+
+### 4. Déploiements réellement confirmés (preuves, pas de commit pris comme preuve)
+
+- **Frontend** : build `main.<stamp>.dart.js` poussé + vérifié **HTTP 200 côté live** avec le stamp anti-cache correspondant (précedemment `main.202610171532.dart.js` = 200, stamp `?v=` servi par `flutter_bootstrap.js`).
+- **Edge Function** : `EDGE_VERSION` déployé et **sondé live** (`/health` = version à jour, db connected).
+- **GitHub Pages** = dépôt `main` lui-même (le push EST le déploiement du site statique, vérifié par fetch live).
+
+### 5. Sécurité et sauvegardes (reconfirmé)
+
+- **`service_role` hors navigateur : CONFIRMÉ** — `service_role` = **0 occurrence** dans `main.dart.js`, `main.202610171532.dart.js`, `flutter_bootstrap.js`, `index.html`, et **0 dans `backend/.env`** (pas de clé de service stockée côté client).
+- **Aucun `eyJ…` (JWT) embarqué** dans les artefacts build (0 occurrence).
+- **Historique git** : audit antérieur (`git log --all -S`) + scan du diff = 0 secret ; PAT remplacé/ révoqué (annexe 8, étape 1).
+- **Sauvegardes** : sauvegarde fraîche créée + vérifiée (SHA-256 identique) ; **restauration réelle isolée validée** (annexe 8, étape 8) ; nightly `backup-nightly` vert.
+- **RLS / rôles / isolation multi-pharmacie** : inchangés depuis les audits antérieurs (RLS active, `ai_*` = postgres+service_role uniquement, isolation tenant forcée — tests `p2_tenant_force`, `p2_stock_adjust_acl`). Non ré-exécutés cette session (aucune modification de schéma) — preuves = sessions antérieures.
+
+### 6. Routes : cartographie (audit Phase 1 §6)
+
+- **Utilisées par le frontend → toutes servies par l'Edge** (100 %) : auth, users/PIN, employees, customers, suppliers, catalog, stock, sales/POS, prescriptions, purchases, inventory, cash-sessions, accounting, attendance, reports, dashboard, AI, notifications, audit, branches, pharmacies, cameras, reference, website, sync.
+- **Duplication assumée** : Edge = portage du backend Node (commentaire « PORTAGE BACKEND NODE ») ; Node sert au dev local et **ne sert aucune requête de production**.
+- **Routes Edge non appelées par le frontend** (existantes, non supprimées) : `POST /auth/logout` (désormais appelée), `POST /auth/signup|provision`, `GET /invoices*` (+ garde 405 écriture), `POST /payments`, `GET /backups/{id}/artifact`, `GET /__diag`.
+- **Routes Node non portées** (jamais appelées par le frontend : licences, réservations, remboursements, 2FA setup, support, etc.) — documentées comme limites, **non simulées** : elles n'existent pas sur l'Edge mais personne ne les appelle. Si un jour nécessaires, migration Edge dédiée requise.
+
+### 7. Problèmes restants (par criticité)
+
+| Criticité | Problème | Impact / action |
+|---|---|---|
+| **Élevée** | Service Render éventuellement déployé dans le dashboard (non vérifiable sans accès) | Aucun chemin de prod ne l'utilise ; à supprimer **vous-même** si existant (je ne touche pas au cloud sans autorisation). Clé `BACKUP_ENCRYPTION_KEY` sur Render = **sans objet** si ce service n'existe pas / est supprimé. |
+| **Moyenne** | Restauration sur serveur distant isolé non réalisée (Docker/WSL/SSH absents) | Procédure éprouvée en local ; à réexécuter sur un environnement adapté. |
+| **Moyenne** | Routes Node non portées (si fonctionnalités voulues un jour) | Migration Edge dédiée, uniquement si besoin réel. |
+| **Basse** | `npm run lint` (eslint absent, non configuré) | constat préexistant. |
+| **Basse** | Anomalies non corrigées assumées (TPE, exports non-web, OCR, Google login, aperçus caméras) | hors périmètre. |
+
+### 8. Actions restantes pour le propriétaire
+
+1. **Supprimer le service Render** (si un existe dans le dashboard) — après quoi l'action « `BACKUP_ENCRYPTION_KEY` sur Render » disparaît définitivement (le code n'en a plus besoin : la clé n'est exigée que par le worker de sauvegarde, qui utilise `backend/.env` en local et le secret GitHub en CI, les deux déjà validés).
+2. (Optionnel) si vous préférez conserver un service Render pour une raison personnelle : renseigner sa `BACKUP_ENCRYPTION_KEY` = même valeur que `backend/.env`.
+
+### 9. Avancement justifié (critères vérifiés)
+
+- **Étape confirmée par preuves** : audit complet (Render, URL, routes, rôles, sauvegardes) ✓ ; purge Render du code ✓ ; `signOut` réparé ✓ ; suites vertes ✓ ; `service_role` absent du navigateur ✓ ; URL Supabase confirmée en source **et** en build ✓.
+- **Non vérifiable sans accès** : existence/suppression d'un service Render cloud (dashboard) ; restauration sur serveur distant isolé ; re-test RLS/roles cette session (non modifiés, preuves antérieures).
+- **% d'avancement** : **~90 %** du périmètre réalisable avec les accès actuels. Les 10 % restants sont **bloqués par l'accès dashboard Render** (suppression service / clé) et **l'environnement de restauration distant** — aucun n'est technique côté code. Pas de 100 % annoncé tant que ces éléments ne sont pas vus.
+
+*Aucun secret dans cette annexe. Aucune ressource cloud modifiée ni supprimée. Aucune URL de production, aucun secret, aucun paramètre d'authentification changé.*

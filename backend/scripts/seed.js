@@ -16,7 +16,7 @@ const { Client } = pg;
 
 // Garde obligatoire (prompt sécurité §4) : sur une cible Supabase (prod OU
 // test), confirmation explicite du projet requis avant toute écriture. Cible
-// non-Supabase (Postgres Render/local dédié) : aucune création superadmin et
+// non-Supabase (Postgres local dédié) : aucune création superadmin et
 // compte démo conditionné — pas de privilège à rétablir.
 const dbUrlRaw = process.env.DATABASE_URL ?? '';
 if (/supabase\.(?:co|com)/i.test(dbUrlRaw)) {

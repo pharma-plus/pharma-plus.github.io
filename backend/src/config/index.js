@@ -41,8 +41,8 @@ export const config = {
     dir: process.env.BACKUP_DIR || './backups',
     // Clé de chiffrement OBLIGATOIRE : aucune valeur par défaut (prompt
     // sécurité §4 — l'ancien repli codé en dur a été supprimé).
-    // Local : renseignée dans .env (non tracké). Production : dashboard
-    // Render / secrets GitHub. Démarrage refusé si absente.
+    // Local : renseignée dans .env (non tracké). CI : secret GitHub
+    // BACKUP_ENCRYPTION_KEY. Démarrage refusé si absente.
     encryptionKey: (() => {
       const k = process.env.BACKUP_ENCRYPTION_KEY;
       if (!k) throw new Error('BACKUP_ENCRYPTION_KEY environment variable is required (aucune valeur par défaut)');
