@@ -636,3 +636,87 @@ Mission en 4 volets : **P0** sécurité (PIN de test, secrets, sauvegardes, rév
 - `reports/finalization/RAPPORT_FINAL_GLOBAL_20261015.md` (cette annexe)
 
 *Aucun secret dans cette annexe. Fichiers non trackés laissés en place (choix propriétaire) : `backend/_*.mjs` (outils d'audit de séance, non committés), `supabase/supabase/`.*
+
+---
+
+## ANNEXE 8 - 2026-10-17 : directive « viser 100 % » (8 étapes) + restauration du stock de test
+
+Exécution dans l'ordre demandé, avec statuts réels. Aucun secret dans cette annexe (ni mdp, ni PAT, ni clé). Les statuts de l'annexe 7 concernant les comptes orphelins, la purge `_*.mjs`, les migrations non tracées et la restauration isolée sont **remplacés** par ceux-ci.
+
+### Étape 1 — Révocation du PAT GitHub + dépendances : **ACTION HUMAINE RESTE**
+
+- **Dépendances vérifiées** : le seul workflow (`backup-nightly.yml`) n'utilise que `secrets.BACKUP_*` — **0 usage du PAT** ; **0 PAT embarqué** dans les remotes locaux (y compris `al-qaqa-ai` =0) ; le stockage d'identifiants Git local (GCM) ne contient que l'entrée `git:https://github.com` (user `pharma-plus`), usage unique = poussée de ce dépôt.
+- **Révocation API impossible (double preuve)** : `GET /user/personal_access_tokens` → **404**, `GET /applications/...` (jeton classique) → **404** ; le jeton est **encore actif** (`GET /user` → 200, login `pharma-plus`).
+- **Statut** : **BLOQUÉ — action humaine** : se rendre sur `https://github.com/settings/tokens`, révoquer le jeton créé le 16/10, **en dernier** (c'est l'accès de poussée), puis créer un jeton de remplacement.
+
+### Étape 2 — Clé Render + sauvegarde fraîche : **FAIT (local) / ACTION HUMAINE (Render)**
+
+- Sauvegarde fraîche créée : job `d8d7185d-358a-4bb0-a8a3-246515555fa0` (17/10 14:39Z locale) → pg_dump **2,49 Mo**, chiffré, uploadé, `status=completed` ; `--verify` : **déchiffré, SHA-256 identique**.
+- `BACKUP_ENCRYPTION_KEY` sur Render : **BLOQUÉ — action humaine** (dashboard `pharma-plus-api`, même valeur que le secret GitHub).
+
+### Étape 3 — Comptes Auth orphelins : **SUPPRIMÉS ET VÉRIFIÉ**
+
+- Examen avant suppression : `doc.test@pharma-demo.ma` (`e42965ab…`) et `doc.test1791449625778@pharma-demo.ma` (`2e7377af…`), créés le 08/10 → **0 donnée métier** : 0 profil `public.users`, 0 `user_sessions`, 0 référence sur **26 colonnes** utilisateur examinées (dont `sales`, `employees`, `stock_movements`).
+- Suppression justifiée et autorisée (condition « uniquement si justifié et autorisée » remplie) : `DELETE FROM auth.users` (2 lignes) → post-vérification : **doc.test restants = 0, orphelins restants = 0, `auth.users` total = 6** (les 6 comptes restants ont tous un profil).
+
+### Étape 4 — `backend/_*.mjs` : examen, préservation, garde-fou : **TRAITÉ**
+
+- **62 fichiers** examinés + carte de références produite (rapports qui citent chaque script : `RAPPORT_FINAL_20261014`, `RAPPORT_AUDIT_GLOBAL_20261015`, `RAPPORT_FINAL_GLOBAL_20261015`, `RAPPORT_FINALISATION`, `CORRECTIONS_FINALES`).
+- Décision : **préserver par versionnage** (14 fichiers utiles/staged : `_audit_admin`, `_audit_backup_perms`, `_audit_cleanup_ctx`, `_audit_formules`, `_audit_p0p1`, `_audit_perms2`, `_audit_stock`, `_audit_storage_sales`, `_audit_tva`, `_migrate_tva_fix`, `_p0_gh`, `_prove_tva_trigger`, `_verify_cleanup`, `_verify_orphans`) ; **45 déjà trackés** restent ; les 3 `_db_audit*` restaient déjà **exclus volontairement** par `.gitignore` (« conservés sur disque, jamais versionnés ») → **laissés tels quels, aucune suppression** (aucun fichier utile détruit).
+- **Scan de secrets** des 62 fichiers : 7 correspondances, **toutes bénines** — mots de passe de comptes jetons créés par les harness de test (ex. `TestPass123!`), et lecture `password=` depuis `git credential fill` en mémoire (scanner `_p0_gh`).
+- **Garde-fou ajouté au `.gitignore`** : `backend/_*.mjs` (futur scratch local, les fichiers trackés restent trackés) + `supabase/supabase/` (cache CLI imbriqué).
+
+### Étape 5 — Migrations non tracées : **FAIT**
+
+- 6 lignes insérées dans `supabase_migrations.schema_migrations` (`ON CONFLICT DO NOTHING`, `statements` = contenu SQL du fichier, sans rejouer l'objet) → **total = 16, manquants vs repo = 0, hors-repo = 0**.
+
+### Étape 6 — Les 445 références sans prix : **ANALYSE TERMINÉE (aucune mutation)**
+
+| Critère | Résultat |
+|---|---|
+| Avec stock (>0) | **0 / 445** (toutes sans stock) |
+| Déjà vendues (toutes statuts) | **0** |
+| Déjà achetées (`purchase_order_items`) | **0** |
+| Avec lot | **0** |
+| **Vendables (stock + historique)** | **0** — **aucune vente n'est bloquée par ces références** |
+
+- Conclusion : les 445 sont **purement informatives** (référentiel importé sans prix) → distinction demandée tranchée : **ventables critiques = 0, informatives = 445** ; les 36 références `retired` sans prix le sont aussi.
+- Reco au propriétaire : compléter `price_sale` côté catalogue **uniquement si** ces références doivent être stockées/commandées ; **aucun prix inventé, aucune ligne modifiée**.
+
+### Étape 7 — CI de tests bloquants : **CRÉÉE**
+
+- `.github/workflows/ci.yml` (push `main` + `pull_request`), 3 jobs bloquants : **backend** (`npm ci` + `npm test`, Node 24), **edge** (`deno check supabase/functions/pharma-api/index.ts`), **flutter** (`flutter analyze` + `flutter test`).
+- Aucun secret requis (tests autonomes : vérifié **0 `process.env`** dans la suite). Vert en local : `npm test` exit 0, `deno check` exit 0, `flutter test` 52/52. `npm run lint` volontairement exclu (eslint absent de l'installation, constat préexistant annexe 7). Vérification du run GitHub après poussée.
+
+### Étape 8 — Restauration serveur isolé : **RÉUSSIE (locale) / distant toujours BLOQUÉ**
+
+- **Le blocage antérieur (shm code 487) est contourné** : `initdb` PostgreSQL 18.4 en local OK ; démarrage via `pg_ctl` détaché (le plantage venait des daemons liés à la console/service) → **serveur isolé opérationnel sur 127.0.0.1:55432** (hors toute base de production).
+- Restauration **réelle** : déchiffrement du dump frais (2,61 Mo) + rôles Supabase pré-créés + `pg_restore` → **103 erreurs, toutes de plateforme** (`supabase_auth_admin` ×41, `supabase_storage_admin` ×28, `supabase_realtime_admin` ×24, `pgbouncer`, extension `supabase_vault`, propriétaires de triggers) — **0 erreur de données / structure cœur**.
+- **Parité prod ↔ restauration : 11/12 tables exactes** (sales 12, sale_items 17, medications 5036, users 7, roles 10, permissions 171, stock_balances 27, stock_movements 52, invoices 0, backups 12, auth_users 6) ; `user_sessions` 441 vs 439 = **2 sessions créées après l'émission du dump** (jobs de sauvegarde/audit — explicable, pas de dérive).
+- Cohérence de contenu : dernière vente `POS-2026-000108` identique, stocks des 20 produits TEST identiques.
+- Hygiène post-restore : serveur local **arrêté**, dump en clair **supprimé** du disque temporaire.
+- **Reste BLOQUÉ** : restauration sur **serveur distant isolé** (Docker absent, WSL absent, aucun accès SSH/Render) — « restore local ≠ restauration sur un serveur dédié », non revendiquée autrement.
+
+### Bonus demandé — Restauration du stock des ventes de test : **FAIT ET VÉRIFIÉ**
+
+- Produits concernés (ventes de test uniquement, ventes **jamais modifiées ni supprimées**) : `TEST_PHARMA_PLUS_StockNormal_A` (POS-000105 + POS-000107 = −2), `TEST_PHARMA_PLUS_AucunStock_A` (POS-000092 + POS-000108 = −2), `TEST_PHARMA_PLUS_AucunStock_D` (POS-000106 = −1).
+- Restauration via l'API **`POST /stock/adjustments`** (RPC atomique, mouvements tracés, raison explicite « Restauration stock apres ventes de test … ») : **`applied: 3`, `skipped: 0`**.
+- Vérification post : **50 / 50 / 50** (contre 48 / 48 / 49) → les 3 produits sont prêts pour de nouveaux tests de vente.
+
+### États finaux de validation (revalidés ce jour)
+
+| Suite | Résultat |
+|---|---|
+| `npm test` (187 tests) | **exit 0** |
+| `deno check` (Edge) | **exit 0** |
+| Sauvegarde fraîche `--verify` | **SHA-256 identique** |
+| Restauration isolée locale | **réelle, 0 erreur de données** |
+| Stock de test | **50/50/50 restauré** |
+
+### Reste bloqué — action humaine (inchangé)
+
+- **PAT GitHub** : révocation manuelle sur `github.com/settings/tokens` (en dernier) + jeton de remplacement.
+- **`BACKUP_ENCRYPTION_KEY` sur Render** : dashboard `pharma-plus-api`.
+- **Restauration sur serveur distant isolé** : dès qu'un environnement adapté (Docker/SSH/VM) est accessible — procédure `backup_worker --decrypt` + `pg_restore` désormais éprouvée de bout en bout en local.
+
+*Aucun secret dans cette annexe. Aucune donnée métier supprimée (hors 2 comptes Auth vides de toute donnée, explicitement autorisés).*
