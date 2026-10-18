@@ -9,6 +9,10 @@ on:
     - cron: "30 3 * * *" # 03:30 UTC = 05:30 Maroc
   workflow_dispatch: {}
 
+# Permissions minimales : lecture seule du dépôt (sauvegarde via API Supabase).
+permissions:
+  contents: read
+
 jobs:
   backup:
     runs-on: ubuntu-latest
