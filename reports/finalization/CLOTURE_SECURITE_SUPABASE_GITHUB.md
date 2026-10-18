@@ -200,4 +200,9 @@ Exécutés en direct le 18/10/2026 (lecture seule + une unique tentative de logi
 
 **Points connexes vérifiés le même jour** : défauts TVA en prod (annexe RAPPORT_POS_PAYER #1) = **RÉSOLU** ; CORS = `Access-Control-Allow-Origin: *` (aucun problème d'origine PC) ; bundle PC = même stamp `202610182109` que le téléphone.
 
+**Suite 18/10 (23h) — « stock non vérifiable sur PC »** : même cause racine (session morte). **Validation live en session réelle `d.ach`** (mot de passe fourni par le propriétaire dans un fichier local — valeur jamais affichée ni stockée, 2 logins contrôlés, 2 sessions fermées par logout) :
+- `/auth/me` → rôle **Pharmacien Administrateur**, **171 permissions** dont `stock:view/create/edit/...` → **aucun problème de droits** ;
+- flux EXACT de la page Stock : `/stock/balances?limit=200` → **HTTP 200, 27 lignes** → enrichissement `/catalog/medications/stock?ids=…27 ids` → **HTTP 200, 27 lignes, 27 avec nom produit** ; `/stock/alerts` → **200 (977)** ;
+- conclusion : la page Stock est **intacte** dès qu'une session valide existe → sur le PC : **Ctrl+Shift+R + reconnexion avec le mdp actuel** suffit.
+
 *Aucun secret dans ce rapport. Aucune donnée supprimée. Aucun service cloud modifié. Aucun force-push.*
