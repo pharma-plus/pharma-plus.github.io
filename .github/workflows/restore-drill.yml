@@ -1,0 +1,110 @@
+# =============================================================================
+# restore-drill — Exercice de restauration sur environnement ISOLÉ DISTANT
+#
+# But : lever le blocage « restauration sur serveur distant isolé » (pas de
+# Docker/WSL/SSH local). Le runner GitHub Actions est un environnement distant
+# éphémère : la restauration s'y fait SANS AUCUN RISQUE pour la production
+# (cluster local jetable du runner, base live ouverte en LECTURE SEULE).
+#
+# Non destructif : aucun DROP, aucune écriture live, aucune suppression de
+# sauvegarde. Déclenchement manuel uniquement (workflow_dispatch).
+# Secrets réutilisés (déjà en place) : BACKUP_DATABASE_URL,
+# BACKUP_ENCRYPTION_KEY, BACKUP_SUPER_ADMIN_EMAIL, BACKUP_SUPER_ADMIN_PASSWORD.
+# =============================================================================
+name: restore-drill
+
+on:
+  workflow_dispatch: {}
+
+# Permissions minimales : lecture seule du dépôt.
+permissions:
+  contents: read
+
+jobs:
+  isolated-restore:
+    name: Restauration sur runner isolé (bloquant)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PostgreSQL 17 (serveur + client)
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17 postgresql-17
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Dépendances minimales (pg + dotenv)
+        working-directory: backend
+        run: npm install pg dotenv --no-save --no-audit --no-fund
+
+      - name: Dernière sauvegarde (id)
+        id: job
+        env:
+          DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+        run: |
+          ID=$(psql "$DATABASE_URL" -tA -c "SELECT id FROM backups WHERE status IN ('completed','verified') ORDER BY created_at DESC LIMIT 1")
+          test -n "$ID" || { echo "aucune sauvegarde completed/verified"; exit 1; }
+          echo "id=$ID" >> "$GITHUB_OUTPUT"
+          echo "sauvegarde cible : $ID"
+
+      - name: Déchiffrement (fichier de test)
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          SUPER_ADMIN_EMAIL: ${{ secrets.BACKUP_SUPER_ADMIN_EMAIL }}
+          SUPER_ADMIN_PASSWORD: ${{ secrets.BACKUP_SUPER_ADMIN_PASSWORD }}
+        run: node scripts/backup_worker.mjs --decrypt "${{ steps.job.outputs.id }}" restore_drill.dump
+
+      - name: Cluster isolé éphémère (port 55432)
+        run: |
+          PGBIN=/usr/lib/postgresql/17/bin
+          "$PGBIN/initdb" -D "$RUNNER_TEMP/drillpg" -U postgres -A trust -E UTF8 --locale=C
+          "$PGBIN/pg_ctl" -D "$RUNNER_TEMP/drillpg" -l "$RUNNER_TEMP/drillpg.log" -o "-p 55432 -h 127.0.0.1" -w start
+          for r in supabase_admin supabase_auth_admin supabase_storage_admin supabase_realtime_admin supabase_replica_admin anon authenticated service_role pgbouncer dashboard_user supabase_vault realtime storage; do
+            "$PGBIN/psql" -h 127.0.0.1 -p 55432 -U postgres -d postgres -c "CREATE ROLE $r LOGIN" 2>/dev/null || true
+          done
+          N=$(psql -h 127.0.0.1 -p 55432 -U postgres -d postgres -tAc "SELECT count(*) FROM pg_roles WHERE rolname IN ('supabase_admin','supabase_auth_admin','supabase_storage_admin','supabase_realtime_admin','supabase_replica_admin','anon','authenticated','service_role','pgbouncer','dashboard_user','supabase_vault','realtime','storage')")
+          echo "roles_supabase=$N/13"
+          if [ "$N" -lt 13 ]; then echo "::error::rôles Supabase manquants"; exit 1; fi
+
+      - name: Restauration (erreurs plateforme autorisées uniquement)
+        run: |
+          PGBIN=/usr/lib/postgresql/17/bin
+          set +e
+          "$PGBIN/pg_restore" -h 127.0.0.1 -p 55432 -U postgres -d postgres -j 4 --no-privileges "backend/restore_drill.dump" 2> "$RUNNER_TEMP/restore_err.txt"
+          rc=$?
+          set -e
+          echo "pg_restore exit=$rc (1 = erreurs listées ci-dessous)"
+          echo "--- erreurs ---"
+          cat "$RUNNER_TEMP/restore_err.txt"
+          echo "--- fin erreurs ---"
+          # Échec si UNE SEULE erreur sort des catégories plateforme connues.
+          if grep -E 'pg_restore: (error|erreur)' "$RUNNER_TEMP/restore_err.txt" \
+               | grep -Ev 'supabase_vault|vault\.secrets|event trigger|COMMENT ON EXTENSION|extension "|permission denied|role .* does not exist|publication|pgrst|graphql'; then
+            echo "::error::Erreurs de restauration HORS catégories plateforme."
+            exit 1
+          fi
+
+      - name: Parité restauré vs live (lecture seule)
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          DRILL_LOCAL_URL: postgresql://postgres@127.0.0.1:55432/postgres
+        run: node scripts/restore_drill_check.mjs
+
+      - name: Nettoyage (dump en clair)
+        if: always()
+        run: |
+          PGBIN=/usr/lib/postgresql/17/bin
+          rm -f backend/restore_drill.dump "$HOME/restore_drill.dump" ./restore_drill.dump
+          "$PGBIN/pg_ctl" -D "$RUNNER_TEMP/drillpg" -m immediate stop 2>/dev/null || true
+          rm -rf "$RUNNER_TEMP/drillpg"
+          echo "dump clair supprimé, cluster éphémère détruit (runner jeté à la fin du job)"
