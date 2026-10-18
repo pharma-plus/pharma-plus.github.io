@@ -1977,7 +1977,7 @@ class _LegendItem extends StatelessWidget {
 }
 
 /// ============================================================
-/// BARRE STATS — 5 tuiles maquette (3 sparklines or + 2 alertes)
+/// BARRE STATS — 5 tuiles (3 KPI + tendances réelles + 2 alertes)
 /// ============================================================
 class _BottomBar extends StatelessWidget {
   final double revenueToday;
@@ -2012,7 +2012,6 @@ class _BottomBar extends StatelessWidget {
               label: "VENTES AUJOURD'HUI",
               value: Fmt.money(revenueToday),
               trend: trendToday,
-              curve: trendToday != null,
               compact: compact)),
       const SizedBox(width: 8),
       Expanded(
@@ -2020,7 +2019,6 @@ class _BottomBar extends StatelessWidget {
               label: 'VENTES MOIS',
               value: Fmt.money(revenueMonth),
               trend: trendMonth,
-              curve: trendMonth != null,
               compact: compact)),
       const SizedBox(width: 8),
       Expanded(
@@ -2028,7 +2026,6 @@ class _BottomBar extends StatelessWidget {
               label: 'BÉNÉFICE MOIS',
               value: Fmt.money(profitMonth),
               trend: trendProfit,
-              curve: trendProfit != null,
               compact: compact)),
       const SizedBox(width: 8),
       Expanded(
@@ -2059,7 +2056,6 @@ class _BottomStat extends StatelessWidget {
   final String? trend;
   final String? subtitle;
   final Color valueColor;
-  final bool curve;
   final IconData? icon;
   final Color? iconColor;
   final bool compact;
@@ -2069,7 +2065,6 @@ class _BottomStat extends StatelessWidget {
     this.trend,
     this.subtitle,
     this.valueColor = Colors.white,
-    this.curve = false,
     this.icon,
     this.iconColor,
     this.compact = false,
@@ -2116,56 +2111,10 @@ class _BottomStat extends StatelessWidget {
                           fontSize: 9.5)),
               ]),
         ),
-        if (curve)
-          const SizedBox(
-              width: 40,
-              height: 28,
-              child: CustomPaint(painter: _MiniCurvePainter())),
         if (icon != null) Icon(icon, size: 20, color: iconColor ?? valueColor),
       ]),
     );
   }
-}
-
-/// Courbe tendance or champagne (maquette).
-class _MiniCurvePainter extends CustomPainter {
-  const _MiniCurvePainter();
-  @override
-  void paint(Canvas canvas, Size size) {
-    const color = Color(0xFFE9C873);
-    final path = Path()
-      ..moveTo(0, size.height * 0.82)
-      ..quadraticBezierTo(size.width * 0.28, size.height * 0.92,
-          size.width * 0.48, size.height * 0.5)
-      ..quadraticBezierTo(size.width * 0.68, size.height * 0.08,
-          size.width, size.height * 0.22);
-    canvas.drawPath(
-        path,
-        Paint()
-          ..color = color
-          ..strokeWidth = 1.8
-          ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round);
-    final area = Path()
-      ..addPath(path, Offset.zero)
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..close();
-    canvas.drawPath(
-        area,
-        Paint()
-          ..shader = LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                color.withValues(alpha: 0.25),
-                color.withValues(alpha: 0.0)
-              ])
-              .createShader(Offset.zero & size));
-  }
-
-  @override
-  bool shouldRepaint(covariant _MiniCurvePainter old) => false;
 }
 /// ============================================================
 /// POINT DE VENTE (colonne droite) — délègue au VRAI mini-POS

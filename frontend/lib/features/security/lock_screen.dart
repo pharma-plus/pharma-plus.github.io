@@ -161,7 +161,7 @@ class _LockScreenState extends State<LockScreen> {
           _pin = '';
           _error = 'Aucun PIN configuré — définissez votre code.';
         });
-      } else if (code == 'LOCKED') {
+      } else if (code == 'ACCOUNT_LOCKED') {
         setState(
             () => _error = 'Trop de tentatives — réessayez dans quelques minutes.');
         _pin = '';

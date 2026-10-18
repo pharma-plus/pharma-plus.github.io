@@ -520,8 +520,9 @@ class _SettingsPageState extends State<SettingsPage> {
       case 'tva':
         return S.t('tva', locale);
       case 'tickets':
-      case 'printers':
         return S.t('cardTickets', locale);
+      case 'printers':
+        return S.t('cardPrinters', locale);
       case 'scanner':
         return S.t('cardScanner', locale);
       case 'cash':
