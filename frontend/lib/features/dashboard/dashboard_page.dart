@@ -17,6 +17,7 @@ import '../accounting/accounting_page.dart';
 import '../ai/ai_page.dart';
 import '../attendance/attendance_page.dart';
 import '../cameras/cameras_page.dart';
+import '../invoices/invoices_page.dart';
 import '../floor_plan/pharmacy_plan_page.dart';
 import '../modules/modules_page.dart';
 import '../notifications/notifications_page.dart';
@@ -841,6 +842,8 @@ class _SidebarState extends State<_Sidebar> {
           permission: 'employees:view', module: 'employees', shellIndex: 8),
       const _NavItem(Icons.insert_chart_outlined, 'Rapports',
           permission: 'reports:view', module: 'reports', shellIndex: 9),
+      _NavItem(Icons.receipt_long_outlined, 'Factures',
+          permission: 'sales:view', pageBuilder: () => const InvoicesPage()),
       const _NavItem(Icons.view_in_ar_outlined, 'Plan 3D',
           module: 'plan', shellIndex: 10),
       _NavItem(Icons.videocam_outlined, 'Caméras',

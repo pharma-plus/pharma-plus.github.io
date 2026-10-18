@@ -8,6 +8,7 @@ import '../accounting/accounting_page.dart';
 import '../ai/ai_page.dart';
 import '../attendance/attendance_page.dart';
 import '../cameras/cameras_page.dart';
+import '../invoices/invoices_page.dart';
 import '../prescriptions/prescriptions_page.dart';
 import '../reference/reference_page.dart';
 import '../stock/inventory_page.dart';
@@ -81,6 +82,10 @@ class ModulesPage extends StatelessWidget {
           label: S.t('reports', locale),
           module: 'reports',
           shellIndex: 9),
+      _ModuleTile(
+          icon: Icons.receipt_long_outlined,
+          label: S.t('invoices', locale),
+          builder: (_) => const InvoicesPage()),
       _ModuleTile(
           icon: Icons.language_outlined,
           label: S.t('website', locale),

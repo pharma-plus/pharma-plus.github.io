@@ -23,6 +23,12 @@
 -- toute base creee depuis l'ancien DDL versionne.
 -- Aucune donnee n'est modifiee ni supprimee.
 -- NON APPLIQUEE en production (application subordonnee a autorisation).
+--
+-- 2026-10-18 : sale_items.tax_rate declare SANS DEFAULT. La correction
+-- TVA (executee en prod le 16/10) a retire le DEFAULT 20.00 de la
+-- colonne et le trigger trg_sale_item_tax_from_product force le taux
+-- issu du produit ; reintroduire un defaut 20.00 ici serait un piege
+-- sur toute base fraiche. Aucune autre ligne modifiee.
 -- ============================================================
 
 -- 1) Colonnes absentes du DDL versionne, types/defauts calques sur
@@ -36,7 +42,7 @@ BEGIN
       ('purchase_order_items', 'tax_rate',         'numeric(5,2) NOT NULL DEFAULT 20.00'),
       ('sale_items',           'unit_cost',        'numeric(14,2) NOT NULL DEFAULT 0'),
       ('sale_items',           'discount_percent', 'numeric(5,2) NOT NULL DEFAULT 0'),
-      ('sale_items',           'tax_rate',         'numeric(5,2) NOT NULL DEFAULT 20.00'),
+      ('sale_items',           'tax_rate',         'numeric(5,2) NOT NULL'),
       ('invoices',             'issued_at',        'timestamptz NOT NULL DEFAULT now()'),
       ('journal_entries',      'date',             'date NOT NULL DEFAULT CURRENT_DATE'),
       ('journal_entries',      'total_debit',      'numeric(14,2) NOT NULL DEFAULT 0'),
