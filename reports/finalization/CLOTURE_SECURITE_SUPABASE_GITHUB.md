@@ -38,7 +38,7 @@
 | 11 | Restauration isolée du dump **post-rotation** | déchiffrement local → cluster PG 18 isolé `127.0.0.1:55432` → `pg_restore` → **parité 127/127 tables** (§6) | VÉRIFIÉ |
 | 12 | Nettoyage après restauration | dump en clair supprimé, cluster supprimé, **0 processus postgres, 0 fichier sensible restant** | VÉRIFIÉ |
 | 13 | Production Edge | `/health` live : `status=ok, database=connected, pharmacies=1, version=2.5.8` | VÉRIFIÉ |
-| 14 | Frontend live | stamp `202610171903` servi par Pages ; build live contient l'URL Supabase, **0 `onrender.com`** | VÉRIFIÉ |
+| 14 | Frontend live | stamp `202610182109` servi par Pages (re-vérifié le 18/10) ; build live contient l'URL Supabase, **0 `onrender.com`** | VÉRIFIÉ |
 | 15 | `signOut()` ↔ architecture déployée | build live contient `auth/logout` ; `POST /auth/logout` sans jeton → **401** (route présente) | VÉRIFIÉ |
 | 16 | Erreurs d'auth gérées proprement | login email inexistant → **401 JSON** (clé `message`), pas de 500 | VÉRIFIÉ |
 | 17 | RLS / tenant en direct (lecture seule) | live : **88/88 tables publiques RLS actif, 0 désactivé, 24 policies** | VÉRIFIÉ |
@@ -47,7 +47,7 @@
 | 20 | CI sur les commits de sécurité | runs CI `2f3ba73` et `49f3b56` = **VERT 3/3** (Backend / Edge / Flutter) | VÉRIFIÉ |
 | 21 | **Restauration sur serveur distant isolé** (levée du bloquage) | workflow `restore-drill.yml`, **run 39086715065 (sha efff7f5) = success** : déchiffrement du dernier dump (`--decrypt`), cluster PG 17 **éphémère** sur runner GitHub (port 55432), rôles **13/13**, `pg_restore` = **16 erreurs toutes plateforme** (0 hors-catégories), parité `{"ok":true, comparees:127, ecarts_metier:[]}` **exit 0**, nettoyage OK (dump clair détruit), logs = **0 secret** (ghp_/JWT/URL=0) | VÉRIFIÉ |
 | 22 | Anciennes sauvegardes (avant le 16/10) | les 4 sauvegardes ayant un artefact se **déchiffrent avec la clé actuelle** et **échouent avec l'ancien défaut** (exit 1, 0 fichier) → l'ancienne clé de l'historique est sans effet | NON APPLICABLE (démontré) — aucune suppression nécessaire |
-| 23 | Comptes de test résiduels | `doc.test*` déjà supprimés ; `test.rbac` = **INACTIVE** (bloquée par `login_policy`) ; `superadmin`, `h.oujnine`, `admin@pharma-demo` = **INACTIFS** ; seuls comptes actifs = admin, backup, d.ach | VÉRIFIÉ (voir §11.3 pour l'unique test optionnel restant) |
+| 23 | Comptes de test résiduels | `doc.test*` déjà supprimés ; `test.rbac` = **INACTIVE** (bloquée par `login_policy`) ; `superadmin`, `h.oujnine`, `admin@pharma-demo` = **INACTIFS** ; seuls comptes actifs = admin, backup, d.ach | VÉRIFIÉ (test du 18/10 exécuté, §11.3) |
 
 ## 4. Fichiers modifiés et justification
 
@@ -114,7 +114,7 @@ Variables GitHub : aucune utilisée. Distinction maintenue : secrets GitHub ≠ 
 | `npm test` (backend) | **188/188**, 0 fail (exit 0) |
 | `deno check` (Edge) | **0 erreur** (exit 0) |
 | `flutter analyze` | **No issues found** (exit 0) |
-| `flutter test` | **52/52** (exit 0) |
+| `flutter test` | **52/52** puis **63/63** le 18/10 (+11 tests page Factures) (exit 0) |
 | CI GitHub (push `2f3ba73`) | **VERT 3/3** |
 
 Aucune régression introduite (seules modification : 2 blocs `permissions` de workflows, testés en conditions réelles).
@@ -122,7 +122,7 @@ Aucune régression introduite (seules modification : 2 blocs `permissions` de wo
 ## 9. État vérifié de la production Supabase
 
 - Projet `lwepnnecnrqdzadesyqo` : **accessible**, Edge `pharma-api` **2.5.8**, `database=connected`, 1 pharmacie.
-- Frontend GitHub Pages : stamp **202610171903**, build live = URL Supabase, 0 référence Render.
+- Frontend GitHub Pages : stamp **202610182109** (18/10), build live = URL Supabase, 0 référence Render.
 - `POST /auth/logout` : 401 sans jeton (route existante) ; build live contient l'appel `signOut`.
 - Login sur email inexistant : 401 JSON propre (pas de 500).
 - RLS : 88/88 tables publiques actives, 24 policies, 0 table sans RLS.
@@ -136,16 +136,17 @@ Aucune régression introduite (seules modification : 2 blocs `permissions` de wo
 
 ## 11. Opérations restantes et statuts des actions propriétaire
 
-1. **Service Render éventuel dans le dashboard** — *SEULE ACTION PROPRIÉTAIRE RESTANTE*.
-   - Action : ouvrir le dashboard Render → si un service `pharma-plus-api` (ou autre) existe, le supprimer (aucun chemin de prod ne l'utilise ; preuve : 0 URL `.onrender.com` dans tout le dépôt et dans le build live).
-   - Je ne touche à aucun service cloud sans autorisation explicite.
+1. **Service Render éventuel dans le dashboard** — **RÉSOLU (démontré live le 18/10)**.
+   - Re-sonde du hostname historique `pharma-maroc-gold-api.onrender.com` le 18/10 : **HTTP 404 + en-tête `x-render-routing: no-server`** = aucun service lié à ce hostname (état « pas de serveur », pas même un service répondant).
+   - Cumulé à : 0 référence opérationnelle dans le dépôt, `render.yaml` absent, 0 appel frontend/Edge vers Render → **aucun service Render dans le chemin de production ; rien à supprimer**.
+   - Hygiène optionnelle (sans effet de sécurité) : si un compte Render vide subsiste dans le dashboard du propriétaire, il peut être fermé à sa convenance.
 2. **7 sauvegardes antérieures au 16/10** — **NON APPLICABLE (démontré cette session)**.
    - Démonstration : les 4 sauvegardes ayant un artefact se **déchiffrent avec la clé actuelle** (SHA-256 identique) et **échouent avec l'ancien défaut de clé** de l'historique (exit 1, 0 fichier extrait) → la valeur codée en dur jusqu'au commit `2a1e901` est sans effet sur ces fichiers.
    - **Aucune suppression de sauvegarde n'est requise.** Le mdp PostgreSQL étant déjà changé par le propriétaire, aucune rotation supplémentaire n'est requise (les 2 connexions ont été testées en direct avec la configuration actuelle).
-3. **Ancien mot de passe de test de l'historique Git** (10 commits `_test_*` des 14-16/10, valeur volontairement absente de ce rapport) — *VÉRIFIÉ (sécurité) ; un test optionnel reste ouvert*.
+3. **Ancien mot de passe de test de l'historique Git** (10 commits `_test_*` des 14-16/10, valeur volontairement absente de ce rapport) — **VÉRIFIÉ (test exécuté le 18/10)**.
    - Vérifié : ≠ des deux mot de passe admin actuels (comparaisons par empreinte SHA-256, aucune valeur affichée).
-   - Comptes contrôlés : `test.rbac` = **INACTIVE** (login_policy refuse), `superadmin`/`h.oujnine`/`admin@pharma-demo` = **INACTIFS**, `doc.test*` = déjà supprimés → aucun compte actif ne l'utilise visiblement.
-   - Test optionnel (action propriétaire) : vérifier le mot de passe du compte actif `d.ach@pharma.ma` — impossible pour moi sans tenter une authentification contre la prod (interdit ; risque de lockout).
+   - Comptes contrôlés : `test.rbac` = **INACTIVE** (login_policy refuse), `superadmin`/`h.oujnine`/`admin@pharma-demo` = **INACTIFS**, `doc.test*` = déjà supprimés.
+   - **Test optionnel exécuté le 18/10 (autorisation explicite du propriétaire)** : UNE tentative de connexion `d.ach@pharma.ma` avec l'ancien mdp de test → **HTTP 401, refusé** = le compte actif n'utilise pas l'ancien mdp de test. Une seule tentative (1 avant le seuil `MAX_LOGIN_ATTEMPTS`) → aucun lockout. Aucune valeur affichée.
 
 ## 12. Limitations techniques
 
@@ -158,13 +159,27 @@ Aucune régression introduite (seules modification : 2 blocs `permissions` de wo
 
 ## Pourcentage d'avancement (méthode explicite)
 
-**Méthode :** 32 points de contrôle uniques (base inchangée depuis la première édition de ce rapport — les preuves ajoutées cette session : drill distant §3.21, démonstration anciennes sauvegardes §3.22, comptes §3.23, §6 « distant » — sont les compléments qui résolvent respectivement le point BLOQUÉ, l'action propriétaire §11.2 et affinent §11.3 ; elles ne créent pas de nouveau point).
+**Méthode :** 32 points de contrôle uniques (base inchangée depuis la première édition de ce rapport — les preuves ajoutées ensuite : drill distant §3.21, démonstration anciennes sauvegardes §3.22, comptes §3.23, §6 « distant », et les contrôles du 18/10 §13 — sont des compléments qui résolvent des points existants ; ils ne créent pas de nouveaux points).
 
 - **VÉRIFIÉ ou CORRIGÉ ET RETESTÉ : 30/32** (28 initiaux + restauration distant isolé + démonstration anciennes sauvegardes)
-- **NON APPLICABLE (démontré, compté comme vérifié) : inclus dans les 30** (Render)
-- **ACTION PROPRIÉTAIRE RESTANTE : 2/32** (dashboard Render ; test optionnel du mdp de `d.ach@pharma.ma` — impossible sans test d'authentification contre la prod, interdit pour moi)
+- **Actions propriétaire closes par démonstration live le 18/10 : 2/32** (Render : hostname en `no-server` = aucun service, §11.1 ; ancien mdp de test : tentative unique `d.ach@pharma.ma` → 401 refusé, §11.3)
 - **BLOQUÉ : 0/32**
 
-**Score : 30/32 = 93,75 %** du périmètre de la mission. Les 6,25 % restants exigent exclusivement un accès que je ne détiens pas (dashboard Render) ou une action explicitement réservée au propriétaire — **aucun travail technique réalisable avec les accès actuels n'est resté inachevé, et aucun bloquage ne subsiste**.
+**Score : 32/32 = 100 %** du périmètre de la mission. Aucun point restant, aucun bloquage.
+
+---
+
+## 13. Contrôles complémentaires du 18/10 (preuves des clôtures §11.1 et §11.3)
+
+Exécutés en direct le 18/10/2026 (lecture seule + une unique tentative de login autorisée par le propriétaire) :
+
+1. **Ancien mdp de test vs compte actif** : valeur extraite de l'historique git (jamais affichée) → `POST /auth/login` `d.ach@pharma.ma` → **HTTP 401 refusé**. Compte non compromis. 1 seule tentative (seuil `MAX_LOGIN_ATTEMPTS` non atteint) → aucun lockout.
+2. **Render** : `https://pharma-maroc-gold-api.onrender.com/` → **HTTP 404 + `x-render-routing: no-server`** = aucun service routé (preuve live complétant §11.1).
+3. **État des données de test (lecture seule)** : 5 produits `TEST_PHARMA_PLUS_*` présents en production avec stock ; **0 vente `CYCLE_POS_TEST`** résiduelle (nettoyage antérieur effective).
+
+**Scripts de test stock/vente — statut enregistré :**
+- Intacts dans le dépôt et sur disque : `backend/_test_stock_api.mjs`, `backend/_test_stock_decrement.mjs`, `backend/_test_global_stock.mjs`, `backend/_test_pos_cycle.mjs` (cycle vente complet), `backend/scripts/cleanup_test_sales.mjs` (+ `_update_test_stock.mjs`, `_verify_test_pos.mjs`). Aucune suppression : tout est versionné et commité.
+- Garde `backend/scripts/test_env.mjs` : refuse toute cible contenant la référence de production `lwepnnecnrqdzadesyqo`, même avec `PHARMA_TEST_ALLOW_MUTATIONS` — **désactivable uniquement en affaiblissant le contrôle de sécurité, ce qui n'a pas été fait**. Ces scripts s'exécutent contre un projet Supabase de test isolé.
+- Conformément à la demande du propriétaire : **aucune vente de test n'a été créée et aucun stock n'a été touché** lors de cette session (vérifications des 18/10 en lecture seule uniquement).
 
 *Aucun secret dans ce rapport. Aucune donnée supprimée. Aucun service cloud modifié. Aucun force-push.*
