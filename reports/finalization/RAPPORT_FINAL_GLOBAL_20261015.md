@@ -810,3 +810,7 @@ Exécution dans l'ordre demandé, avec statuts réels. Aucun secret dans cette a
 - **% d'avancement** : **~90 %** du périmètre réalisable avec les accès actuels. Les 10 % restants sont **bloqués par l'accès dashboard Render** (suppression service / clé) et **l'environnement de restauration distant** — aucun n'est technique côté code. Pas de 100 % annoncé tant que ces éléments ne sont pas vus.
 
 *Aucun secret dans cette annexe. Aucune ressource cloud modifiée ni supprimée. Aucune URL de production, aucun secret, aucun paramètre d'authentification changé.*
+
+---
+
+**Suite (clôture définitive) :** voir `reports/finalization/CLOTURE_SECURITE_SUPABASE_GITHUB.md` — vérifications post-rotation du mot de passe Supabase, sauvegardes contrôlées, restauration isolée du dump post-rotation (parité 127/127 tables), audit de fuites, permissions workflows durcies, CI 3/3 sur `2f3ba73`.
