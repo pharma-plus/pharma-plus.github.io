@@ -227,12 +227,32 @@ class ApiClient {
         }
 
         if (res.statusCode == 401 && !retried) {
+          // Une session existante + refresh refusé = jeton révoqué (ex. :
+          // changement de mot de passe → toutes les sessions tuées côté
+          // serveur). On retourne un message EXPLICITE au lieu du corps 401
+          // brut, sans jamais altérer les erreurs de connexion (pas de
+          // session avant la tentative).
+          final hadSession = _auth.accessToken != null;
           final renewed = await _auth.tryRefresh();
           if (renewed) {
             return await _send(request,
                 retried: true, timeoutOverride: timeoutOverride);
           }
           _auth.signOut();
+          if (hadSession) {
+            return ApiResult<dynamic>._(
+              false,
+              null,
+              null,
+              ApiError(
+                'SESSION_EXPIRED',
+                'Session expirée ou révoquée (changement de mot de passe ?) — reconnectez-vous.',
+                const [],
+                401,
+              ),
+              401,
+            );
+          }
         }
         // Session verrouillée côté serveur (423) : afficher l'écran PIN.
         // Géré ici pour couvrir le redémarrage de l'application pendant un

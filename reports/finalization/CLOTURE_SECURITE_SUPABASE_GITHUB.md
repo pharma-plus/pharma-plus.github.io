@@ -182,4 +182,22 @@ Exécutés en direct le 18/10/2026 (lecture seule + une unique tentative de logi
 - Garde `backend/scripts/test_env.mjs` : refuse toute cible contenant la référence de production `lwepnnecnrqdzadesyqo`, même avec `PHARMA_TEST_ALLOW_MUTATIONS` — **désactivable uniquement en affaiblissant le contrôle de sécurité, ce qui n'a pas été fait**. Ces scripts s'exécutent contre un projet Supabase de test isolé.
 - Conformément à la demande du propriétaire : **aucune vente de test n'a été créée et aucun stock n'a été touché** lors de cette session (vérifications des 18/10 en lecture seule uniquement).
 
+---
+
+## 14. Diagnostic incident « vente OK sur smartphone, KO sur PC » (18/10, 23h)
+
+**Constat utilisateur** : la vente de test passe sur le smartphone mais échoue sur le PC.
+
+**Preuves collectées (lecture seule, base de production)** :
+1. Vente téléphone : **POS-2026-000109**, 18/10 **09:30**, 30,00 MAD, compte `d.ach@pharma.ma` → **réussie**.
+2. `auth.refresh_tokens` de `d.ach` : **41 jetons sur 41 tous révoqués**, dernière mise à jour **18/10 23:13:50** = **révocation massive provoquée par le changement de mot de passe du compte** (le propriétaire a changé le mdp de `d.ach` de lui-même).
+3. `JWT_ACCESS_TTL = 15 min` : l'onglet PC, ouvert avant le changement, reçoit un 401 après 15 min → refresh sur jeton révoqué → **échec → déconnexion** ; le catalogue reste visible **depuis le cache local** (d'où l'illusion que « seul PC » est cassé).
+
+**Cause racine** : pas de bug de la caisse — **session PC tuée par la rotation du mot de passe** (comportement de sécurité normal de GoTrue/Supabase).
+
+**Résolution (côté utilisateur)** : sur le PC → **Ctrl+Shift+R** (rechargement complet) puis **se reconnecter avec le nouveau mot de passe** ; la vente fonctionne alors (même build que le téléphone, CORS `*` vérifié, API 2.5.8).
+**Résolution (côté code, commit du 18/10)** : message explicite « Session expirée ou révoquée (changement de mot de passe ?) — reconnectez-vous » renvoyé par `ApiClient._send` lorsqu'une session existante ne peut plus se rafraîchir (erreur `SESSION_EXPIRED`), sans altérer les messages d'échec de connexion.
+
+**Points connexes vérifiés le même jour** : défauts TVA en prod (annexe RAPPORT_POS_PAYER #1) = **RÉSOLU** ; CORS = `Access-Control-Allow-Origin: *` (aucun problème d'origine PC) ; bundle PC = même stamp `202610182109` que le téléphone.
+
 *Aucun secret dans ce rapport. Aucune donnée supprimée. Aucun service cloud modifié. Aucun force-push.*

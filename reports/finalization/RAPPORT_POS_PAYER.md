@@ -68,6 +68,6 @@ Vente **POS-2026-000084** (Bepanthen Plus, TVA 0, 55,00 MAD, siège) :
 
 ## Blocages restants / actions manuelles
 
-1. **`sale_items.tax_rate DEFAULT 20.00`** et **`sales.tva_rate`/médicaments DEFAULT 20** en base : l'Edge écrase toujours explicitement — pas bloquant, mais un insert manuel hors API serait piégé. Migration de fond à planifier (hors périmètre de ce fix, aucune donnée touchée).
+1. ~~**`sale_items.tax_rate DEFAULT 20.00`** et `sales.tva_rate`/médicaments DEFAULT 20~~ — **RÉSOLU (vérifié live le 18/10)** : `sale_items.tax_rate` = **aucun défaut (NULL)**, `medicaments.tva_rate` = **défaut 0**, et `sales` **n'a aucune colonne tva/tax** (le défaut historique a été retiré par la migration TVA du 16/10 ; l'artefact versionné `20261009150000` a été aligné le 18/10 sans `DEFAULT 20.00`). Plus aucun insert manuel hors API ne peut être piégé par un défaut 20.
 2. Recette physique (scanner/imprimante) et test manuel sur poste pilote : à faire côté terrain.
 3. Les ventes **antérieures** (sept., TVA 20 %) n'ont pas été modifiées (aucune réécriture d'historique — conforme).
