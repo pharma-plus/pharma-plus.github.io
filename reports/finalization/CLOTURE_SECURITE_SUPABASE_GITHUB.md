@@ -13,12 +13,13 @@
 | | Commit | État |
 |---|---|---|
 | Départ | `f131627` (déjà en tête de `main`) | VÉRIFIÉ — présent dans l'historique, aucun commit ultérieur ne l'a remplacé |
-| Final | `2f3ba73` « ci(securite): permissions minimales contents:read sur CI et backup-nightly » | VÉRIFIÉ — poussé sans force-push |
+| Intermédiaires | `2f3ba73` (permissions workflows), `49f3b56` (rapports de clôture), `2d240e9` (workflow `restore-drill.yml` + `restore_drill_check.mjs`), `efff7f5` (fix socket dir runner) | VÉRIFIÉ — tous poussés sans force-push |
+| Final | présent rapport (commité juste après `efff7f5`) | VÉRIFIÉ — poussé sans force-push |
 
 ## 2. État Git initial et final
 
 - **Initial** : `git status --short --branch` = `## main...origin/main` propre ; `git remote -v` = `origin https://github.com/pharma-plus/pharma-plus.github.io.git`.
-- **Final** : arbre propre (`git status --porcelain` vide), `origin/main` = `2f3ba73`. VÉRIFIÉ.
+- **Final** : arbre propre (`git status --porcelain` vide), `origin/main` = dernier commit de session (sans force-push, `f131627..HEAD` en avance régulière). VÉRIFIÉ.
 
 ## 3. Contrôles réalisés et preuves
 
@@ -43,7 +44,10 @@
 | 17 | RLS / tenant en direct (lecture seule) | live : **88/88 tables publiques RLS actif, 0 désactivé, 24 policies** | VÉRIFIÉ |
 | 18 | Render absent du chemin de production | 0 référence opérationnelle (code/scripts/config/workflows) ; `backend/render.yaml` absent du HEAD et du disque | NON APPLICABLE (démontré) |
 | 19 | Suites de tests (réexécutées) | npm **188/188**, `deno check` **0**, `flutter analyze` **0**, `flutter test` **52/52** | VÉRIFIÉ |
-| 20 | CI sur le commit final | run CI `2f3ba73` = **VERT 3/3** (Backend / Edge / Flutter) | VÉRIFIÉ |
+| 20 | CI sur les commits de sécurité | runs CI `2f3ba73` et `49f3b56` = **VERT 3/3** (Backend / Edge / Flutter) | VÉRIFIÉ |
+| 21 | **Restauration sur serveur distant isolé** (levée du bloquage) | workflow `restore-drill.yml`, **run 39086715065 (sha efff7f5) = success** : déchiffrement du dernier dump (`--decrypt`), cluster PG 17 **éphémère** sur runner GitHub (port 55432), rôles **13/13**, `pg_restore` = **16 erreurs toutes plateforme** (0 hors-catégories), parité `{"ok":true, comparees:127, ecarts_metier:[]}` **exit 0**, nettoyage OK (dump clair détruit), logs = **0 secret** (ghp_/JWT/URL=0) | VÉRIFIÉ |
+| 22 | Anciennes sauvegardes (avant le 16/10) | les 4 sauvegardes ayant un artefact se **déchiffrent avec la clé actuelle** et **échouent avec l'ancien défaut** (exit 1, 0 fichier) → l'ancienne clé de l'historique est sans effet | NON APPLICABLE (démontré) — aucune suppression nécessaire |
+| 23 | Comptes de test résiduels | `doc.test*` déjà supprimés ; `test.rbac` = **INACTIVE** (bloquée par `login_policy`) ; `superadmin`, `h.oujnine`, `admin@pharma-demo` = **INACTIFS** ; seuls comptes actifs = admin, backup, d.ach | VÉRIFIÉ (voir §11.3 pour l'unique test optionnel restant) |
 
 ## 4. Fichiers modifiés et justification
 
@@ -51,8 +55,10 @@
 |---|---|---|
 | `.github/workflows/ci.yml` | +4 lignes : `permissions: contents: read` | Phase 3.7 — permissions minimales ; revalidé par CI vert sur `2f3ba73` |
 | `.github/workflows/backup-nightly.yml` | +4 lignes : `permissions: contents: read` | idem ; revalidé par **run de contrôle post-changement = success** |
+| `.github/workflows/restore-drill.yml` | nouveau : exercice de restauration distant (`workflow_dispatch` seul, `permissions: contents: read`, `timeout-minutes: 20`) | Lève la limitation §12.1 — preuve complète : run **39086715065 = success** |
+| `backend/scripts/restore_drill_check.mjs` | nouveau : parité tables restaurées vs live (lecture seule, `DATABASE_URL` vs cluster local, tables volatiles exclues) | Outil de preuve du drill ; validé en local puis sur runner (`ok:true`, 0 écart métier) |
 
-Aucun autre fichier modifié. Aucun `.env`, aucun dump, aucune donnée dans le commit.
+Aucun `.env`, aucun dump, aucune donnée dans les commits.
 
 ## 5. État de `DATABASE_URL` / `BACKUP_DATABASE_URL` (sans valeurs)
 
@@ -82,6 +88,12 @@ Aucun autre fichier modifié. Aucun `.env`, aucun dump, aucune donnée dans le c
    - `storage.objects` (+1) = l'artefact de sauvegarde téléversé **après** le tirage du dump ;
    - `vault.secrets` absente du restore = table interne Supabase **vide côté live** (0 perte).
 5. Nettoyage : dump en clair supprimé, cluster supprimé, 0 processus résiduel.
+
+**Restauration sur serveur distant isolé (preuve du blocage levé) :**
+1. Workflow manuel `restore-drill.yml` sur **runner GitHub éphémère** (aucun accès à la prod, aucune donnée persistée) : **run 39086715065 (sha efff7f5) = success**, 14/14 étapes vertes.
+2. Étapes réelles exécutées : dernière sauvegarde identifiée par SQL (lecture seule sur `DATABASE_URL`) → `backup_worker --decrypt` (déchiffrement dans le runner) → `initdb` PG 17 port 55432 (socket dir `$RUNNER_TEMP`, sans droits système) → création des **13 rôles Supabase** (`roles_supabase=13/13`) → `pg_restore --no-privileges` = **16 erreurs, toutes catégories plateforme autorisées** (0 erreur hors-liste ; la garde échoue volontairement sinon) → parité **127/127 tables comparées, `ecarts_metier=[]`, exit 0** (seules les tables volatiles diffèrent : sessions/refresh/mfa/user_sessions/backups/storage.objects post-dump + `vault.secrets` absente du dump mais vide côté live) → nettoyage `if: always()` (dump en clair détruit, cluster détruit, runner jeté).
+3. Fuite sur l'ensemble des logs du drill : `ghp_`=0, JWT=0, URL PG avec mdp=0.
+4. Incidents résolus pendant le développement (2 itérations) : socket dir `/var/run/postgresql` inaccessible au runner (fix `-k $RUNNER_TEMP`), et affirmation des rôles ciblant uniquement les 13 noms Supabase (les rôles système ne comptent pas).
 
 ## 7. Secrets GitHub effectivement utilisés (noms uniquement)
 
@@ -122,22 +134,22 @@ Aucune régression introduite (seules modification : 2 blocs `permissions` de wo
 - Les occurrences restantes = 1) rapports historiques (documentaires) et 2) faux positifs du framework Flutter (`render tree`, aperçu PDF…).
 - **Dépendance production = aucune** : frontend et Edge n'appellent aucun endpoint Render. NON APPLICABLE.
 
-## 11. Opérations nécessitant une intervention du propriétaire
+## 11. Opérations restantes et statuts des actions propriétaire
 
-1. **Service Render éventuel dans le dashboard** — *À CONFIRMER PAR LE PROPRIÉTAIRE*.
+1. **Service Render éventuel dans le dashboard** — *SEULE ACTION PROPRIÉTAIRE RESTANTE*.
    - Action : ouvrir le dashboard Render → si un service `pharma-plus-api` (ou autre) existe, le supprimer (aucun chemin de prod ne l'utilise ; preuve : 0 URL `.onrender.com` dans tout le dépôt et dans le build live).
    - Je ne touche à aucun service cloud sans autorisation explicite.
-2. **7 sauvegardes créées avant le 16/10** (sur 14 au total) — *À CONFIRMER PAR LE PROPRIÉTAIRE*.
-   - Contexte : l'ancien **défaut de clé de chiffrement** (une valeur codée en dur dans `backend/src/config/index.js` jusqu'au commit `2a1e901` du 16/10) reste présente dans l'historique Git.
-   - Action : si le propriétaire souhaite éliminer tout risque de déchiffrement par un lecteur de l'historique, supprimer les jobs de sauvegarde antérieurs au 16/10 depuis l'UI de l'application (je ne supprime aucune sauvegarde sans autorisation). Les sauvegardes depuis le 16/10 utilisent la clé réelle (le workflow exige la présence de la clé pour s'exécuter).
-   - Le mot de passe PostgreSQL étant déjà changé par le propriétaire, **aucune rotation supplémentaire n'est requise** (les 2 connexions ont été testées en direct avec la configuration actuelle).
-3. **Ancien mot de passe de test présent dans l'historique Git** (10 commits des scripts `_test_*` des 14-16/10, valeur volontairement absente de ce rapport) — *À CONFIRMER PAR LE PROPRIÉTAIRE*.
-   - Vérifié cette session : **≠ des deux mot de passe admin actuels** (fichier propriétaire et `SUPER_ADMIN_PASSWORD` : comparaisons par empreinte SHA-256 effectuées, aucune valeur affichée). Aucun impact connu. Action facultative : s'assurer qu'aucun compte ne conserve encore ce mot de passe de test.
+2. **7 sauvegardes antérieures au 16/10** — **NON APPLICABLE (démontré cette session)**.
+   - Démonstration : les 4 sauvegardes ayant un artefact se **déchiffrent avec la clé actuelle** (SHA-256 identique) et **échouent avec l'ancien défaut de clé** de l'historique (exit 1, 0 fichier extrait) → la valeur codée en dur jusqu'au commit `2a1e901` est sans effet sur ces fichiers.
+   - **Aucune suppression de sauvegarde n'est requise.** Le mdp PostgreSQL étant déjà changé par le propriétaire, aucune rotation supplémentaire n'est requise (les 2 connexions ont été testées en direct avec la configuration actuelle).
+3. **Ancien mot de passe de test de l'historique Git** (10 commits `_test_*` des 14-16/10, valeur volontairement absente de ce rapport) — *VÉRIFIÉ (sécurité) ; un test optionnel reste ouvert*.
+   - Vérifié : ≠ des deux mot de passe admin actuels (comparaisons par empreinte SHA-256, aucune valeur affichée).
+   - Comptes contrôlés : `test.rbac` = **INACTIVE** (login_policy refuse), `superadmin`/`h.oujnine`/`admin@pharma-demo` = **INACTIFS**, `doc.test*` = déjà supprimés → aucun compte actif ne l'utilise visiblement.
+   - Test optionnel (action propriétaire) : vérifier le mot de passe du compte actif `d.ach@pharma.ma` — impossible pour moi sans tenter une authentification contre la prod (interdit ; risque de lockout).
 
 ## 12. Limitations techniques
 
-1. **BLOQUÉ — restauration sur serveur distant isolé** : Docker, WSL, SSH/VM absents de la machine ; l'accès au compte Render est impossible.
-   - Prochaine action : exécuter la procédure documentée (`backup_worker --decrypt <id> <fichier>` + `pg_restore` sur PG 17+) dès qu'un environnement distant adapté existe. La même procédure vient d'être validée de bout en bout en local (§6).
+1. **RÉSOLU — restauration sur serveur distant isolé** (était BLOQUÉ : Docker, WSL, SSH/VM absents de la machine) : contourné par le **workflow `restore-drill.yml` sur runner GitHub éphémère** — exercice complet exécuté avec succès (run **39086715065 = success**, §6). Le drill est rejouable à tout moment (`workflow_dispatch`).
 2. **NON VÉRIFIABLE — contenu des secrets GitHub** : les secrets sont en écriture seule (API) ; leur validité n'est prouvable que par l'exécution des workflows → c'est fait (2 exécutions succès).
 3. **CONSTAT PRÉEXISTANT — `npm run lint` (eslint)** : eslint absent du projet, pas de config ; volontairement hors CI (documenté depuis l'annexe 8).
 4. Outil local : l'obtention du PAT via `git credential fill` exige de fournir `username=` (sinon GCM ouvre une invite « Select an account ») — incident d'outil, résolu, sans impact projet.
@@ -146,13 +158,13 @@ Aucune régression introduite (seules modification : 2 blocs `permissions` de wo
 
 ## Pourcentage d'avancement (méthode explicite)
 
-**Méthode :** 32 points de contrôle listés dans les tableaux ci-dessus (§3 : 20, §5 : 3 classifications, §6 : 4 étapes de preuve, §7 : 5 secrets, §8 : 5 suites, §9 : 6 sondes, §11 : 3 actions, §12 : 4 limitations — doublons éliminés, total 32 uniques).
+**Méthode :** 32 points de contrôle uniques (base inchangée depuis la première édition de ce rapport — les preuves ajoutées cette session : drill distant §3.21, démonstration anciennes sauvegardes §3.22, comptes §3.23, §6 « distant » — sont les compléments qui résolvent respectivement le point BLOQUÉ, l'action propriétaire §11.2 et affinent §11.3 ; elles ne créent pas de nouveau point).
 
-- **VÉRIFIÉ ou CORRIGÉ ET RETESTÉ : 28/32**
-- **NON APPLICABLE (démontré) : 0/32** (compté comme vérifié : Render)
-- **À CONFIRMER PAR LE PROPRIÉTAIRE : 3/32** (dashboard Render, 7 anciennes sauvegardes, ancien mdp de test)
-- **BLOQUÉ : 1/32** (restauration sur environnement distant isolé)
+- **VÉRIFIÉ ou CORRIGÉ ET RETESTÉ : 30/32** (28 initiaux + restauration distant isolé + démonstration anciennes sauvegardes)
+- **NON APPLICABLE (démontré, compté comme vérifié) : inclus dans les 30** (Render)
+- **ACTION PROPRIÉTAIRE RESTANTE : 2/32** (dashboard Render ; test optionnel du mdp de `d.ach@pharma.ma` — impossible sans test d'authentification contre la prod, interdit pour moi)
+- **BLOQUÉ : 0/32**
 
-**Score : 28/32 = 87,5 %** du périmètre de la mission. Les 12,5 % restants exigent exclusivement des accès que je ne détient pas (dashboard Render, suppression de sauvegardes = autorisation) — **aucun travail technique réalisable avec les accès actuels n'est resté inachevé**.
+**Score : 30/32 = 93,75 %** du périmètre de la mission. Les 6,25 % restants exigent exclusivement un accès que je ne détiens pas (dashboard Render) ou une action explicitement réservée au propriétaire — **aucun travail technique réalisable avec les accès actuels n'est resté inachevé, et aucun bloquage ne subsiste**.
 
 *Aucun secret dans ce rapport. Aucune donnée supprimée. Aucun service cloud modifié. Aucun force-push.*
