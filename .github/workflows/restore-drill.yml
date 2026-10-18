@@ -67,7 +67,12 @@ jobs:
         run: |
           PGBIN=/usr/lib/postgresql/17/bin
           "$PGBIN/initdb" -D "$RUNNER_TEMP/drillpg" -U postgres -A trust -E UTF8 --locale=C
-          "$PGBIN/pg_ctl" -D "$RUNNER_TEMP/drillpg" -l "$RUNNER_TEMP/drillpg.log" -o "-p 55432 -h 127.0.0.1" -w start
+          # -k : socket dir dans RUNNER_TEMP (pas de droits sur /var/run/postgresql)
+          if ! "$PGBIN/pg_ctl" -D "$RUNNER_TEMP/drillpg" -l "$RUNNER_TEMP/drillpg.log" -o "-p 55432 -h 127.0.0.1 -k $RUNNER_TEMP" -w start; then
+            echo "::error::pg_ctl start a échoué — log serveur :"
+            cat "$RUNNER_TEMP/drillpg.log" || true
+            exit 1
+          fi
           for r in supabase_admin supabase_auth_admin supabase_storage_admin supabase_realtime_admin supabase_replica_admin anon authenticated service_role pgbouncer dashboard_user supabase_vault realtime storage; do
             "$PGBIN/psql" -h 127.0.0.1 -p 55432 -U postgres -d postgres -c "CREATE ROLE $r LOGIN" 2>/dev/null || true
           done
