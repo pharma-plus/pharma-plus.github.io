@@ -38,3 +38,9 @@
 3. **POS = 2 composants distincts** : `pos_page.dart` (page POS complète, `_stock` + fetch dédié) et `pos_panel.dart` (encart dashboard). Un fix sur l'un **ne couvre pas** l'autre — vérifier les deux systématiquement.
 4. **Routes Edge** : login/logout = `auth/login` / `auth/logout`. Un chemin nu `/login` tombe sur une route protégée et renvoie « JWT Supabase invalide ou expiré » — **faux signal** qui simule un mauvais mot de passe.
 5. **Debug PC/mobile divergent** : le PC utilise le dashboard (`pos_panel.dart`), le téléphone la page POS (`pos_page.dart`). Tester le composant de la plateforme fautive, pas celui qui fonctionne.
+
+## 7. VALIDÉ 19/10 — 3 contrôles restants exécutés (détail : rapport §15)
+
+1. **Audit PAT** : jeton `ghp_` stocké (Credential Manager, scopes `repo, workflow`, compte `pharma-plus`, `GET /user` 200 = vivant) mais **0 fuite** dans tree/historique/git config/stash/workflows, `.env.example` propre. **Révocation = toujours action propriétaire** (et coupera les push jusqu'à ré-auth).
+2. **EAN exact** : 5 036 médicaments, **3 696 sans EAN** (3 658 `available`), 1 340 présents tous valides, 0 doublon → liste de travail `reports/finalization/EAN_MANQUANTS_20261019.csv` (colonne `ean13_a_completer` à remplir). Source des codes toujours fermée.
+3. **E2E du chemin POS corrigé** : 5 scénarios (dont recherche vide) → **196/196 ids avec `quantity` numérique, 0 échec**, garde id non-UUID OK.

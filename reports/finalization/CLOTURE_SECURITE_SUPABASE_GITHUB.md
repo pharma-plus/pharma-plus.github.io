@@ -224,4 +224,50 @@ La suite ci-dessus attribuait ce message à la session morte. **Diagnostic final
 
 **Nature de l'incident** : deux causes distinctes coexistaient — (1) session PC tuée par la rotation de mot de passe → corrigée par le message `SESSION_EXPIRED` (commit `b649396`) ; (2) **bug réel du panneau dashboard ci-dessus** → corrigé par `e905012`. Le point (2) justifiait à lui seul « seul PC est cassé ».
 
+## 15. Contrôles complémentaires du 19/10 — PAT, EAN, E2E POS
+
+Trois contrôles exécutés (tous **lecture seule** ; aucun secret affiché, aucun jeton imprimé, aucun enregistrement modifié).
+
+### 15.1 Audit PAT (item « révocation du PAT » — vérification CONFIRMÉ / revocation toujours ACTION PROPRIÉTAIRE)
+
+- **Portée du jeton stocké** : PAT classique `ghp_`, 40 caractères, scopes **`repo, workflow`**, compte **`pharma-plus`** (id 317987955) → `GET /user` **HTTP 200** = **toujours valide**. La portée `workflow` autorise la modification des fichiers GitHub Actions.
+- **Où il est stocké** : helpers `credential.helper` = `manager` (Git Credential Manager) + `cache` (`~/.gitconfig`), **8 entrées GitHub persistées** dans le gestionnaire d'identifiants Windows. C'est ce jeton qui sert aux `git push` sans invite.
+- **Fuite dans le dépôt : AUCUNE** — tree HEAD `ghp_` = **0**, `github_pat_` = **0** ; historique : 5 commits mentionnent `ghp_` mais **0 vrai jeton** (littéral `ghp_` dans du texte de documentation) ; absent de `git config` ; `git stash` vide ; workflows n'utilisent que `secrets.BACKUP_DATABASE_URL|BACKUP_ENCRYPTION_KEY|BACKUP_SUPER_ADMIN_EMAIL|BACKUP_SUPER_ADMIN_PASSWORD` (aucun littéral).
+- **`.env.example` tracké = propre** : `JWT_SECRET`, `BACKUP_ENCRYPTION_KEY`, `SUPER_ADMIN_PASSWORD`, `CORS_ORIGINS` = placeholders ; S3/SMTP/Firebase/SMS/WhatsApp = vides ; `DATABASE_URL` = hôte **`localhost`** (dev), pas la prod (`…pooler.supabase.com`).
+- **Reste ACTION PROPRIÉTAIRE** : supprimer le PAT (GitHub → Settings → Developer settings → Personal access tokens). **Attention** : sa suppression coupera les `git push` de cette machine jusqu'à ré-authentification. Aucune action possible depuis l'agent (pas de jeton à révoquer côté dépôt).
+
+### 15.2 Écart matière — décompte EXACT des EAN manquants (remplace l'estimation « ≈ 3 676 »)
+
+Requêtes SQL **SELECT uniquement** (pool prod, `sslmode` retiré, aucun UPDATE/DELETE) :
+
+| Indicateur | Valeur exacte |
+|---|---|
+| Total médicaments | **5 036** (1 pharmacie : « Pharmacie Centrale ») |
+| **Sans EAN-13** | **3 696** |
+| Avec EAN-13 | **1 340** — longueur invalide **0** (tous 8 ou 13) |
+| Codes EAN dupliqués | **0** |
+| Sans EAN + statut `available` | **3 658** (les 38 autres = `retired`) |
+
+**Liste de travail générée** : `reports/finalization/EAN_MANQUANTS_20261019.csv` (3 696 lignes + en-tête, UTF-8, séparateur `;`, colonnes `id;nom;dosage;forme;statut;amm;laboratoire;ean13_a_completer` → colonne vide à remplir côté source). Sont également constatés vides : `amm_number` (cohérent avec le blocage RCP/AMMPS).
+**Avancement de l'item** : la mesure est désormais **exacte et exploitable** (l'estimation du rapport final disait ≈ 3 676 → +20 lignes). La **source des codes reste fermée** (pas d'accès) : seul le propriétaire peut fournir le fichier EAN/AMMPS — mais il dispose à présent du fichier prêt à recevoir les valeurs.
+
+### 15.3 E2E live du chemin POS corrigé (valide le fix `e905012` côté API)
+
+Session `d.ach`, mêmes deux appels que `pos_panel.dart` après correction :
+
+| Scénario | `/catalog/medications` | `/catalog/medications/stock` | Résultat |
+|---|---|---|---|
+| recherche vide (chargement initial du panneau) | 200, **60 ids** | 200, 60 lignes, 60 `quantity` numériques, 60 ids matchés | OK |
+| `a` | 200, 60 ids | 60/60 | OK |
+| `paracetamol` | 200, 44 ids | 44/44 | OK |
+| `comprime` | 200, 7 ids | 7/7 | OK |
+| `ACICLOVIR` | 200, 25 ids | 25/25 | OK |
+
+**Couverture : 196/196 ids avec `quantity` numérique — 0 scénario en échec.** Garde Edge vérifiée : id non-UUID → `HTTP 200` + `data=[]` (pas de crash). Cela prouve que `_stock[id]` est **toujours** renseigné quand l'appel aboutit → le dialogue « Stock non vérifiable » ne peut plus apparaître pour une raison de champ manquant.
+
+### 15.4 Bilan
+
+- **Réalisé par l'agent (3/3)** : audit PAT avec preuves, décompte EAN exact + CSV exploitable, E2E du chemin corrigé.
+- **Non exécutable (inchangé)** : révocation PAT, `BACKUP_ENCRYPTION_KEY` (Render), rotation du mdp ancien compte, suppression des 2 comptes Auth sans profil → **action humaine** ; EAN source fermée, RCP/AMMPS, e-facture (décret non publié), 2ᵉ pharmacie, recette physique, quota de recherche → **matière/extérieur** ; test du clic réel dans le dashboard PC → **navigateur du propriétaire** (l'API est désormais prouvée à 196/196).
+
 *Aucun secret dans ce rapport. Aucune donnée supprimée. Aucun service cloud modifié. Aucun force-push.*
