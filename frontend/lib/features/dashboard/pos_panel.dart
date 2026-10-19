@@ -55,6 +55,7 @@ class _PosPanelState extends State<PosPanel> {
   final Map<String, Medication> _cart = {};
   final Map<String, int> _qty = {};
   final Map<String, Medication> _results = {};
+  final Map<String, double> _stock = {};
   final Map<String, int> _heldQty = {};
   List<String> _heldIds = [];
   double _discount = 0;
@@ -210,6 +211,30 @@ class _PosPanelState extends State<PosPanel> {
     } else if (_results.isNotEmpty) {
       _emptyReloads = 0;
     }
+    _loadStockForResults();
+  }
+
+  /// Charge le stock réel (stock_balances) pour les ids affichés.
+  /// /catalog/medications ne retourne PAS stock_quantity (colonne absente
+  /// de la table medications) : sans cet appel, _stock reste vide et tout
+  /// ajout affichait « Stock non vérifiable » (bug PC dashboard).
+  Future<void> _loadStockForResults() async {
+    final ids =
+        _results.keys.where((id) => !_stock.containsKey(id)).toList();
+    if (ids.isEmpty) return;
+    try {
+      final r = await ApiClient.instance
+          .get('/catalog/medications/stock', query: {'ids': ids.take(100).join(',')});
+      if (!mounted || !r.success || r.data is! List) return;
+      setState(() {
+        for (final e in r.data as List) {
+          if (e is Map) {
+            _stock['${e['medication_id']}'] =
+                (e['quantity'] as num?)?.toDouble() ?? 0;
+          }
+        }
+      });
+    } catch (_) {}
   }
 
   void _toggleForm(String form) {
@@ -219,9 +244,23 @@ class _PosPanelState extends State<PosPanel> {
     _doSearch(_search.text.trim());
   }
 
-  void _add(Medication m) {
-    // Vérifier le stock avant ajout
-    final stock = m.stockQuantity;
+  Future<void> _add(Medication m) async {
+    // Vérifier le stock (map _stock) avant ajout — repli par produit si absent
+    if (!_stock.containsKey(m.id)) {
+      try {
+        final r = await ApiClient.instance
+            .get('/catalog/medications/stock', query: {'ids': m.id});
+        if (r.success && r.data is List) {
+          for (final e in r.data as List) {
+            if (e is Map) {
+              _stock['${e['medication_id']}'] =
+                  (e['quantity'] as num?)?.toDouble() ?? 0;
+            }
+          }
+        }
+      } catch (_) {}
+    }
+    final stock = _stock[m.id];
     if (stock == null) {
       _showStockUnknownDialog();
       return;
@@ -304,7 +343,7 @@ class _PosPanelState extends State<PosPanel> {
     // Vérifier le stock si on augmente la quantité
     if (delta > 0) {
       final m = _cart[id];
-      final stock = m?.stockQuantity;
+      final stock = _stock[id];
       if (stock != null) {
         final current = _qty[id] ?? 0;
         if (current + delta > stock) {
