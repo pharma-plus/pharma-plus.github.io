@@ -205,4 +205,23 @@ Exécutés en direct le 18/10/2026 (lecture seule + une unique tentative de logi
 - flux EXACT de la page Stock : `/stock/balances?limit=200` → **HTTP 200, 27 lignes** → enrichissement `/catalog/medications/stock?ids=…27 ids` → **HTTP 200, 27 lignes, 27 avec nom produit** ; `/stock/alerts` → **200 (977)** ;
 - conclusion : la page Stock est **intacte** dès qu'une session valide existe → sur le PC : **Ctrl+Shift+R + reconnexion avec le mdp actuel** suffit.
 
+### 14.1 CORRECTION (19/10) — la cause réelle du message « Stock non vérifiable » : bug de code, PAS la session
+
+La suite ci-dessus attribuait ce message à la session morte. **Diagnostic final révisé après investigation** : le message vient de `pos_panel.dart` (encart POS du **dashboard**, celui utilisé sur PC), pas de la session.
+
+**Preuve live (session `d.ach`, lecture seule, aucun secret affiché)** :
+- `GET /catalog/medications?limit=3` → **HTTP 200**, 41 colonnes retournées… **sans `stock_quantity`** (`stock_quantity présent: false`) — car `index.ts:956` route ce chemin vers la table générique `medications`, or le stock vit dans `stock_balances`, colonne absente du modèle.
+- Or `pos_panel.dart:_add` faisait `final stock = m.stockQuantity;` → **toujours `null`** → `if (stock == null) _showStockUnknownDialog()` → **« Stock non vérifiable » à CHAQUE ajout**, 100 % reproductible, indépendant de toute session.
+- Le POS complet (`pos_page.dart`) fetch le stock **séparément** via `GET /catalog/medications/stock` → **d'où « ça marche sur smartphone »** (page POS) **et ça casse sur PC** (dashboard).
+- Vérifié que `/catalog/medications/stock` est sain : `medication_id` présent, clés catalogue↔stock **3/3 conformes**, `quantity` = nombre ; l'Edge complète même les ids sans ligne par `quantity:0` (`index.ts:7174-7179`) → **si l'appel aboutit, `_stock[id]` est TOUJOURS renseigné**.
+
+**Fix (commit `e905012`, déploiement stamp `202610190041`)** — `pos_panel.dart` aligné sur le pattern du POS complet :
+- nouvelle `Map<String,double> _stock` + `_loadStockForResults()` (appel batch `/catalog/medications/stock`) exécuté après chaque recherche ;
+- `_add` devient async avec repli par produit si l'id n'est pas encore en `_stock` (null → non vérifiable, 0 → indisponible, sinon contrôle de quantité) ;
+- `_bump` contrôle la surquantité via `_stock[id]`.
+
+**Vérifications** : `flutter analyze` **0**, `flutter test` **63/63**, build **356 s**, CI **2/2 succès** (Pages build + CI), CDN live stamp **`202610190041`** = attendu, bundle **HTTP 200 et identique au local** (5 393 996 octets). Arbre propre, aucun résidu de script.
+
+**Nature de l'incident** : deux causes distinctes coexistaient — (1) session PC tuée par la rotation de mot de passe → corrigée par le message `SESSION_EXPIRED` (commit `b649396`) ; (2) **bug réel du panneau dashboard ci-dessus** → corrigé par `e905012`. Le point (2) justifiait à lui seul « seul PC est cassé ».
+
 *Aucun secret dans ce rapport. Aucune donnée supprimée. Aucun service cloud modifié. Aucun force-push.*
