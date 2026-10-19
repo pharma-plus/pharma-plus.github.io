@@ -91,6 +91,11 @@ class _PosPageState extends State<PosPage> {
 
   static const _kHeldKey = 'pmg_pos_held_sales';
 
+  // Ventes suspendues : liste des ventes de L'UTILISATEUR courant
+  // (même clé et même format que le mini-POS du dashboard).
+  List<Map<String, dynamic>> _heldSales = [];
+  bool _resuming = false;
+
   @override
   void initState() {
     super.initState();
@@ -99,6 +104,7 @@ class _PosPageState extends State<PosPage> {
     _loadBranches();
     _loadCustomers();
     _loadFacets();
+    _loadHeld();
     _searchMedications('');
     final lines = widget.initialLines;
     final items = widget.initialItems;
@@ -159,6 +165,9 @@ class _PosPageState extends State<PosPage> {
       _receivedVN.value = 0;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Panier suspendu — reprenez-le après la vente.')));
+      // La liste des suspensions est propre à chaque employé : le nouvel
+      // utilisateur doit voir les SIENNES après un changement de session.
+      _loadHeld();
     });
   }
 
@@ -188,6 +197,175 @@ class _PosPageState extends State<PosPage> {
       ],
     });
     await prefs.setString(_kHeldKey, jsonEncode(existing));
+  }
+
+  /// Recharge les ventes suspendues de l'utilisateur courant depuis
+  /// SharedPreferences (même clé que le mini-POS : le mini-POS et le
+  /// POS complet partagent les suspensions).
+  Future<void> _loadHeld() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    final raw = prefs.getString(_kHeldKey);
+    if (raw == null) return;
+    try {
+      final uid = AuthStore.instance.user?.id;
+      // Verrou multi-employés : chacun ne voit que SES ventes suspendues
+      // (les entrées sans propriétaire restent visibles : héritage).
+      final list = (jsonDecode(raw) as List? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .where((e) => e['userId'] == null || e['userId'] == uid)
+          .toList();
+      setState(() => _heldSales = list);
+    } catch (_) {}
+  }
+
+  /// Supprime définitivement une vente suspendue (annulation autorisée).
+  Future<void> _dropHeld(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_kHeldKey) ?? '[]';
+    await prefs.setString(
+        _kHeldKey,
+        jsonEncode((jsonDecode(raw) as List? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .where((e) => '${e['id']}' != id)
+            .toList()));
+    if (!mounted) return;
+    setState(() => _heldSales.removeWhere((e) => '${e['id']}' == id));
+    ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vente suspendue supprimée')));
+  }
+
+  /// Reprend une vente suspendue : restaure lignes + remise sans perte,
+  /// retire l'entrée, puis revérifie le stock (message explicite si un
+  /// produit est devenu indisponible — correction possible au panier).
+  Future<void> _resumeHeld(String id) async {
+    if (_resuming) return; // anti double-clic / deux reprises rapprochées
+    _resuming = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_kHeldKey);
+      Map<String, dynamic>? held;
+      if (raw != null) {
+        for (final e
+            in (jsonDecode(raw) as List? ?? const []).whereType<Map<String, dynamic>>()) {
+          if ('${e['id']}' == id) {
+            held = Map<String, dynamic>.from(e);
+            break;
+          }
+        }
+      }
+      if (held == null) return;
+      // Un employé ne reprend que ses propres ventes suspendues.
+      final owner = held['userId'];
+      if (owner != null && owner != AuthStore.instance.user?.id) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Vente suspendue par un autre employé')));
+        await _loadHeld();
+        return;
+      }
+      final items = (held['items'] as List? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .toList();
+      // Pré-vérification stock (lots réels) : la validation finale
+      // revérifie côté serveur (trigger), mais l'utilisateur est averti
+      // explicitement AVANT le paiement si un produit manque.
+      final problems = <String>[];
+      try {
+        final r = await ApiClient.instance.get('/catalog/medications/stock',
+            query: {'ids': items.map((e) => '${e['id']}').join(',')});
+        if (r.success && r.data is List) {
+          final avail = <String, double>{};
+          for (final e in r.data as List) {
+            if (e is Map) {
+              avail['${e['medication_id']}'] =
+                  (e['quantity'] as num?)?.toDouble() ?? 0;
+            }
+          }
+          for (final it in items) {
+            final want = (it['qty'] as num?)?.toDouble() ?? 1;
+            final have = avail['${it['id']}'];
+            final name = '${it['name'] ?? it['id']}';
+            if (have == null || have <= 0) {
+              problems.add('$name : indisponible');
+            } else if (want > have) {
+              problems.add(
+                  '$name : ${want.toStringAsFixed(0)} demandés, ${have.toStringAsFixed(0)} en stock');
+            }
+          }
+        }
+      } catch (_) {}
+      final isPercent = held['isPercent'] == true;
+      final disc = (held['discount'] as num?)?.toDouble() ?? 0;
+      setState(() {
+        // Restaure les lignes AVEC les prix/remises enregistrés.
+        for (final it in items) {
+          final med = Medication(
+            id: '${it['id']}',
+            name: '${it['name'] ?? ''}',
+            priceSale: (it['price_sale'] as num?)?.toDouble() ?? 0,
+          );
+          _cart.lines.add(CartLine(
+            medication: med,
+            quantity: (it['qty'] as num?)?.toDouble() ?? 1,
+            unitPrice: (it['price_sale'] as num?)?.toDouble(),
+          ));
+        }
+        final d = disc;
+        if (isPercent) {
+          _cart.globalDiscountPercent = d;
+        } else {
+          _cart.globalDiscountFixed = d;
+        }
+        _discountIsPercent = isPercent;
+        _discountCtrl.text = d == 0
+            ? ''
+            : (d == d.roundToDouble() ? '${d.round()}' : d.toStringAsFixed(2));
+        _heldSales.removeWhere((e) => '${e['id']}' == id);
+      });
+      await prefs.setString(
+          _kHeldKey,
+          jsonEncode((jsonDecode(raw ?? '[]') as List? ?? const [])
+              .whereType<Map<String, dynamic>>()
+              .where((e) => '${e['id']}' != id)
+              .toList()));
+      if (!mounted) return;
+      if (problems.isNotEmpty) {
+        await showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Stock à corriger'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                      'Vente reprise, mais ces produits ne sont plus disponibles en quantité suffisante :'),
+                  const SizedBox(height: 8),
+                  for (final p in problems)
+                    Text('• $p',
+                        style: const TextStyle(color: AppColors.danger)),
+                  const SizedBox(height: 8),
+                  const Text(
+                      'Ajustez les quantités avant le paiement — le stock est revérifié au moment de la validation.'),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Corriger le panier')),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Vente suspendue reprise — vérifiez puis payez.')));
+      }
+    } finally {
+      _resuming = false;
+    }
   }
 
   /// Recherche avec debounce (350 ms) : sans lui, chaque frappe = 1 requête
@@ -1140,6 +1318,7 @@ class _PosPageState extends State<PosPage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
+                                  _buildHeldSales(locale),
                                   _buildClientRow(locale),
                                   const SizedBox(height: 8),
                                   _buildDiscountRow(locale),
@@ -1189,6 +1368,7 @@ class _PosPageState extends State<PosPage> {
                         const SizedBox(height: 10),
                         _buildResultsTable(locale),
                         const SizedBox(height: 10),
+                        _buildHeldSales(locale),
                         _buildClientRow(locale),
                         const SizedBox(height: 8),
                         _buildDiscountRow(locale),
@@ -1230,6 +1410,73 @@ class _PosPageState extends State<PosPage> {
   // ══════════════════════════════════════════
   //  SECTION 2 : RECHERCHE + SCANNER (sous la barre)
   // ══════════════════════════════════════════
+  // ══════════════════════════════════════════
+  //  VENTES SUSPENDUES (reprise côté POS complet)
+  // ══════════════════════════════════════════
+  Widget _buildHeldSales(String locale) {
+    if (_heldSales.isEmpty) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF123528),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF2A7A5A)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('VENTES SUSPENDUES',
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.pharmaGold,
+                  letterSpacing: 0.5)),
+          const SizedBox(height: 6),
+          for (final h in _heldSales)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  const Icon(Icons.pause_circle_outline_rounded,
+                      size: 16, color: Color(0xFFB98A1F)),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      _heldSummary(h),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 11, color: Colors.white70),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => _resumeHeld('${h['id']}'),
+                    child: const Text('Reprendre',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF7BEBA4))),
+                  ),
+                  IconButton(
+                    tooltip: 'Supprimer la vente suspendue',
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.delete_outline_rounded,
+                        size: 15, color: AppColors.danger),
+                    onPressed: () => _dropHeld('${h['id']}'),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _heldSummary(Map<String, dynamic> h) {
+    final items = (h['items'] as List? ?? const []);
+    final n = items.fold<int>(0, (s, e) => s + ((e['qty'] as num?)?.toInt() ?? 0));
+    var when = '${h['savedAt'] ?? ''}';
+    if (when.length > 16) when = when.replaceFirst('T', ' ').substring(0, 16);
+    return '$n article(s) · $when';
+  }
+
   Widget _buildSearchRow(String locale) {
     return Column(
       children: [

@@ -17,6 +17,7 @@ import '../accounting/accounting_page.dart';
 import '../ai/ai_page.dart';
 import '../attendance/attendance_page.dart';
 import '../cameras/cameras_page.dart';
+import '../doctors/doctor_page.dart';
 import '../invoices/invoices_page.dart';
 import '../floor_plan/pharmacy_plan_page.dart';
 import '../modules/modules_page.dart';
@@ -1253,10 +1254,16 @@ class _ModulesMenuDialog extends StatelessWidget {
         ModulesPage()),
     (Icons.language_rounded, 'Site web', 'Blog et contenu public',
         WebsitePage()),
+    // Interface Médecin : lecteur de médicaments en lecture seule, réservé
+    // au rôle « Médecin » (5 permissions limitées — voir doctor_page.dart).
+    (Icons.medication_outlined, 'Médecins', 'Consultation des médicaments',
+        DoctorPage()),
   ];
 
   @override
   Widget build(BuildContext context) {
+    // L'interface Médecin n'est proposée qu'au rôle Médecin.
+    final isDoctor = context.watch<AuthStore>().user?.roleName == 'Médecin';
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
@@ -1335,11 +1342,12 @@ class _ModulesMenuDialog extends StatelessWidget {
                 childAspectRatio: 2.5,
                 children: [
                   for (final (icon, label, subtitle, page) in _entries)
-                    _ModuleMenuTile(
-                        icon: icon,
-                        label: label,
-                        subtitle: subtitle,
-                        onTap: () => onOpen(page)),
+                    if (label != 'Médecins' || isDoctor)
+                      _ModuleMenuTile(
+                          icon: icon,
+                          label: label,
+                          subtitle: subtitle,
+                          onTap: () => onOpen(page)),
                 ],
               ),
             ],

@@ -58,6 +58,8 @@ class _PosPanelState extends State<PosPanel> {
   final Map<String, double> _stock = {};
   final Map<String, int> _heldQty = {};
   List<String> _heldIds = [];
+  bool _resuming = false;
+  bool _holding = false;
   double _discount = 0;
   bool _discountPercent = true;
   bool _searching = false;
@@ -452,7 +454,9 @@ class _PosPanelState extends State<PosPanel> {
   }
 
   Future<void> _hold({String? asUserId}) async {
-    if (_cart.isEmpty) return;
+    if (_cart.isEmpty || _holding) return; // anti double-clic
+    _holding = true;
+    try {
     final prefs = await SharedPreferences.getInstance();
     final existing =
         jsonDecode(prefs.getString(_kHeldKey) ?? '[]') as List? ?? [];
@@ -481,9 +485,34 @@ class _PosPanelState extends State<PosPanel> {
     setState(() => _heldIds.add(id));
     ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vente suspendue — reprenez-la ici.')));
+  } finally {
+    _holding = false;
+  }
+  }
+
+  /// Supprime définitivement une vente suspendue (annulation autorisée).
+  Future<void> _dropHeld(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_kHeldKey) ?? '[]';
+    await prefs.setString(
+        _kHeldKey,
+        jsonEncode((jsonDecode(raw) as List? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .where((e) => '${e['id']}' != id)
+            .toList()));
+    if (!mounted) return;
+    setState(() {
+      _heldIds.remove(id);
+      _heldQty.remove(id);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vente suspendue supprimée')));
   }
 
   Future<void> _resume(String id) async {
+    if (_resuming) return; // anti double-clic / reprises rapprochées
+    _resuming = true;
+    try {
     final prefs = await SharedPreferences.getInstance();
     final existing =
         jsonDecode(prefs.getString(_kHeldKey) ?? '[]') as List? ?? [];
@@ -524,12 +553,75 @@ class _PosPanelState extends State<PosPanel> {
       _heldIds.remove(id);
       _heldQty.remove(id);
     });
+    // Revérifiation du stock après reprise : la suspension peut dater,
+    // un produit peut être épuisé depuis. Message explicite, sans blocage —
+    // la validation finale revérifie côté serveur.
+    await _verifyHeldStock(items);
     await prefs.setString(
         _kHeldKey,
         jsonEncode(existing
             .whereType<Map<String, dynamic>>()
             .where((e) => '${e['id']}' != id)
             .toList()));
+  } finally {
+    _resuming = false;
+  }
+  }
+
+  /// Revérifie le stock (lots réels) des produits d'une vente reprise.
+  Future<void> _verifyHeldStock(List<Map<String, dynamic>> items) async {
+    try {
+      final r = await ApiClient.instance.get('/catalog/medications/stock',
+          query: {'ids': items.map((e) => '${e['id']}').join(',')});
+      if (!r.success || r.data is! List) return;
+      final avail = <String, double>{};
+      for (final e in r.data as List) {
+        if (e is Map) {
+          avail['${e['medication_id']}'] =
+              (e['quantity'] as num?)?.toDouble() ?? 0;
+        }
+      }
+      final problems = <String>[];
+      for (final it in items) {
+        final want = (it['qty'] as num?)?.toDouble() ?? 1;
+        final have = avail['${it['id']}'];
+        final name = '${it['name'] ?? it['id']}';
+        if (have == null || have <= 0) {
+          problems.add('$name : indisponible');
+        } else if (want > have) {
+          problems.add(
+              '$name : ${want.toStringAsFixed(0)} demandés, ${have.toStringAsFixed(0)} en stock');
+        }
+      }
+      if (problems.isEmpty || !mounted) return;
+      await showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Stock à corriger'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                    'Vente reprise, mais ces produits ne sont plus disponibles en quantité suffisante :'),
+                const SizedBox(height: 8),
+                for (final p in problems)
+                  Text('• $p',
+                      style: const TextStyle(color: AppColors.danger)),
+                const SizedBox(height: 8),
+                const Text('Ajustez les quantités avant le paiement.'),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Corriger le panier')),
+          ],
+        ),
+      );
+    } catch (_) {}
   }
 
   String _fmt(double v) => Fmt.money(v);
@@ -869,11 +961,22 @@ class _PosPanelState extends State<PosPanel> {
                       for (final id in _heldIds)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 4),
-                          child: _PanelButton(
-                              label: 'Reprendre (${_heldQty[id] ?? 0} art.)',
-                              icon: Icons.unarchive_rounded,
-                              color: const Color(0xFF2A7A5A),
-                              onTap: () => _resume(id)),
+                          child: Row(children: [
+                            Expanded(
+                              child: _PanelButton(
+                                  label: 'Reprendre (${_heldQty[id] ?? 0} art.)',
+                                  icon: Icons.unarchive_rounded,
+                                  color: const Color(0xFF2A7A5A),
+                                  onTap: () => _resume(id)),
+                            ),
+                            const SizedBox(width: 6),
+                            IconButton(
+                              tooltip: 'Supprimer la vente suspendue',
+                              icon: const Icon(Icons.delete_outline_rounded,
+                                  size: 18, color: AppColors.danger),
+                              onPressed: () => _dropHeld(id),
+                            ),
+                          ]),
                         ),
                     Text('Recherchez un médicament',
                         style: TextStyle(
