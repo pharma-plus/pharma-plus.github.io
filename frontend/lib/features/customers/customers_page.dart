@@ -77,7 +77,12 @@ class _CustomersPageState extends State<CustomersPage> {
     final locale = context.read<AuthStore>().locale;
     final saved = await showDialog<bool>(
       context: context,
-      builder: (_) => _CustomerForm(customer: customer),
+      builder: (_) => Dialog(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560),
+              child: _CustomerForm(customer: customer),
+            ),
+          ),
     );
     if (saved == true) {
       _load();
@@ -294,7 +299,15 @@ class _CustomerFormState extends State<_CustomerForm> {
   }
 
   Future<void> _save() async {
-    if (_name.text.trim().isEmpty) return;
+    final locale = context.read<AuthStore>().locale;
+    if (_name.text.trim().isEmpty) {
+      /* Feedback visible : le retour était silencieux (audit Phase 4). */
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(S.t('requiredField', locale))));
+      }
+      return;
+    }
     setState(() => _saving = true);
     final body = {
       'name': _name.text.trim(),

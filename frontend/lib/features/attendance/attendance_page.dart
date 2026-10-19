@@ -92,12 +92,16 @@ class _AttendancePageState extends State<AttendancePage>
           title: Text(in_ ? S.t('clockIn', locale) : S.t('clockOut', locale)),
           content: DropdownButtonFormField<String>(
             initialValue: employeeId,
+            /* isExpanded + ellipsis (audit Phase 4) : les libellés
+               « Prénom Nom · Poste » longs étaient rognés sans retour. */
+            isExpanded: true,
             decoration: InputDecoration(labelText: S.t('employee', locale)),
             items: employees
                 .map((e) => DropdownMenuItem(
                     value: e['id'] as String,
                     child: Text(
-                        '${e['first_name']} ${e['last_name']} · ${e['position']}')))
+                        '${e['first_name']} ${e['last_name']} · ${e['position']}',
+                        overflow: TextOverflow.ellipsis)))
                 .toList(),
             onChanged: (v) => setState(() => employeeId = v),
           ),

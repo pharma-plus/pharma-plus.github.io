@@ -1541,7 +1541,7 @@ class _PosPageState extends State<PosPage> {
                             fontWeight: FontWeight.w800,
                             color: AppColors.pharmaGold,
                             letterSpacing: 0.5))),
-                SizedBox(width: 28),
+                SizedBox(width: 24),
               ],
             ),
           ),

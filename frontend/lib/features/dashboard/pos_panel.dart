@@ -911,6 +911,9 @@ class _PosPanelState extends State<PosPanel> {
                               Text(_fmt(m.priceSale),
                                   style: const TextStyle(
                                       color: Color(0xFFE9C873), fontSize: 10.5, fontWeight: FontWeight.w800)),
+                              /* Marge droite de 20 px : place le prix sous la
+                                 colonne TOTAL de l'en-tête (audit Phase 5). */
+                              const SizedBox(width: 20),
                             ]),
                           ),
                         ),
@@ -1296,16 +1299,23 @@ class _RowHeader extends StatelessWidget {
         fontSize: 9,
         fontWeight: FontWeight.w800,
         letterSpacing: 0.6);
-    return Row(children: [
-      Expanded(child: Text('PRODUIT', style: style)),
-      SizedBox(
-          width: 86,
-          child: Text('QTE', textAlign: TextAlign.center, style: style)),
-      SizedBox(
-          width: 68,
-          child: Text('TOTAL', textAlign: TextAlign.right, style: style)),
-      const SizedBox(width: 20),
-    ]);
+    /* Aligné au pixel sur les lignes (_CartRow) : même padding horizontal
+       (9) et même largeur de colonne TOTAL (62 + 20 de marge droite).
+       Avant : en-tête sans padding et TOTAL sur 68 → décalage de 6 px
+       entre l'en-tête et le corps (audit Phase 5). */
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 9),
+      child: Row(children: [
+        Expanded(child: Text('PRODUIT', style: style)),
+        SizedBox(
+            width: 86,
+            child: Text('QTE', textAlign: TextAlign.center, style: style)),
+        SizedBox(
+            width: 62,
+            child: Text('TOTAL', textAlign: TextAlign.right, style: style)),
+        const SizedBox(width: 20),
+      ]),
+    );
   }
 }
 

@@ -93,9 +93,12 @@ class _WebsitePageState extends State<WebsitePage> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(S.t('newPost', locale)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+        /* Contenu défilant (audit Phase 4) : le Column fixe pouvait
+           déborder sur les petites hauteurs / clavier ouvert. */
+        content: SingleChildScrollView(
+          child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
             TextField(
                 controller: title,
                 decoration:
@@ -112,7 +115,8 @@ class _WebsitePageState extends State<WebsitePage> {
                 maxLines: 4,
                 decoration:
                     InputDecoration(labelText: S.t('postContent', locale))),
-          ],
+        ],
+          ),
         ),
         actions: [
           TextButton(

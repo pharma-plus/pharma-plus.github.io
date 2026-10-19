@@ -59,6 +59,13 @@ class _CatalogPageState extends State<CatalogPage> {
   List<String> _stockIds = [];
   final Map<String, double> _stock = {};
 
+  /* Barres de défilement du tableau (audit Phase 5) : le projet ne
+     déclarait AUCUN Scrollbar, donc aucune barre n'apparaissait sur web
+     et la molette de la zone horizontale était absorbée par le scroll
+     vertical parent. */
+  final ScrollController _hScroll = ScrollController();
+  final ScrollController _vScroll = ScrollController();
+
   // Filtres actifs.
   String? _fLab;
   String? _fForm;
@@ -83,6 +90,8 @@ class _CatalogPageState extends State<CatalogPage> {
   void dispose() {
     _searchDebounce?.cancel();
     _search.dispose();
+    _hScroll.dispose();
+    _vScroll.dispose();
     super.dispose();
   }
 
@@ -762,20 +771,29 @@ class _CatalogPageState extends State<CatalogPage> {
                         : RefreshIndicator(
                             onRefresh: () =>
                                 _load(page: 1, query: _search.text),
-                            child: SingleChildScrollView(
-                              padding:
-                                  const EdgeInsets.fromLTRB(12, 0, 12, 16),
-                              child: Column(
+                            child: Scrollbar(
+                              controller: _vScroll,
+                              thumbVisibility: true,
+                              child: SingleChildScrollView(
+                                controller: _vScroll,
+                                padding:
+                                    const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                                child: Column(
                                 children: [
                                   GlassCard(
                                     radius: BorderRadius.circular(16),
                                     padding: EdgeInsets.zero,
-                                    child: SingleChildScrollView(
-                                      scrollDirection: Axis.horizontal,
-                                      child: ConstrainedBox(
-                                        constraints: const BoxConstraints(
-                                            minWidth: 1150),
-                                        child: _buildTable(isDark, locale),
+                                    child: Scrollbar(
+                                      controller: _hScroll,
+                                      thumbVisibility: true,
+                                      child: SingleChildScrollView(
+                                        controller: _hScroll,
+                                        scrollDirection: Axis.horizontal,
+                                        child: ConstrainedBox(
+                                          constraints: const BoxConstraints(
+                                              minWidth: 1150),
+                                          child: _buildTable(isDark, locale),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -803,6 +821,7 @@ class _CatalogPageState extends State<CatalogPage> {
                                 ],
                               ),
                             ),
+                          ),
                           ),
           ),
         ],
@@ -870,20 +889,24 @@ class _CatalogPageState extends State<CatalogPage> {
       return DataRow(
         onSelectChanged: (_) => _showDetail(m),
         cells: [
-          DataCell(Text(m.name, maxLines: 2, overflow: TextOverflow.ellipsis,
+          /* Une seule ligne par cellule (audit Phase 5) : des libellés
+             sur deux lignes donnaient des hauteurs de rangée variables
+             et désalignaient le corps de rangée de l'en-tête. */
+          DataCell(Text(m.name, maxLines: 1, overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5))),
-          DataCell(Text(_notProvided(m.dci), style: cellStyle.copyWith(color: muted))),
-          DataCell(Text(_notProvided(m.dosage), style: cellStyle)),
-          DataCell(Text(_notProvided(m.form), style: cellStyle)),
-          DataCell(Text(_notProvided(m.presentation), style: cellStyle)),
-          DataCell(Text(_notProvided(m.laboratoryName), style: cellStyle)),
+          DataCell(Text(_notProvided(m.dci), maxLines: 1, overflow: TextOverflow.ellipsis, style: cellStyle.copyWith(color: muted))),
+          DataCell(Text(_notProvided(m.dosage), maxLines: 1, overflow: TextOverflow.ellipsis, style: cellStyle)),
+          DataCell(Text(_notProvided(m.form), maxLines: 1, overflow: TextOverflow.ellipsis, style: cellStyle)),
+          DataCell(Text(_notProvided(m.presentation), maxLines: 1, overflow: TextOverflow.ellipsis, style: cellStyle)),
+          DataCell(Text(_notProvided(m.laboratoryName), maxLines: 1, overflow: TextOverflow.ellipsis, style: cellStyle)),
           DataCell(Text(
               m.priceSale > 0 ? Fmt.money(m.priceSale) : 'Non renseigné',
+              maxLines: 1, overflow: TextOverflow.ellipsis,
               style: cellStyle.copyWith(fontWeight: FontWeight.w700))),
           DataCell(Text(m.ph != null && m.ph! > 0 ? Fmt.money(m.ph!) : '—',
-              style: cellStyle)),
+              maxLines: 1, overflow: TextOverflow.ellipsis, style: cellStyle)),
           DataCell(Text(m.ppc != null && m.ppc! > 0 ? Fmt.money(m.ppc!) : '—',
-              style: cellStyle)),
+              maxLines: 1, overflow: TextOverflow.ellipsis, style: cellStyle)),
           DataCell(Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
@@ -902,6 +925,7 @@ class _CatalogPageState extends State<CatalogPage> {
                 : (qty > 0
                     ? '${Fmt.number(qty)} (en stock)'
                     : '0 (sans stock)'),
+            maxLines: 1, overflow: TextOverflow.ellipsis,
             style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
@@ -931,6 +955,11 @@ class _CatalogPageState extends State<CatalogPage> {
     }
 
     return DataTable(
+      /* Colonnes cochables désactivées (audit Phase 5) : onSelectChanged
+         sert ici à ouvrir la fiche, pas à sélectionner — la case à cocher
+         de tête n'était jamais utilisée mais créait une colonne fantôme
+         et désalignait l'en-tête du corps. */
+      showCheckboxColumn: false,
       headingRowColor: WidgetStateProperty.all(
           AppColors.primary.withValues(alpha: 0.9)),
       headingTextStyle: headerStyle,

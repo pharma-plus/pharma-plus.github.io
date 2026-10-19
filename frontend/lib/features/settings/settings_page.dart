@@ -1230,7 +1230,11 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
     final l = widget.locale;
     return AlertDialog(
       title: Text(S.t('changePassword', l)),
-      content: Column(
+      /* Contenu défilant (audit Phase 4) : trois champs + message
+         d'erreur dans un Column fixe débordaient quand le clavier
+         masquait la zone de saisie. */
+      content: SingleChildScrollView(
+        child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
@@ -1264,7 +1268,8 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
               ]),
             ),
           ],
-        ],
+          ],
+        ),
       ),
       actions: [
         TextButton(

@@ -140,8 +140,18 @@ class AppTheme {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
-      bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: Colors.transparent,
+      bottomSheetTheme: BottomSheetThemeData(
+        /* AUDIT PHASE 4 — fond OPAQUE (était Colors.transparent).
+           Le thème transparent laissait le contenu des feuilles remontées
+           (filtres catalogue, fiche produit, menus actions stock, minuterie
+           inactivité, formulaire retours, fiches fournisseur/client/employé/
+           commande/facture/pharmacie) flotter directement sur la barrière
+           sombre : ~12 surfaces illisibles. Les feuilles qui définissent
+           leur propre couleur (ex. feuille de paiement) restent inchangées. */
+        backgroundColor: isDark ? AppColors.surfacePanel : Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
       ),
       textSelectionTheme: const TextSelectionThemeData(
         cursorColor: AppColors.accent,

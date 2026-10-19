@@ -75,7 +75,12 @@ class _PurchasesPageState extends State<PurchasesPage>
     final locale = context.read<AuthStore>().locale;
     final created = await showDialog<bool>(
       context: context,
-      builder: (_) => const _OrderForm(),
+      builder: (_) => Dialog(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 720),
+              child: _OrderForm(),
+            ),
+          ),
     );
     if (created == true) {
       _load();
@@ -336,8 +341,25 @@ class _OrderFormState extends State<_OrderForm> {
   }
 
   Future<void> _save() async {
-    if (_branchId == null || _supplierId == null) return;
-    if (_lines.isEmpty || _lines.any((l) => l.medicationId == null)) return;
+    final locale = context.read<AuthStore>().locale;
+    /* Retours visibles : ces trois garde-fous renvoyaient un void
+       sans aucun message (audit Phase 4 — validations silencieuses). */
+    if (_supplierId == null || _branchId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(_supplierId == null
+                ? S.t('chooseSupplier', locale)
+                : S.t('chooseBranch', locale))));
+      }
+      return;
+    }
+    if (_lines.isEmpty || _lines.any((l) => l.medicationId == null)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(S.t('itemsRequired', locale))));
+      }
+      return;
+    }
     setState(() => _saving = true);
     final result = await ApiClient.instance.post(
       '/purchases/orders',

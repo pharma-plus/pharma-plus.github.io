@@ -416,6 +416,41 @@ async function requireSuperAdmin(
   return { allowed: u.is_super_admin === true, userId };
 }
 
+/**
+ * Garde LOCATAIRE des routes users/:id/... (reset-password, pin).
+ * Le client `sb` utilise la clé service-role et contourne donc la RLS :
+ * sans ce filtre, un utilisateur détenteur de `users:edit` dans UNE
+ * pharmacie pouvait réinitialiser le mot de passe ou écraser le PIN
+ * d'un compte d'une AUTRE pharmacie (prise de contrôle inter-tenant,
+ * + révocation des sessions de la cible = dénégation de service).
+ * Même verrou que le handler générique `users/{uuid}` (pharmacy_id = pid),
+ * avec contournement réservé au super administrateur (permissions globales).
+ * Retourne une Response d'échec, ou null si la cible est dans le périmètre.
+ */
+async function assertUserInScope(
+  sb: any,
+  req: Request,
+  pid: string,
+  targetUserId: string,
+): Promise<Response | null> {
+  const sa = await requireSuperAdmin(sb, req);
+  if (sa.allowed) return null;
+  const { data: target, error } = await sb
+    .from("users")
+    .select("id")
+    .eq("id", targetUserId)
+    .eq("pharmacy_id", pid)
+    .maybeSingle();
+  if (error)
+    return json({ error: { code: "VALIDATION", message: error.message } }, 400);
+  if (!target)
+    return json(
+      { error: { code: "NOT_FOUND", message: "Utilisateur introuvable" } },
+      404,
+    );
+  return null;
+}
+
 /* ===========================================================
    RBAC — matrice route -> module de permission.
    GET/POST/PUT/PATCH/DELETE -> module:view|create|edit|delete.
@@ -440,6 +475,10 @@ const ROUTE_MODULE: Record<string, string> = {
   users: "users",
   user_sessions: "users",
   notifications: "notifications",
+  /* audit n'etait PAS mappe : GET /audit n'exigeait AUCUNE permission
+     (tout compte authentifie lisait le journal de sa pharmacie).
+     audit:view n'est detenu que par les deux roles administrateurs. */
+  audit: "audit",
   prescriptions: "prescriptions",
   pharmacies: "settings",
   "purchases/orders": "purchases",
@@ -917,6 +956,25 @@ async function finishLogin(
   }
 
   const userProfile = await enrichProfile(sb, decision.profile);
+
+  /* STATUT DU LOCATAIRE (audit Phase 6) : la suspension d'une
+     pharmacie n'etait JAMAIS appliquee — un compte d'un locataire
+     suspendue ouvrait toujours une session et gardait acces a toutes
+     ses donnees. Refus controle, sans detail. */
+  if (userProfile?.pharmacy_id) {
+    const { data: phStatus } = await sb
+      .from("pharmacies")
+      .select("status")
+      .eq("id", userProfile.pharmacy_id)
+      .maybeSingle();
+    if (phStatus && phStatus.status !== "active") {
+      console.error(`[login] refus pharmacie (status=${phStatus.status})`);
+      return json(
+        { error: { code: "PHARMACY_SUSPENDED", message: "Compte suspendu" } },
+        403,
+      );
+    }
+  }
 
   try {
     await clearFailedLogin(sb, userProfile.id);
@@ -3830,8 +3888,24 @@ Deno.serve(async (req) => {
   }
   if (path === "pharmacies/me") {
     if (req.method === "PUT") {
-      const body = await req.json().catch(() => ({}));
-      const { error } = await sb.from("pharmacies").update(body).eq("id", pid);
+      const body = (await req.json().catch(() => ({}))) as any;
+      /* WHITELIST (audit Phase 6) : le corps du client partait tel quel
+         dans UPDATE pharmacies — un utilisateur pouvait ecrire n'importe
+         quelle colonne (status = suspension, slug, created_at...).
+         Seul le profil éditable par la pharmacie est autorise :
+         identite (id, slug), statut et dates restent hors de portee. */
+      const ALLOWED = [
+        "name", "legal_name", "logo_url", "icon_url", "banner_url",
+        "colors", "address", "city", "phone", "whatsapp", "email",
+        "website", "currency", "languages", "default_lang", "timezone",
+        "settings",
+      ];
+      const patch: Record<string, unknown> = {};
+      for (const k of ALLOWED)
+        if (body?.[k] !== undefined) patch[k] = body[k];
+      if (Object.keys(patch).length === 0)
+        return json({ data: { message: "Aucun champ modifiable" } });
+      const { error } = await sb.from("pharmacies").update(patch).eq("id", pid);
       if (error) return json({ error: { code: "UPDATE_FAILED", message: error.message } }, 400);
       return json({ data: { message: "Pharmacie mise à jour" } });
     }
@@ -3848,6 +3922,23 @@ Deno.serve(async (req) => {
      RBAC : settings:create via la grille globale (super admin OK).
      =========================================================== */
   if (path === "pharmacies" && req.method === "POST") {
+    /* SUPER ADMIN UNIQUEMENT (audit Phase 6) : ce point cree un
+       locataire complet + un compte Supabase Auth administrateur.
+       La grille RBAC exigeait settings:create, permission detenue par le
+       role « Pharmacien Administrateur » (5 comptes hors super admin) :
+       un pharmacien pouvait donc creer un autre locataire et son
+       administrateur — escalade multi-tenant. */
+    const saCreate = await requireSuperAdmin(sb, req);
+    if (!saCreate.allowed)
+      return json(
+        {
+          error: {
+            code: "FORBIDDEN",
+            message: "Création de pharmacie réservée au super administrateur",
+          },
+        },
+        403,
+      );
     const b = (await req.json().catch(() => ({}))) as any;
     const name = String(b?.name ?? "").trim();
     const slug = String(b?.slug ?? "").trim().toLowerCase();
@@ -4367,6 +4458,8 @@ Deno.serve(async (req) => {
     const targetUserId = path.split("/")[1];
     if (!UUID_RE.test(targetUserId))
       return json({ error: { code: "VALIDATION", message: "id utilisateur invalide" } }, 400);
+    const scopeDenied = await assertUserInScope(sb, req, pid, targetUserId);
+    if (scopeDenied) return scopeDenied;
     const body = await req.json().catch(() => ({}));
     const newPassword = String((body as any)?.newPassword ?? "");
     if (newPassword.length < 8)
@@ -4447,6 +4540,8 @@ Deno.serve(async (req) => {
     const perm = await hasPermission(sb, req, "users:edit");
     if (!perm.allowed) return json({ error: { code: "FORBIDDEN", message: "Permission users:edit requise" } }, 403);
     const targetUserId = path.split("/")[1];
+    const scopeDeniedPutPin = await assertUserInScope(sb, req, pid, targetUserId);
+    if (scopeDeniedPutPin) return scopeDeniedPutPin;
     const body = await req.json().catch(() => ({}));
     const pin = String((body as any)?.pin ?? "");
     if (!/^\d{4,6}$/.test(pin))
@@ -4493,6 +4588,8 @@ Deno.serve(async (req) => {
     const perm = await hasPermission(sb, req, "users:edit");
     if (!perm.allowed) return json({ error: { code: "FORBIDDEN", message: "Permission users:edit requise" } }, 403);
     const targetUserId = path.split("/")[1];
+    const scopeDeniedDelPin = await assertUserInScope(sb, req, pid, targetUserId);
+    if (scopeDeniedDelPin) return scopeDeniedDelPin;
     const { error } = await sb.from("users").update({ pin_hash: null }).eq("id", targetUserId);
     if (error) return json({ error: { code: "PIN_CLEAR_FAILED", message: error.message } }, 400);
     const callerId = await currentUserId(req);
@@ -7664,6 +7761,51 @@ Deno.serve(async (req) => {
     const [, basePath, sub] = genericMatch;
     const table = TABLE_MAP[`/${basePath}`];
     if (table) {
+      /* ANTI-ESCALADE : roles / role_permissions / permissions sont
+         mappes sur le module « users » (ROUTE_MODULE), donc un simple
+         detenteur de users:edit|create|delete pouvait ecrire directement
+         dans role_permissions via ce proxy (service-role = sans RLS) et
+         s'attribuer toutes les permissions — dans sa pharmacie OU dans
+         une autre. L'UI ne modifie jamais ces tables (uniquement GET
+         /roles) : l'ecriture est donc reservee au super administrateur. */
+      if (
+        req.method !== "GET" &&
+        ["roles", "role_permissions", "permissions"].includes(basePath)
+      ) {
+        const sa = await requireSuperAdmin(sb, req);
+        if (!sa.allowed)
+          return json(
+            {
+              error: {
+                code: "FORBIDDEN",
+                message:
+                  "Gestion des rôles et permissions réservée au super administrateur",
+              },
+            },
+            403,
+          );
+      }
+      /* LOCATAIRE — table `pharmacies` (audit Phase 6) : cette table ne
+         porte PAS de colonne pharmacy_id, donc le filtre automatique du
+         proxy ne s'applique jamais — un simple GET /pharmacies
+         renvoyait la liste de TOUTES les pharmacies a n'importe quel
+         utilisateur authentique (fuite multi-locataire). L'UI n'emploie
+         que GET /pharmacies/me (route custom) et le portail super
+         admin : l'acces direct a la table est reserve au super
+         administrateur, toute methode confondue. */
+      if (basePath === "pharmacies") {
+        const saPh = await requireSuperAdmin(sb, req);
+        if (!saPh.allowed)
+          return json(
+            {
+              error: {
+                code: "FORBIDDEN",
+                message: "Accès aux pharmacies réservé au super administrateur",
+              },
+            },
+            403,
+          );
+      }
       /* Integrite ledger : la suppression brute d'une vente, de ses
          lignes ou de ses mouvements laisserait un stock decremente
          sans vente (le trigger ne se declenche pas sur DELETE).

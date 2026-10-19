@@ -126,7 +126,12 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
     final locale = context.read<AuthStore>().locale;
     final created = await showDialog<bool>(
       context: context,
-      builder: (_) => const _PharmacyForm(),
+      builder: (_) => Dialog(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560),
+              child: _PharmacyForm(),
+            ),
+          ),
     );
     if (created == true) {
       if (mounted) {
@@ -408,6 +413,12 @@ class _PharmacyFormState extends State<_PharmacyForm> {
     if (_name.text.trim().isEmpty ||
         _slug.text.trim().isEmpty ||
         _email.text.trim().isEmpty) {
+      /* Feedback visible : le retour était silencieux (audit Phase 4). */
+      final locale = context.read<AuthStore>().locale;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(S.t('requiredField', locale))));
+      }
       return;
     }
     setState(() => _saving = true);
