@@ -78,7 +78,7 @@ class _PurchasesPageState extends State<PurchasesPage>
       builder: (_) => Dialog(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 720),
-              child: _OrderForm(),
+              child: const _OrderForm(),
             ),
           ),
     );

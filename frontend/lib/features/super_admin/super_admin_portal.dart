@@ -129,7 +129,7 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
       builder: (_) => Dialog(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 560),
-              child: _PharmacyForm(),
+              child: const _PharmacyForm(),
             ),
           ),
     );
