@@ -38,13 +38,20 @@ class GradientButton extends StatelessWidget {
             Icon(icon, size: 22, color: Colors.white),
             const SizedBox(width: 10),
           ],
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-              letterSpacing: 0.3,
+          /* Flexible : dans un bouton étroit (dialogue sur petit écran),
+             le libellé rétrécit avec ellipsis au lieu de faire déborder
+             la Row (overflow 9 px constatée en test widget). */
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                letterSpacing: 0.3,
+              ),
             ),
           ),
         ],

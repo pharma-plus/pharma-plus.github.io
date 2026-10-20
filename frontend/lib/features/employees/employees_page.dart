@@ -7,6 +7,7 @@ import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
+import '../../core/utils/validators.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/status_chip.dart';
@@ -88,7 +89,7 @@ class _EmployeesPageState extends State<EmployeesPage> {
     final locale = context.read<AuthStore>().locale;
     final saved = await showDialog<bool>(
       context: context,
-      builder: (_) => _EmployeeForm(employee: employee),
+        builder: (_) => EmployeeForm(employee: employee),
     );
     if (saved == true) {
       _load();
@@ -427,16 +428,19 @@ class StatsChip extends StatelessWidget {
   }
 }
 
-class _EmployeeForm extends StatefulWidget {
+/// Formulaire employé (création/édition + compte utilisateur lié) —
+/// public pour tests widget.
+class EmployeeForm extends StatefulWidget {
   final Map<String, dynamic>? employee;
 
-  const _EmployeeForm({this.employee});
+  const EmployeeForm({super.key, this.employee});
 
   @override
-  State<_EmployeeForm> createState() => _EmployeeFormState();
+  State<EmployeeForm> createState() => EmployeeFormState();
 }
 
-class _EmployeeFormState extends State<_EmployeeForm> {
+class EmployeeFormState extends State<EmployeeForm> {
+  final _formKey = GlobalKey<FormState>();
   late final _first =
       TextEditingController(text: '${widget.employee?['first_name'] ?? ''}');
   late final _last =
@@ -458,7 +462,6 @@ class _EmployeeFormState extends State<_EmployeeForm> {
   String? _contractType;
   DateTime? _hireDate;
   bool _saving = false;
-  String? _validationError;
 
   // ── Option « Créer également un compte utilisateur » (création) ──
   bool _createAccount = false;
@@ -506,34 +509,10 @@ class _EmployeeFormState extends State<_EmployeeForm> {
   }
 
   Future<void> _save() async {
-    if (_first.text.trim().isEmpty ||
-        _last.text.trim().isEmpty ||
-        _position.text.trim().isEmpty) {
-      setState(() =>
-          _validationError = 'Prénom, nom et fonction sont obligatoires.');
-      return;
-    }
-    if (widget.employee == null && _createAccount) {
-      if (_email.text.trim().isEmpty) {
-        setState(() => _validationError =
-            'Un email est requis pour créer le compte utilisateur.');
-        return;
-      }
-      if (_accountPass.text.length < 8) {
-        setState(() => _validationError =
-            'Mot de passe du compte : minimum 8 caractères.');
-        return;
-      }
-      if (_accountRoleId == null) {
-        setState(() =>
-            _validationError = 'Choisissez le rôle du compte utilisateur.');
-        return;
-      }
-    }
-    setState(() {
-      _saving = true;
-      _validationError = null;
-    });
+    /* Validation par champ (messages i18n sous champ) avant tout appel
+       API — y compris les règles du compte utilisateur optionnel. */
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() => _saving = true);
     final body = {
       'firstName': _first.text.trim(),
       'lastName': _last.text.trim(),
@@ -632,10 +611,12 @@ class _EmployeeFormState extends State<_EmployeeForm> {
           padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
+          child: Form(
+            key: _formKey,
             child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
                 Text(
                   widget.employee == null ? 'Nouvel employé' : 'Modifier l\'employé',
                   style: const TextStyle(
@@ -645,36 +626,61 @@ class _EmployeeFormState extends State<_EmployeeForm> {
                 ),
                 const SizedBox(height: 16),
                 _row2(
-                  TextField(
+                  TextFormField(
                       controller: _first,
+                      textInputAction: TextInputAction.next,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                       decoration: InputDecoration(
-                          labelText: S.t('firstName', locale))),
-                  TextField(
+                          labelText: S.t('firstName', locale)),
+                      validator: (v) =>
+                          validateRequired(v, S.t('requiredField', locale))),
+                  TextFormField(
                       controller: _last,
+                      textInputAction: TextInputAction.next,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                       decoration: InputDecoration(
-                          labelText: S.t('lastName', locale))),
+                          labelText: S.t('lastName', locale)),
+                      validator: (v) =>
+                          validateRequired(v, S.t('requiredField', locale))),
                   wide,
                 ),
                 const SizedBox(height: 12),
                 _row2(
-                  TextField(
+                  TextFormField(
                       controller: _position,
+                      textInputAction: TextInputAction.next,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                       decoration: InputDecoration(
-                          labelText: S.t('position', locale))),
-                  TextField(
+                          labelText: S.t('position', locale)),
+                      validator: (v) =>
+                          validateRequired(v, S.t('requiredField', locale))),
+                  TextFormField(
                       controller: _phone,
                       keyboardType: TextInputType.phone,
+                      textInputAction: TextInputAction.next,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                       decoration:
-                          InputDecoration(labelText: S.t('phone', locale))),
+                          InputDecoration(labelText: S.t('phone', locale)),
+                      validator: (v) =>
+                          validatePhone(v, S.t('invalidPhone', locale))),
                   wide,
                 ),
                 const SizedBox(height: 12),
                 _row2(
-                  TextField(
+                  TextFormField(
                       controller: _email,
                       keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                       decoration:
-                          InputDecoration(labelText: S.t('email', locale))),
+                          InputDecoration(labelText: S.t('email', locale)),
+                      validator: (v) {
+                        if (widget.employee == null && _createAccount) {
+                          return validateRequired(
+                              v, S.t('requiredField', locale));
+                        }
+                        return validateEmail(v, S.t('invalidEmail', locale));
+                      }),
                   TextField(
                       controller: _cin,
                       decoration: InputDecoration(labelText: S.t('cin', locale))),
@@ -688,16 +694,20 @@ class _EmployeeFormState extends State<_EmployeeForm> {
                   TextField(
                       controller: _address,
                       decoration:
-                          const InputDecoration(labelText: 'Adresse')),
+                          InputDecoration(labelText: S.t('address', locale))),
                   wide,
                 ),
                 const SizedBox(height: 12),
                 _row2(
-                  TextField(
+                  TextFormField(
                       controller: _salary,
                       keyboardType: TextInputType.number,
+                      textInputAction: TextInputAction.next,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                       decoration:
-                          InputDecoration(labelText: S.t('salary', locale))),
+                          InputDecoration(labelText: S.t('salary', locale)),
+                      validator: (v) => validateNonNegativeNumber(
+                          v, S.t('invalidNumber', locale))),
                   DropdownButtonFormField<String>(
                     initialValue: _contractType,
                     decoration: InputDecoration(
@@ -755,16 +765,32 @@ class _EmployeeFormState extends State<_EmployeeForm> {
                   if (_createAccount) ...[
                     const SizedBox(height: 8),
                     _row2(
-                      TextField(
+                      TextFormField(
                         controller: _accountPass,
                         obscureText: true,
+                        textInputAction: TextInputAction.next,
+                        autovalidateMode:
+                            AutovalidateMode.onUserInteraction,
                         decoration: const InputDecoration(
                             labelText: 'Mot de passe du compte (min. 8)'),
+                        validator: (v) {
+                          if (!_createAccount) return null;
+                          if (v == null || v.trim().isEmpty) {
+                            return S.t('requiredField', locale);
+                          }
+                          if (v.trim().length < 8) {
+                            return S.t('passwordMin8', locale);
+                          }
+                          return null;
+                        },
                       ),
                       DropdownButtonFormField<String>(
                         initialValue: _accountRoleId,
                         decoration:
                             const InputDecoration(labelText: 'Rôle du compte'),
+                        validator: (v) => (_createAccount && v == null)
+                            ? S.t('requiredField', locale)
+                            : null,
                         items: _roles
                             .map((r) => DropdownMenuItem(
                                 value: '${r['id']}',
@@ -776,13 +802,6 @@ class _EmployeeFormState extends State<_EmployeeForm> {
                       wide,
                     ),
                   ],
-                ],
-                if (_validationError != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    _validationError!,
-                    style: const TextStyle(color: AppColors.danger, fontSize: 13),
-                  ),
                 ],
                 const SizedBox(height: 20),
                 Row(children: [
@@ -804,6 +823,7 @@ class _EmployeeFormState extends State<_EmployeeForm> {
                   ),
                 ]),
               ],
+            ),
             ),
           ),
         ),

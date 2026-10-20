@@ -6,6 +6,7 @@ import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
+import '../../core/utils/validators.dart';
 import '../../core/utils/order_status.dart';
 import '../../core/widgets/barcode_scanner.dart';
 import '../../core/widgets/glass_card.dart';
@@ -78,7 +79,7 @@ class _PurchasesPageState extends State<PurchasesPage>
       builder: (_) => Dialog(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 720),
-              child: const _OrderForm(),
+              child: const OrderForm(),
             ),
           ),
     );
@@ -287,14 +288,16 @@ class _ReceptionList extends StatelessWidget {
   }
 }
 
-class _OrderForm extends StatefulWidget {
-  const _OrderForm();
+/// Formulaire de commande fournisseur — public pour tests widget.
+class OrderForm extends StatefulWidget {
+  const OrderForm({super.key});
 
   @override
-  State<_OrderForm> createState() => _OrderFormState();
+  State<OrderForm> createState() => OrderFormState();
 }
 
-class _OrderFormState extends State<_OrderForm> {
+class OrderFormState extends State<OrderForm> {
+  final _formKey = GlobalKey<FormState>();
   final _expected = TextEditingController();
   final _notes = TextEditingController();
   List<Map<String, dynamic>> _branches = [];
@@ -342,17 +345,9 @@ class _OrderFormState extends State<_OrderForm> {
 
   Future<void> _save() async {
     final locale = context.read<AuthStore>().locale;
-    /* Retours visibles : ces trois garde-fous renvoyaient un void
-       sans aucun message (audit Phase 4 — validations silencieuses). */
-    if (_supplierId == null || _branchId == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(_supplierId == null
-                ? S.t('chooseSupplier', locale)
-                : S.t('chooseBranch', locale))));
-      }
-      return;
-    }
+    /* Validateurs de formulaire sur les deux listes déroulantes
+       (messages i18n sous champ) + garde-fou sur les lignes. */
+    if (!(_formKey.currentState?.validate() ?? false)) return;
     if (_lines.isEmpty || _lines.any((l) => l.medicationId == null)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -404,7 +399,9 @@ class _OrderFormState extends State<_OrderForm> {
               )
             : SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
-                child: Column(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -412,6 +409,9 @@ class _OrderFormState extends State<_OrderForm> {
                       initialValue: _supplierId,
                       decoration: InputDecoration(
                           labelText: S.t('chooseSupplier', locale)),
+                      validator: (v) => v == null
+                          ? S.t('chooseSupplier', locale)
+                          : null,
                       items: _suppliers
                           .map((s) => DropdownMenuItem(
                               value: s['id'] as String,
@@ -424,6 +424,8 @@ class _OrderFormState extends State<_OrderForm> {
                       initialValue: _branchId,
                       decoration: InputDecoration(
                           labelText: S.t('chooseBranch', locale)),
+                      validator: (v) =>
+                          v == null ? S.t('chooseBranch', locale) : null,
                       items: _branches
                           .map((b) => DropdownMenuItem(
                               value: b['id'] as String,
@@ -499,6 +501,7 @@ class _OrderFormState extends State<_OrderForm> {
                       ),
                     ]),
                   ],
+                  ),
                 ),
               ),
       ),

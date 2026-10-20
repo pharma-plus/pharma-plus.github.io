@@ -71,7 +71,7 @@ class _ReturnsPageState extends State<ReturnsPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => _ReturnForm(sale: sale),
+        builder: (_) => ReturnForm(sale: sale),
     ).then((_) => _load());
   }
 
@@ -171,15 +171,16 @@ class _ReturnsPageState extends State<ReturnsPage> {
   }
 }
 
-class _ReturnForm extends StatefulWidget {
+/// Formulaire de retour de vente — public pour tests widget.
+class ReturnForm extends StatefulWidget {
   final Map<String, dynamic> sale;
-  const _ReturnForm({required this.sale});
+  const ReturnForm({super.key, required this.sale});
 
   @override
-  State<_ReturnForm> createState() => _ReturnFormState();
+  State<ReturnForm> createState() => ReturnFormState();
 }
 
-class _ReturnFormState extends State<_ReturnForm> {
+class ReturnFormState extends State<ReturnForm> {
   List<Map<String, dynamic>> _items = [];
   final Map<String, TextEditingController> _qty = {};
   final _reason = TextEditingController();
@@ -232,8 +233,8 @@ class _ReturnFormState extends State<_ReturnForm> {
       payload.add({'medication_id': it['medication_id'], 'quantity': q});
     }
     if (payload.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Indiquez au moins une quantité à retourner')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(S.t('returnAtLeastQty', locale))));
       return;
     }
     setState(() => _saving = true);
@@ -247,8 +248,10 @@ class _ReturnFormState extends State<_ReturnForm> {
     if (!mounted) return;
     if (r.success) {
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Retour enregistré — mouvement de stock créé')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(S.t('returnSaved', locale))));
+      }
     } else {
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(

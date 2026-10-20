@@ -6,6 +6,7 @@ import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
+import '../../core/utils/validators.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/pharma_background.dart';
@@ -63,7 +64,7 @@ class _PrescriptionsPageState extends State<PrescriptionsPage> {
     final locale = context.read<AuthStore>().locale;
     final created = await showDialog<bool>(
       context: context,
-      builder: (_) => const _PrescriptionForm(),
+        builder: (_) => const PrescriptionForm(),
     );
     if (created == true) {
       _load();
@@ -257,14 +258,16 @@ class _PrescriptionsPageState extends State<PrescriptionsPage> {
   }
 }
 
-class _PrescriptionForm extends StatefulWidget {
-  const _PrescriptionForm();
+/// Formulaire d'ordonnance — public pour tests widget.
+class PrescriptionForm extends StatefulWidget {
+  const PrescriptionForm({super.key});
 
   @override
-  State<_PrescriptionForm> createState() => _PrescriptionFormState();
+  State<PrescriptionForm> createState() => PrescriptionFormState();
 }
 
-class _PrescriptionFormState extends State<_PrescriptionForm> {
+class PrescriptionFormState extends State<PrescriptionForm> {
+  final _formKey = GlobalKey<FormState>();
   final _patient = TextEditingController();
   final _doctor = TextEditingController();
   final _notes = TextEditingController();
@@ -320,8 +323,18 @@ class _PrescriptionFormState extends State<_PrescriptionForm> {
   }
 
   Future<void> _save() async {
+    /* Plus de sortie silencieuse : patient validé par le formulaire
+       (message sous champ), absence de ligne via SnackBar i18n. */
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (_lines.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(S.t(
+                'itemsRequired', context.read<AuthStore>().locale))));
+      }
+      return;
+    }
     final patient = _patient.text.trim();
-    if (patient.isEmpty || _lines.isEmpty) return;
     setState(() => _saving = true);
     final result = await ApiClient.instance.post(
       '/prescriptions',
@@ -366,14 +379,20 @@ class _PrescriptionFormState extends State<_PrescriptionForm> {
               )
             : SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
-                child: Column(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TextField(
+                    TextFormField(
                       controller: _patient,
+                      textInputAction: TextInputAction.next,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                       decoration: InputDecoration(
                           labelText: S.t('patientName', locale)),
+                      validator: (v) =>
+                          validateRequired(v, S.t('requiredField', locale)),
                     ),
                     const SizedBox(height: 12),
                     TextField(
@@ -467,6 +486,7 @@ class _PrescriptionFormState extends State<_PrescriptionForm> {
                       ),
                     ]),
                   ],
+                  ),
                 ),
               ),
       ),
