@@ -9,6 +9,7 @@ import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
+import '../../core/widgets/shared/app_data_table.dart';
 import '../../core/widgets/status_chip.dart';
 import '../shell/shell_nav.dart';
 
@@ -26,6 +27,8 @@ class _SuppliersPageState extends State<SuppliersPage> {
   List<Map<String, dynamic>> _items = [];
   bool _loading = true;
   String? _error;
+  String? _sortKey;
+  bool _sortAsc = true;
 
   @override
   void initState() {
@@ -138,7 +141,11 @@ class _SuppliersPageState extends State<SuppliersPage> {
                     ? Center(child: Text(_error!))
                     : _items.isEmpty
                         ? Center(child: Text(S.t('noSuppliers', locale)))
-                        : RefreshIndicator(
+                        : LayoutBuilder(builder: (context, constraints) {
+                            if (constraints.maxWidth >= 600) {
+                              return _buildDesktopTable(locale);
+                            }
+                            return RefreshIndicator(
                             onRefresh: _load,
                             child: ListView.builder(
                               padding: const EdgeInsets.fromLTRB(12, 0, 12, 90),
@@ -223,11 +230,72 @@ class _SuppliersPageState extends State<SuppliersPage> {
                                     ),
                                   ),
                                 );
-                              },
-                            ),
-                          ),
+                               },
+                             ),
+                             );
+                          }),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Tri local par colonne (numérique si les deux valeurs sont des nombres,
+  /// sinon insensible à la casse) — le tableau partagé ne trie pas les données.
+  List<Map<String, dynamic>> get _sortedItems {
+    final list = [..._items];
+    final key = _sortKey;
+    if (key != null) {
+      list.sort((a, b) {
+        final av = a[key];
+        final bv = b[key];
+        final int cmp;
+        if (av is num && bv is num) {
+          cmp = av.compareTo(bv);
+        } else {
+          cmp = '${av ?? ''}'
+              .toLowerCase()
+              .compareTo('${bv ?? ''}'.toLowerCase());
+        }
+        return _sortAsc ? cmp : -cmp;
+      });
+    }
+    return list;
+  }
+
+  /// Vue tableau (≥600px) : tri par colonne, clic sur ligne = fiche
+  /// détaillée (le ListView en cartes reste utilisé sous 600px).
+  Widget _buildDesktopTable(String locale) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 90),
+      child: AppDataTable<Map<String, dynamic>>(
+        columns: [
+          AppDataColumn(key: 'name', label: S.t('supplier', locale)),
+          AppDataColumn(key: 'city', label: S.t('city', locale)),
+          AppDataColumn(
+              key: 'contact_name', label: S.t('contactName', locale)),
+          AppDataColumn(
+            key: 'rating',
+            label: S.t('rating', locale),
+            numeric: true,
+            alignment: TextAlign.right,
+          ),
+          AppDataColumn(
+            key: 'nb_orders',
+            label: S.t('nbOrders', locale),
+            numeric: true,
+            alignment: TextAlign.right,
+          ),
+        ],
+        data: _sortedItems,
+        sortColumnKey: _sortKey,
+        sortAscending: _sortAsc,
+        onSort: (key, ascending) => setState(() {
+          _sortKey = key;
+          _sortAsc = ascending;
+        }),
+        onRowTap: _showDetail,
+        config: const AppDataTableConfig(columnSpacing: 16),
       ),
     );
   }

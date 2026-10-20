@@ -48,9 +48,7 @@ class AppDataColumn<T> {
     required String? sortColumnKey,
     required void Function(String?, bool)? onSort,
   }) {
-    final tokens = context.tokens;
     final isSorted = sortColumnKey == key;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return DataColumn(
       label: headerBuilder?.call(context) ??
@@ -59,8 +57,8 @@ class AppDataColumn<T> {
             sortable: sortable,
             isSorted: isSorted,
             sortedAscending: sortedAscending,
+            columnKey: key,
             onSort: onSort,
-            tooltip: tooltip,
           ),
       numeric: numeric,
       tooltip: tooltip,
@@ -74,16 +72,16 @@ class _SortableHeader extends StatelessWidget {
     required this.sortable,
     required this.isSorted,
     required this.sortedAscending,
+    required this.columnKey,
     this.onSort,
-    this.tooltip,
   });
 
   final String label;
   final bool sortable;
   final bool isSorted;
   final bool sortedAscending;
+  final String columnKey;
   final void Function(String?, bool)? onSort;
-  final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +96,9 @@ class _SortableHeader extends StatelessWidget {
     }
 
     return InkWell(
-      onTap: () => onSort?.call(null, !isSorted),
+      onTap: onSort == null
+          ? null
+          : () => onSort!(columnKey, isSorted ? !sortedAscending : true),
       borderRadius: BorderRadius.circular(tokens.rSm),
       child: Padding(
         padding: EdgeInsets.symmetric(
@@ -459,6 +459,7 @@ class AppDataTable<T> extends StatefulWidget {
 class _AppDataTableState<T> extends State<AppDataTable<T>> {
   late List<T> _selectedItems;
   late int _currentPage;
+  late int _pageSize;
   late String? _sortColumnKey;
   late bool _sortAscending;
   final Map<String, double> _columnWidths = {};
@@ -468,6 +469,7 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
     super.initState();
     _selectedItems = List.from(widget.selectedItems);
     _currentPage = widget.currentPage;
+    _pageSize = widget.pageSize;
     _sortColumnKey = widget.sortColumnKey;
     _sortAscending = widget.sortAscending;
   }
@@ -481,6 +483,9 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
     if (widget.currentPage != oldWidget.currentPage) {
       _currentPage = widget.currentPage;
     }
+    if (widget.pageSize != oldWidget.pageSize) {
+      _pageSize = widget.pageSize;
+    }
     if (widget.sortColumnKey != oldWidget.sortColumnKey) {
       _sortColumnKey = widget.sortColumnKey;
     }
@@ -491,8 +496,8 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
 
   List<T> get _displayData {
     if (!widget.pagination) return widget.data;
-    final start = _currentPage * widget.pageSize;
-    final end = start + widget.pageSize;
+    final start = _currentPage * _pageSize;
+    final end = start + _pageSize;
     return widget.data.sublist(
       start.clamp(0, widget.data.length),
       end.clamp(0, widget.data.length),
@@ -594,12 +599,11 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
   Widget _buildPaginationInfo(BuildContext context) {
     final tokens = context.tokens;
     final total = widget.totalRows ?? widget.data.length;
-    final start = widget.pagination
-        ? _currentPage * widget.pageSize + 1
-        : 1;
+    final start = widget.pagination ? _currentPage * _pageSize + 1 : 1;
     final end = widget.pagination
-        ? (_currentPage + 1) * widget.pageSize
+        ? (_currentPage + 1) * _pageSize
         : widget.data.length;
+    final pageSizes = <int>{10, 25, 50, 100, _pageSize}.toList()..sort();
 
     return Padding(
       padding: EdgeInsets.symmetric(
@@ -615,15 +619,20 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
           const Spacer(),
           if (widget.pagination)
             DropdownButton<int>(
-              value: widget.pageSize,
-              items: [10, 25, 50, 100]
+              value: _pageSize,
+              items: pageSizes
                   .map((e) => DropdownMenuItem(
                         value: e,
                         child: Text('$e par page'),
                       ))
                   .toList(),
               onChanged: (v) {
-                // TODO: gérer changement pageSize
+                if (v == null) return;
+                setState(() {
+                  _pageSize = v;
+                  _currentPage = 0;
+                });
+                widget.onPageChanged?.call(0);
               },
               underline: const SizedBox(),
             ),
@@ -640,6 +649,16 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
     final tokens = context.tokens;
     final isDark = context.isDark;
 
+    /* DataTable indexe ses colonnes dans `columns` (la colonne « N° »
+       comprise) : sans cet offset, l'indicateur de tri atterrissait sur
+       la mauvaise colonne quand showRowNumbers était actif. */
+    final rawSortIndex = _sortColumnKey == null
+        ? -1
+        : visibleColumns.indexWhere((c) => c.key == _sortColumnKey);
+    final effectiveSortIndex = rawSortIndex < 0
+        ? null
+        : rawSortIndex + (widget.showRowNumbers ? 1 : 0);
+
     return DataTable(
       headingRowColor: WidgetStateProperty.resolveWith((states) =>
           isDark ? tokens.bgSurfaceRaised : Colors.grey[50]),
@@ -650,9 +669,7 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
       horizontalMargin: widget.config.horizontalMargin,
       showCheckboxColumn: widget.config.showCheckboxColumn,
       checkboxHorizontalMargin: tokens.sp3,
-      sortColumnIndex: _sortColumnKey != null
-          ? visibleColumns.indexWhere((c) => c.key == _sortColumnKey)
-          : null,
+      sortColumnIndex: effectiveSortIndex,
       sortAscending: _sortAscending,
       onSelectAll: hasSelection ? _handleSelectAll : null,
       dividerThickness: widget.config.showHorizontalLines ? 1 : 0,
@@ -690,9 +707,8 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
       rows: _displayData.asMap().entries.map((entry) {
         final index = entry.key;
         final item = entry.value;
-        final globalIndex = widget.pagination
-            ? _currentPage * widget.pageSize + index
-            : index;
+        final globalIndex =
+            widget.pagination ? _currentPage * _pageSize + index : index;
 
         return DataRow(
           selected: _isSelected(item),
@@ -766,8 +782,8 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
     final tokens = context.tokens;
     final isDark = context.isDark;
     final totalPages = widget.totalRows != null
-        ? (widget.totalRows! / widget.pageSize).ceil()
-        : (widget.data.length / widget.pageSize).ceil();
+        ? (widget.totalRows! / _pageSize).ceil()
+        : (widget.data.length / _pageSize).ceil();
 
     if (totalPages <= 1) return const SizedBox.shrink();
 

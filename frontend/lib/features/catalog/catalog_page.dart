@@ -777,6 +777,9 @@ class _CatalogPageState extends State<CatalogPage> {
                                     const EdgeInsets.fromLTRB(12, 0, 12, 16),
                                 child: Column(
                                 children: [
+                                  if (MediaQuery.sizeOf(context).width < 600)
+                                    _buildMobileCards(isDark)
+                                  else
                                   GlassCard(
                                     radius: BorderRadius.circular(16),
                                     padding: EdgeInsets.zero,
@@ -977,6 +980,122 @@ class _CatalogPageState extends State<CatalogPage> {
         DataColumn(label: Text('Actions', style: headerStyle)),
       ],
       rows: _items.map(row).toList(),
+    );
+  }
+
+  /// Cartes produits pour les petits écrans (<600px) : le tableau à
+  /// 12 colonnes y déborde horizontalement même avec son défilement dédié.
+  Widget _buildMobileCards(bool isDark) {
+    final muted = isDark ? Colors.white60 : Colors.black54;
+    return Column(
+      children: [
+        for (final m in _items) _mobileCard(m, muted),
+      ],
+    );
+  }
+
+  Widget _mobileCard(Medication m, Color muted) {
+    final qty = _stock[m.id];
+    final statusLabel = m.status == 'available'
+        ? 'Disponible'
+        : (m.status == 'archived' ? 'Archivé' : m.status);
+    final statusColor =
+        m.status == 'available' ? AppColors.success : AppColors.warning;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: GlassCard(
+        radius: BorderRadius.circular(16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        onTap: () => _showDetail(m),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(m.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700, fontSize: 13)),
+                  const SizedBox(height: 2),
+                  Text(
+                    [
+                      _notProvided(m.dci),
+                      _notProvided(m.dosage),
+                      _notProvided(m.form),
+                    ].join(' · '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 11.5, color: muted),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(statusLabel,
+                            style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: statusColor)),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          qty == null
+                              ? 'Non suivi'
+                              : (qty > 0
+                                  ? '${Fmt.number(qty)} (en stock)'
+                                  : '0 (sans stock)'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: qty == null
+                                  ? muted
+                                  : (qty > 0
+                                      ? AppColors.success
+                                      : AppColors.danger)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  m.priceSale > 0 ? Fmt.money(m.priceSale) : '—',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13.5,
+                      color: AppColors.gold),
+                ),
+                const SizedBox(height: 2),
+                IconButton(
+                  tooltip: 'Modifier',
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  onPressed: () => _showForm(m).then((changed) {
+                    if (changed) _load(page: _page, query: _search.text);
+                  }),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
