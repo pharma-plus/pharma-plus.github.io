@@ -7,6 +7,7 @@ import '../../core/services/api_client.dart';
 import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
+import '../../core/widgets/shared/app_confirm_dialog.dart';
 
 /// Page de gestion des utilisateurs (super-admin / admin pharmacie).
 /// CRUD complet : créer, modifier, réinitialiser mot de passe, PIN, désactiver.
@@ -207,27 +208,20 @@ class _UsersManagementState extends State<UsersManagementPage> {
           content: Text('Vous ne pouvez pas supprimer votre propre compte.')));
       return;
     }
-    final confirmed = await showDialog<bool>(
+    final confirmed = await AppConfirmDialog.show(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Supprimer le compte'),
-        content: Text(
-          'Désactiver définitivement le compte de ${user['email']} ?\n\n'
-          '· Les ventes et opérations déjà enregistrées sont conservées.\n'
-          '· Le dossier historique de l\'employé rattaché n\'est pas effacé.\n'
-          '· Le compte ne pourra plus se connecter.',
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(S.t('cancel', locale))),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Supprimer'),
-          ),
-        ],
+      title: 'Supprimer le compte',
+      message:
+          'Désactiver définitivement le compte de ${user['email']} ?',
+      extraContent: const Text(
+        '· Les ventes et opérations déjà enregistrées sont conservées.\n'
+        '· Le dossier historique de l\'employé rattaché n\'est pas effacé.\n'
+        '· Le compte ne pourra plus se connecter.',
       ),
+      confirmText: 'Supprimer',
+      cancelText: S.t('cancel', locale),
+      type: AppConfirmType.danger,
+      isDestructive: true,
     );
     if (confirmed != true || !mounted) return;
     final res = await ApiClient.instance.delete('/users/${user['id']}');

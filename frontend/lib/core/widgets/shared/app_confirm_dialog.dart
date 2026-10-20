@@ -148,7 +148,7 @@ class AppConfirmDialog extends StatelessWidget {
       ),
       actions: [
         TextButton(
-          onPressed: cancelLoading || onCancel == null
+          onPressed: cancelLoading
               ? null
               : () {
                   Navigator.of(context).pop(false);
@@ -180,12 +180,10 @@ class AppConfirmDialog extends StatelessWidget {
         ),
         SizedBox(width: tokens.sp2),
         FilledButton(
-          onPressed: confirmLoading || onConfirm == null
+          onPressed: confirmLoading
               ? null
               : () async {
-                  if (onConfirm != null) {
-                    await onConfirm!();
-                  }
+                  await onConfirm?.call();
                   if (context.mounted) {
                     Navigator.of(context).pop(true);
                   }

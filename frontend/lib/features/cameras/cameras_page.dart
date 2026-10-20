@@ -7,6 +7,7 @@ import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/pharma_background.dart';
+import '../../core/widgets/shared/app_confirm_dialog.dart';
 import '../shell/shell_nav.dart';
 
 class CamerasPage extends StatefulWidget {
@@ -128,23 +129,14 @@ class _CamerasPageState extends State<CamerasPage> {
   }
 
   Future<void> _deleteCamera(dynamic camera) async {
-    final confirm = await showDialog<bool>(
+    final confirm = await AppConfirmDialog.show(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(S.t('delete', locale)),
-        content: Text('${camera['name']}'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(S.t('cancel', locale)),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(S.t('delete', locale)),
-          ),
-        ],
-      ),
+      title: S.t('delete', locale),
+      message: '${camera['name']}',
+      confirmText: S.t('delete', locale),
+      cancelText: S.t('cancel', locale),
+      type: AppConfirmType.danger,
+      isDestructive: true,
     );
     if (confirm != true) return;
     final result = await ApiClient.instance
