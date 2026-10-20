@@ -823,7 +823,7 @@ class _CatalogPageState extends State<CatalogPage> {
                                         scrollDirection: Axis.horizontal,
                                         child: ConstrainedBox(
                                           constraints: const BoxConstraints(
-                                              minWidth: 1150),
+                                              minWidth: 700),
                                           child: _buildTable(isDark, locale),
                                         ),
                                       ),
@@ -917,27 +917,25 @@ class _CatalogPageState extends State<CatalogPage> {
       final statusColor = m.status == 'available'
           ? AppColors.success
           : AppColors.warning;
+      final stockText = qty == null
+          ? 'Non suivi'
+          : (qty > 0 ? '${Fmt.number(qty)}' : '0');
+      final stockColor = qty == null
+          ? muted
+          : (qty > 0 ? AppColors.success : AppColors.danger);
       return DataRow(
         onSelectChanged: (_) => _showDetail(m),
         cells: [
-          /* Une seule ligne par cellule (audit Phase 5) : des libellés
-             sur deux lignes donnaient des hauteurs de rangée variables
-             et désalignaient le corps de rangée de l'en-tête. */
           DataCell(Text(m.name, maxLines: 1, overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5))),
           DataCell(Text(_notProvided(m.dci), maxLines: 1, overflow: TextOverflow.ellipsis, style: cellStyle.copyWith(color: muted))),
           DataCell(Text(_notProvided(m.dosage), maxLines: 1, overflow: TextOverflow.ellipsis, style: cellStyle)),
           DataCell(Text(_notProvided(m.form), maxLines: 1, overflow: TextOverflow.ellipsis, style: cellStyle)),
-          DataCell(Text(_notProvided(m.presentation), maxLines: 1, overflow: TextOverflow.ellipsis, style: cellStyle)),
           DataCell(Text(_notProvided(m.laboratoryName), maxLines: 1, overflow: TextOverflow.ellipsis, style: cellStyle)),
           DataCell(Text(
               m.priceSale > 0 ? Fmt.money(m.priceSale) : 'Non renseigné',
               maxLines: 1, overflow: TextOverflow.ellipsis,
               style: cellStyle.copyWith(fontWeight: FontWeight.w700))),
-          DataCell(Text(m.ph != null && m.ph! > 0 ? Fmt.money(m.ph!) : '—',
-              maxLines: 1, overflow: TextOverflow.ellipsis, style: cellStyle)),
-          DataCell(Text(m.ppc != null && m.ppc! > 0 ? Fmt.money(m.ppc!) : '—',
-              maxLines: 1, overflow: TextOverflow.ellipsis, style: cellStyle)),
           DataCell(Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
@@ -951,19 +949,13 @@ class _CatalogPageState extends State<CatalogPage> {
                     color: statusColor)),
           )),
           DataCell(Text(
-            qty == null
-                ? 'Non suivi'
-                : (qty > 0
-                    ? '${Fmt.number(qty)} (en stock)'
-                    : '0 (sans stock)'),
+            stockText,
             maxLines: 1, overflow: TextOverflow.ellipsis,
             style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: qty == null
-                    ? muted
-                    : (qty > 0 ? AppColors.success : AppColors.danger)),
-          )),
+                color: stockColor)),
+          ),
           DataCell(Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -986,29 +978,22 @@ class _CatalogPageState extends State<CatalogPage> {
     }
 
     return DataTable(
-      /* Colonnes cochables désactivées (audit Phase 5) : onSelectChanged
-         sert ici à ouvrir la fiche, pas à sélectionner — la case à cocher
-         de tête n'était jamais utilisée mais créait une colonne fantôme
-         et désalignait l'en-tête du corps. */
       showCheckboxColumn: false,
       headingRowColor: WidgetStateProperty.all(
           AppColors.primary.withValues(alpha: 0.9)),
       headingTextStyle: headerStyle,
       dataTextStyle: cellStyle,
-      columnSpacing: 16,
-      horizontalMargin: 14,
+      columnSpacing: 8,
+      horizontalMargin: 8,
       columns: const [
         DataColumn(label: Text('Médicament', style: headerStyle)),
         DataColumn(label: Text('DCI', style: headerStyle)),
         DataColumn(label: Text('Dosage', style: headerStyle)),
         DataColumn(label: Text('Forme', style: headerStyle)),
-        DataColumn(label: Text('Présentation', style: headerStyle)),
         DataColumn(label: Text('Laboratoire', style: headerStyle)),
-        DataColumn(label: Text('PPV', style: headerStyle)),
-        DataColumn(label: Text('PH', style: headerStyle)),
-        DataColumn(label: Text('PPC', style: headerStyle)),
+        DataColumn(label: Text('PPV', style: headerStyle), numeric: true),
         DataColumn(label: Text('Statut', style: headerStyle)),
-        DataColumn(label: Text('Stock / dispo', style: headerStyle)),
+        DataColumn(label: Text('Stock', style: headerStyle), numeric: true),
         DataColumn(label: Text('Actions', style: headerStyle)),
       ],
       rows: _items.map(row).toList(),
