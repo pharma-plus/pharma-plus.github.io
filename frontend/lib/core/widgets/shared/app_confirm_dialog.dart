@@ -200,15 +200,15 @@ class AppConfirmDialog extends StatelessWidget {
             ),
             elevation: tokens.elevation2,
           ),
-          child: confirmLoading
-              ? SizedBox(
-                  width: tokens.sp4,
-                  height: tokens.sp4,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
+child: confirmLoading
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
               : Text(
                   confirmActionText ?? confirmText,
                   style: tokens.labelLarge.copyWith(color: Colors.white),
@@ -220,7 +220,6 @@ class AppConfirmDialog extends StatelessWidget {
 
   _ConfirmConfig _getConfig(BuildContext context) {
     final tokens = context.tokens;
-    final isDark = context.isDark;
 
     switch (type) {
       case AppConfirmType.success:
