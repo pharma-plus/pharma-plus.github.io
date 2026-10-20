@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'app.dart';
 import 'core/services/auth_store.dart';
 import 'core/services/page_reload.dart';
+import 'core/theme/app_scroll_behavior.dart';
 import 'core/theme/app_theme.dart';
 
 Future<void> main() async {
@@ -133,6 +134,7 @@ class PharmaGoldApp extends StatelessWidget {
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
           themeMode: themeMode,
+          scrollBehavior: const AppScrollBehavior(),
           locale: Locale(locale),
           supportedLocales: const [Locale('fr'), Locale('ar'), Locale('en')],
           localizationsDelegates: const [

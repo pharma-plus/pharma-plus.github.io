@@ -771,11 +771,8 @@ class _CatalogPageState extends State<CatalogPage> {
                         : RefreshIndicator(
                             onRefresh: () =>
                                 _load(page: 1, query: _search.text),
-                            child: Scrollbar(
+                            child: SingleChildScrollView(
                               controller: _vScroll,
-                              thumbVisibility: true,
-                              child: SingleChildScrollView(
-                                controller: _vScroll,
                                 padding:
                                     const EdgeInsets.fromLTRB(12, 0, 12, 16),
                                 child: Column(
@@ -821,7 +818,6 @@ class _CatalogPageState extends State<CatalogPage> {
                                 ],
                               ),
                             ),
-                          ),
                           ),
           ),
         ],
