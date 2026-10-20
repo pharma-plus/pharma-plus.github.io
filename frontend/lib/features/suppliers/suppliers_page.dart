@@ -7,6 +7,7 @@ import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
+import '../../core/utils/validators.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/shared/app_data_table.dart';
@@ -81,7 +82,7 @@ class _SuppliersPageState extends State<SuppliersPage> {
       builder: (_) => Dialog(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 560),
-              child: _SupplierForm(supplier: supplier),
+              child: SupplierForm(supplier: supplier),
             ),
           ),
     );
@@ -301,16 +302,18 @@ class _SuppliersPageState extends State<SuppliersPage> {
   }
 }
 
-class _SupplierForm extends StatefulWidget {
+/// Formulaire fournisseur (création/édition) — public pour tests widget.
+class SupplierForm extends StatefulWidget {
   final Map<String, dynamic>? supplier;
 
-  const _SupplierForm({this.supplier});
+  const SupplierForm({super.key, this.supplier});
 
   @override
-  State<_SupplierForm> createState() => _SupplierFormState();
+  State<SupplierForm> createState() => SupplierFormState();
 }
 
-class _SupplierFormState extends State<_SupplierForm> {
+class SupplierFormState extends State<SupplierForm> {
+  final _formKey = GlobalKey<FormState>();
   late final _name =
       TextEditingController(text: '${widget.supplier?['name'] ?? ''}');
   late final _contact =
@@ -347,16 +350,9 @@ class _SupplierFormState extends State<_SupplierForm> {
   }
 
   Future<void> _save() async {
-    final locale = context.read<AuthStore>().locale;
-    if (_name.text.trim().isEmpty) {
-      /* Feedback visible : le bouton n'était jamais désactivé et le
-         retour était silencieux (audit Phase 4 — validation ignorée). */
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(S.t('requiredField', locale))));
-      }
-      return;
-    }
+    /* Validation (messages sous champ) avant tout appel API ; le bouton
+       est déjà neutralisé pendant l'envoi (loading de GradientButton). */
+    if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _saving = true);
     final body = {
       'name': _name.text.trim(),
@@ -394,66 +390,98 @@ class _SupplierFormState extends State<_SupplierForm> {
       child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextFormField(
                   controller: _name,
-                  decoration:
-                      InputDecoration(labelText: '${S.t('name', locale)} *')),
-              const SizedBox(height: 12),
-              TextField(
+                  textInputAction: TextInputAction.next,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  decoration: InputDecoration(labelText: S.t('name', locale)),
+                  validator: (v) =>
+                      validateRequired(v, S.t('requiredField', locale)),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
                   controller: _contact,
+                  textInputAction: TextInputAction.next,
                   decoration:
-                      InputDecoration(labelText: S.t('contactName', locale))),
-              const SizedBox(height: 12),
-              TextField(
+                      InputDecoration(labelText: S.t('contactName', locale)),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
                   controller: _phone,
-                  decoration: InputDecoration(labelText: S.t('phone', locale))),
-              const SizedBox(height: 12),
-              TextField(
+                  keyboardType: TextInputType.phone,
+                  textInputAction: TextInputAction.next,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  decoration: InputDecoration(labelText: S.t('phone', locale)),
+                  validator: (v) =>
+                      validatePhone(v, S.t('invalidPhone', locale)),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
                   controller: _whatsapp,
+                  keyboardType: TextInputType.phone,
+                  textInputAction: TextInputAction.next,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
                   decoration:
-                      InputDecoration(labelText: S.t('whatsapp', locale))),
-              const SizedBox(height: 12),
-              TextField(
+                      InputDecoration(labelText: S.t('whatsapp', locale)),
+                  validator: (v) =>
+                      validatePhone(v, S.t('invalidPhone', locale)),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
                   controller: _email,
-                  decoration: InputDecoration(labelText: S.t('email', locale))),
-              const SizedBox(height: 12),
-              TextField(
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  decoration: InputDecoration(labelText: S.t('email', locale)),
+                  validator: (v) =>
+                      validateEmail(v, S.t('invalidEmail', locale)),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
                   controller: _address,
+                  textInputAction: TextInputAction.next,
                   decoration:
-                      InputDecoration(labelText: S.t('address', locale))),
-              const SizedBox(height: 12),
-              TextField(
+                      InputDecoration(labelText: S.t('address', locale)),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
                   controller: _city,
-                  decoration: InputDecoration(labelText: S.t('city', locale))),
-              const SizedBox(height: 12),
-              TextField(
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(labelText: S.t('city', locale)),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
                   controller: _paymentTerms,
-                  decoration:
-                      InputDecoration(labelText: S.t('paymentTerms', locale))),
-              const SizedBox(height: 20),
-              Row(children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                    label: Text(S.t('cancel', locale)),
-                  ),
+                  decoration: InputDecoration(
+                      labelText: S.t('paymentTerms', locale)),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: GradientButton(
-                    label: S.t('save', locale),
-                    icon: Icons.check,
-                    loading: _saving,
-                    onPressed: _save,
+                const SizedBox(height: 20),
+                Row(children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                      label: Text(S.t('cancel', locale)),
+                    ),
                   ),
-                ),
-              ]),
-            ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GradientButton(
+                      label: S.t('save', locale),
+                      icon: Icons.check,
+                      loading: _saving,
+                      onPressed: _save,
+                    ),
+                  ),
+                ]),
+              ],
+            ),
           ),
         ),
       ),
