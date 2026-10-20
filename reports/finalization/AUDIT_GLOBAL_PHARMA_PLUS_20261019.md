@@ -47,6 +47,7 @@ Formule contrôlée : `valeur = Σ(stock_balances.quantity × stock_lots.cost)` 
 - `flutter analyze` : **0 erreur** (2 infos de style bénignes).
 - `deno check supabase/functions/pharma-api/index.ts` : **EXIT 0** (la fonction Edge compile après correctifs).
 - `npm test` : **187/187**.
+- `flutter test --no-pub` : **63/63** (tous les tests dont widget_test.dart qui plantait sur catalog_page.dart corrompu).
 - Garde `backend/scripts/test_env.mjs` inchangée (bloque toute cible contenant l'URL de prod).
 
 ## 10. Déploiements (Phase 11) ✅
