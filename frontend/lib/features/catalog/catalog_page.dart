@@ -12,6 +12,7 @@ import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/barcode_scanner.dart';
 import '../../core/utils/format.dart';
+import '../../core/utils/validators.dart';
 import '../../core/widgets/glass_card.dart';
 import '../shell/shell_nav.dart';
 
@@ -305,6 +306,7 @@ class _CatalogPageState extends State<CatalogPage> {
   }
 
   Future<bool> _showForm(Medication? medication) async {
+    final formKey = GlobalKey<FormState>();
     final name = TextEditingController(text: medication?.name ?? '');
     final dci = TextEditingController(text: medication?.dci ?? '');
     final barcode = TextEditingController(text: medication?.barcodeEan13 ?? '');
@@ -354,14 +356,19 @@ class _CatalogPageState extends State<CatalogPage> {
           content: SizedBox(
             width: 520,
             child: SingleChildScrollView(
-              child: Column(
+              child: Form(
+                key: formKey,
+                child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const                   _FormSection('Identité'),
-                  TextField(
+                  TextFormField(
                       controller: name,
-                      decoration: const InputDecoration(labelText: 'Nom *')),
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      validator: (v) =>
+                          validateRequired(v, S.t('requiredField', locale)),
+                      decoration: const InputDecoration(labelText: 'Nom')),
                   const SizedBox(height: 10),
                   TextField(
                       controller: dci,
@@ -438,17 +445,25 @@ class _CatalogPageState extends State<CatalogPage> {
                   const                   _FormSection('Prix'),
                   Row(children: [
                     Expanded(
-                      child: TextField(
+                      child: TextFormField(
                           controller: sale,
                           keyboardType: TextInputType.number,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          validator: (v) => validateRequired(
+                                  v, S.t('requiredField', locale)) ??
+                              validateNonNegativeNumber(
+                                  v, S.t('invalidNumber', locale)),
                           decoration: const InputDecoration(
-                              labelText: 'PPV — Prix de vente (DH) *')),
+                              labelText: 'PPV — Prix de vente (DH)')),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: TextField(
+                      child: TextFormField(
                           controller: purchase,
                           keyboardType: TextInputType.number,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          validator: (v) => validateNonNegativeNumber(
+                              v, S.t('invalidNumber', locale)),
                           decoration: const InputDecoration(
                               labelText: 'PFHT — Prix achat (DH)')),
                     ),
@@ -456,17 +471,23 @@ class _CatalogPageState extends State<CatalogPage> {
                   const SizedBox(height: 10),
                   Row(children: [
                     Expanded(
-                      child: TextField(
+                      child: TextFormField(
                           controller: phCtrl,
                           keyboardType: TextInputType.number,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          validator: (v) => validateNonNegativeNumber(
+                              v, S.t('invalidNumber', locale)),
                           decoration:
                               const InputDecoration(labelText: 'PH (DH)')),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: TextField(
+                      child: TextFormField(
                           controller: ppcCtrl,
                           keyboardType: TextInputType.number,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          validator: (v) => validateNonNegativeNumber(
+                              v, S.t('invalidNumber', locale)),
                           decoration:
                               const InputDecoration(labelText: 'PPC (DH)')),
                     ),
@@ -474,18 +495,24 @@ class _CatalogPageState extends State<CatalogPage> {
                   const SizedBox(height: 10),
                   Row(children: [
                     Expanded(
-                      child: TextField(
+                      child: TextFormField(
                           controller: tva,
                           keyboardType: TextInputType.number,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          validator: (v) => validateNonNegativeNumber(
+                              v, S.t('invalidNumber', locale)),
                           decoration: const InputDecoration(
                               labelText: 'TVA (%)',
                               helperText: 'Défaut : Paramètres')),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: TextField(
+                      child: TextFormField(
                           controller: minStock,
                           keyboardType: TextInputType.number,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          validator: (v) => validateNonNegativeNumber(
+                              v, S.t('invalidNumber', locale)),
                           decoration: const InputDecoration(
                               labelText: 'Stock minimum')),
                     ),
@@ -506,6 +533,7 @@ class _CatalogPageState extends State<CatalogPage> {
                   ),
                 ],
               ),
+              ),
             ),
           ),
           actions: [
@@ -513,7 +541,11 @@ class _CatalogPageState extends State<CatalogPage> {
                 onPressed: () => Navigator.pop(context, false),
                 child: Text(S.t('cancel', context.read<AuthStore>().locale))),
             FilledButton(
-                onPressed: () => Navigator.pop(context, true),
+                onPressed: () {
+                  if (formKey.currentState?.validate() ?? false) {
+                    Navigator.pop(context, true);
+                  }
+                },
                 child: Text(S.t('save', context.read<AuthStore>().locale))),
           ],
         ),

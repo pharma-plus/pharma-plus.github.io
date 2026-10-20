@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
+import '../../core/utils/validators.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
@@ -129,7 +130,7 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
       builder: (_) => Dialog(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 560),
-              child: const _PharmacyForm(),
+              child: const PharmacyForm(),
             ),
           ),
     );
@@ -382,13 +383,14 @@ class _GlobalStats extends StatelessWidget {
   }
 }
 
-class _PharmacyForm extends StatefulWidget {
-  const _PharmacyForm();
+class PharmacyForm extends StatefulWidget {
+  const PharmacyForm({super.key});
   @override
-  State<_PharmacyForm> createState() => _PharmacyFormState();
+  State<PharmacyForm> createState() => _PharmacyFormState();
 }
 
-class _PharmacyFormState extends State<_PharmacyForm> {
+class _PharmacyFormState extends State<PharmacyForm> {
+  final _formKey = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _slug = TextEditingController();
   final _city = TextEditingController();
@@ -410,17 +412,7 @@ class _PharmacyFormState extends State<_PharmacyForm> {
   bool _saving = false;
 
   Future<void> _save() async {
-    if (_name.text.trim().isEmpty ||
-        _slug.text.trim().isEmpty ||
-        _email.text.trim().isEmpty) {
-      /* Feedback visible : le retour était silencieux (audit Phase 4). */
-      final locale = context.read<AuthStore>().locale;
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(S.t('requiredField', locale))));
-      }
-      return;
-    }
+    if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _saving = true);
     final locale = context.read<AuthStore>().locale;
     final result = await ApiClient.instance.post('/pharmacies', body: {
@@ -455,7 +447,9 @@ class _PharmacyFormState extends State<_PharmacyForm> {
       child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
-          child: Column(
+          child: Form(
+            key: _formKey,
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -463,13 +457,19 @@ class _PharmacyFormState extends State<_PharmacyForm> {
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.w800)),
               const SizedBox(height: 16),
-              TextField(
+              TextFormField(
                 controller: _name,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                validator: (v) =>
+                    validateRequired(v, S.t('requiredField', locale)),
                 decoration: InputDecoration(labelText: S.t('name', locale)),
               ),
               const SizedBox(height: 12),
-              TextField(
+              TextFormField(
                 controller: _slug,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                validator: (v) =>
+                    validateRequired(v, S.t('requiredField', locale)),
                 decoration: InputDecoration(labelText: S.t('slug', locale)),
               ),
               const SizedBox(height: 12),
@@ -478,21 +478,33 @@ class _PharmacyFormState extends State<_PharmacyForm> {
                 decoration: InputDecoration(labelText: S.t('city', locale)),
               ),
               const SizedBox(height: 12),
-              TextField(
+              TextFormField(
                 controller: _phone,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                validator: (v) => validatePhone(v, S.t('invalidPhone', locale)),
                 decoration: InputDecoration(labelText: S.t('phone', locale)),
               ),
               const SizedBox(height: 12),
-              TextField(
+              TextFormField(
                 controller: _email,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
                 keyboardType: TextInputType.emailAddress,
+                validator: (v) =>
+                    validateRequired(v, S.t('requiredField', locale)) ??
+                    validateEmail(v, S.t('invalidEmail', locale)),
                 decoration:
                     InputDecoration(labelText: S.t('adminEmail', locale)),
               ),
               const SizedBox(height: 12),
-              TextField(
+              TextFormField(
                 controller: _password,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
                 obscureText: true,
+                validator: (v) {
+                  if (v == null || v.isEmpty) return null;
+                  if (v.length < 8) return S.t('passwordMin8', locale);
+                  return null;
+                },
                 decoration:
                     InputDecoration(labelText: S.t('adminPassword', locale)),
               ),
@@ -515,6 +527,7 @@ class _PharmacyFormState extends State<_PharmacyForm> {
                 onPressed: _save,
               ),
             ],
+            ),
           ),
         ),
       ),

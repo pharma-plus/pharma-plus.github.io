@@ -6,7 +6,6 @@ import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
-import '../../core/utils/validators.dart';
 import '../../core/utils/order_status.dart';
 import '../../core/widgets/barcode_scanner.dart';
 import '../../core/widgets/glass_card.dart';

@@ -7,6 +7,7 @@ import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
+import '../../core/utils/validators.dart';
 import '../../core/widgets/barcode_scanner.dart';
 import '../../core/widgets/glass_card.dart';
 import '../shell/shell_nav.dart';
@@ -239,27 +240,42 @@ class _StockPageState extends State<StockPage> {
     final locale = context.read<AuthStore>().locale;
     final quantity =
         TextEditingController(text: _number(item['available']).toString());
+    final formKey = GlobalKey<FormState>();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(S.t('adjustStock', locale)),
-        content: TextField(
-          controller: quantity,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: InputDecoration(labelText: S.t('newQuantity', locale)),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: quantity,
+            keyboardType:
+                const TextInputType.numberWithOptions(decimal: true),
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            validator: (v) =>
+                validateRequired(v, S.t('requiredField', locale)) ??
+                validateNonNegativeNumber(v, S.t('invalidNumber', locale)),
+            decoration:
+                InputDecoration(labelText: S.t('newQuantity', locale)),
+          ),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
               child: Text(S.t('cancel', locale))),
           FilledButton(
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () {
+                if (formKey.currentState?.validate() ?? false) {
+                  Navigator.pop(context, true);
+                }
+              },
               child: Text(S.t('save', locale))),
         ],
       ),
     );
     if (confirmed != true) return;
-    final newQuantity = double.tryParse(quantity.text.trim());
+    final newQuantity =
+        double.tryParse(quantity.text.trim().replaceAll(',', '.'));
     final branchId = item['branch_id'] as String?;
     final medicationId = item['medication_id'] as String?;
     if (newQuantity == null ||
@@ -288,18 +304,31 @@ class _StockPageState extends State<StockPage> {
     final quantity = TextEditingController();
     final reason = TextEditingController();
     var expired = item['expiry_status'] == 'expired';
+    final formKey = GlobalKey<FormState>();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: Text(S.t('writeOff', locale)),
-          content: Column(
+          content: Form(
+            key: formKey,
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
+              TextFormField(
                 controller: quantity,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                validator: (v) =>
+                    validateRequired(v, S.t('requiredField', locale)) ??
+                    validateNonNegativeNumber(
+                        v, S.t('invalidNumber', locale)) ??
+                    ((double.tryParse(v!.trim().replaceAll(',', '.')) ??
+                                -1) <=
+                            0
+                        ? S.t('mustBePositive', locale)
+                        : null),
                 decoration:
                     InputDecoration(labelText: S.t('writeOffQuantity', locale)),
               ),
@@ -315,20 +344,25 @@ class _StockPageState extends State<StockPage> {
                 onChanged: (value) => setState(() => expired = value ?? false),
               ),
             ],
+            ),
           ),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(context, false),
                 child: Text(S.t('cancel', locale))),
             FilledButton(
-                onPressed: () => Navigator.pop(context, true),
+                onPressed: () {
+                  if (formKey.currentState?.validate() ?? false) {
+                    Navigator.pop(context, true);
+                  }
+                },
                 child: Text(S.t('save', locale))),
           ],
         ),
       ),
     );
     if (confirmed != true) return;
-    final amount = double.tryParse(quantity.text.trim());
+    final amount = double.tryParse(quantity.text.trim().replaceAll(',', '.'));
     final branchId = item['branch_id'] as String?;
     final medicationId = item['medication_id'] as String?;
     if (amount == null ||

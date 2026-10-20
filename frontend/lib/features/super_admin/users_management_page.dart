@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
+import '../../core/utils/validators.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
@@ -73,7 +74,7 @@ class _UsersManagementState extends State<UsersManagementPage> {
     final saved = await showDialog<bool>(
       context: context,
       builder: (_) =>
-          _UserFormDialog(roles: _roles, employees: _employees),
+          UserFormDialog(roles: _roles, employees: _employees),
     );
     if (saved == true) _loadAll();
   }
@@ -81,7 +82,7 @@ class _UsersManagementState extends State<UsersManagementPage> {
   Future<void> _editUser(Map<String, dynamic> user) async {
     final saved = await showDialog<bool>(
       context: context,
-      builder: (_) => _UserFormDialog(
+      builder: (_) => UserFormDialog(
           user: user, roles: _roles, employees: _employees),
     );
     if (saved == true) _loadAll();
@@ -455,18 +456,18 @@ class _UsersManagementState extends State<UsersManagementPage> {
 // ────────────────────────────────────────────────────────────
 // Formulaire création / modification d'utilisateur
 // ────────────────────────────────────────────────────────────
-class _UserFormDialog extends StatefulWidget {
+class UserFormDialog extends StatefulWidget {
   final Map<String, dynamic>? user;
   final List<Map<String, dynamic>> roles;
   final List<Map<String, dynamic>> employees;
-  const _UserFormDialog(
-      {this.user, required this.roles, this.employees = const []});
+  const UserFormDialog(
+      {super.key, this.user, required this.roles, this.employees = const []});
 
   @override
-  State<_UserFormDialog> createState() => _UserFormDialogState();
+  State<UserFormDialog> createState() => UserFormDialogState();
 }
 
-class _UserFormDialogState extends State<_UserFormDialog> {
+class UserFormDialogState extends State<UserFormDialog> {
   late final _first = TextEditingController(
       text: '${widget.user?['first_name'] ?? ''}');
   late final _last =
@@ -481,6 +482,7 @@ class _UserFormDialogState extends State<_UserFormDialog> {
   String _employeeId = '';
   bool _saving = false;
   String? _err;
+  final _formKey = GlobalKey<FormState>();
 
   /// Modules cochables : clé = slug, libellé affiché.
   static const _moduleOptions = <(String, String)>[
@@ -536,16 +538,7 @@ class _UserFormDialogState extends State<_UserFormDialog> {
   }
 
   Future<void> _submit() async {
-    if (_first.text.trim().isEmpty ||
-        _last.text.trim().isEmpty ||
-        _email.text.trim().isEmpty) {
-      setState(() => _err = 'Prénom, nom et email sont obligatoires.');
-      return;
-    }
-    if (!_isEdit && _pass.text.length < 8) {
-      setState(() => _err = 'Le mot de passe doit contenir au moins 8 caractères.');
-      return;
-    }
+    if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() {
       _saving = true;
       _err = null;
@@ -582,48 +575,74 @@ class _UserFormDialogState extends State<_UserFormDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.watch<AuthStore>().locale;
     return AlertDialog(
-      title: Text(_isEdit ? 'Modifier l\'utilisateur' : 'Nouvel utilisateur'),
+      title: Text(
+          _isEdit ? S.t('editUser', locale) : S.t('newUser', locale)),
       content: SingleChildScrollView(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 400),
-          child: Column(
+          child: Form(
+            key: _formKey,
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Row(children: [
                 Expanded(
-                  child: TextField(
+                  child: TextFormField(
                       controller: _first,
-                      decoration:
-                          const InputDecoration(labelText: 'Prénom')),
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      validator: (v) =>
+                          validateRequired(v, S.t('requiredField', locale)),
+                      decoration: InputDecoration(
+                          labelText: S.t('firstName', locale))),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: TextField(
+                  child: TextFormField(
                       controller: _last,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      validator: (v) =>
+                          validateRequired(v, S.t('requiredField', locale)),
                       decoration:
-                          const InputDecoration(labelText: 'Nom')),
+                          InputDecoration(labelText: S.t('lastName', locale))),
                 ),
               ]),
               const SizedBox(height: 10),
-              TextField(
+              TextFormField(
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
                   enabled: !_isEdit, // email non modifiable en édition
-                  decoration: const InputDecoration(labelText: 'Email')),
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  validator: (v) {
+                    if (_isEdit) return null;
+                    return validateRequired(v, S.t('requiredField', locale)) ??
+                        validateEmail(v, S.t('invalidEmail', locale));
+                  },
+                  decoration:
+                      InputDecoration(labelText: S.t('email', locale))),
               const SizedBox(height: 10),
-              TextField(
+              TextFormField(
                   controller: _phone,
                   keyboardType: TextInputType.phone,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  validator: (v) =>
+                      validatePhone(v, S.t('invalidPhone', locale)),
                   decoration:
-                      const InputDecoration(labelText: 'Téléphone')),
+                      InputDecoration(labelText: S.t('phone', locale))),
               const SizedBox(height: 10),
               if (!_isEdit)
-                TextField(
+                TextFormField(
                     controller: _pass,
                     obscureText: true,
-                    decoration: const InputDecoration(
-                        labelText: 'Mot de passe (min. 8 caractères)')),
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    validator: (v) =>
+                        validateRequired(v, S.t('requiredField', locale)) ??
+                        (v != null && v.length < 8
+                            ? S.t('passwordMin8', locale)
+                            : null),
+                    decoration:
+                        InputDecoration(labelText: S.t('password', locale))),
               if (!_isEdit) const SizedBox(height: 10),
               DropdownButtonFormField<String>(
                 initialValue: _roleId,
@@ -717,16 +736,17 @@ class _UserFormDialogState extends State<_UserFormDialog> {
                 ),
               ],
             ],
+            ),
           ),
         ),
       ),
       actions: [
         TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler')),
+            child: Text(S.t('cancel', locale))),
         FilledButton(
             onPressed: _saving ? null : _submit,
-            child: Text(_saving ? '…' : 'Enregistrer')),
+            child: Text(_saving ? '…' : S.t('save', locale))),
       ],
     );
   }
