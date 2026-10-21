@@ -636,6 +636,7 @@ const LOCK_EXEMPT = new Set([
   "auth/lock",
   "auth/logout",
   "auth/switch-user",
+  "auth/pin", // enrôlement du 1er PIN depuis le lock screen (D1)
 ]);
 
 /* Applique un patch a la session courante identifiee par le jeton porteur.
@@ -2356,6 +2357,15 @@ Deno.serve(async (req) => {
     const userId = await currentUserId(req);
     if (!userId)
       return json({ error: { code: "UNAUTHORIZED" } }, 401);
+    if (await sessionLocked(sb, req)) {
+      const { data: row } = await sb
+        .from("users").select("pin_hash").eq("id", userId).maybeSingle();
+      if (row?.pin_hash)
+        return json(
+          { error: { code: "SESSION_LOCKED", message: "Session verrouillée — déverrouillez avec votre PIN" } },
+          423,
+        );
+    }
     if (!/^\d{4,6}$/.test(pin))
       return json(
         { error: { code: "VALIDATION", message: "PIN : 4 à 6 chiffres" } },
