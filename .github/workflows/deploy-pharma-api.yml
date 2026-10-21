@@ -1,0 +1,133 @@
+name: Deploy Edge Function pharma-api
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_commit_sha:
+        description: "SHA commit attendu (optionnel) - echoue si le SHA deploye ne correspond pas"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-pharma-api
+  cancel-in-progress: false
+
+env:
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  SUPABASE_PROJECT_ID: ${{ vars.SUPABASE_PROJECT_ID }}
+  EXPECTED_COMMIT_SHA: ${{ inputs.expected_commit_sha }}
+  FUNCTION_NAME: pharma-api
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Preflight - verifier les pre-requis
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::$1"; exit 1; }
+          [ -n "${SUPABASE_ACCESS_TOKEN:-}" ] || fail "Secret SUPABASE_ACCESS_TOKEN manquant ou vide."
+          [ -n "${SUPABASE_PROJECT_ID:-}" ] || fail "Variable SUPABASE_PROJECT_ID manquante ou vide."
+          [ "${SUPABASE_PROJECT_ID}" = "lwepnnecnrqdzadesyqo" ] || fail "SUPABASE_PROJECT_ID inattendu (ref de projet different de la cible autorisee)."
+          echo "Preflight OK : projet cible autorise, token present."
+          echo "Aucune valeur sensible affichee."
+
+      - name: Checkout branche main uniquement
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Verifier branche et afficher le SHA du commit
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::$1"; exit 1; }
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            fail "Execution lancee depuis ${GITHUB_REF} : seule la branche main est autorisee."
+          fi
+          branch="$(git rev-parse --abbrev-ref HEAD)"
+          if [ "${branch}" != "main" ]; then
+            fail "Branche checkoutee inattendue : ${branch}"
+          fi
+          sha="$(git rev-parse HEAD)"
+          subject="$(git log -1 --pretty=%s)"
+          echo "Branche : ${branch}"
+          echo "Commit a deployer : ${sha}"
+          echo "Sujet : ${subject}"
+          expected="$(echo "${EXPECTED_COMMIT_SHA:-}" | tr -d '[:space:]')"
+          if [ -n "${expected}" ]; then
+            case "${expected}" in
+              *[!0-9a-fA-F]*) fail "expected_commit_sha invalide (hexadecimal attendu)." ;;
+            esac
+            if [ "${sha}" != "${expected}" ] && [ "${sha#${expected}}" = "${sha}" ]; then
+              fail "Le commit ${sha} ne correspond pas au SHA attendu ${expected}."
+            fi
+            echo "Controle de commit : CORRESPONDANCE VERIFIEE."
+          else
+            echo "Controle de commit : aucun SHA attendu fourni (SHA ci-dessus a valider manuellement)."
+          fi
+          echo "COMMIT_SHA=${sha}" >> "${GITHUB_ENV}"
+
+      - name: Installer Supabase CLI (version epinglee)
+        uses: supabase/setup-cli@v3
+        with:
+          version: 2.121.0
+
+      - name: Verifier la CLI installee
+        run: |
+          set -euo pipefail
+          installed="$(supabase --version)"
+          echo "Supabase CLI : ${installed}"
+          if [ "${installed}" != "2.121.0" ]; then
+            echo "::error::Version CLI inattendue : ${installed} (2.121.0 attendue)."
+            exit 1
+          fi
+
+      - name: Verifier le perimetre des fichiers a deployer
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::$1"; exit 1; }
+          [ -f "supabase/functions/${FUNCTION_NAME}/index.ts" ] || fail "Fichier absent : supabase/functions/${FUNCTION_NAME}/index.ts"
+          [ -f "supabase/functions/${FUNCTION_NAME}/login_policy.ts" ] || fail "Fichier absent : supabase/functions/${FUNCTION_NAME}/login_policy.ts"
+          if [ -f supabase/config.toml ]; then
+            echo "Note : supabase/config.toml present (non requis, utilise tel quel par la CLI)."
+          else
+            echo "supabase/config.toml absent : non requis pour ce deploy cible (--project-ref + entree index.ts)."
+          fi
+          echo "Perimetre : fonction ${FUNCTION_NAME} uniquement, aucune migration."
+
+      - name: Deployer l'Edge Function pharma-api
+        run: |
+          set -euo pipefail
+          supabase functions deploy "${FUNCTION_NAME}" --project-ref "${SUPABASE_PROJECT_ID}"
+
+      - name: Controle de sante HTTP non destructif
+        run: |
+          set -euo pipefail
+          url="https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/${FUNCTION_NAME}/health"
+          body_file="$(mktemp)"
+          code="$(curl -sS -o "${body_file}" -w '%{http_code}' --max-time 30 "${url}" || echo "000")"
+          if [ "${code}" != "200" ]; then
+            echo "::error::Echec du controle de sante : HTTP ${code}"
+            rm -f "${body_file}"
+            exit 1
+          fi
+          summary="$(python3 - "${body_file}" <<'PY'
+          import json, sys
+          with open(sys.argv[1], encoding="utf-8") as fh:
+              data = json.load(fh)
+          status = data.get("status")
+          database = data.get("database")
+          version = data.get("version")
+          if status != "ok" or database != "connected":
+              sys.exit(3)
+          print(f"status={status} database={database} version={version}")
+          PY
+          )" || { echo "::error::Reponse de sante inattendue (status/database non conformes)."; rm -f "${body_file}"; exit 1; }
+          rm -f "${body_file}"
+          echo "Controle de sante OK : ${summary}"
+          echo "HTTP 200 confirme l'acces a la fonction et a la base. Ce controle ne prouve pas le fonctionnement complet de PHARMA+."
