@@ -867,6 +867,7 @@ class _CatalogPageState extends State<CatalogPage> {
     required List<_Facet> options,
     required ValueChanged<String?> onChanged,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SizedBox(
       width: 168,
       child: DropdownButtonFormField<String>(
@@ -876,9 +877,35 @@ class _CatalogPageState extends State<CatalogPage> {
         decoration: InputDecoration(
           labelText: label,
           isDense: true,
+          filled: true,
+          fillColor: enabled
+              ? (isDark ? AppColors.pharmaSurface : Colors.white)
+              : (isDark ? AppColors.pharmaSurface2 : Colors.grey[100]),
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
           suffixIcon: const Icon(Icons.arrow_drop_down, size: 18),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(
+              color: isDark ? AppColors.borderDark : AppColors.borderLight,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(
+              color: isDark ? AppColors.borderDark : AppColors.borderLight,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: AppColors.emerald, width: 1.6),
+          ),
+          disabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(
+              color: isDark ? AppColors.borderDark : AppColors.borderLight,
+            ),
+          ),
         ),
         items: [
           DropdownMenuItem<String>(
