@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/models/user.dart';
@@ -27,13 +28,66 @@ class _LockScreenState extends State<LockScreen> {
   // par identifiant + PIN propre (caisse partagée).
   bool _switchMode = false;
   final TextEditingController _identCtrl = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
 
   static const int _pinLength = 4;
 
   @override
+  void initState() {
+    super.initState();
+    // Request focus for physical keyboard input
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNode.requestFocus();
+    });
+  }
+
+  @override
   void dispose() {
     _identCtrl.dispose();
+    _focusNode.dispose();
     super.dispose();
+  }
+
+  void _onKeyEvent(RawKeyEvent event) {
+    if (_verifying) return;
+    if (event is RawKeyDownEvent) {
+      final key = event.logicalKey;
+      // Digits 0-9 from main keyboard
+      if (key == LogicalKeyboardKey.digit0) _addDigit('0');
+      else if (key == LogicalKeyboardKey.digit1) _addDigit('1');
+      else if (key == LogicalKeyboardKey.digit2) _addDigit('2');
+      else if (key == LogicalKeyboardKey.digit3) _addDigit('3');
+      else if (key == LogicalKeyboardKey.digit4) _addDigit('4');
+      else if (key == LogicalKeyboardKey.digit5) _addDigit('5');
+      else if (key == LogicalKeyboardKey.digit6) _addDigit('6');
+      else if (key == LogicalKeyboardKey.digit7) _addDigit('7');
+      else if (key == LogicalKeyboardKey.digit8) _addDigit('8');
+      else if (key == LogicalKeyboardKey.digit9) _addDigit('9');
+      // Numpad digits
+      else if (key == LogicalKeyboardKey.numpad0) _addDigit('0');
+      else if (key == LogicalKeyboardKey.numpad1) _addDigit('1');
+      else if (key == LogicalKeyboardKey.numpad2) _addDigit('2');
+      else if (key == LogicalKeyboardKey.numpad3) _addDigit('3');
+      else if (key == LogicalKeyboardKey.numpad4) _addDigit('4');
+      else if (key == LogicalKeyboardKey.numpad5) _addDigit('5');
+      else if (key == LogicalKeyboardKey.numpad6) _addDigit('6');
+      else if (key == LogicalKeyboardKey.numpad7) _addDigit('7');
+      else if (key == LogicalKeyboardKey.numpad8) _addDigit('8');
+      else if (key == LogicalKeyboardKey.numpad9) _addDigit('9');
+      // Backspace/Delete
+      else if (key == LogicalKeyboardKey.backspace) _removeDigit();
+      // Enter - trigger verification if PIN complete
+      else if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter) {
+        if (_setupStep == 0 && _pin.length == _pinLength) _autoVerify();
+        else if (_setupStep == 1 && _newPin.length == _pinLength) {
+          setState(() => _setupStep = 2);
+        } else if (_setupStep == 2 && _confirmPin.length == _pinLength) {
+          _saveNewPin();
+        }
+      }
+      // Escape - clear or cancel
+      else if (key == LogicalKeyboardKey.escape) _clearAll();
+    }
   }
 
   void _addDigit(String digit) {
@@ -211,19 +265,23 @@ class _LockScreenState extends State<LockScreen> {
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
     final canDismiss = context.watch<AuthStore>().isManualLock;
-    return PopScope(
-      canPop: canDismiss,
-      child: Scaffold(
-        backgroundColor: AppColors.pharmaBg,
-        body: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 360),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
+    return RawKeyboardListener(
+      focusNode: _focusNode,
+      autofocus: true,
+      onKey: _onKeyEvent,
+      child: PopScope(
+        canPop: canDismiss,
+        child: Scaffold(
+          backgroundColor: AppColors.pharmaBg,
+          body: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 360),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
                     _switchMode
                         ? Icons.swap_horiz_rounded
                         : _pinNotSet && _setupStep > 0
@@ -427,6 +485,7 @@ class _LockScreenState extends State<LockScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 

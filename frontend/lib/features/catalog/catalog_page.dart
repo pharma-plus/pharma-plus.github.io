@@ -956,6 +956,17 @@ class _CatalogPageState extends State<CatalogPage> {
                 fontWeight: FontWeight.w700,
                 color: stockColor)),
           ),
+          DataCell(
+            Center(
+              child: IconButton(
+                tooltip: 'Voir posologie',
+                icon: const Icon(Icons.medication_outlined, size: 18, color: AppColors.gold),
+                onPressed: () => _showPosology(m),
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+              ),
+            ),
+          ),
           DataCell(Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -985,7 +996,7 @@ class _CatalogPageState extends State<CatalogPage> {
       dataTextStyle: cellStyle,
       columnSpacing: 8,
       horizontalMargin: 8,
-      columns: const [
+columns: const [
         DataColumn(label: Text('Médicament', style: headerStyle)),
         DataColumn(label: Text('DCI', style: headerStyle)),
         DataColumn(label: Text('Dosage', style: headerStyle)),
@@ -994,9 +1005,98 @@ class _CatalogPageState extends State<CatalogPage> {
         DataColumn(label: Text('PPV', style: headerStyle), numeric: true),
         DataColumn(label: Text('Statut', style: headerStyle)),
         DataColumn(label: Text('Stock', style: headerStyle), numeric: true),
+        DataColumn(label: Text('Posologie', style: headerStyle)),
         DataColumn(label: Text('Actions', style: headerStyle)),
       ],
       rows: _items.map(row).toList(),
+    );
+  }
+
+  /// Dialogue de posologie — accès rapide aux informations de dosage.
+  /// Affiche les données disponibles et signale clairement ce qui manque.
+  void _showPosology(Medication m) {
+    final locale = context.read<AuthStore>().locale;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muted = isDark ? Colors.white60 : Colors.black45;
+    const unverified = 'Information non vérifiée ou indisponible';
+
+    String _np(String? v) => (v == null || v.trim().isEmpty) ? unverified : v;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? AppColors.pharmaSurface : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.medication_outlined, color: AppColors.gold, size: 28),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(m.name,
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _PosologyRow(label: 'Dosage', value: _np(m.dosage)),
+              _PosologyRow(label: 'Forme', value: _np(m.form)),
+              _PosologyRow(label: 'Présentation', value: _np(m.presentation)),
+              _PosologyRow(label: 'Substance active', value: _np(m.substanceActive)),
+              _PosologyRow(label: 'Composition', value: _np(m.composition)),
+              _PosologyRow(label: 'Voie d\'administration', value: unverified),
+              _PosologyRow(label: 'Dose prescrite', value: unverified),
+              _PosologyRow(label: 'Fréquence', value: unverified),
+              _PosologyRow(label: 'Durée du traitement', value: unverified),
+              _PosologyRow(label: 'Précautions', value: unverified),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.info_outline, color: AppColors.warning, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Cette posologie est indicative. Les informations de dose, fréquence, durée et précautions '
+                        'ne sont pas disponibles dans la base catalogue. Seule une prescription médicale '
+                        'fait foi pour l\'administration au patient.',
+                        style: TextStyle(fontSize: 12, color: AppColors.warning),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(S.t('close', locale)),
+          ),
+          FilledButton.icon(
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            label: Text(S.t('edit', locale)),
+            onPressed: () {
+              Navigator.pop(context);
+              _showForm(m).then((changed) {
+                if (changed) _load(page: _page, query: _search.text);
+              });
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -1112,6 +1212,35 @@ class _CatalogPageState extends State<CatalogPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Ligne d'information pour le dialogue de posologie.
+class _PosologyRow extends StatelessWidget {
+  final String label;
+  final String value;
+  const _PosologyRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muted = isDark ? Colors.white60 : Colors.black45;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 160,
+            child: Text(label, style: TextStyle(fontSize: 13, color: muted)),
+          ),
+          Expanded(
+            child: Text(value,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          ),
+        ],
       ),
     );
   }
