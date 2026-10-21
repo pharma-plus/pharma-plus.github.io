@@ -8,8 +8,8 @@ Refonte complète de l'UI PHARMA+ (Flutter) : tableaux, formulaires, dialogues, 
 | `flutter analyze` erreurs | 174 (widgets partagés) | **0** |
 | Tests Flutter | 63 | **105** (+42) |
 | Backend `npm test` | 187/187 | 187/187 (inchangé) |
-| Commits de checkpoints | 0 | **7** |
-| Fichiers modifiés | — | **25** (+2158 / -366 lignes) |
+| Commits de checkpoints | 0 | **8** |
+| Fichiers modifiés | — | **26** (+2185 / -366 lignes) |
 
 ---
 
@@ -115,7 +115,7 @@ Refonte complète de l'UI PHARMA+ (Flutter) : tableaux, formulaires, dialogues, 
 | `frontend/lib/core/widgets/gradient_button.dart` | fix | `Flexible` + ellipsis (overflow 9.3px) |
 | `frontend/lib/core/widgets/shared/app_confirm_dialog.dart` | fix | Boutons actifs sans callback, callbacks optionnels |
 | `frontend/lib/core/widgets/shared/app_data_table.dart` | fix | 3 bugs tri/pagination + nettoyage |
-| `frontend/lib/features/catalog/catalog_page.dart` | feat/fix | Responsive cartes/tableau, formulaire médicament validé, scrollbars |
+| `frontend/lib/features/catalog/catalog_page.dart` | feat/fix | Responsive cartes/tableau, formulaire médicament validé, scrollbars, dropdowns opaques, posologie |
 | `frontend/lib/features/suppliers/suppliers_page.dart` | feat | Desktop `AppDataTable` triable + cartes mobiles |
 | `frontend/lib/features/customers/customers_page.dart` | feat | `CustomerForm` public + validateurs |
 | `frontend/lib/features/employees/employees_page.dart` | feat | `EmployeeForm` public + validateurs complets |
@@ -135,7 +135,7 @@ Refonte complète de l'UI PHARMA+ (Flutter) : tableaux, formulaires, dialogues, 
 | `frontend/test/app_confirm_dialog_test.dart` | test | 4 tests confirmations |
 | `frontend/test/responsive_layout_test.dart` | test | 5 scénarios × 6 tailles (mock HTTP) |
 
-**Total : +2158 / -366 lignes sur 25 fichiers**
+**Total : +2185 / -366 lignes sur 26 fichiers**
 
 ---
 
@@ -175,8 +175,9 @@ Refonte complète de l'UI PHARMA+ (Flutter) : tableaux, formulaires, dialogues, 
 
 ## 6. Preuves vérifiables (Git)
 
-**Commits de checkpoints (7) :**
+**Commits de checkpoints (8) :**
 ```
+88c6d66 feat(catalog): dropdowns opaques + filtres cohérents
 e819262 feat(test): responsive 360-1920
 85ea52b feat(dialogs): confirmations destruction
 de99a19 feat(forms): derniers formulaires (pharmacie, user, catalogue, stock)
@@ -189,7 +190,7 @@ fa408ce fix(ui): design system 174→0
 ```
 
 **Statistiques globales :**
-- `git diff --stat HEAD~7 HEAD` : 25 fichiers, +2158/-366
+- `git diff --stat HEAD~8 HEAD` : 26 fichiers, +2185/-366
 - `flutter analyze` : **0 erreur** (63 warnings/infos préexistants)
 - `flutter test` : **105/105**
 - `npm test` (backend) : **187/187**
