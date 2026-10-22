@@ -582,39 +582,44 @@ class _LockScreenState extends State<LockScreen> {
   }
 
   Widget _buildKeypad(bool compact) {
-    return Column(
-      children: [
-        for (final row in [
-          ['1', '2', '3'],
-          ['4', '5', '6'],
-          ['7', '8', '9'],
-          ['C', '0', '←'],
-        ])
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (final label in row) ...[
-                  if (label != '1' &&
-                      label != '4' &&
-                      label != '7' &&
-                      label != 'C')
-                    const SizedBox(width: 12),
-                  _keypadButton(label, compact),
+    // Clavier responsive : 3 colonnes à largeur ÉGALE, calculées depuis
+    // la largeur réelle disponible (LayoutBuilder) au lieu de 3×64 px fixes.
+    // Chaque chiffre est centré dans sa cellule (FittedBox scaleDown +
+    // alignment explicite) → aucune coupure ni décalage de 320 à 430 px.
+    return LayoutBuilder(builder: (context, constraints) {
+      const gap = 12.0;
+      final cellW = ((constraints.maxWidth - 2 * gap) / 3).clamp(56.0, 84.0);
+      final cellH = compact ? 48.0 : 56.0;
+      return Column(
+        children: [
+          for (final row in [
+            ['1', '2', '3'],
+            ['4', '5', '6'],
+            ['7', '8', '9'],
+            ['C', '0', '←'],
+          ])
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (var i = 0; i < row.length; i++) ...[
+                    if (i > 0) const SizedBox(width: gap),
+                    _keypadButton(row[i], cellW, cellH),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-      ],
-    );
+        ],
+      );
+    });
   }
 
-  Widget _keypadButton(String label, bool compact) {
+  Widget _keypadButton(String label, double width, double height) {
     final isAction = label == '←' || label == 'C';
     return SizedBox(
-      width: compact ? 64 : 72,
-      height: compact ? 48 : 56,
+      width: width,
+      height: height,
       child: ElevatedButton(
         onPressed: () {
           if (label == '←') {
@@ -630,13 +635,22 @@ class _LockScreenState extends State<LockScreen> {
               isAction ? Colors.grey[800] : AppColors.pharmaSurface2,
           foregroundColor: AppColors.pharmaText,
           elevation: 0,
+          padding: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        child: Text(
-          label,
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+        child: Center(
+          // scaleDown : le glyphe se réduit uniquement si la cellule
+          // rétrécit (320 px) ; il n'est jamais rogné ni décentré.
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              style: const TextStyle(
+                  fontSize: 22, fontWeight: FontWeight.w600, height: 1.1),
+            ),
+          ),
         ),
       ),
     );

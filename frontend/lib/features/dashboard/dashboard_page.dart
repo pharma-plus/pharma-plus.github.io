@@ -2,9 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/services/api_client.dart';
 import '../../core/services/app_guards.dart';
@@ -13,26 +11,15 @@ import '../../core/theme/colors.dart';
 import '../../core/utils/calculations.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/pharma_logo.dart';
-import '../accounting/accounting_page.dart';
-import '../ai/ai_page.dart';
-import '../attendance/attendance_page.dart';
-import '../cameras/cameras_page.dart';
-import '../doctors/doctor_page.dart';
-import '../invoices/invoices_page.dart';
 import '../floor_plan/pharmacy_plan_page.dart';
-import '../modules/modules_page.dart';
 import '../notifications/notifications_page.dart';
 import '../pos/payment_models.dart';
 import '../pos/pos_models.dart';
 import '../pos/pos_page.dart';
-import '../prescriptions/prescriptions_page.dart';
-import '../reference/reference_page.dart';
-import '../audit/audit_page.dart';
-import '../returns/returns_page.dart';
 import '../scanner/scanner_page.dart';
+import '../shell/app_side_menu.dart';
 import '../shell/shell_nav.dart';
 import '../stock/stock_page.dart';
-import '../website/website_page.dart';
 import 'pos_panel.dart';
 import 'global_search.dart';
 
@@ -54,30 +41,10 @@ class _DashboardPageState extends State<DashboardPage> {
   bool _loading = true;
   String? _error;
 
-  // ---- Sidebar rétractable (desktop) ------------------------------------
-  // Préférence persistée : la sidebar réduite n'affiche que les icônes
-  // (tooltip au survol) et le contenu central récupère l'espace libéré.
-  static const _kSidebarPref = 'pmg_dashboard_sidebar_collapsed';
-  bool _sidebarCollapsed = false;
-
   @override
   void initState() {
     super.initState();
     _load();
-    _loadSidebarPref();
-  }
-
-  Future<void> _loadSidebarPref() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!mounted) return;
-    setState(() => _sidebarCollapsed = prefs.getBool(_kSidebarPref) ?? false);
-  }
-
-  Future<void> _toggleSidebar() async {
-    final next = !_sidebarCollapsed;
-    setState(() => _sidebarCollapsed = next);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_kSidebarPref, next);
   }
 
   Future<void> _load() async {
@@ -96,7 +63,9 @@ class _DashboardPageState extends State<DashboardPage> {
     }
     setState(() {
       final d = result.data;
-      _data = d is Map<String, dynamic> ? d : (d is Map ? Map<String, dynamic>.from(d) : null);
+      _data = d is Map<String, dynamic>
+          ? d
+          : (d is Map ? Map<String, dynamic>.from(d) : null);
       _loading = false;
     });
     _loadNotificationCount();
@@ -142,8 +111,10 @@ class _DashboardPageState extends State<DashboardPage> {
   // est vide, l'indicateur vaut 0. Les pourcentages de tendance
   // sont calculés depuis les comparatifs renvoyés par l'API.
   // ============================================================
-  double _num(dynamic v) => v == null ? 0 : (num.tryParse('$v') ?? 0).toDouble();
-  int _int(dynamic v) => v == null ? 0 : (int.tryParse('$v') ?? num.tryParse('$v')?.round() ?? 0);
+  double _num(dynamic v) =>
+      v == null ? 0 : (num.tryParse('$v') ?? 0).toDouble();
+  int _int(dynamic v) =>
+      v == null ? 0 : (int.tryParse('$v') ?? num.tryParse('$v')?.round() ?? 0);
 
   double get _revenueToday => _num(_flat0(_data, 'revenue', 'revenue_today'));
   double get _revenueYesterday =>
@@ -154,8 +125,10 @@ class _DashboardPageState extends State<DashboardPage> {
   double get _profitMonth => _num(_flat0(_data, 'revenue', 'profit_month'));
   double get _profitLastMonth =>
       _num(_flat0(_data, 'revenue', 'profit_last_month'));
-  int get _medications => _int(_nested(_data, 'counts', 'medications', 'total'));
-  int get _productsInStock => _int(_flat0(_data, 'alerts', 'products_in_stock'));
+  int get _medications =>
+      _int(_nested(_data, 'counts', 'medications', 'total'));
+  int get _productsInStock =>
+      _int(_flat0(_data, 'alerts', 'products_in_stock'));
   int get _lowStock => _int(_flat0(_data, 'alerts', 'low_stock'));
   int get _expiring => _int(_flat0(_data, 'alerts', 'expiring'));
   int get _expired => _int(_flat0(_data, 'alerts', 'expired'));
@@ -193,8 +166,8 @@ class _DashboardPageState extends State<DashboardPage> {
   static dynamic _nested(
     Map<String, dynamic>? map,
     String a,
-    String b,
-    [String? c,
+    String b, [
+    String? c,
   ]) {
     if (map == null) return null;
     final section = map[a];
@@ -215,7 +188,7 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  void _onSidebarNavigate(_NavItem item) {
+  void _onSidebarNavigate(AppSideNavItem item) {
     // Navigation via ShellNav (IndexedStack) au lieu de push : évite les
     // doublons de pages (2× requêtes API, pile Navigator qui grossit).
     if (item.shellIndex != null) {
@@ -252,17 +225,17 @@ class _DashboardPageState extends State<DashboardPage> {
             elevation: 0,
             child: SizedBox(
               width: 250,
-              child: _Sidebar(
-                  onNavigate: _onSidebarNavigate,
-                  onLogout: () {
-                    Navigator.of(ctx).pop();
-                    _onLogout();
-                  },
-                  onMoreModules: () {
-                    Navigator.of(ctx).pop();
-                    _showModulesMenu();
-                  },
-                ),
+              child: AppSideMenu(
+                onNavigate: _onSidebarNavigate,
+                onLogout: () {
+                  Navigator.of(ctx).pop();
+                  _onLogout();
+                },
+                onMoreModules: () {
+                  Navigator.of(ctx).pop();
+                  _showModulesMenu();
+                },
+              ),
             ),
           ),
         );
@@ -276,7 +249,7 @@ class _DashboardPageState extends State<DashboardPage> {
     showDialog<void>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.55),
-      builder: (dialogContext) => _ModulesMenuDialog(
+      builder: (dialogContext) => ModulesMenuDialog(
         onOpen: (page) {
           Navigator.of(dialogContext).pop();
           _push(page);
@@ -292,8 +265,8 @@ class _DashboardPageState extends State<DashboardPage> {
       case 'MÉDICAMENTS':
         return () => ShellNav.index.value = 3; // catalogue
       case 'PRODUITS EN STOCK':
-        // Carte « Produits en stock » → page Stock complète.
-        return () => _push(const StockPage());
+        // Carte « Produits en stock » → onglet Stock (navigation shell).
+        return StockPage.openWith;
       case 'COMMANDES':
         return () => ShellNav.index.value = 6; // achats
       case 'FOURNISSEURS':
@@ -340,105 +313,98 @@ class _DashboardPageState extends State<DashboardPage> {
     }
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: LayoutBuilder(builder: (context, constraints) {
-        final w = constraints.maxWidth;
+      body: Builder(builder: (context) {
+        // Breakpoints calculés sur la LARGEUR TOTALE de la fenêtre (et non
+        // le cadre du dashboard) : la sidebar fixe est rendue par le shell,
+        // le dashboard vit dans un Expanded à droite.
+        final vw = MediaQuery.sizeOf(context).width;
         // Large POS latéral uniquement sur les grands écrans ; en dessous,
         // le POS complet reste accessible via le panneau réduit et les menus.
-        final showPosPanel = w >= 1300;
-        final posWidth = w >= 1560 ? 430.0 : 385.0;
+        final showPosPanel = vw >= 1300;
+        final posWidth = vw >= 1560 ? 430.0 : 385.0;
         // Sidebar fixe sur desktop ; hamburger + overlay sur écrans réduits.
-        final showSidebar = w >= 1150;
+        final showSidebar = vw >= 1150;
         // Écrans bas (1366×768, 1536×864...) : proportions compactes pour
         // que TOUT le dashboard (KPI, alertes, plan 3D, barre basse) reste
         // entièrement visible, sans carte ni cellule coupée.
-        final vh = MediaQuery.of(context).size.height;
+        final vh = MediaQuery.sizeOf(context).height;
         final compact = vh < 900;
         return Stack(children: [
           Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            if (showSidebar) ...[
-              // Sidebar RÉTRACTABLE : 232px ouverte · 64px réduite (icônes
-              // seules + tooltips) · animation fluide · préférence persistée.
-              // Le contenu central (dashboard + POS) récupère l'espace libéré.
-              AnimatedContainer(
-                  duration: const Duration(milliseconds: 240),
-                  curve: Curves.easeOutCubic,
-                  width: _sidebarCollapsed ? 64 : 232,
-                  child: _Sidebar(
-                      collapsed: _sidebarCollapsed,
-                      onToggleCollapse: _toggleSidebar,
-                      onNavigate: _onSidebarNavigate,
-                      onLogout: _onLogout,
-                      onMoreModules: _showModulesMenu)),
-              Container(width: 1, color: AppColors.dividerDark),
-            ],
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                _TopBar(
-                  onMenu: showSidebar ? null : _openMenuDrawer,
-                  collapsed: _sidebarCollapsed,
-                  onToggleSidebar: _toggleSidebar,
-                  onScan: () => _push(const ScannerPage()),
-                  onNotifications: () => _push(const NotificationsPage()),
-                  onSettings: () => ShellNav.index.value = 11,
-                  onLogout: _onLogout,
-                  notificationCount: _notificationCount,
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.fromLTRB(14, compact ? 10 : 14, 14, compact ? 8 : 10),
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _buildKpiGrid(compact: compact),
-                          SizedBox(height: compact ? 10 : 12),
-                          Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  flex: 5,
-                                  child: _AlertsStockPanel(
-                                    lowStock: _lowStock,
-                                    expiring: _expiring,
-                                    lowStockRows: _lowStockRows,
-                                    expiringRows: _expiringRows,
-                                    expiredRows: _expiredRows,
-                                    onViewAll: () => _push(
-                                        const StockPage(initialFilter: 'low')),
-                                    compact: compact,
-                                  ),
-                                ),
-                                SizedBox(width: compact ? 10 : 12),
-                                Expanded(
-                                  flex: 7,
-                                  child: _Plan3DPanel(
-                                      onOpen: () =>
-                                          _push(const PharmacyPlanPage()),
-                                      compact: compact),
-                                ),
-                              ]),
-                          SizedBox(height: compact ? 10 : 12),
-                          _BottomBar(
-                            revenueToday: _revenueToday,
-                            revenueMonth: _revenueMonth,
-                            profitMonth: _profitMonth,
-                            expiring: _expiring,
-                            expired: _expired,
-                            lowStock: _lowStock,
-                            trendToday: _trendRevenueToday == null
-                                ? null
-                                : '${_trendRevenueToday! >= 0 ? '+' : ''}${_trendRevenueToday!.toStringAsFixed(1)}%',
-                            trendMonth: _trendRevenueMonth == null
-                                ? null
-                                : '${_trendRevenueMonth! >= 0 ? '+' : ''}${_trendRevenueMonth!.toStringAsFixed(1)}%',
-                            trendProfit: _trendProfitMonth == null
-                                ? null
-                                : '${_trendProfitMonth! >= 0 ? '+' : ''}${_trendProfitMonth!.toStringAsFixed(1)}%',
-                            compact: compact,
-                          ),
-                        ]),
-                  ),
-                ),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ValueListenableBuilder<bool>(
+                      valueListenable: SideMenuState.collapsed,
+                      builder: (context, collapsed, _) => _TopBar(
+                        onMenu: showSidebar ? null : _openMenuDrawer,
+                        collapsed: collapsed,
+                        onToggleSidebar: SideMenuState.toggle,
+                        onScan: () => _push(const ScannerPage()),
+                        onNotifications: () => _push(const NotificationsPage()),
+                        onSettings: () => ShellNav.index.value = 11,
+                        onLogout: _onLogout,
+                        notificationCount: _notificationCount,
+                      ),
+                    ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.fromLTRB(
+                            14, compact ? 10 : 14, 14, compact ? 8 : 10),
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _buildKpiGrid(compact: compact),
+                              SizedBox(height: compact ? 10 : 12),
+                              Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      flex: 5,
+                                      child: _AlertsStockPanel(
+                                        lowStock: _lowStock,
+                                        expiring: _expiring,
+                                        lowStockRows: _lowStockRows,
+                                        expiringRows: _expiringRows,
+                                        expiredRows: _expiredRows,
+                                        onViewAll: () =>
+                                            StockPage.openWith(filter: 'low'),
+                                        compact: compact,
+                                      ),
+                                    ),
+                                    SizedBox(width: compact ? 10 : 12),
+                                    Expanded(
+                                      flex: 7,
+                                      child: _Plan3DPanel(
+                                          onOpen: () =>
+                                              _push(const PharmacyPlanPage()),
+                                          compact: compact),
+                                    ),
+                                  ]),
+                              SizedBox(height: compact ? 10 : 12),
+                              _BottomBar(
+                                revenueToday: _revenueToday,
+                                revenueMonth: _revenueMonth,
+                                profitMonth: _profitMonth,
+                                expiring: _expiring,
+                                expired: _expired,
+                                lowStock: _lowStock,
+                                trendToday: _trendRevenueToday == null
+                                    ? null
+                                    : '${_trendRevenueToday! >= 0 ? '+' : ''}${_trendRevenueToday!.toStringAsFixed(1)}%',
+                                trendMonth: _trendRevenueMonth == null
+                                    ? null
+                                    : '${_trendRevenueMonth! >= 0 ? '+' : ''}${_trendRevenueMonth!.toStringAsFixed(1)}%',
+                                trendProfit: _trendProfitMonth == null
+                                    ? null
+                                    : '${_trendProfitMonth! >= 0 ? '+' : ''}${_trendProfitMonth!.toStringAsFixed(1)}%',
+                                compact: compact,
+                              ),
+                            ]),
+                      ),
+                    ),
+                  ]),
             ),
             if (showPosPanel) ...[
               Container(width: 1, color: AppColors.dividerDark),
@@ -446,14 +412,14 @@ class _DashboardPageState extends State<DashboardPage> {
                   width: posWidth,
                   child: _PosPanel(
                       onCheckout: () => _push(const PosPage()),
-                      onPrefilled: (lines, discount, isPercent, payment,
-                              customerId) =>
-                          _push(PosPage(
-                              initialLines: lines,
-                              initialDiscount: discount,
-                              initialDiscountIsPercent: isPercent,
-                              initialPayment: payment,
-                              initialCustomerId: customerId)),
+                      onPrefilled:
+                          (lines, discount, isPercent, payment, customerId) =>
+                              _push(PosPage(
+                                  initialLines: lines,
+                                  initialDiscount: discount,
+                                  initialDiscountIsPercent: isPercent,
+                                  initialPayment: payment,
+                                  initialCustomerId: customerId)),
                       compact: compact)),
             ],
           ]),
@@ -569,12 +535,14 @@ class _KpiDef {
   final String sub;
   final String? trendPct;
   final String trendVs;
+
   /// Fond photo extrait de la maquette (assets/images/kpi_bg_N.png) :
   /// dégradé du carton + cadre + illustration 3D sur socle, textes de la
   /// maquette effacés — l'app dessine les valeurs réelles par-dessus.
   final String image;
   final IconData badge;
   final Color badgeColor;
+
   /// Clé de module visible (null = toujours visible).
   final String? module;
   const _KpiDef({
@@ -657,98 +625,96 @@ class _KpiCardState extends State<_KpiCard> {
               color: const Color(0xFF05130D),
             ),
             child: ClipRect(
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // Illustration plein cadre = carton maquette exact
-                    // (BoxFit.cover + ancrage bas → le podium n'est jamais
-                    // rogné, le léger excédent se prend en haut).
-                    Positioned.fill(
-                      child: Image.asset(
-                        def.image,
-                        fit: BoxFit.cover,
-                        alignment: Alignment.bottomCenter,
-                      ),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // Illustration plein cadre = carton maquette exact
+                  // (BoxFit.cover + ancrage bas → le podium n'est jamais
+                  // rogné, le léger excédent se prend en haut).
+                  Positioned.fill(
+                    child: Image.asset(
+                      def.image,
+                      fit: BoxFit.cover,
+                      alignment: Alignment.bottomCenter,
                     ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 11, 14, 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(children: [
-                            Expanded(
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerLeft,
-                                child: Text('$index. ${def.label}',
-                                    maxLines: 1,
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10.5,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: 0.8)),
-                              ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 11, 14, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [
+                          Expanded(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text('$index. ${def.label}',
+                                  maxLines: 1,
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.8)),
                             ),
-                            const SizedBox(width: 6),
-                            Container(
-                              width: 24,
-                              height: 24,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF0B1D13),
-                                borderRadius: BorderRadius.circular(8),
-                                border:
-                                    Border.all(color: const Color(0xFF2A4A38)),
-                              ),
-                              child: Icon(def.badge,
-                                  size: 14, color: def.badgeColor),
-                            ),
-                          ]),
-                          const SizedBox(height: 6),
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: Text(def.value,
-                                maxLines: 1,
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w900)),
                           ),
-                          if (def.sub.isNotEmpty) ...[
-                            const SizedBox(height: 2),
-                            Text(def.sub,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    color:
-                                        Colors.white.withValues(alpha: 0.75),
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w600)),
-                          ],
-                          if (def.trendPct != null) ...[
-                            const SizedBox(height: 3),
-                            Text(def.trendPct!,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    color: _titleGreen,
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w800)),
-                            Text(def.trendVs,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    color:
-                                        Colors.white.withValues(alpha: 0.70),
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w600)),
-                          ],
+                          const SizedBox(width: 6),
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0B1D13),
+                              borderRadius: BorderRadius.circular(8),
+                              border:
+                                  Border.all(color: const Color(0xFF2A4A38)),
+                            ),
+                            child: Icon(def.badge,
+                                size: 14, color: def.badgeColor),
+                          ),
+                        ]),
+                        const SizedBox(height: 6),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(def.value,
+                              maxLines: 1,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w900)),
+                        ),
+                        if (def.sub.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(def.sub,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.75),
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w600)),
                         ],
-                      ),
+                        if (def.trendPct != null) ...[
+                          const SizedBox(height: 3),
+                          Text(def.trendPct!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  color: _titleGreen,
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w800)),
+                          Text(def.trendVs,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.70),
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w600)),
+                        ],
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
           ),
         ),
       ),
@@ -758,6 +724,7 @@ class _KpiCardState extends State<_KpiCard> {
 
 /// Or de marque utilisé par les accents dorés du dashboard.
 const Color _gold = Color(0xFFD9B45C);
+
 /// ============================================================
 /// SIDEBAR — logo croix+feuille · PHARMA+ blanc · 13 modules ·
 /// carte Admin · Se déconnecter · horloge + date (maquette).
@@ -766,670 +733,6 @@ const Color _gold = Color(0xFFD9B45C);
 /// selon les permissions de l'utilisateur connecté. Cacher un
 /// bouton ne suffit pas : le backend refuse aussi la requête
 /// (enforcePathPermission, matrice ROUTE_MODULE).
-/// ============================================================
-class _NavItem {
-  final IconData icon;
-  final String label;
-
-  /// Code permission requis (null = toujours visible).
-  final String? permission;
-
-  /// Clé de module visible (null = toujours visible).
-  final String? module;
-
-  /// Index ShellNav de destination (null = page poussée hors shell).
-  final int? shellIndex;
-
-  /// Constructeur de page hors shell (Caméras, Scanner).
-  final Widget Function()? pageBuilder;
-
-  const _NavItem(
-    this.icon,
-    this.label, {
-    this.permission,
-    this.module,
-    this.shellIndex,
-    this.pageBuilder,
-  });
-}
-
-class _Sidebar extends StatefulWidget {
-  final ValueChanged<_NavItem> onNavigate;
-  final VoidCallback onLogout;
-  final VoidCallback onMoreModules;
-
-  /// true = rail réduit (icônes seules + tooltips) ; le bouton de la
-  /// TopBar (chevron) et ce mode sont pilotés par l'état du dashboard.
-  final bool collapsed;
-  final VoidCallback? onToggleCollapse;
-  const _Sidebar({
-    required this.onNavigate,
-    required this.onLogout,
-    required this.onMoreModules,
-    this.collapsed = false,
-    this.onToggleCollapse,
-  });
-
-  @override
-  State<_Sidebar> createState() => _SidebarState();
-}
-
-class _SidebarState extends State<_Sidebar> {
-  Timer? _timer;
-  DateTime _now = DateTime.now();
-
-  /// Entrées visibles : filtrées par permissions réelles de l'utilisateur
-  /// (AuthStore.user.permissions, renvoyées par le backend à la connexion)
-  /// ET par les modules visibles (AuthStore.canSeeModule).
-  List<_NavItem> get _visibleItems {
-    final user = AuthStore.instance.user;
-    bool p(String code) => user?.hasPermission(code) ?? true;
-    bool m(String? key) => key == null || AuthStore.instance.canSeeModule(key);
-    return <_NavItem>[
-      const _NavItem(Icons.home_outlined, 'Tableau de bord', shellIndex: 0),
-      const _NavItem(Icons.shopping_cart_outlined, 'Point de vente',
-          permission: 'sales:view', module: 'pos', shellIndex: 2),
-      const _NavItem(Icons.medication_outlined, 'Catalogue',
-          permission: 'catalog:view', module: 'catalog', shellIndex: 3),
-      const _NavItem(Icons.inventory_2_outlined, 'Stock',
-          permission: 'stock:view', module: 'stock', shellIndex: 4),
-      const _NavItem(Icons.local_shipping_outlined, 'Fournisseurs',
-          permission: 'suppliers:view', module: 'suppliers', shellIndex: 5),
-      const _NavItem(Icons.assignment_outlined, 'Commandes',
-          permission: 'purchases:view', module: 'purchases', shellIndex: 6),
-      const _NavItem(Icons.people_alt_outlined, 'Clients',
-          permission: 'customers:view', module: 'customers', shellIndex: 7),
-      const _NavItem(Icons.badge_outlined, 'Employés',
-          permission: 'employees:view', module: 'employees', shellIndex: 8),
-      const _NavItem(Icons.insert_chart_outlined, 'Rapports',
-          permission: 'reports:view', module: 'reports', shellIndex: 9),
-      _NavItem(Icons.receipt_long_outlined, 'Factures',
-          permission: 'sales:view', pageBuilder: () => const InvoicesPage()),
-      const _NavItem(Icons.view_in_ar_outlined, 'Plan 3D',
-          module: 'plan', shellIndex: 10),
-      _NavItem(Icons.videocam_outlined, 'Caméras',
-          pageBuilder: () => const CamerasPage()),
-      _NavItem(Icons.qr_code_scanner, 'Scanner',
-          pageBuilder: () => const ScannerPage()),
-      const _NavItem(Icons.settings_outlined, 'Tableau de contrôle',
-          permission: 'settings:view', module: 'settings', shellIndex: 11),
-    ].where((i) => (i.permission == null || p(i.permission!)) && m(i.module)).toList();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (mounted) setState(() => _now = DateTime.now());
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  String _dateLabel() {
-    var s = DateFormat('EEEE d MMMM y', 'fr').format(_now);
-    s = s[0].toUpperCase() + s.substring(1);
-    return s.replaceAll('août', 'Aout');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Mode RÉDUIT : rail d'icônes (64px) avec tooltips au survol.
-    if (widget.collapsed) return _buildCollapsed(context);
-    return _buildExpanded(context);
-  }
-
-  /// Rail réduit : logo compact, icônes seules (tooltip au survol),
-  /// accès déconnexion conservé — aucun grand espace vide.
-  Widget _buildCollapsed(BuildContext context) {
-    return Container(
-      color: AppColors.surfaceSidebar,
-      child: Column(children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(0, 14, 0, 10),
-          decoration: BoxDecoration(
-              border: Border(
-                  bottom: BorderSide(
-                      color: AppColors.dividerDark.withValues(alpha: 0.7)))),
-          child: const Center(child: PharmaPlusLogo(size: 30)),
-        ),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            itemCount: _visibleItems.length,
-            itemBuilder: (context, i) {
-              final active = i == 0;
-              final item = _visibleItems[i];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Center(
-                  child: Tooltip(
-                    message: item.label,
-                    waitDuration: const Duration(milliseconds: 300),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(10),
-                      onTap: () => widget.onNavigate(item),
-                      child: Container(
-                        width: 44,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: active ? const Color(0xFF07271C) : null,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                              color: active
-                                  ? const Color(0xFFC9A24B)
-                                      .withValues(alpha: 0.55)
-                                  : Colors.transparent),
-                        ),
-                        child: Icon(item.icon,
-                            size: 20,
-                            color: active
-                                ? Colors.white
-                                : const Color(0xFFC9A24B)),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        // Autres modules (rail) — même action qu'en mode étendu.
-        Center(
-          child: Tooltip(
-            message: 'Autres modules',
-            waitDuration: const Duration(milliseconds: 300),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: widget.onMoreModules,
-              child: Container(
-                width: 44,
-                height: 40,
-                decoration: BoxDecoration(
-                    color: const Color(0xFF07271C),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                        color:
-                            const Color(0xFFC9A24B).withValues(alpha: 0.55))),
-                child: const Icon(Icons.apps_rounded, color: _gold, size: 20),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        // Déconnexion (rail).
-        Center(
-          child: Tooltip(
-            message: 'Se déconnecter',
-            waitDuration: const Duration(milliseconds: 300),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: widget.onLogout,
-              child: Container(
-                width: 44,
-                height: 40,
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.08))),
-                child: const Icon(Icons.logout, color: _gold, size: 18),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-      ]),
-    );
-  }
-
-  Widget _buildExpanded(BuildContext context) {
-    return Container(
-      color: AppColors.surfaceSidebar,
-      child: Column(children: [
-        // ---- Marque : logo officiel complet (textes inclus dans l'asset) ----
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
-          decoration: BoxDecoration(
-              border: Border(
-                  bottom: BorderSide(
-                      color: AppColors.dividerDark.withValues(alpha: 0.7)))),
-          child: const Center(
-            child: PharmaFullLogo(width: 152),
-          ),
-        ),
-        // ---- Menu 13 modules ----
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-            itemCount: _visibleItems.length,
-            itemBuilder: (context, i) {
-              final active = i == 0;
-              final item = _visibleItems[i];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 2),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(10),
-                  onTap: () => widget.onNavigate(item),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10.5),
-                    decoration: BoxDecoration(
-                      color: active ? const Color(0xFF07271C) : null,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                          color: active
-                              ? const Color(0xFFC9A24B).withValues(alpha: 0.55)
-                              : Colors.transparent),
-                    ),
-                    child: Row(children: [
-                      Icon(item.icon,
-                          size: 19, color: const Color(0xFFC9A24B)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(item.label,
-                            style: TextStyle(
-                                fontSize: 13.5,
-                                color: active
-                                    ? Colors.white
-                                    : AppColors.textSecondary,
-                                fontWeight: active
-                                    ? FontWeight.w700
-                                    : FontWeight.w500)),
-                      ),
-                    ]),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        // ---- Autres modules (menu à la demande) ----
-        InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: widget.onMoreModules,
-          child: Container(
-            margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-                color: const Color(0xFF07271C),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                    color: const Color(0xFFC9A24B).withValues(alpha: 0.55))),
-            child: Row(children: [
-              const Icon(Icons.apps_rounded, color: _gold, size: 19),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text('Autres modules',
-                    style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700)),
-              ),
-              const Icon(Icons.keyboard_arrow_right_rounded,
-                  color: _gold, size: 18),
-            ]),
-          ),
-        ),
-        // ---- Carte Admin ----
-        Container(
-          margin: const EdgeInsets.fromLTRB(12, 6, 12, 0),
-          padding: const EdgeInsets.all(11),
-          decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.035),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.goldBorder)),
-          child: Row(children: [
-            Stack(clipBehavior: Clip.none, children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFF123327),
-                    border: Border.all(
-                        color:
-                            const Color(0xFFC9A24B).withValues(alpha: 0.5))),
-                child:
-                    const Icon(Icons.person, color: Colors.white70, size: 24),
-              ),
-              Positioned(
-                right: -1,
-                bottom: -1,
-                child: Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.success,
-                        border: Border.all(
-                            color: AppColors.surfaceSidebar, width: 2))),
-              ),
-            ]),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Builder(builder: (context) {
-                // Identité RÉELLE de la session (aucun nom inventé) :
-                // nom affiché = prénom + nom, rôle et pharmacie renvoyés
-                // par l'API de connexion.
-                final user = context.watch<AuthStore>().user;
-                final role = user?.roleName;
-                final pharmacy = user?.pharmacyName;
-                return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                          (user?.fullName.trim().isNotEmpty ?? false)
-                              ? user!.fullName
-                              : 'Admin',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800)),
-                      if (role != null && role.isNotEmpty)
-                        Text(role,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 10.5)),
-                      if (pharmacy != null && pharmacy.isNotEmpty)
-                        Text(pharmacy,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                color: AppColors.emeraldLight,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600)),
-                    ]);
-              }),
-            ),
-          ]),
-        ),
-        // ---- Se déconnecter ----
-        InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: widget.onLogout,
-          child: Container(
-            margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.08))),
-            child: Row(children: [
-              const Icon(Icons.restart_alt, color: _gold, size: 18),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text('Se déconnecter',
-                    style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.88),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600)),
-              ),
-              const Icon(Icons.logout, color: _gold, size: 17),
-            ]),
-          ),
-        ),
-        // ---- Horloge + date ----
-        Container(
-          margin: const EdgeInsets.all(12),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-          decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.03),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.08))),
-          child: Row(children: [
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(DateFormat('HH:mm').format(_now),
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 19,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.5)),
-                    const SizedBox(height: 3),
-                    Text(_dateLabel(),
-                        style: const TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w600)),
-                  ]),
-            ),
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                      color: const Color(0xFFC9A24B).withValues(alpha: 0.55))),
-              child: const Icon(Icons.calendar_today_outlined,
-                  color: _gold, size: 18),
-            ),
-          ]),
-        ),
-      ]),
-    );
-  }
-}
-
-/// ============================================================
-/// MENU « AUTRES MODULES » — panneau ouvert à la demande depuis
-/// la sidebar. Se referme au choix d'une option ou au clic en
-/// dehors (barrière du dialog). Regroupe les modules absents du
-/// menu latéral : ordonnances, pointage, comptabilité, IA...
-/// ============================================================
-class _ModulesMenuDialog extends StatelessWidget {
-  final ValueChanged<Widget> onOpen;
-  const _ModulesMenuDialog({required this.onOpen});
-
-  static const _entries = <(IconData, String, String, Widget)>[
-    (Icons.receipt_long_outlined, 'Ordonnances', 'Saisie et délivrance',
-        PrescriptionsPage()),
-    (Icons.fact_check_outlined, 'Audit', 'Inventaire et caisse', AuditPage()),
-    (Icons.keyboard_return_rounded, 'Retours', 'Retours produits', ReturnsPage()),
-    (Icons.fact_check_outlined, 'Pointage', 'Présences équipe',
-        AttendancePage()),
-    (Icons.account_balance_wallet_outlined, 'Comptabilité',
-        'Caisse et écritures', AccountingPage()),
-    (Icons.auto_awesome_outlined, 'Assistant IA', 'Prévisions et conseils',
-        AiPage()),
-    (Icons.menu_book_outlined, 'Référentiel', 'Données de référence',
-        ReferencePage()),
-    (Icons.notifications_outlined, 'Notifications', 'Alertes et messages',
-        NotificationsPage()),
-    (Icons.widgets_outlined, 'Modules', 'Gestionnaire de modules',
-        ModulesPage()),
-    (Icons.language_rounded, 'Site web', 'Blog et contenu public',
-        WebsitePage()),
-    // Interface Médecin : lecteur de médicaments en lecture seule, réservé
-    // au rôle « Médecin » (5 permissions limitées — voir doctor_page.dart).
-    (Icons.medication_outlined, 'Médecins', 'Consultation des médicaments',
-        DoctorPage()),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    // L'interface Médecin n'est proposée qu'au rôle Médecin.
-    final isDoctor = context.watch<AuthStore>().user?.roleName == 'Médecin';
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 470),
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF10291B), Color(0xFF0A1D13)]),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.goldBorder),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.5),
-                  blurRadius: 34,
-                  offset: const Offset(0, 20)),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: const Color(0xFF123327),
-                      border: Border.all(
-                          color: const Color(0xFFC9A24B)
-                              .withValues(alpha: 0.5))),
-                  child:
-                      const Icon(Icons.apps_rounded, color: _gold, size: 21),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Autres modules',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16.5,
-                                fontWeight: FontWeight.w900)),
-                        SizedBox(height: 2),
-                        Text('Modules absents du menu latéral',
-                            style: TextStyle(
-                                color: AppColors.textSecondary, fontSize: 11)),
-                      ]),
-                ),
-                InkWell(
-                  onTap: () => Navigator.of(context).pop(),
-                  borderRadius: BorderRadius.circular(9),
-                  child: Container(
-                    padding: const EdgeInsets.all(7),
-                    decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(9),
-                        border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.10))),
-                    child: const Icon(Icons.close_rounded,
-                        size: 17, color: AppColors.textSecondary),
-                  ),
-                ),
-              ]),
-              const SizedBox(height: 14),
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                childAspectRatio: 2.5,
-                children: [
-                  for (final (icon, label, subtitle, page) in _entries)
-                    if (label != 'Médecins' || isDoctor)
-                      _ModuleMenuTile(
-                          icon: icon,
-                          label: label,
-                          subtitle: subtitle,
-                          onTap: () => onOpen(page)),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Tuile du menu modules : icône encadrée or + titre + sous-titre.
-class _ModuleMenuTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String subtitle;
-  final VoidCallback onTap;
-  const _ModuleMenuTile({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(13),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 11),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.035),
-            borderRadius: BorderRadius.circular(13),
-            border: Border.all(
-                color: const Color(0xFFC9A24B).withValues(alpha: 0.45)),
-          ),
-          child: Row(children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  color: const Color(0xFF123327),
-                  border: Border.all(
-                      color: const Color(0xFFC9A24B).withValues(alpha: 0.45))),
-              child: Icon(icon, size: 18, color: const Color(0xFFC9A24B)),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 1),
-                    Text(subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.42),
-                            fontSize: 10)),
-                  ]),
-            ),
-          ]),
-        ),
-      ),
-    );
-  }
-}
-
-/// ============================================================
-/// TOP BAR — hamburger (écrans réduits) + recherche pleine
-/// largeur + scan or + identité RÉELLE (pharmacie/utilisateur)
-/// + notifications (badge réel) + réglages + sortie.
 /// ============================================================
 class _TopBar extends StatelessWidget {
   final VoidCallback? onMenu;
@@ -1457,8 +760,9 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthStore>().user;
-    final pharmacyName =
-        (user?.pharmacyName?.trim().isNotEmpty ?? false) ? user!.pharmacyName! : 'PHARMA+';
+    final pharmacyName = (user?.pharmacyName?.trim().isNotEmpty ?? false)
+        ? user!.pharmacyName!
+        : 'PHARMA+';
     final roleLabel = user?.roleName ?? 'Admin';
     return Container(
       height: 62,
@@ -1466,8 +770,8 @@ class _TopBar extends StatelessWidget {
       decoration: BoxDecoration(
           color: AppColors.surfaceDark,
           border: Border(
-              bottom:
-                  BorderSide(color: AppColors.dividerDark.withValues(alpha: 0.7)))),
+              bottom: BorderSide(
+                  color: AppColors.dividerDark.withValues(alpha: 0.7)))),
       child: Row(children: [
         // ☰ — menu rétractable sur tablette/mobile (masqué sur desktop).
         if (onMenu != null) ...[
@@ -1518,8 +822,7 @@ class _TopBar extends StatelessWidget {
           decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.03),
               borderRadius: BorderRadius.circular(12),
-              border:
-                  Border.all(color: Colors.white.withValues(alpha: 0.10))),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
           child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -1584,7 +887,8 @@ class _TopIcon extends StatelessWidget {
                 decoration: BoxDecoration(
                     color: AppColors.danger,
                     borderRadius: BorderRadius.circular(9),
-                    border: Border.all(color: AppColors.surfaceDark, width: 1.5)),
+                    border:
+                        Border.all(color: AppColors.surfaceDark, width: 1.5)),
                 child: Text(badge!,
                     style: const TextStyle(
                         color: Colors.white,
@@ -1597,6 +901,7 @@ class _TopIcon extends StatelessWidget {
     );
   }
 }
+
 /// ============================================================
 /// PANNEAU SOMBRE (cadre or, titre) + ALERTES STOCK
 /// ============================================================
@@ -1732,8 +1037,7 @@ class _AlertsStockPanel extends StatelessWidget {
                 color: rows[i].$3,
                 icon: rows[i].$4,
                 compact: compact),
-            if (i < rows.length - 1)
-              SizedBox(height: compact ? 5 : 7),
+            if (i < rows.length - 1) SizedBox(height: compact ? 5 : 7),
           ],
         SizedBox(height: compact ? 9 : 12),
         SizedBox(
@@ -1749,8 +1053,8 @@ class _AlertsStockPanel extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10)),
             ),
             child: const Text('Voir toutes',
-                style:
-                    TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w700)),
           ),
         ),
       ]),
@@ -1773,8 +1077,7 @@ class _AlertRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(
-          horizontal: 11, vertical: compact ? 6 : 9),
+      padding: EdgeInsets.symmetric(horizontal: 11, vertical: compact ? 6 : 9),
       decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.035),
           borderRadius: BorderRadius.circular(10),
@@ -1790,23 +1093,23 @@ class _AlertRow extends StatelessWidget {
         ),
         const SizedBox(width: 11),
         Expanded(
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700)),
-                Text(detail, style: TextStyle(color: color, fontSize: 10.5)),
-              ]),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700)),
+            Text(detail, style: TextStyle(color: color, fontSize: 10.5)),
+          ]),
         ),
       ]),
     );
   }
 }
+
 /// ============================================================
 /// PLAN 3D DE LA PHARMACIE — scène isométrique (maquette) :
 /// murs sombres, rayonnages bois, gondoles, caisse liseré or,
@@ -1832,8 +1135,7 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
   bool _auto = false;
   double _zoom = 1.0;
 
-  void _zoomBy(double f) =>
-      setState(() => _zoom = (_zoom * f).clamp(0.5, 3.0));
+  void _zoomBy(double f) => setState(() => _zoom = (_zoom * f).clamp(0.5, 3.0));
 
   @override
   Widget build(BuildContext context) {
@@ -1858,8 +1160,7 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
                           end: Alignment.bottomRight,
                           colors: [Color(0xFF0D1713), Color(0xFF080E0C)]),
                       border: Border.all(
-                          color:
-                              AppColors.dividerDark.withValues(alpha: 0.9))),
+                          color: AppColors.dividerDark.withValues(alpha: 0.9))),
                   // MÊME modèle 3D que la page "Plan 3D" (PlanPainter +
                   // mêmes zones) : aperçu du plan complet, pas un modèle
                   // différent. Tap = ouverture de la page Plan 3D.
@@ -1879,20 +1180,15 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
               children: [
                 _planBtn(Icons.view_in_ar_rounded, 'Vue 3D', widget.onOpen,
                     compact: compact, labeled: !compact),
-                _planBtn(
-                    Icons.rotate_right_rounded,
-                    'Tourner',
+                _planBtn(Icons.rotate_right_rounded, 'Tourner',
                     () => setState(() => _auto = !_auto),
-                    compact: compact,
-                    labeled: !compact,
-                    active: _auto),
+                    compact: compact, labeled: !compact, active: _auto),
                 _planBtn(Icons.add_rounded, 'Zoom +', () => _zoomBy(1.15),
                     compact: compact),
-                _planBtn(Icons.remove_rounded, 'Zoom -', () => _zoomBy(1 / 1.15),
-                    compact: compact),
                 _planBtn(
-                    Icons.open_in_full_rounded,
-                    'Plein écran',
+                    Icons.remove_rounded, 'Zoom -', () => _zoomBy(1 / 1.15),
+                    compact: compact),
+                _planBtn(Icons.open_in_full_rounded, 'Plein écran',
                     () => openPlanFullScreen(context, zoom: _zoom),
                     compact: compact),
               ],
@@ -1900,11 +1196,9 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
           ]),
         ),
         const SizedBox(height: 9),
-        Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              for (final (letter, name) in _legend) _LegendItem(letter, name),
-            ]),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          for (final (letter, name) in _legend) _LegendItem(letter, name),
+        ]),
       ]),
     );
   }
@@ -1939,9 +1233,7 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
                     children: [
                       Icon(icon,
                           size: 15,
-                          color: active
-                              ? AppColors.pharmaGreen
-                              : Colors.white),
+                          color: active ? AppColors.pharmaGreen : Colors.white),
                       const SizedBox(height: 1),
                       Text(tip,
                           style: TextStyle(
@@ -1962,13 +1254,13 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
   }
 }
 
-
 class _LegendItem extends StatelessWidget {
   final String letter;
   final String name;
   const _LegendItem(this.letter, this.name);
   @override
-  Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
+  Widget build(BuildContext context) =>
+      Row(mainAxisSize: MainAxisSize.min, children: [
         Container(
             width: 16,
             height: 16,
@@ -1982,8 +1274,8 @@ class _LegendItem extends StatelessWidget {
                         fontWeight: FontWeight.w900)))),
         const SizedBox(width: 4),
         Text(name,
-            style: const TextStyle(
-                color: AppColors.textSecondary, fontSize: 10)),
+            style:
+                const TextStyle(color: AppColors.textSecondary, fontSize: 10)),
       ]);
 }
 
@@ -2091,42 +1383,47 @@ class _BottomStat extends StatelessWidget {
           border: Border.all(color: Colors.white.withValues(alpha: 0.07))),
       child: Row(children: [
         Expanded(
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.45),
-                        fontSize: 8.8,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.4)),
-                const SizedBox(height: 3),
-                Text(value,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: valueColor,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900)),
-                if (trend != null)
-                  Text(trend!,
-                      style: const TextStyle(
-                          color: AppColors.emeraldLight, fontSize: 9.5)),
-                if (subtitle != null)
-                  Text(subtitle!,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: AlignmentDirectional.centerStart,
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          color: valueColor.withValues(alpha: 0.85),
-                          fontSize: 9.5)),
-              ]),
+                          color: Colors.white.withValues(alpha: 0.45),
+                          fontSize: 8.8,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.4)),
+                  const SizedBox(height: 3),
+                  Text(value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: valueColor,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900)),
+                  if (trend != null)
+                    Text(trend!,
+                        style: const TextStyle(
+                            color: AppColors.emeraldLight, fontSize: 9.5)),
+                  if (subtitle != null)
+                    Text(subtitle!,
+                        style: TextStyle(
+                            color: valueColor.withValues(alpha: 0.85),
+                            fontSize: 9.5)),
+                ]),
+          ),
         ),
         if (icon != null) Icon(icon, size: 20, color: iconColor ?? valueColor),
       ]),
     );
   }
 }
+
 /// ============================================================
 /// POINT DE VENTE (colonne droite) — délègue au VRAI mini-POS
 /// (`pos_panel.dart`) : recherche API réelle, panier, remise,

@@ -344,7 +344,7 @@ const DEFAULT_PHARMACY_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 /* Version unique de la fonction (routes /health et /). La version
    deploiee (2.1.0) ne porte pas les corrections de ce depot : le
    bump marque l'ecart jusqu'au prochain deploiement autorise. */
-const EDGE_VERSION = "2.5.8";
+const EDGE_VERSION = "2.5.9";
 
 function publicPharmacyId(req: Request): string {
   const hdr = req.headers.get("x-pharmacy-id");

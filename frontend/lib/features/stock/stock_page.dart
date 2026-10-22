@@ -24,6 +24,20 @@ class StockPage extends StatefulWidget {
   final String? initialFilter;
   const StockPage({super.key, this.initialFilter});
 
+  /// Filtre demandé à distance (dashboard) avant d'ouvrir l'onglet Stock.
+  /// StockPage vit dans l'IndexedStack du shell : il écoute ce notifier
+  /// pour appliquer le filtre puis recharger, sans reconstruire la page.
+  static final ValueNotifier<String?> pendingFilter =
+      ValueNotifier<String?>(null);
+
+  /// Ouvre l'onglet Stock (shell) avec un filtre optionnel. `''` (ou
+  /// null) = filtre « tout » : force une notification même si la valeur
+  /// notifier est déjà nulle, pour réinitialiser le filtre courant.
+  static void openWith({String? filter}) {
+    pendingFilter.value = filter ?? '';
+    ShellNav.index.value = 4;
+  }
+
   @override
   State<StockPage> createState() => _StockPageState();
 }
@@ -43,7 +57,34 @@ class _StockPageState extends State<StockPage> {
   void initState() {
     super.initState();
     _filter = normalizeStockFilter(widget.initialFilter);
+    StockPage.pendingFilter.addListener(_onPendingFilter);
+    _applyPendingFilter();
     _load();
+  }
+
+  /// Filtre poussé par le dashboard (KPI « Produits en stock », « Voir
+  /// tout » des alertes) : appliqué et consommé (remis à null) pour ne
+  /// pas re-filtrer à la prochaine visite de l'onglet.
+  void _onPendingFilter() => _applyPendingFilter();
+
+  void _applyPendingFilter() {
+    final pending = StockPage.pendingFilter.value;
+    if (pending == null) return;
+    StockPage.pendingFilter.value = null;
+    if (!mounted) return;
+    final next = normalizeStockFilter(pending.isEmpty ? null : pending);
+    if (next == _filter) return;
+    setState(() => _filter = next);
+    _load();
+  }
+
+  @override
+  void dispose() {
+    StockPage.pendingFilter.removeListener(_onPendingFilter);
+    _search.dispose();
+    _hScroll.dispose();
+    _vScroll.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -143,14 +184,6 @@ class _StockPageState extends State<StockPage> {
       _canEdit = auth.isSuperAdmin || auth.permissions.contains('stock:edit');
       _loading = false;
     });
-  }
-
-  @override
-  void dispose() {
-    _search.dispose();
-    _hScroll.dispose();
-    _vScroll.dispose();
-    super.dispose();
   }
 
   StockStatus _statusOf(Map<String, dynamic> row) => computeStockStatus(
@@ -626,45 +659,65 @@ class _StockPageState extends State<StockPage> {
 
   Widget _buildStickyTable() {
     final rows = _filtered;
-    return LayoutBuilder(builder: (context, constraints) {
-      final usable = constraints.maxWidth - _rowPad;
-      const medMin = 200.0;
-      final totalW = usable >= medMin + _fixedNonMed
-          ? constraints.maxWidth
-          : medMin + _fixedNonMed + _rowPad;
-      final medW = totalW - _rowPad - _fixedNonMed;
-      return Scrollbar(
-        controller: _hScroll,
-        thumbVisibility: true,
-        child: SingleChildScrollView(
+    // Fond de zone 100 % opaque (palette solide, aucun alpha) : le fond
+    // d'application ne transparaît NI entre les lignes, NI sous la dernière
+    // ligne, NI derrière les barres de défilement.
+    final zoneBg = Theme.of(context).brightness == Brightness.dark
+        ? _rowDarkA
+        : Colors.white;
+    return Container(
+      key: const ValueKey('stock_table_zone'),
+      color: zoneBg,
+      child: LayoutBuilder(builder: (context, constraints) {
+        final usable = constraints.maxWidth - _rowPad;
+        const medMin = 200.0;
+        final totalW = usable >= medMin + _fixedNonMed
+            ? constraints.maxWidth
+            : medMin + _fixedNonMed + _rowPad;
+        final medW = totalW - _rowPad - _fixedNonMed;
+        return Scrollbar(
           controller: _hScroll,
-          scrollDirection: Axis.horizontal,
-          child: SizedBox(
-            width: totalW,
-            child: Column(
-              children: [
-                _tableHeader(medW: medW),
-                Expanded(
-                  child: Scrollbar(
-                    controller: _vScroll,
-                    thumbVisibility: true,
-                    child: SingleChildScrollView(
+          thumbVisibility: true,
+          child: SingleChildScrollView(
+            controller: _hScroll,
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: totalW,
+              child: Column(
+                children: [
+                  _tableHeader(medW: medW),
+                  Expanded(
+                    child: Scrollbar(
                       controller: _vScroll,
-                      child: Column(
-                        children: [
-                          for (var i = 0; i < rows.length; i++)
-                            _tableRow(rows[i], i, medW: medW),
-                        ],
+                      thumbVisibility: true,
+                      child: SingleChildScrollView(
+                        controller: _vScroll,
+                        child: Column(
+                          children: [
+                            for (var i = 0; i < rows.length; i++)
+                              _tableRow(rows[i], i, medW: medW),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-      );
-    });
+        );
+      }),
+    );
+  }
+
+  // Lignes alternées : couleurs SOLIDES (aucune transparence).
+  static const Color _rowDarkA = AppColors.pharmaSurface; // #08231C
+  static const Color _rowDarkB = AppColors.pharmaSurface2; // #0B2C23
+
+  Color _rowStripe(int i) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    if (dark) return i.isOdd ? _rowDarkB : _rowDarkA;
+    return i.isOdd ? const Color(0xFFF2F5F3) : Colors.white;
   }
 
   Widget _headerCell(double w, String label,
@@ -677,16 +730,20 @@ class _StockPageState extends State<StockPage> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: align,
+            // Blanc crème sur vert pétrole : contraste ~13:1, lisible
+            // même en défilement (liseré or conservé sur le fond d'en-tête).
             style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
-                color: AppColors.gold)),
+                color: AppColors.pharmaText)),
       ),
     );
   }
 
   Widget _tableHeader({required double medW}) {
+    // Fond d'en-tête SOLIDE (0xFF006B43) : opaque en toute situation.
     return Container(
+      key: const ValueKey('stock_table_header'),
       height: 44,
       color: AppColors.primary,
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -727,11 +784,9 @@ class _StockPageState extends State<StockPage> {
   Widget _tableRow(Map<String, dynamic> item, int i, {required double medW}) {
     final status = _statusOf(item);
     final available = _number(item['available']);
-    final stripe = i.isOdd
-        ? (Theme.of(context).brightness == Brightness.dark
-            ? AppColors.pharmaSurface2
-            : const Color(0xFFF2F5F3))
-        : Colors.transparent;
+    // Ligne 100 % opaque (jamais Colors.transparent) : le fond d'application
+    // reste invisible à travers les cellules, dans les deux thèmes.
+    final stripe = _rowStripe(i);
     final divider = Theme.of(context).brightness == Brightness.dark
         ? AppColors.borderDark
         : AppColors.borderLight;

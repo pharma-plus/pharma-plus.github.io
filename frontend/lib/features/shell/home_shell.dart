@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
+import '../../core/services/app_guards.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/services/sync_engine.dart';
 import '../../core/services/system_back_guard.dart';
@@ -21,6 +22,7 @@ import '../purchases/purchases_page.dart';
 import '../security/lock_screen.dart';
 import '../floor_plan/pharmacy_plan_page.dart';
 import '../settings/settings_page.dart';
+import 'app_side_menu.dart';
 
 /// Coquille principale : sidebar 3D + navigation.
 /// La navigation est filtrée par `AuthStore.canSeeModule(key)` :
@@ -57,6 +59,12 @@ class _HomeShellState extends State<HomeShell> {
   /// d'inflammer ~24 requêtes API + 12 initState d'un coup au login.
   final Set<int> _visited = {0};
 
+  /// Seuil partagé avec le dashboard (TopBar hamburger/menu) : la sidebar
+  /// fixe apparaît à 1150 px de largeur TOTALE de fenêtre.
+  static const double _sideMenuBreakpoint = 1150;
+
+  late final AuthStore _auth;
+
   Widget _page(int i) {
     if (!_visited.contains(i)) return const SizedBox.shrink();
     // TickerMode coupe les animations (glow POS, horloge…) des pages
@@ -82,13 +90,20 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void initState() {
     super.initState();
+    // Restaure la préférence rail 64 px / menu ouvert 232 px (persistée).
+    SideMenuState.init();
+    // Référence sauvegardée : context.read est INTERDIT dans dispose()
+    // (l'ancêtre Provider peut être déjà déactivé pendant le démontage).
+    _auth = context.read<AuthStore>();
+    // Onglet déjà visité au montage (index non nul possible en restauration).
+    _visited.add(ShellNav.index.value);
     // Retour système smartphone/tablette : une entrée d'historique par onglet
     // pour reculer Onglet → Dashboard → dialogue de confirmation.
     ShellNav.index.addListener(_onShellIndexChanged);
     systemBackNoteShellIndex(ShellNav.index.value);
     // Verrouillage automatique : dès que le store bascule en `isLocked`,
     // l'écran PIN est posé par-dessus le shell (inactivité ou manuel).
-    context.read<AuthStore>().addListener(_onAuthLockChanged);
+    _auth.addListener(_onAuthLockChanged);
     // Sync différée : on ne la lance pas pendant la première frame qui
     // charge déjà le dashboard (concurrence réseau inutile).
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -101,7 +116,7 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void dispose() {
     ShellNav.index.removeListener(_onShellIndexChanged);
-    context.read<AuthStore>().removeListener(_onAuthLockChanged);
+    _auth.removeListener(_onAuthLockChanged);
     super.dispose();
   }
 
@@ -128,6 +143,7 @@ class _HomeShellState extends State<HomeShell> {
 
   void _onShellIndexChanged() {
     systemBackNoteShellIndex(ShellNav.index.value);
+    _visit(ShellNav.index.value);
   }
 
   void _visit(int i) {
@@ -139,6 +155,38 @@ class _HomeShellState extends State<HomeShell> {
     setState(() => _syncing = true);
     await SyncEngine.instance.sync(verbose: true);
     if (mounted) setState(() => _syncing = false);
+  }
+
+  /// Navigation depuis la sidebar fixe (desktop ≥1150 px) : onglets via
+  /// ShellNav, pages hors shell (Caméras, Scanner) poussées par-dessus.
+  void _onSideNavNavigate(AppSideNavItem item) {
+    if (item.shellIndex != null) {
+      ShellNav.index.value = item.shellIndex!;
+    } else if (item.pageBuilder != null) {
+      Navigator.of(context)
+          .push(MaterialPageRoute(builder: (_) => item.pageBuilder!()));
+    }
+  }
+
+  Future<void> _onSideNavLogout() async {
+    if (await confirmSignOut(context)) {
+      if (!mounted) return;
+      await context.read<AuthStore>().signOut();
+    }
+  }
+
+  /// Menu « Autres modules » depuis la sidebar fixe.
+  void _onSideNavMoreModules() {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.55),
+      builder: (dialogContext) => ModulesMenuDialog(
+        onOpen: (page) {
+          Navigator.of(dialogContext).pop();
+          Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+        },
+      ),
+    );
   }
 
   @override
@@ -198,7 +246,20 @@ class _HomeShellState extends State<HomeShell> {
             ShellNav.index.value = 0;
           }
         }
-        _visit(effectiveIndex);
+        // Contenu = pages (IndexedStack) + bannière de sync superposée.
+        final content = Stack(
+          children: [
+            IndexedStack(
+              index: effectiveIndex,
+              children: [for (var i = 0; i < _pages.length; i++) _page(i)],
+            ),
+            if (_syncing) _SyncBanner(label: S.t('syncing', locale)),
+          ],
+        );
+        // Desktop ≥1150 px : menu latéral FIXE à gauche (contenu de la page
+        // courante défile seul à droite, y compris le tableau Stock).
+        final vw = MediaQuery.sizeOf(context).width;
+        final showSideMenu = vw >= _sideMenuBreakpoint;
         return Scaffold(
           backgroundColor: Colors.transparent,
           appBar: AppBar(
@@ -229,17 +290,33 @@ class _HomeShellState extends State<HomeShell> {
                     fillColor: Colors.transparent,
                   ),
                 ),
-                child: Stack(
-                  children: [
-                    IndexedStack(
-                      index: effectiveIndex,
-                      children: [
-                        for (var i = 0; i < _pages.length; i++) _page(i)
-                      ],
-                    ),
-                    if (_syncing) _SyncBanner(label: S.t('syncing', locale)),
-                  ],
-                ),
+                child: showSideMenu
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Rail réduit (64 px, icônes + tooltips) ou menu
+                          // ouvert (232 px) — état persisté partagé.
+                          ValueListenableBuilder<bool>(
+                            valueListenable: SideMenuState.collapsed,
+                            builder: (context, collapsed, _) =>
+                                AnimatedContainer(
+                              duration: const Duration(milliseconds: 240),
+                              curve: Curves.easeOutCubic,
+                              width: collapsed ? 64 : 232,
+                              child: AppSideMenu(
+                                collapsed: collapsed,
+                                onToggleCollapse: SideMenuState.toggle,
+                                onNavigate: _onSideNavNavigate,
+                                onLogout: _onSideNavLogout,
+                                onMoreModules: _onSideNavMoreModules,
+                              ),
+                            ),
+                          ),
+                          Container(width: 1, color: AppColors.dividerDark),
+                          Expanded(child: content),
+                        ],
+                      )
+                    : content,
               ),
             ),
           ),
