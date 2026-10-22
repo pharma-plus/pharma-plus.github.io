@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -11,10 +12,12 @@ import '../../core/widgets/glass_card.dart';
 
 /// Écran de verrouillage de l'application.
 ///
-/// Le voile de verrouillage reste un Scaffold opaque plein écran
-/// (sécurité : rien ne transparaît derrière), mais le formulaire PIN
-/// s'affiche dans un panneau GlassCard COMPACT et centré, dimensionné
-/// pour tenir dans un viewport court (téléphone) comme sur caisse.
+/// Route TRANSLUCIDE posée sur le shell : le dashboard réel reste visible
+/// derrière, mais un filtre `BackdropFilter` + voile le rendent illisible
+/// (montants, clients, ventes et commandes masqués) et un geste plein
+/// écran absorbe toutes les interactions tant que la session est
+/// verrouillée. Le panneau PIN GlassCard COMPACT (380 px max) reste
+/// centré par-dessus, dimensionné pour un viewport court comme une caisse.
 class LockScreen extends StatefulWidget {
   const LockScreen({super.key});
 
@@ -305,245 +308,273 @@ class _LockScreenState extends State<LockScreen> {
       child: PopScope(
         canPop: canDismiss,
         child: Scaffold(
-          backgroundColor: AppColors.pharmaBg,
-          body: Center(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(compact ? 16 : 24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 380),
-                child: GlassCard(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: compact ? 20 : 28,
-                    vertical: compact ? 20 : 28,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        _switchMode
-                            ? Icons.swap_horiz_rounded
-                            : _pinNotSet && _setupStep > 0
-                                ? Icons.pin_outlined
-                                : Icons.lock_outlined,
-                        size: compact ? 52 : 80,
-                        color: AppColors.pharmaGold,
+          backgroundColor: Colors.transparent,
+          body: Stack(
+            children: [
+              // Voile de confidentialité : le dashboard réel (formes,
+              // couleurs) transparaît mais ses données sensibles sont
+              // rendues illisibles. onTap opaque absorbe les gestes :
+              // le shell en dessous reste totalement inutilisable.
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {},
+                  child: ClipRect(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                      child: ColoredBox(
+                        color: AppColors.pharmaBg.withValues(alpha: 0.72),
                       ),
-                      const SizedBox(height: 20),
-                      Text(
-                        _switchMode
-                            ? S.t('changer_utilisateur', locale)
-                            : _pinNotSet && _setupStep > 0
-                                ? (_setupStep == 1
-                                    ? 'Définissez votre code PIN'
-                                    : 'Confirmez votre code PIN')
-                                : S.t('verrouillage_verrouille', locale),
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.pharmaText,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      if (_switchMode) ...[
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Identifiez le prochain employé (identifiant + PIN).',
-                          style: TextStyle(
-                              fontSize: 13, color: AppColors.pharmaMuted),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _identCtrl,
-                          enabled: !_verifying,
-                          keyboardType: TextInputType.emailAddress,
-                          autofillHints: const [AutofillHints.username],
-                          style: const TextStyle(color: AppColors.pharmaText),
-                          decoration: InputDecoration(
-                            labelText:
-                                'Identifiant (e-mail ou nom d\'utilisateur)',
-                            labelStyle:
-                                const TextStyle(color: AppColors.pharmaMuted),
-                            prefixIcon: const Icon(Icons.person_outline,
-                                color: AppColors.pharmaMuted),
-                            filled: true,
-                            fillColor: AppColors.pharmaSurface2,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                          onSubmitted: (_) {
-                            if (_pin.length == _pinLength) _switchUser();
-                          },
-                        ),
-                      ],
-                      const SizedBox(height: 8),
-                      // Affichage des points PIN
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(_pinLength, (i) {
-                          final filled = _setupStep == 0
-                              ? i < _pin.length
-                              : _setupStep == 1
-                                  ? i < _newPin.length
-                                  : i < _confirmPin.length;
-                          return Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 6),
-                            width: 16,
-                            height: 16,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: filled
-                                  ? AppColors.pharmaGold
-                                  : Colors.grey[700],
-                            ),
-                          );
-                        }),
-                      ),
-                      const SizedBox(height: 16),
-                      if (_error != null) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: AppColors.danger.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            _error!,
-                            style: const TextStyle(
-                                color: AppColors.danger, fontSize: 13),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      if (_verifying) ...[
-                        const CircularProgressIndicator(),
-                        const SizedBox(height: 16),
-                      ],
-                      // Clavier PIN
-                      _buildKeypad(compact),
-                      const SizedBox(height: 20),
-                      // Étape 1 (création) : bouton « Continuer » tactile —
-                      // sans lui, seule la touche Entrée permettait d'avancer.
-                      if (_pinNotSet && _setupStep == 1) ...[
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed:
-                                (_verifying || _newPin.length != _pinLength)
-                                    ? null
-                                    : () => setState(() => _setupStep = 2),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.emerald,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                            child: const Text('Continuer'),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-                      if (_pinNotSet && _setupStep == 2)
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _verifying ? null : _saveNewPin,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.emerald,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                            child: const Text('Enregistrer le PIN'),
-                          ),
-                        ),
-                      const SizedBox(height: 12),
-                      // Changer d'utilisateur (identifiant + PIN du prochain employé)
-                      if (_switchMode) ...[
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: (_verifying || _pin.length != _pinLength)
-                                ? null
-                                : _switchUser,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.emerald,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                            child: const Text('Identifier cet employé'),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        TextButton(
-                          onPressed: _verifying
-                              ? null
-                              : () {
-                                  setState(() {
-                                    _switchMode = false;
-                                    _pin = '';
-                                    _error = null;
-                                  });
-                                },
-                          child: const Text(
-                            'Retour au PIN',
-                            style: TextStyle(color: AppColors.pharmaMuted),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: _verifying
-                              ? null
-                              : () async {
-                                  final nav = Navigator.of(context);
-                                  await context.read<AuthStore>().signOut();
-                                  nav.pop();
-                                },
-                          child: const Text(
-                            'Se déconnecter complètement',
-                            style: TextStyle(
-                                color: AppColors.pharmaMuted, fontSize: 12),
-                          ),
-                        ),
-                      ] else
-                        TextButton(
-                          onPressed: _verifying
-                              ? null
-                              : () {
-                                  setState(() {
-                                    _switchMode = true;
-                                    _pinNotSet = false;
-                                    _setupStep = 0;
-                                    _pin = '';
-                                    _error = null;
-                                  });
-                                },
-                          child: Text(
-                            S.t('changer_utilisateur', locale),
-                            style:
-                                const TextStyle(color: AppColors.pharmaMuted),
-                          ),
-                        ),
-                      if (canDismiss && !_switchMode) ...[
-                        const SizedBox(height: 4),
-                        TextButton(
-                          onPressed: () {
-                            context.read<AuthStore>().unlock();
-                            Navigator.pop(context);
-                          },
-                          child: Text(
-                            S.t('annuler', locale),
-                            style:
-                                const TextStyle(color: AppColors.pharmaMuted),
-                          ),
-                        ),
-                      ],
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
+              Center(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(compact ? 16 : 24),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 380),
+                    child: GlassCard(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: compact ? 20 : 28,
+                        vertical: compact ? 20 : 28,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _switchMode
+                                ? Icons.swap_horiz_rounded
+                                : _pinNotSet && _setupStep > 0
+                                    ? Icons.pin_outlined
+                                    : Icons.lock_outlined,
+                            size: compact ? 52 : 80,
+                            color: AppColors.pharmaGold,
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            _switchMode
+                                ? S.t('changer_utilisateur', locale)
+                                : _pinNotSet && _setupStep > 0
+                                    ? (_setupStep == 1
+                                        ? 'Définissez votre code PIN'
+                                        : 'Confirmez votre code PIN')
+                                    : S.t('verrouillage_verrouille', locale),
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.pharmaText,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          if (_switchMode) ...[
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Identifiez le prochain employé (identifiant + PIN).',
+                              style: TextStyle(
+                                  fontSize: 13, color: AppColors.pharmaMuted),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: _identCtrl,
+                              enabled: !_verifying,
+                              keyboardType: TextInputType.emailAddress,
+                              autofillHints: const [AutofillHints.username],
+                              style:
+                                  const TextStyle(color: AppColors.pharmaText),
+                              decoration: InputDecoration(
+                                labelText:
+                                    'Identifiant (e-mail ou nom d\'utilisateur)',
+                                labelStyle: const TextStyle(
+                                    color: AppColors.pharmaMuted),
+                                prefixIcon: const Icon(Icons.person_outline,
+                                    color: AppColors.pharmaMuted),
+                                filled: true,
+                                fillColor: AppColors.pharmaSurface2,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                              onSubmitted: (_) {
+                                if (_pin.length == _pinLength) _switchUser();
+                              },
+                            ),
+                          ],
+                          const SizedBox(height: 8),
+                          // Affichage des points PIN
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(_pinLength, (i) {
+                              final filled = _setupStep == 0
+                                  ? i < _pin.length
+                                  : _setupStep == 1
+                                      ? i < _newPin.length
+                                      : i < _confirmPin.length;
+                              return Container(
+                                margin:
+                                    const EdgeInsets.symmetric(horizontal: 6),
+                                width: 16,
+                                height: 16,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: filled
+                                      ? AppColors.pharmaGold
+                                      : Colors.grey[700],
+                                ),
+                              );
+                            }),
+                          ),
+                          const SizedBox(height: 16),
+                          if (_error != null) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: AppColors.danger.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                _error!,
+                                style: const TextStyle(
+                                    color: AppColors.danger, fontSize: 13),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                          if (_verifying) ...[
+                            const CircularProgressIndicator(),
+                            const SizedBox(height: 16),
+                          ],
+                          // Clavier PIN
+                          _buildKeypad(compact),
+                          const SizedBox(height: 20),
+                          // Étape 1 (création) : bouton « Continuer » tactile —
+                          // sans lui, seule la touche Entrée permettait d'avancer.
+                          if (_pinNotSet && _setupStep == 1) ...[
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed:
+                                    (_verifying || _newPin.length != _pinLength)
+                                        ? null
+                                        : () => setState(() => _setupStep = 2),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.emerald,
+                                  foregroundColor: Colors.white,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                                child: const Text('Continuer'),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                          if (_pinNotSet && _setupStep == 2)
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: _verifying ? null : _saveNewPin,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.emerald,
+                                  foregroundColor: Colors.white,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                                child: const Text('Enregistrer le PIN'),
+                              ),
+                            ),
+                          const SizedBox(height: 12),
+                          // Changer d'utilisateur (identifiant + PIN du prochain employé)
+                          if (_switchMode) ...[
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed:
+                                    (_verifying || _pin.length != _pinLength)
+                                        ? null
+                                        : _switchUser,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.emerald,
+                                  foregroundColor: Colors.white,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                                child: const Text('Identifier cet employé'),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            TextButton(
+                              onPressed: _verifying
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        _switchMode = false;
+                                        _pin = '';
+                                        _error = null;
+                                      });
+                                    },
+                              child: const Text(
+                                'Retour au PIN',
+                                style: TextStyle(color: AppColors.pharmaMuted),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: _verifying
+                                  ? null
+                                  : () async {
+                                      final nav = Navigator.of(context);
+                                      await context.read<AuthStore>().signOut();
+                                      nav.pop();
+                                    },
+                              child: const Text(
+                                'Se déconnecter complètement',
+                                style: TextStyle(
+                                    color: AppColors.pharmaMuted, fontSize: 12),
+                              ),
+                            ),
+                          ] else
+                            TextButton(
+                              onPressed: _verifying
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        _switchMode = true;
+                                        _pinNotSet = false;
+                                        _setupStep = 0;
+                                        _pin = '';
+                                        _error = null;
+                                      });
+                                    },
+                              child: Text(
+                                S.t('changer_utilisateur', locale),
+                                style: const TextStyle(
+                                    color: AppColors.pharmaMuted),
+                              ),
+                            ),
+                          if (canDismiss && !_switchMode) ...[
+                            const SizedBox(height: 4),
+                            TextButton(
+                              onPressed: () {
+                                context.read<AuthStore>().unlock();
+                                Navigator.pop(context);
+                              },
+                              child: Text(
+                                S.t('annuler', locale),
+                                style: const TextStyle(
+                                    color: AppColors.pharmaMuted),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

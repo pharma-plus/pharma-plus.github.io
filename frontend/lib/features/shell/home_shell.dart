@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/auth_store.dart';
@@ -109,8 +109,17 @@ class _HomeShellState extends State<HomeShell> {
     final locked = context.read<AuthStore>().isLocked;
     if (locked && !_lockRouteShown && mounted) {
       _lockRouteShown = true;
+      // Route TRANSLUCIDE (opaque: false) : le shell réel reste peint
+      // derrière le voile PIN, tout en étant masqué et inutilisable.
       Navigator.of(context)
-          .push(MaterialPageRoute(builder: (_) => const LockScreen()))
+          .push(PageRouteBuilder(
+        opaque: false,
+        transitionsBuilder: (_, animation, __, child) => FadeTransition(
+          opacity: animation,
+          child: child,
+        ),
+        pageBuilder: (_, __, ___) => const LockScreen(),
+      ))
           .whenComplete(() {
         if (mounted) setState(() => _lockRouteShown = false);
       });
@@ -162,12 +171,10 @@ class _HomeShellState extends State<HomeShell> {
       11: 'settings',
     };
 
-    final mobileItems = allMobileItems
-        .where((m) {
-          final key = mobileModuleKeys[m.$4];
-          return key == null || auth.canSeeModule(key);
-        })
-        .toList();
+    final mobileItems = allMobileItems.where((m) {
+      final key = mobileModuleKeys[m.$4];
+      return key == null || auth.canSeeModule(key);
+    }).toList();
 
     final mobileDestinations = [
       for (final (ic, icS, key, _) in mobileItems)
@@ -193,68 +200,71 @@ class _HomeShellState extends State<HomeShell> {
         }
         _visit(effectiveIndex);
         return Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          // Bouton verrouillage pour tous les rôles sauf super admin
-          leading: IconButton(
-      icon: const Icon(Icons.lock_open_outlined),
-      onPressed: () => context.read<AuthStore>().lockSession(manual: true),
-    ),
-          title: const Text('PHARMA+'),
-          actions: const [],
-        ),
-        body: PharmaBackground(
-          assetImage: 'assets/images/background.webp',
-          child: SafeArea(
-            child: Theme(
-              data: Theme.of(context).copyWith(
-                scaffoldBackgroundColor: Colors.transparent,
-                canvasColor: Colors.transparent,
-                appBarTheme: const AppBarTheme(
-                  backgroundColor: Colors.transparent,
-                  surfaceTintColor: Colors.transparent,
-                  elevation: 0,
-                  scrolledUnderElevation: 0,
-                ),
-                inputDecorationTheme: const InputDecorationThemeData(
-                  filled: true,
-                  fillColor: Colors.transparent,
-                ),
-              ),
-              child: Stack(
-                children: [
-                  IndexedStack(
-                    index: effectiveIndex,
-                    children: [for (var i = 0; i < _pages.length; i++) _page(i)],
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            // Bouton verrouillage pour tous les rôles sauf super admin
+            leading: IconButton(
+              icon: const Icon(Icons.lock_open_outlined),
+              onPressed: () =>
+                  context.read<AuthStore>().lockSession(manual: true),
+            ),
+            title: const Text('PHARMA+'),
+            actions: const [],
+          ),
+          body: PharmaBackground(
+            assetImage: 'assets/images/background.webp',
+            child: SafeArea(
+              child: Theme(
+                data: Theme.of(context).copyWith(
+                  scaffoldBackgroundColor: Colors.transparent,
+                  canvasColor: Colors.transparent,
+                  appBarTheme: const AppBarTheme(
+                    backgroundColor: Colors.transparent,
+                    surfaceTintColor: Colors.transparent,
+                    elevation: 0,
+                    scrolledUnderElevation: 0,
                   ),
-                  if (_syncing) _SyncBanner(label: S.t('syncing', locale)),
-                ],
+                  inputDecorationTheme: const InputDecorationThemeData(
+                    filled: true,
+                    fillColor: Colors.transparent,
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    IndexedStack(
+                      index: effectiveIndex,
+                      children: [
+                        for (var i = 0; i < _pages.length; i++) _page(i)
+                      ],
+                    ),
+                    if (_syncing) _SyncBanner(label: S.t('syncing', locale)),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-        bottomNavigationBar: showBottomNav
-            ? NavigationBar(
-                selectedIndex: () {
-                  final idx = mobileItems
-                      .map((m) => m.$4)
-                      .toList()
-                      .indexOf(effectiveIndex);
-                  // Pages hors barre mobile (ex : fournisseurs, achats,
-                  // clients, employés, rapports) : repli non-destructif sur
-                  // l'onglet Modules au lieu de -1 (crash/assert).
-                  // Si Modules n'est pas visible non plus → dashboard (0).
-                  if (idx >= 0) return idx;
-                  return mobileItems.any((m) => m.$4 == 1) ? 1 : 0;
-                }(),
-                onDestinationSelected: (i) =>
-                    ShellNav.index.value = mobileItems[i].$4,
-                destinations: mobileDestinations,
-                // Optimisation tactile : hauteur augmentée pour doigts
-                height: 80,
-                labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-              )
-            : null,
+          bottomNavigationBar: showBottomNav
+              ? NavigationBar(
+                  selectedIndex: () {
+                    final idx = mobileItems
+                        .map((m) => m.$4)
+                        .toList()
+                        .indexOf(effectiveIndex);
+                    // Pages hors barre mobile (ex : fournisseurs, achats,
+                    // clients, employés, rapports) : repli non-destructif sur
+                    // l'onglet Modules au lieu de -1 (crash/assert).
+                    // Si Modules n'est pas visible non plus → dashboard (0).
+                    if (idx >= 0) return idx;
+                    return mobileItems.any((m) => m.$4 == 1) ? 1 : 0;
+                  }(),
+                  onDestinationSelected: (i) =>
+                      ShellNav.index.value = mobileItems[i].$4,
+                  destinations: mobileDestinations,
+                  // Optimisation tactile : hauteur augmentée pour doigts
+                  height: 80,
+                  labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+                )
+              : null,
         );
       },
     );
