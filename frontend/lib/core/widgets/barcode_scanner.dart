@@ -5,8 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../services/barcode_engine.dart'
-    if (dart.library.html) '../services/barcode_engine_web.dart'
-    as engine;
+    if (dart.library.html) '../services/barcode_engine_web.dart' as engine;
 import '../services/gs1_parser.dart';
 import '../services/scan_beep.dart';
 import '../theme/colors.dart';
@@ -167,9 +166,20 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet>
       });
     } catch (e) {
       if (!mounted) return;
+      final raw = e.toString();
+      // Permission caméra refusée ou révoquée : message explicite,
+      // « Réessayer » + saisie manuelle restent disponibles.
+      final denied = raw.toLowerCase().contains('permission') ||
+          raw.toLowerCase().contains('denied') ||
+          raw.toLowerCase().contains('acces') ||
+          raw.toLowerCase().contains('access');
       setState(() {
         _error = true;
-        _errorMsg = e.toString();
+        _errorMsg = denied
+            ? 'Accès caméra refusé. Autorisez la caméra dans les '
+                'paramètres de l\'appareil ou du navigateur, puis réessayez — '
+                'la saisie manuelle reste disponible.'
+            : raw;
         _controller = null;
       });
     }
@@ -188,8 +198,8 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet>
   /// Lecture du moteur web PRO (ZXing) : texte + nom de format.
   void _onEngineCode(String code, String formatName) {
     if (!mounted) return;
-    final result = ScanResult(code, BarcodeFormat.unknown,
-        gs1: Gs1Parser.parse(code));
+    final result =
+        ScanResult(code, BarcodeFormat.unknown, gs1: Gs1Parser.parse(code));
     if (!_continuous) {
       engine.stopBarcodeCamera();
       _beepFor(result.code);
@@ -306,9 +316,8 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet>
             ? [
                 IconButton(
                   tooltip: _paused ? 'Reprendre le scan' : 'Pause',
-                  icon: Icon(_paused
-                      ? Icons.play_arrow_rounded
-                      : Icons.pause_rounded),
+                  icon: Icon(
+                      _paused ? Icons.play_arrow_rounded : Icons.pause_rounded),
                   color: const Color(0xFFE9C873),
                   onPressed: _togglePause,
                 ),
@@ -397,8 +406,7 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet>
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            CircularProgressIndicator(
-                                color: Color(0xFFE9C873)),
+                            CircularProgressIndicator(color: Color(0xFFE9C873)),
                             SizedBox(height: 14),
                             Text('Initialisation de la caméra...',
                                 style: TextStyle(
@@ -407,43 +415,43 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet>
                         ),
                       )
                     : Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      if (kIsWeb && _webViewId != null)
-                        // Moteur web PRO : flux caméra natif DOM + ZXing.
-                        HtmlElementView(viewType: _webViewId!)
-                      else if (_controller != null)
-                        MobileScanner(
-                          controller: _controller!,
-                          onDetect: _onDetect,
-                        )
-                      else
-                        _buildFallback(),
-                      // Visée professionnelle : masque + coins or +
-                      // LIGNE LASER animée au milieu du carré.
-                      Center(
-                        child: _ProReticle(
-                          side: MediaQuery.of(context).size.width < 420
-                              ? 250
-                              : 300,
-                        ),
+                        fit: StackFit.expand,
+                        children: [
+                          if (kIsWeb && _webViewId != null)
+                            // Moteur web PRO : flux caméra natif DOM + ZXing.
+                            HtmlElementView(viewType: _webViewId!)
+                          else if (_controller != null)
+                            MobileScanner(
+                              controller: _controller!,
+                              onDetect: _onDetect,
+                            )
+                          else
+                            _buildFallback(),
+                          // Visée professionnelle : masque + coins or +
+                          // LIGNE LASER animée au milieu du carré.
+                          Center(
+                            child: _ProReticle(
+                              side: MediaQuery.of(context).size.width < 420
+                                  ? 250
+                                  : 300,
+                            ),
+                          ),
+                          // Hint text
+                          Positioned(
+                            bottom: 24,
+                            left: 0,
+                            right: 0,
+                            child: Text(
+                              'Lecteur PRO : EAN · UPC · Code128 · Code39 · ITF · DataMatrix · QR · Aztec',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
                       ),
-                      // Hint text
-                      Positioned(
-                        bottom: 24,
-                        left: 0,
-                        right: 0,
-                        child: Text(
-                          'Lecteur PRO : EAN · UPC · Code128 · Code39 · ITF · DataMatrix · QR · Aztec',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.7),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ],
-                  ),
           ),
           // ── Saisie manuelle (lecteur HID USB/Bluetooth) ──
           SafeArea(
@@ -514,15 +522,15 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet>
               'Autorisez l\'accès à la caméra dans votre navigateur,\n'
               'ou saisissez le code-barres manuellement ci-dessous.',
               textAlign: TextAlign.center,
-              style:
-                  TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12),
+              style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.6), fontSize: 12),
             ),
             if (_errorMsg.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(_errorMsg,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: AppColors.danger, fontSize: 10)),
+                  style:
+                      const TextStyle(color: AppColors.danger, fontSize: 10)),
             ],
             const SizedBox(height: 16),
             ElevatedButton.icon(
@@ -637,10 +645,11 @@ class _ReticleMaskPainter extends CustomPainter {
   @override
   void paint(Canvas c, Size s) {
     const radius = Radius.circular(20);
-    final window = RRect.fromRectAndRadius(
-        Offset.zero & s, const Radius.circular(20));
+    final window =
+        RRect.fromRectAndRadius(Offset.zero & s, const Radius.circular(20));
     final full = RRect.fromRectAndRadius(
-        (Offset.zero - const Offset(-5000, -5000)) & (s + const Offset(10000, 10000)),
+        (Offset.zero - const Offset(-5000, -5000)) &
+            (s + const Offset(10000, 10000)),
         radius);
     final paint = Paint()
       ..color = Colors.black.withValues(alpha: 0.55)

@@ -66,12 +66,11 @@ class _InventoryPageState extends State<InventoryPage> {
         context: context,
         builder: (context) => SimpleDialog(
           backgroundColor: AppColors.pharmaSurface,
-          title: const Text('Succursale',
-              style: TextStyle(color: Colors.white)),
+          title:
+              const Text('Succursale', style: TextStyle(color: Colors.white)),
           children: branches
               .map((b) => SimpleDialogOption(
-                    onPressed: () =>
-                        Navigator.pop(context, '${b['id']}'),
+                    onPressed: () => Navigator.pop(context, '${b['id']}'),
                     child: Text('${b['name'] ?? b['code']}',
                         style: const TextStyle(color: Colors.white)),
                   ))
@@ -139,8 +138,7 @@ class _InventoryPageState extends State<InventoryPage> {
     final code = r.lookupCode;
     final items = (_detail!['items'] as List)
         .whereType<Map>()
-        .where((i) =>
-            '${i['medications']?['barcode_ean13'] ?? ''}' == code)
+        .where((i) => '${i['medications']?['barcode_ean13'] ?? ''}' == code)
         .toList();
     if (!mounted) return;
     if (items.isEmpty) {
@@ -154,8 +152,8 @@ class _InventoryPageState extends State<InventoryPage> {
 
   Future<void> _countDialog(Map<String, dynamic> item) async {
     final name = (item['medication_name'] ??
-            item['medications']?['name'] ??
-            'Produit') as String;
+        item['medications']?['name'] ??
+        'Produit') as String;
     final systemQty = (item['system_qty'] as num?)?.toDouble() ?? 0;
     final counted = TextEditingController(
         text: '${(item['counted_qty'] as num?) ?? systemQty}');
@@ -174,8 +172,7 @@ class _InventoryPageState extends State<InventoryPage> {
               controller: counted,
               keyboardType: TextInputType.number,
               autofocus: true,
-              decoration:
-                  const InputDecoration(labelText: 'Quantité physique'),
+              decoration: const InputDecoration(labelText: 'Quantité physique'),
             ),
           ],
         ),
@@ -193,7 +190,73 @@ class _InventoryPageState extends State<InventoryPage> {
     await _setCount(item, double.tryParse(counted.text) ?? 0);
   }
 
+  /// Validation (clôture) : montre d'abord les écarts constatés et
+  /// demande une confirmation EXPLICITE — aucune correction n'est
+  /// appliquée au stock sans cet accord (le serveur exige en plus la
+  /// permission inventory:approve).
   Future<void> _validate() async {
+    final items = (_detail!['items'] as List)
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+    final gaps = items.where((it) => ((it['gap'] as num?) ?? 0) != 0).toList();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.pharmaSurface,
+        title: const Text('Valider l\'inventaire ?',
+            style: TextStyle(color: Colors.white)),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420, maxHeight: 320),
+          child: gaps.isEmpty
+              ? const Text(
+                  'Aucun écart constaté : la session sera clôturée sans correction de stock.',
+                  style: TextStyle(color: Colors.white70))
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${gaps.length} article(s) présentent un écart. '
+                      'Les corrections suivantes seront appliquées au stock '
+                      '(mouvements inventaire +/−) :',
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                    const SizedBox(height: 10),
+                    Expanded(
+                      child: ListView(
+                        children: [
+                          for (final it in gaps.take(50))
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Text(
+                                '${it['medication_name'] ?? 'Produit'} — '
+                                'système ${it['system_qty']} → physique '
+                                '${it['counted_qty'] ?? 0} '
+                                '(${((it['gap'] as num?) ?? 0) > 0 ? '+' : ''}${it['gap']})',
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 12),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Annuler')),
+          FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: AppColors.emerald),
+              onPressed: () => Navigator.pop(context, true),
+              child:
+                  Text(gaps.isEmpty ? 'Clôturer' : 'Confirmer et appliquer')),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
     final sessionId = _detail!['id'] as String;
     final r = await ApiClient.instance
         .post('/inventory/sessions/$sessionId/close', body: {});
@@ -218,8 +281,8 @@ class _InventoryPageState extends State<InventoryPage> {
       pageFormat: PdfPageFormat.a4,
       build: (context) => [
         pw.Text('INVENTAIRE PHYSIQUE — ${d['branch_name'] ?? ''}',
-            style:
-                const pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+            style: const pw.TextStyle(
+                fontSize: 16, fontWeight: pw.FontWeight.bold)),
         pw.Text('Session ${d['id']} · ${d['started_at']} · ${d['status']}',
             style: const pw.TextStyle(fontSize: 10)),
         pw.SizedBox(height: 10),
@@ -236,8 +299,7 @@ class _InventoryPageState extends State<InventoryPage> {
                         : '${i['gap'] ?? 0}',
                   ])
               .toList(),
-          headerStyle:
-              const pw.TextStyle(fontWeight: pw.FontWeight.bold),
+          headerStyle: const pw.TextStyle(fontWeight: pw.FontWeight.bold),
           cellAlignment: pw.Alignment.centerLeft,
         ),
       ],
@@ -259,8 +321,7 @@ class _InventoryPageState extends State<InventoryPage> {
               icon: const Icon(Icons.add_circle_outline_rounded,
                   color: Color(0xFFE9C873)),
               onPressed: _newSession),
-          IconButton(
-              icon: const Icon(Icons.refresh_rounded), onPressed: _load),
+          IconButton(icon: const Icon(Icons.refresh_rounded), onPressed: _load),
         ],
       ),
       body: _loading
@@ -350,8 +411,8 @@ class _InventoryPageState extends State<InventoryPage> {
                   color: AppColors.pharmaSurface,
                   child: ListTile(
                     title: Text('${it['medication_name'] ?? 'Produit'}',
-                        style: const TextStyle(
-                            color: Colors.white, fontSize: 14)),
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 14)),
                     subtitle: Text(
                         'Système : ${it['system_qty']} · Physique : ${it['counted_qty']}',
                         style: const TextStyle(
@@ -371,4 +432,3 @@ class _InventoryPageState extends State<InventoryPage> {
     );
   }
 }
-

@@ -7,6 +7,7 @@ import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/pharma_background.dart';
+import '../purchases/reorder_draft_dialog.dart';
 import '../shell/shell_nav.dart';
 
 class AiPage extends StatefulWidget {
@@ -61,13 +62,24 @@ class _AiPageState extends State<AiPage> {
         final id = insights.data;
         _insights = id is Map ? Map<String, dynamic>.from(id) : null;
         final pd = results[1].data;
-        _plan = results[1].success && pd is Map ? Map<String, dynamic>.from(pd) : null;
+        _plan = results[1].success && pd is Map
+            ? Map<String, dynamic>.from(pd)
+            : null;
         final ad = results[2].data;
-        _analysis = results[2].success && ad is Map ? Map<String, dynamic>.from(ad) : null;
+        _analysis = results[2].success && ad is Map
+            ? Map<String, dynamic>.from(ad)
+            : null;
       }
       _loading = false;
       _activeTab ??= 'reorder_soon';
     });
+  }
+
+  /// Création d'une commande brouillon : permission purchases:create
+  /// (le serveur la ré-exige aussi — cf. ROUTE_MODULE Edge).
+  bool _canPrepareOrder() {
+    final auth = context.read<AuthStore>();
+    return auth.isSuperAdmin || auth.permissions.contains('purchases:create');
   }
 
   Future<void> _send() async {
@@ -78,8 +90,8 @@ class _AiPageState extends State<AiPage> {
       _sending = true;
       _chatController.clear();
     });
-    final result = await ApiClient.instance
-        .post('/ai/chat', body: {'query': text});
+    final result =
+        await ApiClient.instance.post('/ai/chat', body: {'query': text});
     if (!mounted) return;
     final replyData = result.data;
     final replyText = (replyData is Map && replyData['reply'] != null)
@@ -112,105 +124,105 @@ class _AiPageState extends State<AiPage> {
       body: PharmaBackground(
         assetImage: 'assets/images/background.webp',
         child: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.smart_toy_outlined,
-                            size: 56, color: AppColors.warning),
-                        const SizedBox(height: 12),
-                        Text(_error!, textAlign: TextAlign.center),
-                        const SizedBox(height: 12),
-                        OutlinedButton.icon(
-                          onPressed: _load,
-                          icon: const Icon(Icons.refresh),
-                          label: Text(S.t('retry', locale)),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : Column(
-                  children: [
-                    Expanded(
-                      child: ListView(
-                        padding: const EdgeInsets.all(14),
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          for (final m in _messages)
-                            Align(
-                              alignment: m['role'] == 'user'
-                                  ? Alignment.centerRight
-                                  : Alignment.centerLeft,
-                              child: Container(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 10),
-                                decoration: BoxDecoration(
-                                  gradient: m['role'] == 'user'
-                                      ? AppColors.greenGradient
-                                      : null,
-                                  color: m['role'] == 'user'
-                                      ? null
-                                      : AppColors.turquoise
-                                          .withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: ConstrainedBox(
-                                  constraints:
-                                      const BoxConstraints(maxWidth: 340),
-                                  child: Text('${m['text']}'),
-                                ),
-                              ),
-                            ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _chatController,
-                                  textInputAction: TextInputAction.send,
-                                  onSubmitted: (_) => _send(),
-                                  decoration: InputDecoration(
-                                    hintText: S.t('aiAssistant', locale),
-                                    suffixIcon: IconButton(
-                                      icon: const Icon(Icons.send),
-                                      onPressed: _sending ? null : _send,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            S.t('aiAnalytics', locale),
-                            style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w800),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            S.t('aiProductivity', locale),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.white60
-                                  : Colors.black54,
-                            ),
-                          ),
+                          const Icon(Icons.smart_toy_outlined,
+                              size: 56, color: AppColors.warning),
                           const SizedBox(height: 12),
-                          _buildTabs(),
+                          Text(_error!, textAlign: TextAlign.center),
                           const SizedBox(height: 12),
-                          _buildInsightList(),
+                          OutlinedButton.icon(
+                            onPressed: _load,
+                            icon: const Icon(Icons.refresh),
+                            label: Text(S.t('retry', locale)),
+                          ),
                         ],
                       ),
                     ),
-                  ],
-                ),
+                  )
+                : Column(
+                    children: [
+                      Expanded(
+                        child: ListView(
+                          padding: const EdgeInsets.all(14),
+                          children: [
+                            for (final m in _messages)
+                              Align(
+                                alignment: m['role'] == 'user'
+                                    ? Alignment.centerRight
+                                    : Alignment.centerLeft,
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    gradient: m['role'] == 'user'
+                                        ? AppColors.greenGradient
+                                        : null,
+                                    color: m['role'] == 'user'
+                                        ? null
+                                        : AppColors.turquoise
+                                            .withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: ConstrainedBox(
+                                    constraints:
+                                        const BoxConstraints(maxWidth: 340),
+                                    child: Text('${m['text']}'),
+                                  ),
+                                ),
+                              ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: _chatController,
+                                    textInputAction: TextInputAction.send,
+                                    onSubmitted: (_) => _send(),
+                                    decoration: InputDecoration(
+                                      hintText: S.t('aiAssistant', locale),
+                                      suffixIcon: IconButton(
+                                        icon: const Icon(Icons.send),
+                                        onPressed: _sending ? null : _send,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              S.t('aiAnalytics', locale),
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w800),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              S.t('aiProductivity', locale),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.white60
+                                    : Colors.black54,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            _buildTabs(),
+                            const SizedBox(height: 12),
+                            _buildInsightList(),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
       ),
     );
   }
@@ -335,6 +347,32 @@ class _AiPageState extends State<AiPage> {
             ],
           ),
         ),
+        // Préparation d'une commande FOURNISSEUR en brouillon — jamais
+        // d'envoi automatique ; la validation reste entre les mains
+        // d'un utilisateur autorisé (purchases:create côté serveur).
+        if (_canPrepareOrder())
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.emerald,
+                  side: const BorderSide(color: AppColors.emerald),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                onPressed: () async {
+                  final created =
+                      await ReorderDraftDialog.show(context, items: items);
+                  if (created == true && mounted) _load();
+                },
+                icon: const Icon(Icons.post_add_rounded, size: 18),
+                label: Text(
+                    'Préparer une commande brouillon (${items.length} articles)',
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ),
         const SizedBox(height: 10),
         for (final row in items)
           GlassCard(

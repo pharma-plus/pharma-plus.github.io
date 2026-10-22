@@ -11,9 +11,16 @@ import '../../core/utils/validators.dart';
 import '../../core/widgets/barcode_scanner.dart';
 import '../../core/widgets/glass_card.dart';
 import '../shell/shell_nav.dart';
+import 'stock_logic.dart';
+import 'stock_movements_page.dart';
 
+/// Module Stock — lignes de stock par lot (stock_balances ⋈ lots ⋈ medications).
+/// Ordinateur : tableau professionnel (en-tête collant, colonnes largeurs
+/// fixes, défilement horizontal/vertical). Téléphone : cartes compactes.
+/// Les filtres (rupture, sous seuil, péremptions) reposent sur des données
+/// RÉELLES : lots joint par lot_id, seuil reorder_level du médicament.
 class StockPage extends StatefulWidget {
-  /// Filtre initial : null | low | expiring | expired.
+  /// Filtre initial : null | low | expiring | expired | rupture.
   final String? initialFilter;
   const StockPage({super.key, this.initialFilter});
 
@@ -23,20 +30,19 @@ class StockPage extends StatefulWidget {
 
 class _StockPageState extends State<StockPage> {
   final _search = TextEditingController();
-  Timer? _debounce;
   List<Map<String, dynamic>> _items = [];
   bool _loading = true;
   String? _error;
-  String? _alertFilter; // null | expired | expiring | low
-  // Totaux du stock (encart) : valeur de vente (même base que /reports/stock
-  // : quantité > 0 × price_sale) et quantité totale disponible.
+  String _filter = 'all';
   double _totalValue = 0;
   double _totalQty = 0;
+  bool _canCreate = false;
+  bool _canEdit = false;
 
   @override
   void initState() {
     super.initState();
-    _alertFilter = widget.initialFilter;
+    _filter = normalizeStockFilter(widget.initialFilter);
     _load();
   }
 
@@ -45,100 +51,129 @@ class _StockPageState extends State<StockPage> {
       _loading = true;
       _error = null;
     });
-    // 1. Récupérer les lignes de stock
-    final result = await ApiClient.instance.get(
-      '/stock/balances',
-      query: {
-        'limit': 200,
-      },
-    );
+    // Trois sources réelles en parallèle : soldes (ledger), lots
+    // (numéro + péremption) et médicaments (nom, seuil, prix, EAN).
+    final results = await Future.wait([
+      ApiClient.instance.get('/stock/balances', query: {'limit': 1000}),
+      ApiClient.instance.get('/stock/lots', query: {
+        'limit': 1000,
+        'select': 'id,medication_id,lot_number,expiry_date',
+        'order': 'expiry_date.asc',
+      }),
+      ApiClient.instance.get('/catalog/medications', query: {
+        'limit': 1000,
+        'select':
+            'id,name,dosage,form,laboratory_name,price_sale,reorder_level,barcode_ean13',
+      }),
+    ]);
     if (!mounted) return;
-    if (!result.success) {
+    final balances = results[0];
+    if (!balances.success) {
       setState(() {
         _loading = false;
-        _error = result.error?.message;
+        _error = balances.error?.readableMessage ?? balances.error?.message;
       });
       return;
     }
-    final rows = ApiList.of(result.data);
-
-    // 2. Enrichir avec nom, prix, dosage, forme via /catalog/medications/stock
-    final medIds = rows
-        .map((r) => '${r['medication_id']}')
-        .where((id) =>
-            id.isNotEmpty &&
-            id != 'null' &&
-            RegExp(r'^[0-9a-f-]{36}$').hasMatch(id))
-        .toSet()
-        .toList();
-    if (medIds.isNotEmpty) {
-      final stockRes = await ApiClient.instance.get(
-        '/catalog/medications/stock',
-        query: {'ids': medIds.join(',')},
-      );
-      if (stockRes.success) {
-        final Map<String, Map<String, dynamic>> medInfo = {};
-        for (final m in ApiList.of(stockRes.data)) {
-          if (m['medication_id'] != null) {
-            medInfo['${m['medication_id']}'] = m;
-          }
-        }
-        for (final row in rows) {
-          final id = '${row['medication_id']}';
-          final med = medInfo[id];
-          if (med != null) {
-            row['medication_name'] = med['name'] ?? '—';
-            row['price_sale'] = med['price_sale'] ?? 0;
-            final parts = [
-              if ((med['dosage'] ?? '').toString().isNotEmpty)
-                '${med['dosage']}',
-              if ((med['form'] ?? '').toString().isNotEmpty) '${med['form']}',
-              if ((med['laboratory_name'] ?? '').toString().isNotEmpty)
-                '${med['laboratory_name']}',
-            ];
-            if (parts.isNotEmpty) row['med_detail'] = parts.join(' · ');
-          }
-        }
+    final lotsById = <String, Map<String, dynamic>>{};
+    for (final l in ApiList.of(results[1].data)) {
+      final id = '${l['id']}';
+      if (id.isNotEmpty && id != 'null') {
+        lotsById[id] = Map<String, dynamic>.from(l);
+      }
+    }
+    final medsById = <String, Map<String, dynamic>>{};
+    for (final m in ApiList.of(results[2].data)) {
+      final id = '${m['id']}';
+      if (id.isNotEmpty && id != 'null') {
+        medsById[id] = Map<String, dynamic>.from(m);
       }
     }
 
-    // 3. Calculer available = quantity - reserved + totaux de l'encart
+    final rows = <Map<String, dynamic>>[];
     double totalQty = 0;
     double totalValue = 0;
-    for (final row in rows) {
-      final qty = (row['quantity'] as num?)?.toDouble() ?? 0;
-      final reserved = (row['reserved_quantity'] as num?)?.toDouble() ?? 0;
+    final qtyByMed = <String, double>{};
+    for (final b in ApiList.of(balances.data)) {
+      final medId = '${b['medication_id']}';
+      final lotId = '${b['lot_id']}';
+      final med = medsById[medId];
+      final lot =
+          (lotId.isNotEmpty && lotId != 'null') ? lotsById[lotId] : null;
+      final qty = _number(b['quantity']);
+      final reserved = _number(b['reserved_quantity']);
       final available = qty - reserved;
-      row['available'] = available;
+      final price = _number(med?['price_sale']);
+      final detailParts = [
+        if ('${med?['dosage'] ?? ''}'.isNotEmpty) '${med?['dosage']}',
+        if ('${med?['form'] ?? ''}'.isNotEmpty) '${med?['form']}',
+        if ('${med?['laboratory_name'] ?? ''}'.isNotEmpty)
+          '${med?['laboratory_name']}',
+      ];
+      rows.add({
+        'medication_id': medId,
+        'branch_id': b['branch_id'],
+        'lot_id': (lotId.isNotEmpty && lotId != 'null') ? lotId : null,
+        'quantity': qty,
+        'reserved_quantity': reserved,
+        'available': available,
+        'medication_name': med?['name'] ?? '—',
+        'med_detail': detailParts.join(' · '),
+        'barcode_ean13': med?['barcode_ean13'],
+        'reorder_level': _number(med?['reorder_level']),
+        'price_sale': price,
+        'lot_number': lot?['lot_number'],
+        'expiry_date': lot?['expiry_date'],
+      });
       if (available > 0) {
+        qtyByMed[medId] = (qtyByMed[medId] ?? 0) + available;
         totalQty += available;
-        totalValue += available * _number(row['price_sale']);
+        totalValue += available * price;
       }
     }
 
+    final auth = context.read<AuthStore>();
     setState(() {
       _items = rows;
       _totalQty = totalQty;
       _totalValue = totalValue;
+      _canCreate = auth.isSuperAdmin ||
+          auth.permissions.contains('stock:create') ||
+          auth.permissions.contains('stock:edit');
+      _canEdit = auth.isSuperAdmin || auth.permissions.contains('stock:edit');
       _loading = false;
     });
   }
 
-  void _debouncedLoad() {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 400), _load);
-  }
-
   @override
   void dispose() {
-    _debounce?.cancel();
     _search.dispose();
+    _hScroll.dispose();
+    _vScroll.dispose();
     super.dispose();
   }
 
+  StockStatus _statusOf(Map<String, dynamic> row) => computeStockStatus(
+        available: _number(row['available']),
+        reorderLevel: _number(row['reorder_level']),
+        expiry: DateTime.tryParse('${row['expiry_date'] ?? ''}'),
+      );
+
+  List<Map<String, dynamic>> get _filtered {
+    final byStatus =
+        filterStockRows<Map<String, dynamic>>(_items, _filter, _statusOf);
+    final q = _search.text;
+    if (q.trim().isEmpty) return byStatus;
+    return byStatus.where((r) => stockRowMatchesQuery(r, q)).toList();
+  }
+
+  double _number(dynamic value) {
+    return value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
+  }
+
   Future<void> _scanAndFind() async {
-    final result = await BarcodeScannerSheet.show(
-        context, title: 'Scanner produit pour stock');
+    final result = await BarcodeScannerSheet.show(context,
+        title: 'Scanner produit pour stock');
     if (result == null || !mounted) return;
     final code = result.lookupCode;
     if (code.isEmpty) return;
@@ -147,65 +182,62 @@ class _StockPageState extends State<StockPage> {
     );
     if (!mounted) return;
     if (!apiResult.success || apiResult.data == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Code inconnu : $code')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Code inconnu : $code')));
       return;
     }
     final med = apiResult.data;
-    final medMap = med is Map ? Map<String, dynamic>.from(med) : <String, dynamic>{};
-    final stockItem = _items.firstWhere(
-      (i) => i['medication_id'] == medMap['id'],
-      orElse: () => {},
-    );
-    if (stockItem.isNotEmpty) {
-      await _showStockActions(stockItem);
-    } else {
+    final medMap =
+        med is Map ? Map<String, dynamic>.from(med) : <String, dynamic>{};
+    final matches =
+        _items.where((i) => i['medication_id'] == medMap['id']).toList();
+    if (matches.isEmpty) {
+      if (!_canCreate) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                '${medMap['name'] ?? code} · aucun stock enregistré (permission requise pour ajuster)')));
+        return;
+      }
       await _adjustStock({
         'medication_id': medMap['id'],
         'branch_id': medMap['branch_id'] ?? '',
         'available': 0,
         'medication_name': medMap['name'] ?? code,
       });
+      return;
     }
-  }
-
-  List<Map<String, dynamic>> get _filtered {
-    var list = _items;
-    // Filtre alerte
-    if (_alertFilter != null) {
-      if (_alertFilter == 'low') {
-        list = list.where((item) {
-          final avail = _number(item['available']);
-          final reorder = _number(item['reorder_level']);
-          // Si reorder_level n'existe pas (stock_balances), on considère
-          // que le seuil est la quantité totale : stock faible = qty < 10.
-          final threshold = reorder > 0 ? reorder : 10;
-          return avail > 0 && avail < threshold;
-        }).toList();
-      } else {
-        list = list
-            .where((item) => item['expiry_status'] == _alertFilter)
-            .toList();
-      }
+    if (matches.length == 1) {
+      await _showStockActions(matches.first);
+      return;
     }
-    // Filtre recherche côté client sur le nom enrichi
-    final q = _search.text.trim().toLowerCase();
-    if (q.isNotEmpty) {
-      list = list.where((item) {
-        final name = '${item['medication_name'] ?? ''}'.toLowerCase();
-        final detail = '${item['med_detail'] ?? ''}'.toLowerCase();
-        final lot = '${item['lot_number'] ?? ''}'.toLowerCase();
-        return name.contains(q) || detail.contains(q) || lot.contains(q);
-      }).toList();
-    }
-    return list;
-  }
-
-  double _number(dynamic value) {
-    return value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
+    // Plusieurs lots : choix de la ligne exacte.
+    final chosen = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(14),
+              child: Text('Plusieurs lignes de stock — choisissez le lot',
+                  style: TextStyle(fontWeight: FontWeight.w700)),
+            ),
+            for (final m in matches)
+              ListTile(
+                title: Text('${m['medication_name']}'),
+                subtitle: Text(
+                    'Lot ${m['lot_number'] ?? '—'} · ${Fmt.number(_number(m['available']))} u.'),
+                onTap: () => Navigator.pop(context, m),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (chosen != null && mounted) await _showStockActions(chosen);
   }
 
   Future<void> _showStockActions(Map<String, dynamic> item) async {
+    if (!_canCreate) return;
     final locale = context.read<AuthStore>().locale;
     final action = await showModalBottomSheet<String>(
       context: context,
@@ -218,12 +250,13 @@ class _StockPageState extends State<StockPage> {
               title: Text(S.t('adjustStock', locale)),
               onTap: () => Navigator.pop(context, 'adjust'),
             ),
-            ListTile(
-              leading:
-                  const Icon(Icons.delete_outline, color: AppColors.danger),
-              title: Text(S.t('writeOff', locale)),
-              onTap: () => Navigator.pop(context, 'writeOff'),
-            ),
+            if (_canEdit)
+              ListTile(
+                leading:
+                    const Icon(Icons.delete_outline, color: AppColors.danger),
+                title: Text(S.t('writeOff', locale)),
+                onTap: () => Navigator.pop(context, 'writeOff'),
+              ),
           ],
         ),
       ),
@@ -249,14 +282,12 @@ class _StockPageState extends State<StockPage> {
           key: formKey,
           child: TextFormField(
             controller: quantity,
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             autovalidateMode: AutovalidateMode.onUserInteraction,
             validator: (v) =>
                 validateRequired(v, S.t('requiredField', locale)) ??
                 validateNonNegativeNumber(v, S.t('invalidNumber', locale)),
-            decoration:
-                InputDecoration(labelText: S.t('newQuantity', locale)),
+            decoration: InputDecoration(labelText: S.t('newQuantity', locale)),
           ),
         ),
         actions: [
@@ -295,7 +326,9 @@ class _StockPageState extends State<StockPage> {
       _load();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(result.error?.message ?? S.t('loadError', locale))));
+          content: Text(result.error?.readableMessage ??
+              result.error?.message ??
+              S.t('loadError', locale))));
     }
   }
 
@@ -303,7 +336,7 @@ class _StockPageState extends State<StockPage> {
     final locale = context.read<AuthStore>().locale;
     final quantity = TextEditingController();
     final reason = TextEditingController();
-    var expired = item['expiry_status'] == 'expired';
+    var expired = _statusOf(item) == StockStatus.expired;
     final formKey = GlobalKey<FormState>();
     final confirmed = await showDialog<bool>(
       context: context,
@@ -313,37 +346,38 @@ class _StockPageState extends State<StockPage> {
           content: Form(
             key: formKey,
             child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: quantity,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                validator: (v) =>
-                    validateRequired(v, S.t('requiredField', locale)) ??
-                    validateNonNegativeNumber(
-                        v, S.t('invalidNumber', locale)) ??
-                    ((double.tryParse(v!.trim().replaceAll(',', '.')) ??
-                                -1) <=
-                            0
-                        ? S.t('mustBePositive', locale)
-                        : null),
-                decoration:
-                    InputDecoration(labelText: S.t('writeOffQuantity', locale)),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: reason,
-                decoration: InputDecoration(labelText: S.t('reason', locale)),
-              ),
-              CheckboxListTile(
-                value: expired,
-                contentPadding: EdgeInsets.zero,
-                title: Text(S.t('expired', locale)),
-                onChanged: (value) => setState(() => expired = value ?? false),
-              ),
-            ],
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: quantity,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  validator: (v) =>
+                      validateRequired(v, S.t('requiredField', locale)) ??
+                      validateNonNegativeNumber(
+                          v, S.t('invalidNumber', locale)) ??
+                      ((double.tryParse(v!.trim().replaceAll(',', '.')) ??
+                                  -1) <=
+                              0
+                          ? S.t('mustBePositive', locale)
+                          : null),
+                  decoration: InputDecoration(
+                      labelText: S.t('writeOffQuantity', locale)),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: reason,
+                  decoration: InputDecoration(labelText: S.t('reason', locale)),
+                ),
+                CheckboxListTile(
+                  value: expired,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(S.t('expired', locale)),
+                  onChanged: (value) =>
+                      setState(() => expired = value ?? false),
+                ),
+              ],
             ),
           ),
           actions: [
@@ -387,7 +421,9 @@ class _StockPageState extends State<StockPage> {
       _load();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(result.error?.message ?? S.t('loadError', locale))));
+          content: Text(result.error?.readableMessage ??
+              result.error?.message ??
+              S.t('loadError', locale))));
     }
   }
 
@@ -408,8 +444,16 @@ class _StockPageState extends State<StockPage> {
                 color: AppColors.pharmaText)),
         actions: [
           IconButton(
+              tooltip: 'Historique des mouvements',
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const StockMovementsPage())),
+              icon:
+                  const Icon(Icons.history_rounded, color: Color(0xFFE9C873))),
+          IconButton(
+              tooltip: 'Scanner',
               onPressed: _scanAndFind,
-              icon: const Icon(Icons.qr_code_scanner, color: Color(0xFFE9C873))),
+              icon:
+                  const Icon(Icons.qr_code_scanner, color: Color(0xFFE9C873))),
           IconButton(
               onPressed: _load,
               icon: const Icon(Icons.refresh, color: AppColors.pharmaGold)),
@@ -421,25 +465,23 @@ class _StockPageState extends State<StockPage> {
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
             child: TextField(
               controller: _search,
-              onChanged: (_) => _debouncedLoad(),
+              onChanged: (_) => setState(() {}),
               style: const TextStyle(color: AppColors.pharmaText),
-              decoration: InputDecoration(
-                hintText: S.t('search', locale),
-                prefixIcon:
-                    const Icon(Icons.search, color: AppColors.pharmaMuted),
-                hintStyle: const TextStyle(color: AppColors.pharmaMuted),
+              decoration: const InputDecoration(
+                hintText: 'Rechercher produit, lot, code-barres…',
+                prefixIcon: Icon(Icons.search, color: AppColors.pharmaMuted),
+                hintStyle: TextStyle(color: AppColors.pharmaMuted),
                 fillColor: AppColors.pharmaSurface2,
                 filled: true,
-                border: const OutlineInputBorder(
+                border: OutlineInputBorder(
                     borderSide: BorderSide(color: AppColors.goldBorder)),
-                enabledBorder: const OutlineInputBorder(
+                enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: AppColors.goldBorder)),
-                focusedBorder: const OutlineInputBorder(
+                focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: AppColors.pharmaGold)),
               ),
             ),
           ),
-          // Encart totaux : valeur totale du stock + quantité totale.
           if (!_loading && _error == null && _items.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
@@ -459,8 +501,7 @@ class _StockPageState extends State<StockPage> {
                         children: [
                           Text(S.t('stockValue', locale),
                               style: const TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.pharmaMuted)),
+                                  fontSize: 11, color: AppColors.pharmaMuted)),
                           Text('${Fmt.money(_totalValue)} MAD',
                               style: const TextStyle(
                                   fontSize: 15,
@@ -470,9 +511,7 @@ class _StockPageState extends State<StockPage> {
                       ),
                     ),
                     Container(
-                        width: 1,
-                        height: 30,
-                        color: AppColors.goldBorder),
+                        width: 1, height: 30, color: AppColors.goldBorder),
                     const SizedBox(width: 12),
                     const Icon(Icons.storage_outlined,
                         size: 18, color: AppColors.emerald),
@@ -484,8 +523,7 @@ class _StockPageState extends State<StockPage> {
                         children: [
                           Text(S.t('stockQtyTotal', locale),
                               style: const TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.pharmaMuted)),
+                                  fontSize: 11, color: AppColors.pharmaMuted)),
                           Text('${Fmt.number(_totalQty)} u.',
                               style: const TextStyle(
                                   fontSize: 15,
@@ -506,23 +544,28 @@ class _StockPageState extends State<StockPage> {
               children: [
                 _FilterChip(
                     label: 'Tous',
-                    selected: _alertFilter == null,
-                    onTap: () => setState(() => _alertFilter = null)),
+                    selected: _filter == 'all',
+                    onTap: () => setState(() => _filter = 'all')),
+                _FilterChip(
+                    label: 'Ruptures',
+                    selected: _filter == 'rupture',
+                    color: AppColors.danger,
+                    onTap: () => setState(() => _filter = 'rupture')),
                 _FilterChip(
                     label: 'Périmé',
-                    selected: _alertFilter == 'expired',
+                    selected: _filter == 'expired',
                     color: AppColors.danger,
-                    onTap: () => setState(() => _alertFilter = 'expired')),
+                    onTap: () => setState(() => _filter = 'expired')),
                 _FilterChip(
                     label: 'Expire < 90j',
-                    selected: _alertFilter == 'expiring',
+                    selected: _filter == 'expiring',
                     color: AppColors.warning,
-                    onTap: () => setState(() => _alertFilter = 'expiring')),
+                    onTap: () => setState(() => _filter = 'expiring')),
                 _FilterChip(
                     label: S.t('lowStock', locale),
-                    selected: _alertFilter == 'low',
+                    selected: _filter == 'low',
                     color: AppColors.info,
-                    onTap: () => setState(() => _alertFilter = 'low')),
+                    onTap: () => setState(() => _filter = 'low')),
               ],
             ),
           ),
@@ -530,170 +573,417 @@ class _StockPageState extends State<StockPage> {
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
                 : _error != null
-                    ? Center(child: Text(_error!))
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(_error!, textAlign: TextAlign.center),
+                              const SizedBox(height: 12),
+                              OutlinedButton.icon(
+                                onPressed: _load,
+                                icon: const Icon(Icons.refresh),
+                                label: Text(S.t('retry', locale)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
                     : _filtered.isEmpty
                         ? Center(child: Text(S.t('noStock', locale)))
-                        : RefreshIndicator(
-                            onRefresh: _load,
-                            child: ListView.builder(
-                              padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-                              itemCount: _filtered.length,
-                              itemBuilder: (context, i) {
-                                final item = _filtered[i];
-                                final expired =
-                                    item['expiry_status'] == 'expired';
-                                final expiring =
-                                    item['expiry_status'] == 'expiring';
-                                final available = _number(item['available']);
-                                final reorder = _number(item['reorder_level']);
-                                final low = available <= reorder;
-                                // Détail : forme · dosage · labo (pas de
-                                // lot/branche qui est souvent vide)
-                                final medDetail =
-                                    '${item['med_detail'] ?? ''}';
-                                final lotInfo =
-                                    '${item['lot_number'] ?? ''}';
-                                final detail = [
-                                  if (medDetail.isNotEmpty) medDetail,
-                                  if (lotInfo.isNotEmpty && lotInfo != 'null')
-                                    'Lot: $lotInfo',
-                                ].join(' · ');
-                                return _StockTile(
-                                  name: (item['medication_name'] as String?) ??
-                                      '—',
-                                  detail: detail.isEmpty ? '—' : detail,
-                                  expiry: item['expiry_date'] as String?,
-                                  quantity: available,
-                                  price: _number(item['price_sale']),
-                                  alert: expired
-                                      ? _StockAlert.expired
-                                      : expiring
-                                          ? _StockAlert.expiring
-                                          : low && available > 0
-                                              ? _StockAlert.low
-                                              : _StockAlert.none,
-                                  onTap: () => _showStockActions(item),
-                                );
-                              },
-                            ),
-                          ),
+                        // Bascule cartes/tableau sur la largeur réellement
+                        // disponible (LayoutBuilder — motifs CatalogPage /
+                        // SuppliersPage), fiable en test comme en prod.
+                        : LayoutBuilder(builder: (context, constraints) {
+                            final narrow = constraints.maxWidth < 600;
+                            return RefreshIndicator(
+                              onRefresh: _load,
+                              child: narrow
+                                  ? _buildMobileList(locale)
+                                  : _buildStickyTable(),
+                            );
+                          }),
           ),
         ],
       ),
     );
   }
-}
 
-enum _StockAlert { none, low, expiring, expired }
+  // ─────────────────────────────────────────────────────────────
+  // TABLEAU PROFESSIONNEL (ordinateur / tablette paysage) :
+  // en-tête collant (hors défilement vertical), colonnes à largeurs
+  // fixes, médicament flexible, un seul défilement horizontal partagé
+  // par l'en-tête et les lignes, fonds opaques.
+  // ─────────────────────────────────────────────────────────────
+  static const double _rowPad = 24; // padding horizontal 12 × 2
+  static const double _fixedNonMed = 816;
+  // detail160 + lot110 + expiry110 + qty90 + seuil80 + prix100
+  // + statut110 + actions56
 
-class _StockTile extends StatelessWidget {
-  final String name;
-  final String detail;
-  final String? expiry;
-  final double quantity;
-  final double price;
-  final _StockAlert alert;
-  final VoidCallback onTap;
+  final ScrollController _hScroll = ScrollController();
+  final ScrollController _vScroll = ScrollController();
 
-  const _StockTile({
-    required this.name,
-    required this.detail,
-    this.expiry,
-    required this.quantity,
-    required this.price,
-    required this.alert,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final locale = context.watch<AuthStore>().locale;
-    final Color alertColor = switch (alert) {
-      _StockAlert.expired => AppColors.danger,
-      _StockAlert.expiring => AppColors.warning,
-      _StockAlert.low => AppColors.info,
-      _StockAlert.none => Colors.transparent,
-    };
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: GlassCard(
-        radius: BorderRadius.circular(16),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        onTap: onTap,
-        child: Row(
-          children: [
-            if (alert != _StockAlert.none)
-              Container(
-                width: 8,
-                height: 44,
-                decoration: BoxDecoration(
-                    color: alertColor, borderRadius: BorderRadius.circular(4)),
-              )
-            else
-              const SizedBox(width: 8),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w700)),
-                  Text(detail,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                  if (expiry != null)
-                    Text(
-                        '${S.t('expiryShort', locale)} ${Fmt.shortDate(DateTime.tryParse(expiry!))}',
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: alert == _StockAlert.expired
-                                ? AppColors.danger
-                                : alert == _StockAlert.expiring
-                                    ? AppColors.warning
-                                    : Colors.grey)),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+  Widget _buildStickyTable() {
+    final rows = _filtered;
+    return LayoutBuilder(builder: (context, constraints) {
+      final usable = constraints.maxWidth - _rowPad;
+      const medMin = 200.0;
+      final totalW = usable >= medMin + _fixedNonMed
+          ? constraints.maxWidth
+          : medMin + _fixedNonMed + _rowPad;
+      final medW = totalW - _rowPad - _fixedNonMed;
+      return Scrollbar(
+        controller: _hScroll,
+        thumbVisibility: true,
+        child: SingleChildScrollView(
+          controller: _hScroll,
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: totalW,
+            child: Column(
               children: [
-                // Quantité disponible
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: quantity <= 0
-                        ? AppColors.danger.withValues(alpha: 0.15)
-                        : AppColors.emerald.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    '${Fmt.number(quantity)} u.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: quantity <= 0 ? AppColors.danger : AppColors.emerald,
+                _tableHeader(medW: medW),
+                Expanded(
+                  child: Scrollbar(
+                    controller: _vScroll,
+                    thumbVisibility: true,
+                    child: SingleChildScrollView(
+                      controller: _vScroll,
+                      child: Column(
+                        children: [
+                          for (var i = 0; i < rows.length; i++)
+                            _tableRow(rows[i], i, medW: medW),
+                        ],
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                // Prix unitaire
-                Text(
-                  '${Fmt.money(price)} MAD',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.pharmaGold,
                   ),
                 ),
               ],
             ),
-          ],
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _headerCell(double w, String label,
+      {TextAlign align = TextAlign.left}) {
+    return SizedBox(
+      width: w,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 8),
+        child: Text(label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: align,
+            style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: AppColors.gold)),
+      ),
+    );
+  }
+
+  Widget _tableHeader({required double medW}) {
+    return Container(
+      height: 44,
+      color: AppColors.primary,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        children: [
+          _headerCell(medW, 'Médicament'),
+          _headerCell(160, 'Détail'),
+          _headerCell(110, 'Lot'),
+          _headerCell(110, 'Péremption'),
+          _headerCell(90, 'Quantité', align: TextAlign.right),
+          _headerCell(80, 'Seuil', align: TextAlign.right),
+          _headerCell(100, 'Prix', align: TextAlign.right),
+          _headerCell(110, 'Statut'),
+          const SizedBox(width: 56),
+        ],
+      ),
+    );
+  }
+
+  Widget _cell(double w, Widget child, {TextAlign align = TextAlign.left}) {
+    Widget inner = child;
+    if (align != TextAlign.left) {
+      inner = Align(
+        alignment:
+            align == TextAlign.right ? Alignment.centerRight : Alignment.center,
+        child: child,
+      );
+    }
+    return SizedBox(
+      width: w,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 8),
+        child: inner,
+      ),
+    );
+  }
+
+  Widget _tableRow(Map<String, dynamic> item, int i, {required double medW}) {
+    final status = _statusOf(item);
+    final available = _number(item['available']);
+    final stripe = i.isOdd
+        ? (Theme.of(context).brightness == Brightness.dark
+            ? AppColors.pharmaSurface2
+            : const Color(0xFFF2F5F3))
+        : Colors.transparent;
+    final divider = Theme.of(context).brightness == Brightness.dark
+        ? AppColors.borderDark
+        : AppColors.borderLight;
+    const cellStyle = TextStyle(fontSize: 12.5);
+    return Material(
+      color: stripe,
+      child: InkWell(
+        onTap: _canCreate ? () => _showStockActions(item) : null,
+        child: Container(
+          height: 48,
+          decoration:
+              BoxDecoration(border: Border(bottom: BorderSide(color: divider))),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: [
+              _cell(
+                medW,
+                Text('${item['medication_name'] ?? '—'}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 12.5)),
+              ),
+              _cell(
+                160,
+                Text('${item['med_detail'] ?? ''}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: cellStyle.copyWith(color: AppColors.pharmaMuted)),
+              ),
+              _cell(
+                110,
+                Text('${item['lot_number'] ?? '—'}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: cellStyle),
+              ),
+              _cell(
+                110,
+                Text(
+                  item['expiry_date'] == null
+                      ? '—'
+                      : Fmt.shortDate(
+                          DateTime.tryParse('${item['expiry_date']}')),
+                  style: cellStyle.copyWith(
+                    color: status == StockStatus.expired
+                        ? AppColors.danger
+                        : status == StockStatus.expiring
+                            ? AppColors.warning
+                            : null,
+                  ),
+                ),
+              ),
+              _cell(
+                90,
+                Text(Fmt.number(available),
+                    textAlign: TextAlign.right,
+                    style: cellStyle.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: available <= 0 ? AppColors.danger : null)),
+                align: TextAlign.right,
+              ),
+              _cell(
+                80,
+                Text(
+                  _number(item['reorder_level']) > 0
+                      ? Fmt.number(_number(item['reorder_level']))
+                      : '—',
+                  textAlign: TextAlign.right,
+                  style: cellStyle.copyWith(color: AppColors.pharmaMuted),
+                ),
+                align: TextAlign.right,
+              ),
+              _cell(
+                100,
+                Text('${Fmt.money(_number(item['price_sale']))} MAD',
+                    textAlign: TextAlign.right,
+                    style: cellStyle.copyWith(color: AppColors.pharmaGold)),
+                align: TextAlign.right,
+              ),
+              _cell(110, _StatusChip(status: status)),
+              SizedBox(
+                width: 56,
+                child: _canCreate
+                    ? PopupMenuButton<String>(
+                        padding: EdgeInsets.zero,
+                        icon: const Icon(Icons.more_vert, size: 18),
+                        onSelected: (a) {
+                          if (a == 'adjust') {
+                            _adjustStock(item);
+                          } else if (a == 'writeOff' && _canEdit) {
+                            _writeOff(item);
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                              value: 'adjust', child: Text('Ajuster le stock')),
+                          if (_canEdit)
+                            const PopupMenuItem(
+                                value: 'writeOff',
+                                child: Text('Écrire à zéro')),
+                        ],
+                      )
+                    : null,
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // CARTES COMPACTES (téléphone / petit écran).
+  // ─────────────────────────────────────────────────────────────
+  Widget _buildMobileList(String locale) {
+    final rows = _filtered;
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+      itemCount: rows.length,
+      itemBuilder: (context, i) {
+        final item = rows[i];
+        final status = _statusOf(item);
+        final available = _number(item['available']);
+        final lotInfo = '${item['lot_number'] ?? ''}';
+        final detail = [
+          if ('${item['med_detail'] ?? ''}'.isNotEmpty) '${item['med_detail']}',
+          if (lotInfo.isNotEmpty && lotInfo != 'null') 'Lot: $lotInfo',
+        ].join(' · ');
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: GlassCard(
+            radius: BorderRadius.circular(16),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            onTap: _canCreate ? () => _showStockActions(item) : null,
+            child: Row(
+              children: [
+                _StatusDot(status: status),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('${item['medication_name'] ?? '—'}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                      Text(detail.isEmpty ? '—' : detail,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.grey)),
+                      if (item['expiry_date'] != null)
+                        Text(
+                            '${S.t('expiryShort', locale)} ${Fmt.shortDate(DateTime.tryParse('${item['expiry_date']}'))}',
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: status == StockStatus.expired
+                                    ? AppColors.danger
+                                    : status == StockStatus.expiring
+                                        ? AppColors.warning
+                                        : Colors.grey)),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: available <= 0
+                            ? AppColors.danger.withValues(alpha: 0.15)
+                            : AppColors.emerald.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${Fmt.number(available)} u.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: available <= 0
+                              ? AppColors.danger
+                              : AppColors.emerald,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${Fmt.money(_number(item['price_sale']))} MAD',
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.pharmaGold),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  final StockStatus status;
+  const _StatusChip({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = switch (status) {
+      StockStatus.rupture => ('Rupture', AppColors.danger),
+      StockStatus.expired => ('Périmé', AppColors.danger),
+      StockStatus.expiring => ('Expire < 90j', AppColors.warning),
+      StockStatus.low => ('Sous seuil', AppColors.info),
+      StockStatus.ok => ('OK', AppColors.emerald),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+              fontSize: 11, fontWeight: FontWeight.w800, color: color)),
+    );
+  }
+}
+
+class _StatusDot extends StatelessWidget {
+  final StockStatus status;
+  const _StatusDot({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (status) {
+      StockStatus.rupture || StockStatus.expired => AppColors.danger,
+      StockStatus.expiring => AppColors.warning,
+      StockStatus.low => AppColors.info,
+      StockStatus.ok => Colors.transparent,
+    };
+    return Container(
+      width: 8,
+      height: 44,
+      decoration:
+          BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
     );
   }
 }

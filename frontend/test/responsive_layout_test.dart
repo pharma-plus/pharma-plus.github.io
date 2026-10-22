@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
 import 'package:pharma_maroc_gold/core/services/auth_store.dart';
@@ -11,6 +12,7 @@ import 'package:pharma_maroc_gold/core/widgets/gradient_button.dart';
 import 'package:pharma_maroc_gold/core/widgets/shared/app_confirm_dialog.dart';
 import 'package:pharma_maroc_gold/core/widgets/shared/app_data_table.dart';
 import 'package:pharma_maroc_gold/features/catalog/catalog_page.dart';
+import 'package:pharma_maroc_gold/features/stock/stock_page.dart';
 import 'package:pharma_maroc_gold/features/suppliers/suppliers_page.dart';
 import 'package:pharma_maroc_gold/features/super_admin/super_admin_portal.dart';
 import 'package:pharma_maroc_gold/features/super_admin/users_management_page.dart';
@@ -92,6 +94,66 @@ class _FakeHttpOverrides extends HttpOverrides {
   }
   if (path.endsWith('/catalog/medications/stock-ids')) {
     return ('{"data":[]}', 200);
+  }
+  if (path.endsWith('/stock/balances')) {
+    return (
+      jsonEncode({
+        'data': [
+          {
+            'id': 'b1',
+            'medication_id': 'm1',
+            'branch_id': 'br1',
+            'lot_id': 'l1',
+            'quantity': 120,
+            'reserved_quantity': 0,
+          },
+          {
+            'id': 'b2',
+            'medication_id': 'm2',
+            'branch_id': 'br1',
+            'lot_id': 'l2',
+            'quantity': 3,
+            'reserved_quantity': 0,
+          },
+          {
+            'id': 'b3',
+            'medication_id': 'm3',
+            'branch_id': 'br1',
+            'lot_id': 'l3',
+            'quantity': 0,
+            'reserved_quantity': 0,
+          },
+        ],
+      }),
+      200,
+    );
+  }
+  if (path.endsWith('/stock/lots')) {
+    return (
+      jsonEncode({
+        'data': [
+          {
+            'id': 'l1',
+            'medication_id': 'm1',
+            'lot_number': 'LOT-A1',
+            'expiry_date': '2027-06-30',
+          },
+          {
+            'id': 'l2',
+            'medication_id': 'm2',
+            'lot_number': 'LOT-B2',
+            'expiry_date': '2026-11-15',
+          },
+          {
+            'id': 'l3',
+            'medication_id': 'm3',
+            'lot_number': 'LOT-C3',
+            'expiry_date': '2025-01-01',
+          },
+        ],
+      }),
+      200,
+    );
   }
   if (path.endsWith('/catalog/medications')) {
     return (
@@ -332,6 +394,12 @@ Future<void> _settle(WidgetTester tester) async {
 }
 
 void main() {
+  setUpAll(() async {
+    // StockPage formate les dates de péremption via Fmt.shortDate (DateFormat)
+    // → données de locale intl nécessaires en environnement de test.
+    await initializeDateFormatting('fr');
+  });
+
   setUp(() {
     _previousOverrides = HttpOverrides.current;
     HttpOverrides.global = _FakeHttpOverrides();
@@ -382,6 +450,34 @@ void main() {
       expect(tester.takeException(), isNull, reason: 'CatalogPage ${w}x$h');
       expect(find.text('Doliprane'), findsWidgets,
           reason: 'données rendues ${w}x$h');
+    }
+  });
+
+  testWidgets(
+      'StockPage : 6 tailles sans débordement — tableau >=600, cartes <600',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    for (final (w, h) in _sizes) {
+      await tester.binding.setSurfaceSize(Size(w, h));
+      await tester.pumpWidget(
+        ChangeNotifierProvider.value(
+          value: AuthStore.instance,
+          child: const MaterialApp(home: StockPage()),
+        ),
+      );
+      await _settle(tester);
+      await tester.pump(const Duration(milliseconds: 100));
+      await _settle(tester);
+
+      expect(tester.takeException(), isNull, reason: 'StockPage ${w}x$h');
+      expect(find.text('Doliprane'), findsWidgets,
+          reason: 'données rendues ${w}x$h');
+      // En-tête collant « Péremption » : tableau uniquement (>=600).
+      expect(
+        find.text('Péremption'),
+        w >= 600 ? findsOneWidget : findsNothing,
+        reason: 'mode tableau/cartes ${w}x$h',
+      );
     }
   });
 

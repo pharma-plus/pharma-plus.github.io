@@ -490,10 +490,19 @@ const ROUTE_MODULE: Record<string, string> = {
   invoices: "sales",
   "invoice-items": "sales",
   "stock/adjustments": "stock",
+  /* write-off : avant correctif, route HORS matrice RBAC — tout compte
+     authentifie (y compris caisse) pouvait écrire à zéro du stock.
+     Mappée sur le module stock + action forcée « edit » (ROUTE_FORCE). */
+  "stock/write-off": "stock",
   "stock/balances": "stock",
   "stock/movements": "stock",
   "stock/lots": "stock",
   "stock/transfers": "stock",
+  /* Inventaire : sessions/comptage hors matrice (seule la clôture
+     exigeait inventory:approve). Mappées sur le module inventory :
+     GET → inventory:view, POST (création/comptage) → inventory:create,
+     et la clôture conserve son garde inventory:approve explicite. */
+  "inventory/sessions": "inventory",
   "accounting/accounts": "accounting",
   "accounting/journal": "accounting",
   "accounting/expense-categories": "accounting",
@@ -523,6 +532,9 @@ const ROUTE_FORCE: { test: RegExp; method: string; action: string }[] = [
   { test: /^attendance\/leaves\/[^/]+\/decide$/, method: "POST", action: "approve" },
   { test: /^attendance\/(clock-in|clock-out|manual)$/, method: "POST", action: "edit" },
   { test: /^reference\/sync$/, method: "POST", action: "edit" },
+  /* Écriture à zéro du stock = correction sensible → stock:edit
+     (pas stock:create dérivé du verbe POST). */
+  { test: /^stock\/write-off$/, method: "POST", action: "edit" },
 ];
 
 function routePermissionFor(path: string): string | null {
