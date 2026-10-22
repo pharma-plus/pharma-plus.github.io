@@ -94,10 +94,7 @@ class AppFilterBar extends StatelessWidget {
   }
 
   Widget _buildFilterChip(BuildContext context, AppFilterChip filter) {
-    final tokens = context.tokens;
-    final isDark = context.isDark;
     final activeValue = activeFilters[filter.key];
-    final isActive = activeValue != null;
 
     return filter.when(
       choice: (f) => _buildChoiceChip(context, f, activeValue),
@@ -120,7 +117,8 @@ class AppFilterBar extends StatelessWidget {
     return FilterChip(
       label: Text(f.label, style: tokens.labelSmall),
       selected: isActive,
-      onSelected: (_) => onFilterChanged?.call(f.key, isActive ? null : f.value),
+      onSelected: (_) =>
+          onFilterChanged?.call(f.key, isActive ? null : f.value),
       selectedColor: tokens.brandPrimary.withValues(alpha: 0.15),
       checkmarkColor: tokens.brandPrimary,
       shape: RoundedRectangleBorder(
@@ -428,7 +426,8 @@ class AppFilterBar extends StatelessWidget {
 
   void _showSearchDialog(BuildContext context, _SearchFilter f) {
     final tokens = context.tokens;
-    final controller = TextEditingController(text: activeFilters[f.key] as String? ?? '');
+    final controller =
+        TextEditingController(text: activeFilters[f.key] as String? ?? '');
 
     showDialog(
       context: context,
@@ -469,8 +468,9 @@ class AppFilterBar extends StatelessWidget {
   String _formatNum(num? n, {int? decimals}) =>
       n == null ? '∞' : n.toStringAsFixed(decimals ?? 0);
 
-  String _formatDate(DateTime? d) =>
-      d == null ? '∞' : '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+  String _formatDate(DateTime? d) => d == null
+      ? '∞'
+      : '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 }
 
 /// Définition des filtres (sealed class pattern via when)
@@ -480,10 +480,15 @@ sealed class AppFilterChip {
   String get key;
 
   R when<R>({
+    // ignore: library_private_types_in_public_api
     required R Function(_ChoiceFilter) choice,
+    // ignore: library_private_types_in_public_api
     required R Function(_MultiFilter) multi,
+    // ignore: library_private_types_in_public_api
     required R Function(_RangeFilter) range,
+    // ignore: library_private_types_in_public_api
     required R Function(_DateFilter) date,
+    // ignore: library_private_types_in_public_api
     required R Function(_SearchFilter) search,
   });
 }
@@ -634,7 +639,8 @@ class AppFilters {
     required num max,
     int? decimals,
   }) {
-    return _RangeFilter(key: key, label: label, min: min, max: max, decimals: decimals);
+    return _RangeFilter(
+        key: key, label: label, min: min, max: max, decimals: decimals);
   }
 
   static AppFilterChip date({
@@ -668,7 +674,6 @@ class _FilterOption {
 /// Widgets internes pour les popups
 class _RangePicker extends StatefulWidget {
   const _RangePicker({
-    super.key,
     required this.filterKey,
     required this.min,
     required this.max,
@@ -777,7 +782,6 @@ class _RangePickerState extends State<_RangePicker> {
 
 class _DateRangePicker extends StatefulWidget {
   const _DateRangePicker({
-    super.key,
     required this.filterKey,
     this.currentStart,
     this.currentEnd,
@@ -807,7 +811,6 @@ class _DateRangePickerState extends State<_DateRangePicker> {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
-    final isDark = context.isDark;
 
     return Padding(
       padding: EdgeInsets.all(tokens.sp4),
@@ -881,7 +884,6 @@ class _DateRangePickerState extends State<_DateRangePicker> {
 
 class _DatePickerButton extends StatelessWidget {
   const _DatePickerButton({
-    super.key,
     required this.label,
     this.value,
     required this.onTap,
@@ -928,9 +930,7 @@ class _DatePickerButton extends StatelessWidget {
                   value != null
                       ? '${value!.day}/${value!.month}/${value!.year}'
                       : 'Sélectionner',
-                  style: value != null
-                      ? tokens.bodyMedium
-                      : tokens.fieldHelper,
+                  style: value != null ? tokens.bodyMedium : tokens.fieldHelper,
                 ),
               ],
             ),

@@ -142,7 +142,8 @@ class _AppSearchFieldState extends State<AppSearchField> {
                       icon: Icon(
                         Icons.clear_rounded,
                         size: tokens.fontSizeLg,
-                        color: isDark ? tokens.textTertiary : tokens.textDisabled,
+                        color:
+                            isDark ? tokens.textTertiary : tokens.textDisabled,
                       ),
                       onPressed: _clear,
                       tooltip: 'Effacer',
@@ -290,7 +291,7 @@ class _AppSearchAutocompleteState<T> extends State<AppSearchAutocomplete<T>> {
 
   void _onFocusChange() {
     if (!_focusNode.hasFocus) {
-      Future.delayed(Duration(milliseconds: 100), _removeOverlay);
+      Future.delayed(const Duration(milliseconds: 100), _removeOverlay);
     } else if (_controller.text.isNotEmpty) {
       _filter(_controller.text);
       _showOverlayIfNeeded();
@@ -311,12 +312,15 @@ class _AppSearchAutocompleteState<T> extends State<AppSearchAutocomplete<T>> {
       _filtered = [];
     } else {
       final lowerQuery = query.toLowerCase();
-      _filtered = widget.suggestions.where((item) {
-        final label = widget.getLabel(item).toLowerCase();
-        final terms = widget.getSearchTerms?.call(item) ?? [];
-        return label.contains(lowerQuery) ||
-            terms.any((t) => t.toLowerCase().contains(lowerQuery));
-      }).take(widget.maxSuggestions).toList();
+      _filtered = widget.suggestions
+          .where((item) {
+            final label = widget.getLabel(item).toLowerCase();
+            final terms = widget.getSearchTerms?.call(item) ?? [];
+            return label.contains(lowerQuery) ||
+                terms.any((t) => t.toLowerCase().contains(lowerQuery));
+          })
+          .take(widget.maxSuggestions)
+          .toList();
     }
     if (_showOverlay) setState(() {});
   }
@@ -349,14 +353,10 @@ class _AppSearchAutocompleteState<T> extends State<AppSearchAutocomplete<T>> {
         child: Material(
           elevation: tokens.elevation4,
           borderRadius: BorderRadius.circular(tokens.rMd),
-          color: context.isDark
-              ? tokens.bgSurfaceRaised
-              : Colors.white,
+          color: context.isDark ? tokens.bgSurfaceRaised : Colors.white,
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: 300),
-            child: _filtered.isEmpty
-                ? _buildEmpty()
-                : _buildList(),
+            constraints: const BoxConstraints(maxHeight: 300),
+            child: _filtered.isEmpty ? _buildEmpty() : _buildList(),
           ),
         ),
       ),

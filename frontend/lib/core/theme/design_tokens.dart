@@ -29,10 +29,10 @@ abstract final class PharmaTokens {
   static const Color textOnSurface = AppColors.textPrimary;
 
   // Marque / Primaire
-  static const Color brandPrimary = AppColors.primary;        // #006B43
+  static const Color brandPrimary = AppColors.primary; // #006B43
   static const Color brandPrimaryLight = AppColors.primaryLight;
-  static const Color brandEmerald = AppColors.emerald;        // #00C96B
-  static const Color brandGold = AppColors.brandGold;         // #D6A84F
+  static const Color brandEmerald = AppColors.emerald; // #00C96B
+  static const Color brandGold = AppColors.brandGold; // #D6A84F
   static const Color brandGoldLight = AppColors.pharmaGoldLight;
 
   // États
@@ -66,16 +66,16 @@ abstract final class PharmaTokens {
   static const String fontFamilyFallback = 'Noto Sans Arabic';
 
   // Échelle de tailles (rem-based, 1rem = 16px)
-  static const double fontSizeXs = 11;    // 0.6875rem
-  static const double fontSizeSm = 12;    // 0.75rem
-  static const double fontSizeBase = 14;  // 0.875rem
-  static const double fontSizeMd = 15;    // 0.9375rem
-  static const double fontSizeLg = 16;    // 1rem
-  static const double fontSizeXl = 18;    // 1.125rem
-  static const double fontSize2xl = 20;   // 1.25rem
-  static const double fontSize3xl = 24;   // 1.5rem
-  static const double fontSize4xl = 30;   // 1.875rem
-  static const double fontSize5xl = 36;   // 2.25rem
+  static const double fontSizeXs = 11; // 0.6875rem
+  static const double fontSizeSm = 12; // 0.75rem
+  static const double fontSizeBase = 14; // 0.875rem
+  static const double fontSizeMd = 15; // 0.9375rem
+  static const double fontSizeLg = 16; // 1rem
+  static const double fontSizeXl = 18; // 1.125rem
+  static const double fontSize2xl = 20; // 1.25rem
+  static const double fontSize3xl = 24; // 1.5rem
+  static const double fontSize4xl = 30; // 1.875rem
+  static const double fontSize5xl = 36; // 2.25rem
 
   // Poids
   static const FontWeight weightLight = FontWeight.w300;
@@ -90,7 +90,7 @@ abstract final class PharmaTokens {
   static const double lineHeightRelaxed = 1.625;
 
   // Styles de texte prédéfinis
-  static TextStyle get displayLarge => TextStyle(
+  static TextStyle get displayLarge => const TextStyle(
         fontSize: fontSize5xl,
         fontWeight: weightBold,
         height: lineHeightTight,
@@ -98,7 +98,7 @@ abstract final class PharmaTokens {
         fontFamily: fontFamily,
       );
 
-  static TextStyle get displayMedium => TextStyle(
+  static TextStyle get displayMedium => const TextStyle(
         fontSize: fontSize4xl,
         fontWeight: weightBold,
         height: lineHeightTight,
@@ -106,7 +106,7 @@ abstract final class PharmaTokens {
         fontFamily: fontFamily,
       );
 
-  static TextStyle get displaySmall => TextStyle(
+  static TextStyle get displaySmall => const TextStyle(
         fontSize: fontSize3xl,
         fontWeight: weightSemiBold,
         height: lineHeightTight,
@@ -114,7 +114,7 @@ abstract final class PharmaTokens {
         fontFamily: fontFamily,
       );
 
-  static TextStyle get headlineLarge => TextStyle(
+  static TextStyle get headlineLarge => const TextStyle(
         fontSize: fontSize2xl,
         fontWeight: weightSemiBold,
         height: lineHeightNormal,
@@ -122,7 +122,7 @@ abstract final class PharmaTokens {
         fontFamily: fontFamily,
       );
 
-  static TextStyle get headlineMedium => TextStyle(
+  static TextStyle get headlineMedium => const TextStyle(
         fontSize: fontSizeXl,
         fontWeight: weightSemiBold,
         height: lineHeightNormal,
@@ -130,7 +130,7 @@ abstract final class PharmaTokens {
         fontFamily: fontFamily,
       );
 
-  static TextStyle get headlineSmall => TextStyle(
+  static TextStyle get headlineSmall => const TextStyle(
         fontSize: fontSizeLg,
         fontWeight: weightSemiBold,
         height: lineHeightNormal,
@@ -138,7 +138,7 @@ abstract final class PharmaTokens {
         fontFamily: fontFamily,
       );
 
-  static TextStyle get titleLarge => TextStyle(
+  static TextStyle get titleLarge => const TextStyle(
         fontSize: fontSizeLg,
         fontWeight: weightMedium,
         height: lineHeightNormal,
@@ -146,7 +146,7 @@ abstract final class PharmaTokens {
         fontFamily: fontFamily,
       );
 
-  static TextStyle get titleMedium => TextStyle(
+  static TextStyle get titleMedium => const TextStyle(
         fontSize: fontSizeBase,
         fontWeight: weightMedium,
         height: lineHeightNormal,
@@ -154,7 +154,7 @@ abstract final class PharmaTokens {
         fontFamily: fontFamily,
       );
 
-  static TextStyle get titleSmall => TextStyle(
+  static TextStyle get titleSmall => const TextStyle(
         fontSize: fontSizeSm,
         fontWeight: weightMedium,
         height: lineHeightNormal,
@@ -162,7 +162,7 @@ abstract final class PharmaTokens {
         fontFamily: fontFamily,
       );
 
-  static TextStyle get bodyLarge => TextStyle(
+  static TextStyle get bodyLarge => const TextStyle(
         fontSize: fontSizeLg,
         fontWeight: weightRegular,
         height: lineHeightRelaxed,
@@ -170,7 +170,7 @@ abstract final class PharmaTokens {
         fontFamily: fontFamily,
       );
 
-  static TextStyle get bodyMedium => TextStyle(
+  static TextStyle get bodyMedium => const TextStyle(
         fontSize: fontSizeBase,
         fontWeight: weightRegular,
         height: lineHeightRelaxed,
@@ -178,7 +178,7 @@ abstract final class PharmaTokens {
         fontFamily: fontFamily,
       );
 
-  static TextStyle get bodySmall => TextStyle(
+  static TextStyle get bodySmall => const TextStyle(
         fontSize: fontSizeSm,
         fontWeight: weightRegular,
         height: lineHeightRelaxed,
@@ -186,7 +186,7 @@ abstract final class PharmaTokens {
         fontFamily: fontFamily,
       );
 
-  static TextStyle get labelLarge => TextStyle(
+  static TextStyle get labelLarge => const TextStyle(
         fontSize: fontSizeBase,
         fontWeight: weightMedium,
         height: lineHeightNormal,
@@ -194,7 +194,7 @@ abstract final class PharmaTokens {
         fontFamily: fontFamily,
       );
 
-  static TextStyle get labelMedium => TextStyle(
+  static TextStyle get labelMedium => const TextStyle(
         fontSize: fontSizeSm,
         fontWeight: weightMedium,
         height: lineHeightNormal,
@@ -202,7 +202,7 @@ abstract final class PharmaTokens {
         fontFamily: fontFamily,
       );
 
-  static TextStyle get labelSmall => TextStyle(
+  static TextStyle get labelSmall => const TextStyle(
         fontSize: fontSizeXs,
         fontWeight: weightMedium,
         height: lineHeightNormal,
@@ -215,7 +215,8 @@ abstract final class PharmaTokens {
   static TextStyle get fieldInput => bodyMedium;
   static TextStyle get fieldHelper => bodySmall;
   static TextStyle get fieldError => bodySmall.copyWith(color: danger);
-  static TextStyle get tableHeader => labelMedium.copyWith(color: textSecondary);
+  static TextStyle get tableHeader =>
+      labelMedium.copyWith(color: textSecondary);
   static TextStyle get tableCell => bodyMedium;
   static TextStyle get tableCellNumeric => bodyMedium.copyWith(
         fontFeatures: const [FontFeature.tabularFigures()],
@@ -231,13 +232,13 @@ abstract final class PharmaTokens {
   // =========================================================================
 
   static const double space0 = 0;
-  static const double space1 = 4;   // 0.25rem
-  static const double space2 = 8;   // 0.5rem
-  static const double space3 = 12;  // 0.75rem
-  static const double space4 = 16;  // 1rem
-  static const double space5 = 20;  // 1.25rem
-  static const double space6 = 24;  // 1.5rem
-  static const double space8 = 32;  // 2rem
+  static const double space1 = 4; // 0.25rem
+  static const double space2 = 8; // 0.5rem
+  static const double space3 = 12; // 0.75rem
+  static const double space4 = 16; // 1rem
+  static const double space5 = 20; // 1.25rem
+  static const double space6 = 24; // 1.5rem
+  static const double space8 = 32; // 2rem
   static const double space10 = 40; // 2.5rem
   static const double space12 = 48; // 3rem
   static const double space16 = 64; // 4rem
@@ -245,17 +246,17 @@ abstract final class PharmaTokens {
   static const double space24 = 96; // 6rem
 
   // Espacements composants
-  static const double fieldPaddingHorizontal = space4;  // 16
-  static const double fieldPaddingVertical = space3;    // 12
-  static const double fieldGap = space2;                // 8
-  static const double sectionGap = space6;              // 24
-  static const double cardPadding = space4;             // 16
-  static const double cardGap = space4;                 // 16
-  static const double pagePadding = space4;             // 16
-  static const double pagePaddingDesktop = space6;      // 24
-  static const double toolbarGap = space3;              // 12
-  static const double tableCellPadding = space3;        // 12
-  static const double dialogPadding = space6;           // 24
+  static const double fieldPaddingHorizontal = space4; // 16
+  static const double fieldPaddingVertical = space3; // 12
+  static const double fieldGap = space2; // 8
+  static const double sectionGap = space6; // 24
+  static const double cardPadding = space4; // 16
+  static const double cardGap = space4; // 16
+  static const double pagePadding = space4; // 16
+  static const double pagePaddingDesktop = space6; // 24
+  static const double toolbarGap = space3; // 12
+  static const double tableCellPadding = space3; // 12
+  static const double dialogPadding = space6; // 24
 
   // =========================================================================
   // RAYONS DE BORDURE
@@ -270,12 +271,12 @@ abstract final class PharmaTokens {
   static const double radiusFull = 9999;
 
   // Rayons composants
-  static const double radiusField = radiusLg;      // 16
-  static const double radiusCard = radiusXl;       // 20
-  static const double radiusDialog = radius2xl;    // 24
-  static const double radiusButton = radiusLg;     // 16
-  static const double radiusBadge = radiusFull;    // 9999
-  static const double radiusTooltip = radiusSm;    // 8
+  static const double radiusField = radiusLg; // 16
+  static const double radiusCard = radiusXl; // 20
+  static const double radiusDialog = radius2xl; // 24
+  static const double radiusButton = radiusLg; // 16
+  static const double radiusBadge = radiusFull; // 9999
+  static const double radiusTooltip = radiusSm; // 8
 
   // =========================================================================
   // OMBRES / ELEVATION
@@ -379,16 +380,16 @@ abstract final class PharmaTokens {
   // HAUTEURS COMPOSANTS
   // =========================================================================
 
-  static const double heightField = 52;          // Input fields
-  static const double heightFieldDense = 44;     // Dense fields
-  static const double heightButton = 48;         // Min button height
-  static const double heightButtonLarge = 56;    // Large buttons
-  static const double heightAppBar = 64;         // AppBar
-  static const double heightBottomNav = 72;      // NavigationBar
-  static const double heightTableRow = 52;       // DataTable row
+  static const double heightField = 52; // Input fields
+  static const double heightFieldDense = 44; // Dense fields
+  static const double heightButton = 48; // Min button height
+  static const double heightButtonLarge = 56; // Large buttons
+  static const double heightAppBar = 64; // AppBar
+  static const double heightBottomNav = 72; // NavigationBar
+  static const double heightTableRow = 52; // DataTable row
   static const double heightTableRowCompact = 44; // Compact row
-  static const double heightTableHeader = 48;    // Table header
-  static const double heightDialogTitle = 56;    // Dialog title bar
+  static const double heightTableHeader = 48; // Table header
+  static const double heightDialogTitle = 56; // Dialog title bar
   static const double heightAvatarSm = 32;
   static const double heightAvatarMd = 40;
   static const double heightAvatarLg = 56;
@@ -405,8 +406,10 @@ abstract final class PharmaTokens {
   static const double breakpointXLarge = 1920;
 
   static bool isMobile(double width) => width < breakpointMobile;
-  static bool isTablet(double width) => width >= breakpointMobile && width < breakpointDesktop;
-  static bool isDesktop(double width) => width >= breakpointDesktop && width < breakpointLargeDesktop;
+  static bool isTablet(double width) =>
+      width >= breakpointMobile && width < breakpointDesktop;
+  static bool isDesktop(double width) =>
+      width >= breakpointDesktop && width < breakpointLargeDesktop;
   static bool isLargeDesktop(double width) => width >= breakpointLargeDesktop;
 
   // Colonnes grille responsive
@@ -618,11 +621,16 @@ class PharmaTokensHelper {
       PharmaTokens.glowShadow(color, intensity: intensity);
 
   // Responsive
-  bool get isMobile => PharmaTokens.isMobile(MediaQuery.of(_context).size.width);
-  bool get isTablet => PharmaTokens.isTablet(MediaQuery.of(_context).size.width);
-  bool get isDesktop => PharmaTokens.isDesktop(MediaQuery.of(_context).size.width);
-  bool get isLargeDesktop => PharmaTokens.isLargeDesktop(MediaQuery.of(_context).size.width);
-  int gridColumns() => PharmaTokens.gridColumns(MediaQuery.of(_context).size.width);
+  bool get isMobile =>
+      PharmaTokens.isMobile(MediaQuery.of(_context).size.width);
+  bool get isTablet =>
+      PharmaTokens.isTablet(MediaQuery.of(_context).size.width);
+  bool get isDesktop =>
+      PharmaTokens.isDesktop(MediaQuery.of(_context).size.width);
+  bool get isLargeDesktop =>
+      PharmaTokens.isLargeDesktop(MediaQuery.of(_context).size.width);
+  int gridColumns() =>
+      PharmaTokens.gridColumns(MediaQuery.of(_context).size.width);
 
   // Durées
   Duration get durationFast => PharmaTokens.durationFast;

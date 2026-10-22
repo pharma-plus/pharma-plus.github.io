@@ -177,7 +177,8 @@ void main() {
       // Dernière page : chevron « suivant » présent mais désactivé.
       final nextButton = tester.widget<IconButton>(find
           .ancestor(
-              of: find.byTooltip('Page suivante'), matching: find.byType(IconButton))
+              of: find.byTooltip('Page suivante'),
+              matching: find.byType(IconButton))
           .first);
       expect(nextButton.onPressed, isNull);
     });
@@ -220,17 +221,16 @@ void main() {
       expect(find.byType(DataTable), findsNothing);
 
       await tester.pumpWidget(_wrap(
-        AppDataTable<Map<String, dynamic>>(
-          columns: const [AppDataColumn(key: 'name', label: 'Name')],
-          data: const [],
+        const AppDataTable<Map<String, dynamic>>(
+          columns: [AppDataColumn(key: 'name', label: 'Name')],
+          data: [],
         ),
       ));
       expect(find.text('Aucune donnée à afficher'), findsOneWidget);
       expect(find.byType(DataTable), findsNothing);
     });
 
-    testWidgets('changement du nombre de lignes par page',
-        (tester) async {
+    testWidgets('changement du nombre de lignes par page', (tester) async {
       await tester.pumpWidget(_wrap(
         AppDataTable<Map<String, dynamic>>(
           columns: const [AppDataColumn(key: 'name', label: 'Name')],

@@ -337,7 +337,8 @@ class AppDataRow<T> extends StatelessWidget {
     return result;
   }
 
-  Widget _buildDefaultCell(BuildContext context, AppDataColumn<T> column, T item) {
+  Widget _buildDefaultCell(
+      BuildContext context, AppDataColumn<T> column, T item) {
     final tokens = context.tokens;
     final isNumeric = column.numeric;
 
@@ -462,7 +463,6 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
   late int _pageSize;
   late String? _sortColumnKey;
   late bool _sortAscending;
-  final Map<String, double> _columnWidths = {};
 
   @override
   void initState() {
@@ -536,11 +536,9 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.tokens;
-    final isDark = context.isDark;
     final visibleColumns = widget.columns.where((c) => c.visible).toList();
-    final hasSelection = widget.config.showCheckboxColumn ||
-        widget.onSelectionChanged != null;
+    final hasSelection =
+        widget.config.showCheckboxColumn || widget.onSelectionChanged != null;
 
     if (widget.loading) {
       return _buildLoading(context);
@@ -579,7 +577,6 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
   }
 
   Widget _buildLoading(BuildContext context) {
-    final tokens = context.tokens;
     return Center(
       child: AppLoadingState(
         type: AppLoadingType.skeleton,
@@ -600,9 +597,8 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
     final tokens = context.tokens;
     final total = widget.totalRows ?? widget.data.length;
     final start = widget.pagination ? _currentPage * _pageSize + 1 : 1;
-    final end = widget.pagination
-        ? (_currentPage + 1) * _pageSize
-        : widget.data.length;
+    final end =
+        widget.pagination ? (_currentPage + 1) * _pageSize : widget.data.length;
     final pageSizes = <int>{10, 25, 50, 100, _pageSize}.toList()..sort();
 
     return Padding(
@@ -660,8 +656,8 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
         : rawSortIndex + (widget.showRowNumbers ? 1 : 0);
 
     return DataTable(
-      headingRowColor: WidgetStateProperty.resolveWith((states) =>
-          isDark ? tokens.bgSurfaceRaised : Colors.grey[50]),
+      headingRowColor: WidgetStateProperty.resolveWith(
+          (states) => isDark ? tokens.bgSurfaceRaised : Colors.grey[50]),
       headingRowHeight: widget.config.headerHeight,
       dataRowMinHeight: widget.config.rowHeight,
       dataRowMaxHeight: widget.config.rowHeight * 2,
@@ -712,9 +708,8 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
 
         return DataRow(
           selected: _isSelected(item),
-          onSelectChanged: hasSelection
-              ? (v) => _handleSelectItem(item, v)
-              : null,
+          onSelectChanged:
+              hasSelection ? (v) => _handleSelectItem(item, v) : null,
           cells: [
             if (widget.showRowNumbers)
               DataCell(

@@ -91,11 +91,13 @@ class AppLoadingState extends StatelessWidget {
       height: diameter,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(3, (index) => _AnimatedDot(
-          index: index,
-          size: diameter,
-          color: color,
-        )),
+        children: List.generate(
+            3,
+            (index) => _AnimatedDot(
+                  index: index,
+                  size: diameter,
+                  color: color,
+                )),
       ),
     );
   }
@@ -276,7 +278,8 @@ class _AnimatedDotState extends State<_AnimatedDot>
             child: Container(
               width: widget.size,
               height: widget.size,
-              margin: EdgeInsets.symmetric(horizontal: PharmaTokens.space1),
+              margin:
+                  const EdgeInsets.symmetric(horizontal: PharmaTokens.space1),
               decoration: BoxDecoration(
                 color: widget.color,
                 shape: BoxShape.circle,
@@ -399,12 +402,10 @@ class _SkeletonLoaderState extends State<_SkeletonLoader>
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
-    final baseColor = widget.isDark
-        ? tokens.bgSurfaceRaised
-        : Colors.grey[300]!;
-    final highlightColor = widget.isDark
-        ? tokens.bgSurface2
-        : Colors.grey[100]!;
+    final baseColor =
+        widget.isDark ? tokens.bgSurfaceRaised : Colors.grey[300]!;
+    final highlightColor =
+        widget.isDark ? tokens.bgSurface2 : Colors.grey[100]!;
 
     return AnimatedBuilder(
       animation: _animation,
@@ -458,10 +459,11 @@ class AppShimmerList extends StatelessWidget {
       padding: padding ?? EdgeInsets.all(tokens.sp4),
       itemCount: itemCount,
       itemBuilder: (context, index) {
-        final child = itemBuilder?.call(context, index) ?? _ShimmerItem(
-          height: itemHeight,
-          isDark: isDark,
-        );
+        final child = itemBuilder?.call(context, index) ??
+            _ShimmerItem(
+              height: itemHeight,
+              isDark: isDark,
+            );
 
         if (separator != null && index < itemCount - 1) {
           return Column(
@@ -515,12 +517,10 @@ class _ShimmerItemState extends State<_ShimmerItem>
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
-    final baseColor = widget.isDark
-        ? tokens.bgSurfaceRaised
-        : Colors.grey[300]!;
-    final highlightColor = widget.isDark
-        ? tokens.bgSurface2
-        : Colors.grey[100]!;
+    final baseColor =
+        widget.isDark ? tokens.bgSurfaceRaised : Colors.grey[300]!;
+    final highlightColor =
+        widget.isDark ? tokens.bgSurface2 : Colors.grey[100]!;
 
     return AnimatedBuilder(
       animation: _animation,

@@ -3,6 +3,7 @@
 /// découplés de la locale. Format téléphone : chiffres, +, espaces,
 /// parenthèses et tirets (6 à 20 caractères) — accepte les numéros
 /// marocains et internationaux.
+library;
 
 final RegExp _phoneRe = RegExp(r'^[0-9+()\- ]{6,20}$');
 final RegExp _emailRe = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]{2,}$');

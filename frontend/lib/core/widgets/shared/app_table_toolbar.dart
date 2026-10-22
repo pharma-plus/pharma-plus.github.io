@@ -67,7 +67,9 @@ class AppTableToolbar extends StatelessWidget {
                       Text(
                         subtitle!,
                         style: tokens.bodyMedium.copyWith(
-                          color: isDark ? tokens.textTertiary : tokens.textDisabled,
+                          color: isDark
+                              ? tokens.textTertiary
+                              : tokens.textDisabled,
                         ),
                       ),
                     ],
@@ -112,23 +114,23 @@ class AppTableToolbar extends StatelessWidget {
               SizedBox(width: tokens.sp3),
               if (searchField != null)
                 ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: 320),
+                  constraints: const BoxConstraints(maxWidth: 320),
                   child: searchField!,
                 )
               else if (filterButton != null)
                 filterButton!,
               ...actions.map((a) => Padding(
-                padding: EdgeInsets.only(left: tokens.sp2),
-                child: a,
-              )),
+                    padding: EdgeInsets.only(left: tokens.sp2),
+                    child: a,
+                  )),
               if (primaryAction != null) ...[
                 SizedBox(width: tokens.sp3),
                 primaryAction!,
               ],
               ...secondaryActions.map((a) => Padding(
-                padding: EdgeInsets.only(left: tokens.sp2),
-                child: a,
-              )),
+                    padding: EdgeInsets.only(left: tokens.sp2),
+                    child: a,
+                  )),
               if (trailing != null) ...[
                 SizedBox(width: tokens.sp3),
                 trailing!,
@@ -193,7 +195,7 @@ class AppPrimaryAction extends StatelessWidget {
           ? SizedBox(
               width: iconSize,
               height: iconSize,
-              child: CircularProgressIndicator(
+              child: const CircularProgressIndicator(
                 strokeWidth: 2,
                 color: Colors.white,
               ),
@@ -365,7 +367,7 @@ class AppActionMenu extends StatelessWidget {
       tooltip: tooltip,
       offset: offset ?? Offset(0, tokens.sp3),
       constraints: constraints ??
-          BoxConstraints(
+          const BoxConstraints(
             minWidth: 180,
             maxWidth: 280,
           ),
@@ -382,48 +384,56 @@ class AppActionMenu extends StatelessWidget {
         size: iconSize,
         color: isDark ? tokens.textTertiary : tokens.textDisabled,
       ),
-      itemBuilder: (context) => items.map((item) => PopupMenuItem<AppActionMenuItem>(
-            value: item,
-            enabled: item.enabled,
-            padding: EdgeInsets.symmetric(
-              horizontal: tokens.sp3,
-              vertical: tokens.sp1,
-            ),
-            child: Row(
-              children: [
-                if (item.icon != null) ...[
-                  Icon(
-                    item.icon,
-                    size: tokens.fontSizeBase,
-                    color: item.destructive
-                        ? tokens.danger
-                        : (isDark ? tokens.textSecondary : tokens.textSecondary),
-                  ),
-                  SizedBox(width: tokens.sp2),
-                ],
-                Flexible(
-                  child: Text(
-                    item.label,
-                    style: tokens.bodyMedium.copyWith(
-                      color: item.destructive
-                          ? tokens.danger
-                          : (isDark ? tokens.textPrimary : tokens.textPrimary),
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+      itemBuilder: (context) => items
+          .map((item) => PopupMenuItem<AppActionMenuItem>(
+                value: item,
+                enabled: item.enabled,
+                padding: EdgeInsets.symmetric(
+                  horizontal: tokens.sp3,
+                  vertical: tokens.sp1,
                 ),
-                if (item.shortcut != null) ...[
-                  SizedBox(width: tokens.sp2),
-                  Text(
-                    item.shortcut!,
-                    style: tokens.labelSmall.copyWith(
-                      color: isDark ? tokens.textTertiary : tokens.textDisabled,
+                child: Row(
+                  children: [
+                    if (item.icon != null) ...[
+                      Icon(
+                        item.icon,
+                        size: tokens.fontSizeBase,
+                        color: item.destructive
+                            ? tokens.danger
+                            : (isDark
+                                ? tokens.textSecondary
+                                : tokens.textSecondary),
+                      ),
+                      SizedBox(width: tokens.sp2),
+                    ],
+                    Flexible(
+                      child: Text(
+                        item.label,
+                        style: tokens.bodyMedium.copyWith(
+                          color: item.destructive
+                              ? tokens.danger
+                              : (isDark
+                                  ? tokens.textPrimary
+                                  : tokens.textPrimary),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                ],
-              ],
-            ),
-          )).toList(),
+                    if (item.shortcut != null) ...[
+                      SizedBox(width: tokens.sp2),
+                      Text(
+                        item.shortcut!,
+                        style: tokens.labelSmall.copyWith(
+                          color: isDark
+                              ? tokens.textTertiary
+                              : tokens.textDisabled,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ))
+          .toList(),
       onSelected: (item) => item.onSelected?.call(),
     );
   }

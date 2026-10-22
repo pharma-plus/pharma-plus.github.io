@@ -49,7 +49,6 @@ class AppFormSection extends StatelessWidget {
         title: title,
         description: description,
         icon: icon,
-        children: children,
         footer: footer,
         initiallyExpanded: initiallyExpanded,
         expansionCallback: expansionCallback,
@@ -60,6 +59,7 @@ class AppFormSection extends StatelessWidget {
         showDivider: showDivider,
         crossAxisAlignment: crossAxisAlignment,
         spacing: spacing,
+        children: children,
       );
     }
 
@@ -67,11 +67,12 @@ class AppFormSection extends StatelessWidget {
       margin: margin ?? EdgeInsets.symmetric(vertical: tokens.sp2),
       padding: padding ?? EdgeInsets.all(tokens.sp4),
       decoration: BoxDecoration(
-        color: backgroundColor ??
-            (isDark ? tokens.bgSurfaceRaised : Colors.white),
+        color:
+            backgroundColor ?? (isDark ? tokens.bgSurfaceRaised : Colors.white),
         borderRadius: BorderRadius.circular(tokens.rCard),
         border: Border.all(
-          color: borderColor ?? (isDark ? tokens.borderDark : tokens.borderLight),
+          color:
+              borderColor ?? (isDark ? tokens.borderDark : tokens.borderLight),
           width: 1,
         ),
       ),
@@ -92,8 +93,7 @@ class AppFormSection extends StatelessWidget {
           SizedBox(height: spacing),
           ...children
               .expand((widget) => [widget, SizedBox(height: spacing)])
-              .take(children.length * 2 - 1)
-              .toList(),
+              .take(children.length * 2 - 1),
           if (footer != null) ...[
             SizedBox(height: spacing),
             footer!,
@@ -323,15 +323,17 @@ class _CollapsibleSectionState extends State<_CollapsibleSection>
                         children: [
                           if (widget.showDivider) ...[
                             Divider(
-                              color: isDark ? tokens.borderDark : tokens.borderLight,
+                              color: isDark
+                                  ? tokens.borderDark
+                                  : tokens.borderLight,
                               height: tokens.sp3,
                             ),
                             SizedBox(height: tokens.sp1),
                           ],
                           ...widget.children
-                              .expand((w) => [w, SizedBox(height: widget.spacing)])
-                              .take(widget.children.length * 2 - 1)
-                              .toList(),
+                              .expand(
+                                  (w) => [w, SizedBox(height: widget.spacing)])
+                              .take(widget.children.length * 2 - 1),
                           if (widget.footer != null) ...[
                             SizedBox(height: widget.spacing),
                             widget.footer!,
@@ -444,7 +446,8 @@ class AppPageHeader extends StatelessWidget {
                     Text(
                       subtitle!,
                       style: tokens.bodyMedium.copyWith(
-                        color: isDark ? tokens.textTertiary : tokens.textDisabled,
+                        color:
+                            isDark ? tokens.textTertiary : tokens.textDisabled,
                       ),
                     ),
                   ],
@@ -487,9 +490,9 @@ class AppPageHeader extends StatelessWidget {
               ),
             ],
             ...actions.map((a) => Padding(
-              padding: EdgeInsets.only(left: tokens.sp2),
-              child: a,
-            )),
+                  padding: EdgeInsets.only(left: tokens.sp2),
+                  child: a,
+                )),
           ],
         ),
         if (showDivider) ...[

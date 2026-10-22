@@ -1,5 +1,6 @@
 /// Composants UI partagés PHARMA+ — Design System unifié
 /// Importer avec : import 'core/widgets/shared.dart';
+library;
 
 export 'shared/app_text_field.dart';
 export 'shared/app_select_field.dart';

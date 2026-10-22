@@ -84,8 +84,14 @@ class _CatalogPageState extends State<CatalogPage> {
     '500+': [500, null],
   };
 
-  bool get _hasFilters => _fLab != null || _fForm != null || _fDosage != null ||
-      _fStatus != null || _fAvail != null || _fPrice != null || _fPathologie != null;
+  bool get _hasFilters =>
+      _fLab != null ||
+      _fForm != null ||
+      _fDosage != null ||
+      _fStatus != null ||
+      _fAvail != null ||
+      _fPrice != null ||
+      _fPathologie != null;
 
   @override
   void dispose() {
@@ -114,7 +120,9 @@ class _CatalogPageState extends State<CatalogPage> {
     if (f.success && f.data is Map) {
       final d = f.data as Map;
       List<_Facet> parse(List? raw) => (raw ?? [])
-          .map((e) => _Facet('${e['label'] ?? ''}', '${e['value'] ?? e['label'] ?? ''}',
+          .map((e) => _Facet(
+              '${e['label'] ?? ''}',
+              '${e['value'] ?? e['label'] ?? ''}',
               (e['total'] as num?)?.toInt() ?? 0))
           .toList();
       setState(() {
@@ -130,10 +138,11 @@ class _CatalogPageState extends State<CatalogPage> {
     }
     // Valeurs de pathologie tracees (filtre reel via medicine_indications).
     if (_indicationsTotal > 0) {
-      final p = await ApiClient.instance.get('/catalog/medications/pathologies');
+      final p =
+          await ApiClient.instance.get('/catalog/medications/pathologies');
       if (mounted && p.success) {
-        setState(() => _pathologies =
-            (ApiList.of(p.data)).cast<Map<String, dynamic>>());
+        setState(() =>
+            _pathologies = (ApiList.of(p.data)).cast<Map<String, dynamic>>());
       }
     }
   }
@@ -210,10 +219,11 @@ class _CatalogPageState extends State<CatalogPage> {
 
   /// Stock reel par lot pour les ids de la page affichee.
   Future<void> _loadStockForPage() async {
-    final ids = _items.map((m) => m.id).where((id) => !_stock.containsKey(id)).toList();
+    final ids =
+        _items.map((m) => m.id).where((id) => !_stock.containsKey(id)).toList();
     if (ids.isEmpty) return;
-    final r = await ApiClient.instance
-        .get('/catalog/medications/stock', query: {'ids': ids.take(100).join(',')});
+    final r = await ApiClient.instance.get('/catalog/medications/stock',
+        query: {'ids': ids.take(100).join(',')});
     if (!mounted || !r.success || r.data is! List) return;
     setState(() {
       for (final e in r.data as List) {
@@ -324,8 +334,10 @@ class _CatalogPageState extends State<CatalogPage> {
         TextEditingController(text: medication?.laboratoryName ?? '');
     final therapeuticClass =
         TextEditingController(text: medication?.therapeuticClass ?? '');
-    final substance = TextEditingController(text: medication?.substanceActive ?? '');
-    final composition = TextEditingController(text: medication?.composition ?? '');
+    final substance =
+        TextEditingController(text: medication?.substanceActive ?? '');
+    final composition =
+        TextEditingController(text: medication?.composition ?? '');
     final phCtrl = TextEditingController(
         text: medication?.ph != null ? '${medication!.ph}' : '');
     final ppcCtrl = TextEditingController(
@@ -339,7 +351,8 @@ class _CatalogPageState extends State<CatalogPage> {
           ? ((pharmacy.data as Map)['settings'] as Map?)
           : null;
       final tva = settings?['tva'] as Map?;
-      tvaRate = (tva?[_paraMode ? 'parapharmacie' : 'medication'] as num?)?.toDouble() ??
+      tvaRate = (tva?[_paraMode ? 'parapharmacie' : 'medication'] as num?)
+              ?.toDouble() ??
           (_paraMode ? 20 : 0);
     }
     final tva = TextEditingController(text: '$tvaRate');
@@ -359,180 +372,187 @@ class _CatalogPageState extends State<CatalogPage> {
               child: Form(
                 key: formKey,
                 child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const                   _FormSection('Identité'),
-                  TextFormField(
-                      controller: name,
-                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                      validator: (v) =>
-                          validateRequired(v, S.t('requiredField', locale)),
-                      decoration: const InputDecoration(labelText: 'Nom')),
-                  const SizedBox(height: 10),
-                  TextField(
-                      controller: dci,
-                      decoration: const InputDecoration(labelText: 'DCI')),
-                  const SizedBox(height: 10),
-                  // Code-barres + lecteur intégré (bouton scanner pro).
-                  TextField(
-                      controller: barcode,
-                      decoration: InputDecoration(
-                        labelText: 'Code-barres (EAN-13)',
-                        suffixIcon: IconButton(
-                          tooltip: 'Scanner le code-barres',
-                          icon: const Icon(
-                            Icons.qr_code_scanner_rounded,
-                            color: AppColors.emeraldLight,
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _FormSection('Identité'),
+                    TextFormField(
+                        controller: name,
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
+                        validator: (v) =>
+                            validateRequired(v, S.t('requiredField', locale)),
+                        decoration: const InputDecoration(labelText: 'Nom')),
+                    const SizedBox(height: 10),
+                    TextField(
+                        controller: dci,
+                        decoration: const InputDecoration(labelText: 'DCI')),
+                    const SizedBox(height: 10),
+                    // Code-barres + lecteur intégré (bouton scanner pro).
+                    TextField(
+                        controller: barcode,
+                        decoration: InputDecoration(
+                          labelText: 'Code-barres (EAN-13)',
+                          suffixIcon: IconButton(
+                            tooltip: 'Scanner le code-barres',
+                            icon: const Icon(
+                              Icons.qr_code_scanner_rounded,
+                              color: AppColors.emeraldLight,
+                            ),
+                            onPressed: () async {
+                              final r = await BarcodeScannerSheet.show(
+                                context,
+                                title: 'Scanner le code-barres du médicament',
+                              );
+                              if (r != null) {
+                                barcode.text = r.lookupCode;
+                              }
+                            },
                           ),
-                          onPressed: () async {
-                            final r = await BarcodeScannerSheet.show(
-                              context,
-                              title: 'Scanner le code-barres du médicament',
-                            );
-                            if (r != null) {
-                              barcode.text = r.lookupCode;
-                            }
-                          },
-                        ),
-                      )),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedZone,
-                    decoration:
-                        InputDecoration(labelText: S.t('zone', locale)),
-                    items: kPlanZones
-                        .map((z) => DropdownMenuItem(
-                              value: z.id,
-                              child: Text(S.t(z.labelKey, locale)),
-                            ))
-                        .toList(),
-                    onChanged: (v) => selectedZone = v,
-                  ),
-                  const                   _FormSection('Caractéristiques'),
-                  TextField(
-                      controller: dosage,
-                      decoration: const InputDecoration(labelText: 'Dosage')),
-                  const SizedBox(height: 10),
-                  TextField(
-                      controller: form,
-                      decoration: const InputDecoration(labelText: 'Forme')),
-                  const SizedBox(height: 10),
-                  TextField(
-                      controller: presentation,
+                        )),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedZone,
                       decoration:
-                          const InputDecoration(labelText: 'Présentation')),
-                  const SizedBox(height: 10),
-                  TextField(
-                      controller: substance,
-                      decoration: const InputDecoration(
-                          labelText: 'Substance active')),
-                  const SizedBox(height: 10),
-                  TextField(
-                      controller: composition,
-                      maxLines: 2,
-                      decoration: const InputDecoration(
-                          labelText: 'Composition')),
-                  const                   _FormSection('Laboratoire'),
-                  // Combo searchable : suggestions des labs reels existants ;
-                  // un nom nouveau est cree via l'API (anti-doublon local).
-                  _SearchableField(
-                    controller: laboratory,
-                    label: 'Laboratoire / Fabricant',
-                    hint: 'Rechercher ou saisisser un laboratoire…',
-                    options: _labs.map((l) => l.label).toList(),
-                  ),
-                  const                   _FormSection('Prix'),
-                  Row(children: [
-                    Expanded(
-                      child: TextFormField(
-                          controller: sale,
-                          keyboardType: TextInputType.number,
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
-                          validator: (v) => validateRequired(
-                                  v, S.t('requiredField', locale)) ??
-                              validateNonNegativeNumber(
-                                  v, S.t('invalidNumber', locale)),
-                          decoration: const InputDecoration(
-                              labelText: 'PPV — Prix de vente (DH)')),
+                          InputDecoration(labelText: S.t('zone', locale)),
+                      items: kPlanZones
+                          .map((z) => DropdownMenuItem(
+                                value: z.id,
+                                child: Text(S.t(z.labelKey, locale)),
+                              ))
+                          .toList(),
+                      onChanged: (v) => selectedZone = v,
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: TextFormField(
-                          controller: purchase,
-                          keyboardType: TextInputType.number,
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
-                          validator: (v) => validateNonNegativeNumber(
-                              v, S.t('invalidNumber', locale)),
-                          decoration: const InputDecoration(
-                              labelText: 'PFHT — Prix achat (DH)')),
+                    const _FormSection('Caractéristiques'),
+                    TextField(
+                        controller: dosage,
+                        decoration: const InputDecoration(labelText: 'Dosage')),
+                    const SizedBox(height: 10),
+                    TextField(
+                        controller: form,
+                        decoration: const InputDecoration(labelText: 'Forme')),
+                    const SizedBox(height: 10),
+                    TextField(
+                        controller: presentation,
+                        decoration:
+                            const InputDecoration(labelText: 'Présentation')),
+                    const SizedBox(height: 10),
+                    TextField(
+                        controller: substance,
+                        decoration: const InputDecoration(
+                            labelText: 'Substance active')),
+                    const SizedBox(height: 10),
+                    TextField(
+                        controller: composition,
+                        maxLines: 2,
+                        decoration:
+                            const InputDecoration(labelText: 'Composition')),
+                    const _FormSection('Laboratoire'),
+                    // Combo searchable : suggestions des labs reels existants ;
+                    // un nom nouveau est cree via l'API (anti-doublon local).
+                    _SearchableField(
+                      controller: laboratory,
+                      label: 'Laboratoire / Fabricant',
+                      hint: 'Rechercher ou saisisser un laboratoire…',
+                      options: _labs.map((l) => l.label).toList(),
                     ),
-                  ]),
-                  const SizedBox(height: 10),
-                  Row(children: [
-                    Expanded(
-                      child: TextFormField(
-                          controller: phCtrl,
-                          keyboardType: TextInputType.number,
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
-                          validator: (v) => validateNonNegativeNumber(
-                              v, S.t('invalidNumber', locale)),
-                          decoration:
-                              const InputDecoration(labelText: 'PH (DH)')),
+                    const _FormSection('Prix'),
+                    Row(children: [
+                      Expanded(
+                        child: TextFormField(
+                            controller: sale,
+                            keyboardType: TextInputType.number,
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            validator: (v) =>
+                                validateRequired(
+                                    v, S.t('requiredField', locale)) ??
+                                validateNonNegativeNumber(
+                                    v, S.t('invalidNumber', locale)),
+                            decoration: const InputDecoration(
+                                labelText: 'PPV — Prix de vente (DH)')),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextFormField(
+                            controller: purchase,
+                            keyboardType: TextInputType.number,
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            validator: (v) => validateNonNegativeNumber(
+                                v, S.t('invalidNumber', locale)),
+                            decoration: const InputDecoration(
+                                labelText: 'PFHT — Prix achat (DH)')),
+                      ),
+                    ]),
+                    const SizedBox(height: 10),
+                    Row(children: [
+                      Expanded(
+                        child: TextFormField(
+                            controller: phCtrl,
+                            keyboardType: TextInputType.number,
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            validator: (v) => validateNonNegativeNumber(
+                                v, S.t('invalidNumber', locale)),
+                            decoration:
+                                const InputDecoration(labelText: 'PH (DH)')),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextFormField(
+                            controller: ppcCtrl,
+                            keyboardType: TextInputType.number,
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            validator: (v) => validateNonNegativeNumber(
+                                v, S.t('invalidNumber', locale)),
+                            decoration:
+                                const InputDecoration(labelText: 'PPC (DH)')),
+                      ),
+                    ]),
+                    const SizedBox(height: 10),
+                    Row(children: [
+                      Expanded(
+                        child: TextFormField(
+                            controller: tva,
+                            keyboardType: TextInputType.number,
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            validator: (v) => validateNonNegativeNumber(
+                                v, S.t('invalidNumber', locale)),
+                            decoration: const InputDecoration(
+                                labelText: 'TVA (%)',
+                                helperText: 'Défaut : Paramètres')),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextFormField(
+                            controller: minStock,
+                            keyboardType: TextInputType.number,
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            validator: (v) => validateNonNegativeNumber(
+                                v, S.t('invalidNumber', locale)),
+                            decoration: const InputDecoration(
+                                labelText: 'Stock minimum')),
+                      ),
+                    ]),
+                    const _FormSection('Thérapeutique'),
+                    TextField(
+                        controller: therapeuticClass,
+                        decoration: const InputDecoration(
+                            labelText: 'Classe thérapeutique')),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Pathologie / Indication : Non renseignée (aucune source fiable disponible)',
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white54
+                              : Colors.black45),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: TextFormField(
-                          controller: ppcCtrl,
-                          keyboardType: TextInputType.number,
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
-                          validator: (v) => validateNonNegativeNumber(
-                              v, S.t('invalidNumber', locale)),
-                          decoration:
-                              const InputDecoration(labelText: 'PPC (DH)')),
-                    ),
-                  ]),
-                  const SizedBox(height: 10),
-                  Row(children: [
-                    Expanded(
-                      child: TextFormField(
-                          controller: tva,
-                          keyboardType: TextInputType.number,
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
-                          validator: (v) => validateNonNegativeNumber(
-                              v, S.t('invalidNumber', locale)),
-                          decoration: const InputDecoration(
-                              labelText: 'TVA (%)',
-                              helperText: 'Défaut : Paramètres')),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: TextFormField(
-                          controller: minStock,
-                          keyboardType: TextInputType.number,
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
-                          validator: (v) => validateNonNegativeNumber(
-                              v, S.t('invalidNumber', locale)),
-                          decoration: const InputDecoration(
-                              labelText: 'Stock minimum')),
-                    ),
-                  ]),
-                  const                   _FormSection('Thérapeutique'),
-                  TextField(
-                      controller: therapeuticClass,
-                      decoration: const InputDecoration(
-                          labelText: 'Classe thérapeutique')),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Pathologie / Indication : Non renseignée (aucune source fiable disponible)',
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white54
-                            : Colors.black45),
-                  ),
-                ],
-              ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -568,9 +588,8 @@ class _CatalogPageState extends State<CatalogPage> {
             .post('/catalog/laboratories', body: {'name': labText});
         if (lab.success && lab.data is Map) {
           labId = '${(lab.data as Map)['id']}';
-        } else if (lab.error?.code == '409' || (lab.error?.message ?? '')
-            .toLowerCase()
-            .contains('existe')) {
+        } else if (lab.error?.code == '409' ||
+            (lab.error?.message ?? '').toLowerCase().contains('existe')) {
           // Doublon cote serveur : on garde le nom, sans FK.
           labId = null;
         }
@@ -593,7 +612,8 @@ class _CatalogPageState extends State<CatalogPage> {
           presentation.text.trim().isEmpty ? null : presentation.text.trim(),
       'substance_active':
           substance.text.trim().isEmpty ? null : substance.text.trim(),
-      'composition': composition.text.trim().isEmpty ? null : composition.text.trim(),
+      'composition':
+          composition.text.trim().isEmpty ? null : composition.text.trim(),
       'laboratory_name': labText.isEmpty ? null : laboratory.text.trim(),
       if (labId != null) 'laboratory_id': labId,
       'therapeutic_class': therapeuticClass.text.trim().isEmpty
@@ -670,14 +690,37 @@ class _CatalogPageState extends State<CatalogPage> {
               // requête serveur débouncée à 300 ms pour ne pas flood.
               onChanged: (q) {
                 _searchDebounce?.cancel();
-                _searchDebounce =
-                    Timer(const Duration(milliseconds: 300), () {
+                _searchDebounce = Timer(const Duration(milliseconds: 300), () {
                   if (mounted) _load(page: 1, query: q);
                 });
               },
               decoration: InputDecoration(
                 hintText: S.t('search', locale),
                 prefixIcon: const Icon(Icons.search),
+                isDense: true,
+                filled: true,
+                fillColor: isDark ? AppColors.pharmaSurface : Colors.white,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(
+                    color:
+                        isDark ? AppColors.borderDark : AppColors.borderLight,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(
+                    color:
+                        isDark ? AppColors.borderDark : AppColors.borderLight,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                      const BorderSide(color: AppColors.emerald, width: 1.6),
+                ),
               ),
             ),
           ),
@@ -772,9 +815,8 @@ class _CatalogPageState extends State<CatalogPage> {
                             : 'Pathologie ($_indicationsTotal)')
                         : 'Pathologie : données non disponibles'),
                     selected: _fPathologie != null,
-                    onSelected: _indicationsTotal > 0
-                        ? (_) => _pickPathologie()
-                        : null,
+                    onSelected:
+                        _indicationsTotal > 0 ? (_) => _pickPathologie() : null,
                     avatar: Icon(
                       _indicationsTotal > 0
                           ? Icons.filter_alt
@@ -803,56 +845,42 @@ class _CatalogPageState extends State<CatalogPage> {
                         : RefreshIndicator(
                             onRefresh: () =>
                                 _load(page: 1, query: _search.text),
-                            child: SingleChildScrollView(
-                              controller: _vScroll,
-                                padding:
-                                    const EdgeInsets.fromLTRB(12, 0, 12, 16),
-                                child: Column(
-                                children: [
-                                  if (MediaQuery.sizeOf(context).width < 600)
-                                    _buildMobileCards(isDark)
-                                  else
-                                  GlassCard(
-                                    radius: BorderRadius.circular(16),
-                                    padding: EdgeInsets.zero,
-                                    child: Scrollbar(
-                                      controller: _hScroll,
-                                      thumbVisibility: true,
-                                      child: SingleChildScrollView(
-                                        controller: _hScroll,
-                                        scrollDirection: Axis.horizontal,
-                                        child: ConstrainedBox(
-                                          constraints: const BoxConstraints(
-                                              minWidth: 700),
-                                          child: _buildTable(isDark, locale),
+                            child: MediaQuery.sizeOf(context).width < 600
+                                ? SingleChildScrollView(
+                                    controller: _vScroll,
+                                    padding: const EdgeInsets.fromLTRB(
+                                        12, 0, 12, 16),
+                                    child: Column(
+                                      children: [
+                                        _buildMobileCards(isDark),
+                                        if (_items.length < _total)
+                                          _buildLoadMore(locale),
+                                        if (_items.length >= _total &&
+                                            _items.isNotEmpty)
+                                          _buildTotalCounter(isDark),
+                                      ],
+                                    ),
+                                  )
+                                : Column(
+                                    children: [
+                                      Expanded(
+                                        child: Padding(
+                                          padding: const EdgeInsets.fromLTRB(
+                                              12, 0, 12, 0),
+                                          child: GlassCard(
+                                            radius: BorderRadius.circular(16),
+                                            padding: EdgeInsets.zero,
+                                            child: _buildStickyTable(isDark),
+                                          ),
                                         ),
                                       ),
-                                    ),
+                                      if (_items.length < _total)
+                                        _buildLoadMore(locale),
+                                      if (_items.length >= _total &&
+                                          _items.isNotEmpty)
+                                        _buildTotalCounter(isDark),
+                                    ],
                                   ),
-                                  if (_items.length < _total)
-                                    Center(
-                                      child: TextButton(
-                                        onPressed: () => _load(
-                                            page: _page + 1,
-                                            query: _search.text),
-                                        child: Text(S.t('loadMore', locale)),
-                                      ),
-                                    ),
-                                  if (_items.length >= _total && _items.isNotEmpty)
-                                    Padding(
-                                      padding: const EdgeInsets.all(8),
-                                      child: Text(
-                                        '${Fmt.number(_total)} produits',
-                                        style: TextStyle(
-                                            fontSize: 12,
-                                            color: isDark
-                                                ? Colors.white54
-                                                : Colors.black45),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
                           ),
           ),
         ],
@@ -913,7 +941,8 @@ class _CatalogPageState extends State<CatalogPage> {
             child: Text(enabled ? 'Tous' : '—',
                 style: const TextStyle(fontSize: 13)),
           ),
-          for (final o in options.where((o) => o.label.isNotEmpty && o.value.isNotEmpty))
+          for (final o
+              in options.where((o) => o.label.isNotEmpty && o.value.isNotEmpty))
             DropdownMenuItem<String>(
               value: o.value.isEmpty ? null : o.value,
               enabled: o.value.isNotEmpty,
@@ -930,112 +959,310 @@ class _CatalogPageState extends State<CatalogPage> {
     );
   }
 
-  DataTable _buildTable(bool isDark, String locale) {
-    const headerStyle = TextStyle(
-        fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.gold);
-    const cellStyle = TextStyle(fontSize: 12.5);
-    final muted = isDark ? Colors.white60 : Colors.black54;
+  Widget _buildLoadMore(String locale) {
+    return Center(
+      child: TextButton(
+        onPressed: () => _load(page: _page + 1, query: _search.text),
+        child: Text(S.t('loadMore', locale)),
+      ),
+    );
+  }
 
-    DataRow row(Medication m) {
-      final qty = _stock[m.id];
-      final statusLabel = m.status == 'available'
-          ? 'Disponible'
-          : (m.status == 'archived' ? 'Archivé' : m.status);
-      final statusColor = m.status == 'available'
-          ? AppColors.success
-          : AppColors.warning;
-      final stockText = qty == null
-          ? 'Non suivi'
-          : (qty > 0 ? '${Fmt.number(qty)}' : '0');
-      final stockColor = qty == null
-          ? muted
-          : (qty > 0 ? AppColors.success : AppColors.danger);
-      return DataRow(
-        onSelectChanged: (_) => _showDetail(m),
-        cells: [
-          DataCell(Text(m.name, maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5))),
-          DataCell(Text(_notProvided(m.dci), maxLines: 1, overflow: TextOverflow.ellipsis, style: cellStyle.copyWith(color: muted))),
-          DataCell(Text(_notProvided(m.dosage), maxLines: 1, overflow: TextOverflow.ellipsis, style: cellStyle)),
-          DataCell(Text(_notProvided(m.form), maxLines: 1, overflow: TextOverflow.ellipsis, style: cellStyle)),
-          DataCell(Text(_notProvided(m.laboratoryName), maxLines: 1, overflow: TextOverflow.ellipsis, style: cellStyle)),
-          DataCell(Text(
-              m.priceSale > 0 ? Fmt.money(m.priceSale) : 'Non renseigné',
-              maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: cellStyle.copyWith(fontWeight: FontWeight.w700))),
-          DataCell(Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(20),
+  Widget _buildTotalCounter(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: Text(
+        '${Fmt.number(_total)} produits',
+        style: TextStyle(
+            fontSize: 12, color: isDark ? Colors.white60 : Colors.black54),
+      ),
+    );
+  }
+
+  /* ------------------------------------------------------------------
+     Tableau du catalogue — en-tête COLLANT + colonnes à largeurs fixes.
+
+     Structure : un seul Scrollbar horizontal partagé enveloppe l'en-tête
+     ET le corps (même SingleChildScrollView horizontal), tandis que le
+     défilement vertical n'est lié qu'aux lignes. L'en-tête reste donc
+     visible pendant le défilement vertical, opaque (fond primaire plein,
+     plus d'alpha 0.9), et les colonnes numériques (PPV, Stock) sont
+     alignées à droite avec des largeurs stables.
+     ------------------------------------------------------------------ */
+  Widget _buildStickyTable(bool isDark) {
+    // Largeurs fixes hors colonne « Médicament » (qui absorbe le surplus).
+    const fixedNonMed = 858.0; // dci110+dosage80+forme90+labo140+ppv90
+    // + statut100+stock80+posologie64+actions104
+    const medMin = 220.0;
+    final muted = isDark ? Colors.white60 : Colors.black54;
+    final stripe = isDark ? AppColors.pharmaSurface2 : const Color(0xFFF2F5F3);
+    final divider = isDark ? AppColors.borderDark : AppColors.borderLight;
+
+    return LayoutBuilder(builder: (context, constraints) {
+      // Padding horizontal 12 de chaque bord du header et des lignes.
+      const rowPad = 24.0;
+      final usable = constraints.maxWidth - rowPad;
+      final totalW = usable >= medMin + fixedNonMed
+          ? constraints.maxWidth
+          : medMin + fixedNonMed + rowPad;
+      final medW = totalW - rowPad - fixedNonMed;
+      return Scrollbar(
+        controller: _hScroll,
+        thumbVisibility: true,
+        child: SingleChildScrollView(
+          controller: _hScroll,
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: totalW,
+            child: Column(
+              children: [
+                _tableHeader(medW: medW),
+                Expanded(
+                  child: Scrollbar(
+                    controller: _vScroll,
+                    thumbVisibility: true,
+                    child: SingleChildScrollView(
+                      controller: _vScroll,
+                      child: Column(
+                        children: [
+                          for (var i = 0; i < _items.length; i++)
+                            _tableRow(
+                              _items[i],
+                              i,
+                              medW: medW,
+                              isDark: isDark,
+                              muted: muted,
+                              stripe: stripe,
+                              divider: divider,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            child: Text(statusLabel,
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: statusColor)),
-          )),
-          DataCell(Text(
-            stockText,
-            maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: stockColor)),
           ),
-          DataCell(
-            Center(
-              child: IconButton(
-                tooltip: 'Voir posologie',
-                icon: const Icon(Icons.medication_outlined, size: 18, color: AppColors.gold),
-                onPressed: () => _showPosology(m),
-                visualDensity: VisualDensity.compact,
-                padding: EdgeInsets.zero,
-              ),
-            ),
+        ),
+      );
+    });
+  }
+
+  static const _headerStyle = TextStyle(
+      fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.gold);
+
+  Widget _headerCell(double w, String label,
+      {TextAlign align = TextAlign.left}) {
+    return SizedBox(
+      width: w,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 8),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: align,
+          style: _headerStyle,
+        ),
+      ),
+    );
+  }
+
+  Widget _tableHeader({required double medW}) {
+    return Container(
+      height: 44,
+      color: AppColors.primary,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        children: [
+          _headerCell(medW, 'Médicament'),
+          _headerCell(110, 'DCI'),
+          _headerCell(80, 'Dosage'),
+          _headerCell(90, 'Forme'),
+          _headerCell(140, 'Laboratoire'),
+          _headerCell(90, 'PPV', align: TextAlign.right),
+          _headerCell(100, 'Statut'),
+          _headerCell(80, 'Stock', align: TextAlign.right),
+          _headerCell(64, 'Posologie', align: TextAlign.center),
+          const SizedBox(
+            width: 104,
+            child: Text('Actions',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: _headerStyle),
           ),
-          DataCell(Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                tooltip: 'Fiche détaillée',
-                icon: const Icon(Icons.visibility_outlined, size: 18),
-                onPressed: () => _showDetail(m),
-              ),
-              IconButton(
-                tooltip: 'Modifier',
-                icon: const Icon(Icons.edit_outlined, size: 18),
-                onPressed: () => _showForm(m).then((changed) {
-                  if (changed) _load(page: _page, query: _search.text);
-                }),
-              ),
-            ],
-          )),
         ],
+      ),
+    );
+  }
+
+  Widget _dataCell(double w, Widget child, {TextAlign align = TextAlign.left}) {
+    Widget inner = child;
+    if (align != TextAlign.left) {
+      inner = Align(
+        alignment:
+            align == TextAlign.right ? Alignment.centerRight : Alignment.center,
+        child: child,
       );
     }
+    return SizedBox(
+      width: w,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 8),
+        child: inner,
+      ),
+    );
+  }
 
-    return DataTable(
-      showCheckboxColumn: false,
-      headingRowColor: WidgetStateProperty.all(
-          AppColors.primary.withValues(alpha: 0.9)),
-      headingTextStyle: headerStyle,
-      dataTextStyle: cellStyle,
-      columnSpacing: 8,
-      horizontalMargin: 8,
-columns: const [
-        DataColumn(label: Text('Médicament', style: headerStyle)),
-        DataColumn(label: Text('DCI', style: headerStyle)),
-        DataColumn(label: Text('Dosage', style: headerStyle)),
-        DataColumn(label: Text('Forme', style: headerStyle)),
-        DataColumn(label: Text('Laboratoire', style: headerStyle)),
-        DataColumn(label: Text('PPV', style: headerStyle), numeric: true),
-        DataColumn(label: Text('Statut', style: headerStyle)),
-        DataColumn(label: Text('Stock', style: headerStyle), numeric: true),
-        DataColumn(label: Text('Posologie', style: headerStyle)),
-        DataColumn(label: Text('Actions', style: headerStyle)),
-      ],
-      rows: _items.map(row).toList(),
+  Widget _tableRow(
+    Medication m,
+    int i, {
+    required double medW,
+    required bool isDark,
+    required Color muted,
+    required Color stripe,
+    required Color divider,
+  }) {
+    const cellStyle = TextStyle(fontSize: 12.5);
+    final qty = _stock[m.id];
+    final statusLabel = m.status == 'available'
+        ? 'Disponible'
+        : (m.status == 'archived' ? 'Archivé' : m.status);
+    final statusColor =
+        m.status == 'available' ? AppColors.success : AppColors.warning;
+    final stockText =
+        qty == null ? 'Non suivi' : (qty > 0 ? Fmt.number(qty) : '0');
+    final stockColor =
+        qty == null ? muted : (qty > 0 ? AppColors.success : AppColors.danger);
+
+    return Material(
+      color: i.isOdd ? stripe : Colors.transparent,
+      child: InkWell(
+        onTap: () => _showDetail(m),
+        child: Container(
+          height: 48,
+          decoration:
+              BoxDecoration(border: Border(bottom: BorderSide(color: divider))),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: [
+              _dataCell(
+                medW,
+                Text(m.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 12.5)),
+              ),
+              _dataCell(
+                110,
+                Text(_notProvided(m.dci),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: cellStyle.copyWith(color: muted)),
+              ),
+              _dataCell(
+                80,
+                Text(_notProvided(m.dosage),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: cellStyle),
+              ),
+              _dataCell(
+                90,
+                Text(_notProvided(m.form),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: cellStyle),
+              ),
+              _dataCell(
+                140,
+                Text(_notProvided(m.laboratoryName),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: cellStyle),
+              ),
+              _dataCell(
+                90,
+                Text(m.priceSale > 0 ? Fmt.money(m.priceSale) : 'Non renseigné',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
+                    style: cellStyle.copyWith(fontWeight: FontWeight.w700)),
+                align: TextAlign.right,
+              ),
+              _dataCell(
+                100,
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(statusLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: statusColor)),
+                ),
+              ),
+              _dataCell(
+                80,
+                Text(stockText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: stockColor)),
+                align: TextAlign.right,
+              ),
+              _dataCell(
+                64,
+                Center(
+                  child: IconButton(
+                    tooltip: 'Voir posologie',
+                    icon: const Icon(Icons.medication_outlined,
+                        size: 18, color: AppColors.gold),
+                    onPressed: () => _showPosology(m),
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                  ),
+                ),
+                align: TextAlign.center,
+              ),
+              SizedBox(
+                width: 104,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: 'Fiche détaillée',
+                      icon: const Icon(Icons.visibility_outlined, size: 18),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => _showDetail(m),
+                    ),
+                    IconButton(
+                      tooltip: 'Modifier',
+                      icon: const Icon(Icons.edit_outlined, size: 18),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => _showForm(m).then((changed) {
+                        if (changed) {
+                          _load(page: _page, query: _search.text);
+                        }
+                      }),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -1044,10 +1271,9 @@ columns: const [
   void _showPosology(Medication m) {
     final locale = context.read<AuthStore>().locale;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final muted = isDark ? Colors.white60 : Colors.black45;
     const unverified = 'Information non vérifiée ou indisponible';
 
-    String _np(String? v) => (v == null || v.trim().isEmpty) ? unverified : v;
+    String np(String? v) => (v == null || v.trim().isEmpty) ? unverified : v;
 
     showDialog(
       context: context,
@@ -1056,12 +1282,15 @@ columns: const [
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            const Icon(Icons.medication_outlined, color: AppColors.gold, size: 28),
+            const Icon(Icons.medication_outlined,
+                color: AppColors.gold, size: 28),
             const SizedBox(width: 10),
             Expanded(
               child: Text(m.name,
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
-                  maxLines: 1, overflow: TextOverflow.ellipsis),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w800, fontSize: 18),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
             ),
           ],
         ),
@@ -1070,35 +1299,41 @@ columns: const [
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _PosologyRow(label: 'Dosage', value: _np(m.dosage)),
-              _PosologyRow(label: 'Forme', value: _np(m.form)),
-              _PosologyRow(label: 'Présentation', value: _np(m.presentation)),
-              _PosologyRow(label: 'Substance active', value: _np(m.substanceActive)),
-              _PosologyRow(label: 'Composition', value: _np(m.composition)),
-              _PosologyRow(label: 'Voie d\'administration', value: unverified),
-              _PosologyRow(label: 'Dose prescrite', value: unverified),
-              _PosologyRow(label: 'Fréquence', value: unverified),
-              _PosologyRow(label: 'Durée du traitement', value: unverified),
-              _PosologyRow(label: 'Précautions', value: unverified),
+              _PosologyRow(label: 'Dosage', value: np(m.dosage)),
+              _PosologyRow(label: 'Forme', value: np(m.form)),
+              _PosologyRow(label: 'Présentation', value: np(m.presentation)),
+              _PosologyRow(
+                  label: 'Substance active', value: np(m.substanceActive)),
+              _PosologyRow(label: 'Composition', value: np(m.composition)),
+              const _PosologyRow(
+                  label: 'Voie d\'administration', value: unverified),
+              const _PosologyRow(label: 'Dose prescrite', value: unverified),
+              const _PosologyRow(label: 'Fréquence', value: unverified),
+              const _PosologyRow(
+                  label: 'Durée du traitement', value: unverified),
+              const _PosologyRow(label: 'Précautions', value: unverified),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: AppColors.warning.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                  border: Border.all(
+                      color: AppColors.warning.withValues(alpha: 0.3)),
                 ),
-                child: Row(
+                child: const Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.info_outline, color: AppColors.warning, size: 20),
-                    const SizedBox(width: 10),
+                    Icon(Icons.info_outline,
+                        color: AppColors.warning, size: 20),
+                    SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         'Cette posologie est indicative. Les informations de dose, fréquence, durée et précautions '
                         'ne sont pas disponibles dans la base catalogue. Seule une prescription médicale '
                         'fait foi pour l\'administration au patient.',
-                        style: TextStyle(fontSize: 12, color: AppColors.warning),
+                        style:
+                            TextStyle(fontSize: 12, color: AppColors.warning),
                       ),
                     ),
                   ],
@@ -1177,18 +1412,22 @@ columns: const [
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: 0.14),
-                          borderRadius: BorderRadius.circular(20),
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(statusLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: statusColor)),
                         ),
-                        child: Text(statusLabel,
-                            style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: statusColor)),
                       ),
                       const SizedBox(width: 8),
                       Flexible(
@@ -1265,7 +1504,8 @@ class _PosologyRow extends StatelessWidget {
           ),
           Expanded(
             child: Text(value,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                style:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -1354,7 +1594,9 @@ class _SearchableField extends StatelessWidget {
                 final q = filter.text.trim().toLowerCase();
                 final list = q.isEmpty
                     ? options
-                    : options.where((o) => o.toLowerCase().contains(q)).toList();
+                    : options
+                        .where((o) => o.toLowerCase().contains(q))
+                        .toList();
                 return Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -1419,7 +1661,9 @@ class _MedicationDetailState extends State<_MedicationDetail> {
         .get('/catalog/medications/${widget.medication.id}/details');
     if (!mounted) return;
     setState(() {
-      if (r.success && r.data is Map) _details = Map<String, dynamic>.from(r.data as Map);
+      if (r.success && r.data is Map) {
+        _details = Map<String, dynamic>.from(r.data as Map);
+      }
       _loading = false;
     });
   }
@@ -1510,15 +1754,14 @@ class _MedicationDetailState extends State<_MedicationDetail> {
             Text(
               _details == null && _loading
                   ? 'Chargement…'
-                  : (_details == null
-                      ? 'Détails indisponibles'
-                      : ''),
+                  : (_details == null ? 'Détails indisponibles' : ''),
               style: TextStyle(fontSize: 12, color: muted),
             ),
             section('Identité'),
             row('Nom commercial', m.name),
             row('DCI', _np(dci)),
-            row('Code-barres (EAN-13)', _np(med?['barcode_ean13'] ?? m.barcodeEan13)),
+            row('Code-barres (EAN-13)',
+                _np(med?['barcode_ean13'] ?? m.barcodeEan13)),
             row('QR / DataMatrix', _np(med?['qr_code'])),
             section('Caractéristiques'),
             row('Dosage', _np(dosage)),
@@ -1530,9 +1773,20 @@ class _MedicationDetailState extends State<_MedicationDetail> {
             row('Laboratoire', _np(labName)),
             section('Prix'),
             row('PPV', m.priceSale > 0 ? Fmt.money(m.priceSale) : _unverified),
-            row('PH', (ref?['ph'] != null) ? Fmt.money(double.parse('${ref!['ph']}')) : _unverified),
-            row('PPC', (med?['ppc'] != null) ? Fmt.money(double.parse('${med!['ppc']}')) : ((ref?['ppc'] != null) ? Fmt.money(double.parse('${ref!['ppc']}')) : _unverified)),
-            row('PFHT (achat)', m.pricePurchase > 0 ? Fmt.money(m.pricePurchase) : _unverified),
+            row(
+                'PH',
+                (ref?['ph'] != null)
+                    ? Fmt.money(double.parse('${ref!['ph']}'))
+                    : _unverified),
+            row(
+                'PPC',
+                (med?['ppc'] != null)
+                    ? Fmt.money(double.parse('${med!['ppc']}'))
+                    : ((ref?['ppc'] != null)
+                        ? Fmt.money(double.parse('${ref!['ppc']}'))
+                        : _unverified)),
+            row('PFHT (achat)',
+                m.pricePurchase > 0 ? Fmt.money(m.pricePurchase) : _unverified),
             row('TVA', '${_np(tva)} %'),
             section('Thérapeutique'),
             row('Classe thérapeutique', _np(classe)),
@@ -1542,15 +1796,20 @@ class _MedicationDetailState extends State<_MedicationDetail> {
             section('Stock'),
             row('Quantité',
                 stockQty == null ? 'Non suivi' : Fmt.number(stockQty)),
-            row('Disponibilité', stockQty == null
-                ? _unverified
-                : (stockQty > 0 ? 'En stock' : 'Sans stock')),
+            row(
+                'Disponibilité',
+                stockQty == null
+                    ? _unverified
+                    : (stockQty > 0 ? 'En stock' : 'Sans stock')),
             row('Stock minimum', _np(med?['min_stock'] ?? m.minStock)),
             row('Emplacement', _np(med?['shelf_location'] ?? m.shelfLocation)),
             section('Source'),
             row('Source', _np(prov?['source'])),
-            row('URL source',
-                prov?['source_url'] == null ? _unverified : '${prov!['source_url']}'),
+            row(
+                'URL source',
+                prov?['source_url'] == null
+                    ? _unverified
+                    : '${prov!['source_url']}'),
             row('Date source', _np(prov?['date_source'])),
             row('Date import', _np(prov?['date_import'])),
             if (ref != null) ...[
@@ -1565,8 +1824,7 @@ class _MedicationDetailState extends State<_MedicationDetail> {
                 label: Text(S.t('viewInPlan', locale)),
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) =>
-                        PharmacyPlanPage(focusZoneId: m.zone),
+                    builder: (_) => PharmacyPlanPage(focusZoneId: m.zone),
                   ),
                 ),
               ),

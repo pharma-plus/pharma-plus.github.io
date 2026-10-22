@@ -150,11 +150,8 @@ class _FakeHttpClient implements HttpClient {
   bool autoUncompress = true;
   @override
   Duration? connectionTimeout;
-  @override
   bool followRedirects = true;
-  @override
   int maxRedirects = 5;
-  @override
   bool persistentConnection = true;
   @override
   Duration idleTimeout = const Duration(seconds: 15);
@@ -244,7 +241,6 @@ class _FakeRequest implements HttpClientRequest {
   @override
   bool bufferOutput = true;
 
-  @override
   int bufferSize = 8192;
 
   List<int> _body = const [];
@@ -371,9 +367,7 @@ void main() {
     }
   });
 
-  testWidgets(
-      'CatalogPage : 6 tailles sans débordement',
-      (tester) async {
+  testWidgets('CatalogPage : 6 tailles sans débordement', (tester) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     for (final (w, h) in _sizes) {
       await tester.binding.setSurfaceSize(Size(w, h));

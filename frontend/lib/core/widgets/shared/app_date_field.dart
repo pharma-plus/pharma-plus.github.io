@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import '../../theme/design_tokens.dart';
 
@@ -59,8 +57,6 @@ class AppDateField extends StatelessWidget {
   final Widget? prefixIcon;
   final Widget? suffixIcon;
 
-  static const String _dateFormat = 'dd/MM/yyyy';
-
   String _formatDate(DateTime date) {
     final day = date.day.toString().padLeft(2, '0');
     final month = date.month.toString().padLeft(2, '0');
@@ -105,7 +101,8 @@ class AppDateField extends StatelessWidget {
                       data: Theme.of(context).copyWith(
                         colorScheme: ColorScheme.fromSeed(
                           seedColor: tokens.brandPrimary,
-                          brightness: isDark ? Brightness.dark : Brightness.light,
+                          brightness:
+                              isDark ? Brightness.dark : Brightness.light,
                           primary: tokens.brandPrimary,
                           onPrimary: Colors.white,
                           surface: isDark ? tokens.bgSurface : Colors.white,
@@ -115,8 +112,7 @@ class AppDateField extends StatelessWidget {
                           backgroundColor:
                               isDark ? tokens.bgSurface : Colors.white,
                           shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(tokens.rDialog),
+                            borderRadius: BorderRadius.circular(tokens.rDialog),
                           ),
                         ),
                         textButtonTheme: TextButtonThemeData(
@@ -212,7 +208,7 @@ class AppDateFieldForm extends FormField<DateTime> {
     this.label,
     this.hint,
     this.helperText,
-    this.enabled = true,
+    super.enabled = true,
     this.firstDate,
     this.lastDate,
     this.fieldHintText,
@@ -249,20 +245,21 @@ class AppDateFieldForm extends FormField<DateTime> {
                               data: Theme.of(context).copyWith(
                                 colorScheme: ColorScheme.fromSeed(
                                   seedColor: tokens.brandPrimary,
-                                  brightness:
-                                      isDark ? Brightness.dark : Brightness.light,
+                                  brightness: isDark
+                                      ? Brightness.dark
+                                      : Brightness.light,
                                   primary: tokens.brandPrimary,
                                   onPrimary: Colors.white,
-                                  surface: isDark ? tokens.bgSurface : Colors.white,
+                                  surface:
+                                      isDark ? tokens.bgSurface : Colors.white,
                                   onSurface: tokens.textPrimary,
                                 ),
                                 dialogTheme: DialogThemeData(
-                                  backgroundColor: isDark
-                                      ? tokens.bgSurface
-                                      : Colors.white,
+                                  backgroundColor:
+                                      isDark ? tokens.bgSurface : Colors.white,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(
-                                        tokens.rDialog),
+                                    borderRadius:
+                                        BorderRadius.circular(tokens.rDialog),
                                   ),
                                 ),
                               ),
@@ -346,7 +343,6 @@ class AppDateFieldForm extends FormField<DateTime> {
   final String? label;
   final String? hint;
   final String? helperText;
-  final bool enabled;
   final DateTime? firstDate;
   final DateTime? lastDate;
   final String? fieldHintText;

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import '../../theme/design_tokens.dart';
 
@@ -89,15 +87,16 @@ class AppSelectField<T> extends StatelessWidget {
         ],
         DropdownButtonFormField<T>(
           focusNode: focusNode,
-          value: value,
+          initialValue: value,
           items: items,
           onChanged: enabled && !readOnly ? onChanged : null,
           validator: validator,
           isExpanded: isExpanded,
           alignment: alignment ?? AlignmentDirectional.centerStart,
-          style: style ?? tokens.fieldInput.copyWith(
-            color: enabled ? tokens.textPrimary : tokens.textDisabled,
-          ),
+          style: style ??
+              tokens.fieldInput.copyWith(
+                color: enabled ? tokens.textPrimary : tokens.textDisabled,
+              ),
           hint: hint != null
               ? Text(hint!, style: hintStyle ?? tokens.fieldHelper)
               : null,
@@ -117,13 +116,15 @@ class AppSelectField<T> extends StatelessWidget {
             errorText: hasError ? errorText : null,
             prefixIcon: prefixIcon != null
                 ? Padding(
-                    padding: EdgeInsets.only(left: tokens.sp4, right: tokens.sp2),
+                    padding:
+                        EdgeInsets.only(left: tokens.sp4, right: tokens.sp2),
                     child: prefixIcon,
                   )
                 : null,
             suffixIcon: suffixIcon != null
                 ? Padding(
-                    padding: EdgeInsets.only(left: tokens.sp2, right: tokens.sp4),
+                    padding:
+                        EdgeInsets.only(left: tokens.sp2, right: tokens.sp4),
                     child: suffixIcon,
                   )
                 : null,
@@ -221,13 +222,19 @@ class AppSelectItem<T> {
       enabled: enabled,
       child: itemBuilder != null
           ? Builder(
-              builder: (context) => itemBuilder!(context, this),
+              builder: (context) => itemBuilder(context, this),
             )
           : Row(
               children: [
-                if (leading != null) ...[leading!, SizedBox(width: PharmaTokens.space2)],
+                if (leading != null) ...[
+                  leading!,
+                  const SizedBox(width: PharmaTokens.space2)
+                ],
                 Expanded(child: Text(label)),
-                if (trailing != null) ...[SizedBox(width: PharmaTokens.space2), trailing!],
+                if (trailing != null) ...[
+                  const SizedBox(width: PharmaTokens.space2),
+                  trailing!
+                ],
               ],
             ),
     );
@@ -334,24 +341,23 @@ class _AppSearchableSelectFieldState<T>
         child: Material(
           elevation: PharmaTokens.elevation4,
           borderRadius: BorderRadius.circular(PharmaTokens.radiusMd),
-          color: context.isDark
-              ? PharmaTokens.bgSurfaceRaised
-              : Colors.white,
+          color: context.isDark ? PharmaTokens.bgSurfaceRaised : Colors.white,
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: 320),
+            constraints: const BoxConstraints(maxHeight: 320),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Padding(
-                  padding: EdgeInsets.all(PharmaTokens.space3),
+                  padding: const EdgeInsets.all(PharmaTokens.space3),
                   child: TextField(
                     controller: _searchController,
                     focusNode: _searchFocus,
                     autofocus: true,
                     decoration: InputDecoration(
                       hintText: widget.searchHint,
-                      prefixIcon: Icon(Icons.search, size: PharmaTokens.fontSizeLg),
-                      contentPadding: EdgeInsets.symmetric(
+                      prefixIcon: const Icon(Icons.search,
+                          size: PharmaTokens.fontSizeLg),
+                      contentPadding: const EdgeInsets.symmetric(
                         horizontal: PharmaTokens.space3,
                         vertical: PharmaTokens.space2,
                       ),
@@ -368,12 +374,16 @@ class _AppSearchableSelectFieldState<T>
                     onChanged: _filter,
                   ),
                 ),
-                Divider(height: 1, color: context.isDark ? PharmaTokens.borderDark : PharmaTokens.borderLight),
+                Divider(
+                    height: 1,
+                    color: context.isDark
+                        ? PharmaTokens.borderDark
+                        : PharmaTokens.borderLight),
                 Expanded(
                   child: _filteredItems.isEmpty
                       ? Center(
                           child: Padding(
-                            padding: EdgeInsets.all(PharmaTokens.space6),
+                            padding: const EdgeInsets.all(PharmaTokens.space6),
                             child: Text(
                               widget.emptyText,
                               style: PharmaTokens.fieldHelper,
@@ -390,9 +400,12 @@ class _AppSearchableSelectFieldState<T>
                             return ListTile(
                               selected: isSelected,
                               selectedTileColor: context.isDark
-                                  ? PharmaTokens.brandPrimary.withValues(alpha: 0.15)
-                                  : PharmaTokens.brandPrimary.withValues(alpha: 0.08),
-                              title: Text(label, style: PharmaTokens.bodyMedium),
+                                  ? PharmaTokens.brandPrimary
+                                      .withValues(alpha: 0.15)
+                                  : PharmaTokens.brandPrimary
+                                      .withValues(alpha: 0.08),
+                              title:
+                                  Text(label, style: PharmaTokens.bodyMedium),
                               onTap: () {
                                 widget.onChanged?.call(item);
                                 _removeOverlay();
@@ -424,7 +437,7 @@ class _AppSearchableSelectFieldState<T>
     final tokens = context.tokens;
     final isDark = context.isDark;
     final hasError = widget.errorText != null && widget.errorText!.isNotEmpty;
-    final label = widget.getLabel(widget.value!);
+    final label = widget.getLabel(widget.value as T);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
