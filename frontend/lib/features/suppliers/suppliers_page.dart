@@ -129,9 +129,19 @@ class _SuppliersPageState extends State<SuppliersPage> {
             child: TextField(
               controller: _search,
               onChanged: (_) => _debouncedLoad(),
-              decoration: InputDecoration(
-                hintText: S.t('search', locale),
-                prefixIcon: const Icon(Icons.search),
+              style: const TextStyle(color: AppColors.pharmaText),
+              decoration: const InputDecoration(
+                hintText: 'Rechercher un fournisseur',
+                prefixIcon: Icon(Icons.search, color: AppColors.pharmaMuted),
+                hintStyle: TextStyle(color: AppColors.pharmaMuted),
+                fillColor: AppColors.pharmaSurface2,
+                filled: true,
+                border: OutlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.goldBorder)),
+                enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.goldBorder)),
+                focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.pharmaGold)),
               ),
             ),
           ),
