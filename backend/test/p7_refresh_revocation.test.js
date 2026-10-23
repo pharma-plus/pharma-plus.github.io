@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 /**
- * P0 — correctifs Edge 2.5.8 (prompt sécurité §4.1 / §3.1) :
+ * P0 — correctifs Edge 2.5.9 (prompt sécurité §4.1 / §3.1) :
  *
  *  (a) /auth/refresh : contrôle users.status AVANT toute rotation — un
  *      compte désactivé/supprimé ne peut plus prolonger son accès, et la
@@ -28,10 +28,10 @@ const usersStart = edge.indexOf('if (path === "users"');
 const usersEnd = edge.indexOf('path === "auth/refresh"', usersStart);
 const usersBlock = edge.slice(usersStart, usersEnd);
 
-test('2.5.8 : EDGE_VERSION unique et bumpée', () => {
+test('2.5.9 : EDGE_VERSION unique et bumpée', () => {
   const defs = [...edge.matchAll(/const EDGE_VERSION = "([0-9]+\.[0-9]+\.[0-9]+)"/g)];
   assert.equal(defs.length, 1);
-  assert.equal(defs[0][1], '2.5.8');
+  assert.equal(defs[0][1], '2.5.9');
 });
 
 test('a. refresh : refus contrôlé (PROFILE_MISSING / ACCOUNT_INACTIVE) + révocation', () => {

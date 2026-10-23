@@ -230,8 +230,8 @@ class AppDataRow<T> extends StatelessWidget {
                     : Colors.grey.withValues(alpha: 0.04)))
             : (config.striped && index.isOdd
                 ? (isDark
-                    ? Colors.white.withValues(alpha: 0.02)
-                    : Colors.grey.withValues(alpha: 0.02))
+                    ? Colors.white.withValues(alpha: 0.15)
+                    : Colors.grey.withValues(alpha: 0.1))
                 : Colors.transparent);
 
     return Container(
