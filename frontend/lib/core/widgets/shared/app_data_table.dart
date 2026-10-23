@@ -226,13 +226,15 @@ class AppDataRow<T> extends StatelessWidget {
         : hovered
             ? (config.hoverColor ??
                 (isDark
-                    ? Colors.white.withValues(alpha: 0.04)
-                    : Colors.grey.withValues(alpha: 0.04)))
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.grey.withValues(alpha: 0.08)))
             : (config.striped && index.isOdd
                 ? (isDark
                     ? Colors.white.withValues(alpha: 0.15)
                     : Colors.grey.withValues(alpha: 0.1))
-                : Colors.transparent);
+                : (isDark
+                    ? const Color(0xFF0F2520)
+                    : Colors.white));
 
     return Container(
       color: rowColor,
@@ -555,6 +557,12 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
+              // En-tête FIXE (sticky) : hors du défilement vertical,
+              // partage le même défilement horizontal que les lignes.
+              if (widget.fixedHeader) {
+                return _buildStickyHeaderTable(
+                    context, constraints, visibleColumns, hasSelection);
+              }
               return SingleChildScrollView(
                 controller: widget.scrollController,
                 scrollDirection: Axis.vertical,
@@ -573,6 +581,183 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
         ),
         if (widget.pagination) _buildPagination(context),
       ],
+    );
+  }
+
+  /// En-tête FIXE + lignes défilantes : même défilement horizontal partagé,
+  /// en-tête collé en haut (hors du SingleChildScrollView vertical).
+  Widget _buildStickyHeaderTable(
+    BuildContext context,
+    BoxConstraints constraints,
+    List<AppDataColumn<T>> visibleColumns,
+    bool hasSelection,
+  ) {
+    final rawSortIndex = _sortColumnKey == null
+        ? -1
+        : visibleColumns.indexWhere((c) => c.key == _sortColumnKey);
+    final effectiveSortIndex = rawSortIndex < 0
+        ? null
+        : rawSortIndex + (widget.showRowNumbers ? 1 : 0);
+
+    return Column(children: [
+      // Défilement horizontal partagé (en-tête + lignes).
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: constraints.maxWidth),
+          child: DataTable(
+            headingRowColor: WidgetStateProperty.resolveWith((states) =>
+                context.isDark
+                    ? const Color(0xFF0F2520)
+                    : const Color(0xFF006B43)),
+            headingRowHeight: widget.config.headerHeight,
+            dataRowMinHeight: widget.config.rowHeight,
+            dataRowMaxHeight: widget.config.rowHeight * 2,
+            columnSpacing: widget.config.columnSpacing,
+            horizontalMargin: widget.config.horizontalMargin,
+            showCheckboxColumn: widget.config.showCheckboxColumn,
+            checkboxHorizontalMargin: context.tokens.sp3,
+            sortColumnIndex: effectiveSortIndex,
+            sortAscending: _sortAscending,
+            onSelectAll: hasSelection ? _handleSelectAll : null,
+            dividerThickness: widget.config.showHorizontalLines ? 1 : 0,
+            border: widget.config.showVerticalLines
+                ? TableBorder(
+                    verticalInside: BorderSide(
+                        color: widget.config.dividerColor ??
+                            (context.isDark
+                                ? context.tokens.borderDark
+                                : context.tokens.borderLight),
+                        width: 1),
+                    horizontalInside: BorderSide(
+                        color: widget.config.dividerColor ??
+                            (context.isDark
+                                ? context.tokens.borderDark
+                                : context.tokens.borderLight),
+                        width: widget.config.showHorizontalLines ? 1 : 0),
+                  )
+                : null,
+            columns: [
+              if (widget.showRowNumbers)
+                DataColumn(
+                    label: Text(widget.rowNumberLabel,
+                        style: context.tokens.tableHeader),
+                    numeric: true),
+              ...visibleColumns.map((col) => col.toDataColumn(
+                    context,
+                    columnIndex: visibleColumns.indexOf(col),
+                    sortedAscending: _sortAscending,
+                    sortColumnKey: _sortColumnKey,
+                    onSort: _handleSort,
+                  )),
+            ],
+            rows: const [], // en-tête seul
+          ),
+        ),
+      ),
+      // Lignes : défilement vertical + horizontal partagé.
+      Expanded(
+        child: Scrollbar(
+          controller: widget.scrollController,
+          thumbVisibility: true,
+          child: SingleChildScrollView(
+            controller: widget.scrollController,
+            scrollDirection: Axis.vertical,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                child: _buildRowsOnly(context, visibleColumns, hasSelection),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ]);
+  }
+
+  /// Lignes seules (sans en-tête) pour le layout sticky.
+  Widget _buildRowsOnly(
+    BuildContext context,
+    List<AppDataColumn<T>> visibleColumns,
+    bool hasSelection,
+  ) {
+    final tokens = context.tokens;
+    final isDark = context.isDark;
+
+    return DataTable(
+      headingRowColor: WidgetStateProperty.resolveWith(
+          (states) => isDark ? tokens.bgSurfaceRaised : Colors.grey[50]),
+      headingRowHeight: 0, // en-tête masqué (affiché ci-dessus)
+      dataRowMinHeight: widget.config.rowHeight,
+      dataRowMaxHeight: widget.config.rowHeight * 2,
+      columnSpacing: widget.config.columnSpacing,
+      horizontalMargin: widget.config.horizontalMargin,
+      showCheckboxColumn: widget.config.showCheckboxColumn,
+      checkboxHorizontalMargin: tokens.sp3,
+      dividerThickness: widget.config.showHorizontalLines ? 1 : 0,
+      border: widget.config.showVerticalLines
+          ? TableBorder(
+              verticalInside: BorderSide(
+                  color: widget.config.dividerColor ??
+                      (isDark ? tokens.borderDark : tokens.borderLight),
+                  width: 1),
+              horizontalInside: BorderSide(
+                  color: widget.config.dividerColor ??
+                      (isDark ? tokens.borderDark : tokens.borderLight),
+                  width: widget.config.showHorizontalLines ? 1 : 0),
+            )
+          : null,
+      columns: [
+        if (widget.showRowNumbers)
+          DataColumn(
+              label: Text(widget.rowNumberLabel,
+                  style: tokens.tableHeader),
+              numeric: true),
+        ...visibleColumns.map((col) => const DataColumn(
+              label: SizedBox.shrink(),
+            )),
+      ],
+      rows: _displayData.asMap().entries.map((entry) {
+        final index = entry.key;
+        final item = entry.value;
+        final globalIndex =
+            widget.pagination ? _currentPage * _pageSize + index : index;
+
+        return DataRow(
+          selected: _isSelected(item),
+          onSelectChanged:
+              hasSelection ? (v) => _handleSelectItem(item, v) : null,
+          color: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return isDark
+                  ? const Color(0xFF0A2E22)
+                  : const Color(0xFFE3F2EC);
+            }
+            if (states.contains(WidgetState.hovered)) {
+              return isDark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : Colors.grey.withValues(alpha: 0.06);
+            }
+            return (widget.config.striped && index.isOdd)
+                ? (isDark
+                    ? Colors.white.withValues(alpha: 0.12)
+                    : Colors.grey.withValues(alpha: 0.08))
+                : (isDark
+                    ? const Color(0xFF0F2520)
+                    : Colors.white);
+          }),
+          cells: [
+            if (widget.showRowNumbers)
+              DataCell(Center(
+                  child: Text('${globalIndex + 1}',
+                      style: tokens.tableCellNumeric))),
+            ...visibleColumns.map((col) => DataCell(
+                widget.rowBuilder?.call(context, item, index) ??
+                    _buildDefaultCell(context, col, item))),
+          ],
+        );
+      }).toList(),
     );
   }
 
@@ -656,8 +841,9 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
         : rawSortIndex + (widget.showRowNumbers ? 1 : 0);
 
     return DataTable(
-      headingRowColor: WidgetStateProperty.resolveWith(
-          (states) => isDark ? tokens.bgSurfaceRaised : Colors.grey[50]),
+      headingRowColor: WidgetStateProperty.resolveWith((states) => isDark
+          ? const Color(0xFF0F2520)
+          : const Color(0xFF006B43)),
       headingRowHeight: widget.config.headerHeight,
       dataRowMinHeight: widget.config.rowHeight,
       dataRowMaxHeight: widget.config.rowHeight * 2,

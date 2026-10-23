@@ -125,23 +125,35 @@ class _SuppliersPageState extends State<SuppliersPage> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(12),
-            child: TextField(
-              controller: _search,
-              onChanged: (_) => _debouncedLoad(),
-              style: const TextStyle(color: AppColors.pharmaText),
-              decoration: const InputDecoration(
-                hintText: 'Rechercher un fournisseur',
-                prefixIcon: Icon(Icons.search, color: AppColors.pharmaMuted),
-                hintStyle: TextStyle(color: AppColors.pharmaMuted),
-                fillColor: AppColors.pharmaSurface2,
-                filled: true,
-                border: OutlineInputBorder(
-                    borderSide: BorderSide(color: AppColors.goldBorder)),
-                enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: AppColors.goldBorder)),
-                focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: AppColors.pharmaGold)),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 360),
+                child: TextField(
+                  controller: _search,
+                  onChanged: (_) => _debouncedLoad(),
+                  style: const TextStyle(color: AppColors.pharmaText),
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    hintText: 'Rechercher un fournisseur',
+                    prefixIcon:
+                        Icon(Icons.search, size: 18, color: AppColors.pharmaMuted),
+                    prefixIconConstraints:
+                        BoxConstraints(minWidth: 38, minHeight: 38),
+                    hintStyle: TextStyle(color: AppColors.pharmaMuted),
+                    fillColor: AppColors.pharmaSurface2,
+                    filled: true,
+                    border: OutlineInputBorder(
+                        borderSide: BorderSide(color: AppColors.goldBorder)),
+                    enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: AppColors.goldBorder)),
+                    focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: AppColors.pharmaGold)),
+                  ),
+                ),
               ),
             ),
           ),
