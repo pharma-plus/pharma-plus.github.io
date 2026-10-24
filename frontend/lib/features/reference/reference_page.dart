@@ -9,6 +9,7 @@ import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/pharma_background.dart';
+import '../../core/widgets/shared/app_search_field.dart';
 import '../shell/shell_nav.dart';
 
 class ReferencePage extends StatefulWidget {
@@ -50,8 +51,7 @@ class _ReferencePageState extends State<ReferencePage> {
     });
     final categoriesResult =
         await ApiClient.instance.get('/reference/categories');
-    final statusResult = await ApiClient.instance
-        .get('/reference/sync/status');
+    final statusResult = await ApiClient.instance.get('/reference/sync/status');
     if (!mounted) return;
     if (categoriesResult.success) {
       final cd = categoriesResult.data;
@@ -78,8 +78,8 @@ class _ReferencePageState extends State<ReferencePage> {
       if (_search.text.trim().isNotEmpty) 'q': _search.text.trim(),
       if (_activeCategory != null) 'category': _activeCategory!,
     };
-    final result = await ApiClient.instance
-        .get('/reference/products', query: query);
+    final result =
+        await ApiClient.instance.get('/reference/products', query: query);
     if (!mounted) return;
     if (!result.success) {
       setState(() {
@@ -142,8 +142,7 @@ class _ReferencePageState extends State<ReferencePage> {
       // Item hors zone virtuelle : faire défiler d'un ecran puis reessayer.
       if (_selectedKey.currentContext == null && _listCtrl.hasClients) {
         final pos = _listCtrl.position;
-        final target =
-            pos.pixels + _lastDelta * pos.viewportDimension;
+        final target = pos.pixels + _lastDelta * pos.viewportDimension;
         _listCtrl.jumpTo(target.clamp(0.0, pos.maxScrollExtent).toDouble());
         WidgetsBinding.instance.addPostFrameCallback((_) => showSelected());
       } else {
@@ -154,12 +153,13 @@ class _ReferencePageState extends State<ReferencePage> {
 
   Future<void> _runSync() async {
     setState(() => _syncing = true);
-    final result =
-        await ApiClient.instance.post('/reference/sync');
+    final result = await ApiClient.instance.post('/reference/sync');
     if (!mounted) return;
     if (result.success) {
       final sd = result.data;
-      setState(() => _syncStatus = sd is Map<String, dynamic> ? sd : (sd is Map ? Map<String, dynamic>.from(sd) : null));
+      setState(() => _syncStatus = sd is Map<String, dynamic>
+          ? sd
+          : (sd is Map ? Map<String, dynamic>.from(sd) : null));
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(S.t('syncCompleted', locale))));
     } else {
@@ -170,9 +170,8 @@ class _ReferencePageState extends State<ReferencePage> {
   }
 
   Future<void> _import(dynamic product) async {
-    final result = await ApiClient.instance.post(
-        '/reference/products/${product['id']}/import',
-        body: const {});
+    final result = await ApiClient.instance
+        .post('/reference/products/${product['id']}/import', body: const {});
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(result.success
@@ -219,108 +218,100 @@ class _ReferencePageState extends State<ReferencePage> {
           autofocus: true,
           onKeyEvent: _onKeyEvent,
           child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
-            child: GlassCard(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  const Icon(Icons.cloud_sync_outlined,
-                      color: AppColors.turquoise),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${S.t('lastSync', locale)}: '
-                          '${Fmt.dateTime(_parseDate(last?['finished_at']), locale: locale)}',
-                          style: const TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w600),
-                        ),
-                        Text(
-                          '${S.t('referenceProducts', locale)}: '
-                          '${_syncStatus?['total'] ?? 0}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+                child: GlassCard(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.cloud_sync_outlined,
+                          color: AppColors.turquoise),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${S.t('lastSync', locale)}: '
+                              '${Fmt.dateTime(_parseDate(last?['finished_at']), locale: locale)}',
+                              style: const TextStyle(
+                                  fontSize: 13, fontWeight: FontWeight.w600),
+                            ),
+                            Text(
+                              '${S.t('referenceProducts', locale)}: '
+                              '${_syncStatus?['total'] ?? 0}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
                                     ? Colors.white60
                                     : Colors.black54,
-                          ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                      TextButton.icon(
+                        onPressed: _syncing ? null : _runSync,
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: Text(_syncing
+                            ? S.t('syncRunning', locale)
+                            : S.t('syncNow', locale)),
+                      ),
+                    ],
                   ),
-                  TextButton.icon(
-                    onPressed: _syncing ? null : _runSync,
-                    icon: const Icon(Icons.refresh, size: 18),
-                    label: Text(_syncing
-                        ? S.t('syncRunning', locale)
-                        : S.t('syncNow', locale)),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
-            child: TextField(
-              controller: _search,
-              textInputAction: TextInputAction.search,
-              onSubmitted: (_) => _loadProducts(reset: true),
-              decoration: InputDecoration(
-                hintText: S.t('searchReference', locale),
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    _search.clear();
-                    _loadProducts(reset: true);
-                  },
                 ),
               ),
-            ),
-          ),
-          if (_categories.isNotEmpty)
-            SizedBox(
-              height: 48,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: Text(S.t('all', locale)),
-                      selected: _activeCategory == null,
-                      onSelected: (_) {
-                        _activeCategory = null;
-                        _loadProducts(reset: true);
-                      },
-                    ),
-                  ),
-                  for (final c in _categories)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        label: Text('${c['name_fr'] ?? c['code'] ?? ''}'),
-                        selected: _activeCategory == c['code'],
-                        onSelected: (_) {
-                          _activeCategory = '${c['code']}';
-                          _loadProducts(reset: true);
-                        },
-                      ),
-                    ),
-                ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+                child: AppSearchField(
+                  controller: _search,
+                  hint: S.t('searchReference', locale),
+                  showFilterButton: false,
+                  debounceDuration: Duration.zero,
+                  onSubmitted: (_) => _loadProducts(reset: true),
+                  onClear: () => _loadProducts(reset: true),
+                ),
               ),
-            ),
-          const SizedBox(height: 4),
-          Expanded(child: _buildList()),
-        ],
-      ),
-      ),
+              if (_categories.isNotEmpty)
+                SizedBox(
+                  height: 48,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: FilterChip(
+                          label: Text(S.t('all', locale)),
+                          selected: _activeCategory == null,
+                          onSelected: (_) {
+                            _activeCategory = null;
+                            _loadProducts(reset: true);
+                          },
+                        ),
+                      ),
+                      for (final c in _categories)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: FilterChip(
+                            label: Text('${c['name_fr'] ?? c['code'] ?? ''}'),
+                            selected: _activeCategory == c['code'],
+                            onSelected: (_) {
+                              _activeCategory = '${c['code']}';
+                              _loadProducts(reset: true);
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 4),
+              Expanded(child: _buildList()),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -394,7 +385,10 @@ class _ProductTile extends StatelessWidget {
   final bool selected;
   final VoidCallback onImport;
   const _ProductTile(
-      {super.key, required this.product, this.selected = false, required this.onImport});
+      {super.key,
+      required this.product,
+      this.selected = false,
+      required this.onImport});
 
   @override
   Widget build(BuildContext context) {
@@ -404,9 +398,7 @@ class _ProductTile extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
-      color: selected
-          ? AppColors.turquoise.withValues(alpha: 0.12)
-          : null,
+      color: selected ? AppColors.turquoise.withValues(alpha: 0.12) : null,
       shape: selected
           ? RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),

@@ -10,6 +10,7 @@ import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
+import '../../core/widgets/shared/app_search_field.dart';
 import '../../core/widgets/status_chip.dart';
 import 'users_management_page.dart';
 
@@ -84,9 +85,7 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
     setState(() => _loadingMore = !reset);
     final locale = context.read<AuthStore>().locale;
     final results = await Future.wait([
-      if (reset)
-        ApiClient.instance
-            .get('/pharmacies/global-stats'),
+      if (reset) ApiClient.instance.get('/pharmacies/global-stats'),
       ApiClient.instance.get('/pharmacies', query: {
         'page': _page,
         'limit': _limit,
@@ -97,7 +96,9 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
     if (!mounted) return;
     if (reset) {
       final gd = results[0].data;
-      _global = gd is Map<String, dynamic> ? gd : (gd is Map ? Map<String, dynamic>.from(gd) : null);
+      _global = gd is Map<String, dynamic>
+          ? gd
+          : (gd is Map ? Map<String, dynamic>.from(gd) : null);
     }
     final listRes = results.last;
     if (!listRes.success) {
@@ -128,11 +129,11 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
     final created = await showDialog<bool>(
       context: context,
       builder: (_) => Dialog(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 560),
-              child: const PharmacyForm(),
-            ),
-          ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: const PharmacyForm(),
+        ),
+      ),
     );
     if (created == true) {
       if (mounted) {
@@ -201,15 +202,13 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: S.t('searchPharmacy', locale),
-                prefixIcon: const Icon(Icons.search),
-              ),
+            child: AppSearchField(
+              hint: S.t('searchPharmacy', locale),
+              showFilterButton: false,
+              debounceDuration: Duration.zero,
               onChanged: (v) {
                 _searchDebounce?.cancel();
-                _searchDebounce =
-                    Timer(const Duration(milliseconds: 300), () {
+                _searchDebounce = Timer(const Duration(milliseconds: 300), () {
                   if (!mounted) return;
                   _q = v.trim();
                   _load(reset: true);
@@ -408,6 +407,7 @@ class _PharmacyFormState extends State<PharmacyForm> {
     _password.dispose();
     super.dispose();
   }
+
   String _license = 'trial';
   bool _saving = false;
 
@@ -450,83 +450,84 @@ class _PharmacyFormState extends State<PharmacyForm> {
           child: Form(
             key: _formKey,
             child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(S.t('newPharmacy', locale),
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _name,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                validator: (v) =>
-                    validateRequired(v, S.t('requiredField', locale)),
-                decoration: InputDecoration(labelText: S.t('name', locale)),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _slug,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                validator: (v) =>
-                    validateRequired(v, S.t('requiredField', locale)),
-                decoration: InputDecoration(labelText: S.t('slug', locale)),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _city,
-                decoration: InputDecoration(labelText: S.t('city', locale)),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _phone,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                validator: (v) => validatePhone(v, S.t('invalidPhone', locale)),
-                decoration: InputDecoration(labelText: S.t('phone', locale)),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _email,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                keyboardType: TextInputType.emailAddress,
-                validator: (v) =>
-                    validateRequired(v, S.t('requiredField', locale)) ??
-                    validateEmail(v, S.t('invalidEmail', locale)),
-                decoration:
-                    InputDecoration(labelText: S.t('adminEmail', locale)),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _password,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                obscureText: true,
-                validator: (v) {
-                  if (v == null || v.isEmpty) return null;
-                  if (v.length < 8) return S.t('passwordMin8', locale);
-                  return null;
-                },
-                decoration:
-                    InputDecoration(labelText: S.t('adminPassword', locale)),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _license,
-                decoration:
-                    InputDecoration(labelText: S.t('licenseType', locale)),
-                items: ['trial', 'standard', 'professional', 'enterprise']
-                    .map((l) => DropdownMenuItem(
-                        value: l, child: Text(_licenseText(l, locale))))
-                    .toList(),
-                onChanged: (v) => setState(() => _license = v ?? 'trial'),
-              ),
-              const SizedBox(height: 20),
-              GradientButton(
-                label: S.t('createPharmacy', locale),
-                icon: Icons.add_business_outlined,
-                loading: _saving,
-                onPressed: _save,
-              ),
-            ],
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(S.t('newPharmacy', locale),
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _name,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  validator: (v) =>
+                      validateRequired(v, S.t('requiredField', locale)),
+                  decoration: InputDecoration(labelText: S.t('name', locale)),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _slug,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  validator: (v) =>
+                      validateRequired(v, S.t('requiredField', locale)),
+                  decoration: InputDecoration(labelText: S.t('slug', locale)),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _city,
+                  decoration: InputDecoration(labelText: S.t('city', locale)),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _phone,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  validator: (v) =>
+                      validatePhone(v, S.t('invalidPhone', locale)),
+                  decoration: InputDecoration(labelText: S.t('phone', locale)),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _email,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (v) =>
+                      validateRequired(v, S.t('requiredField', locale)) ??
+                      validateEmail(v, S.t('invalidEmail', locale)),
+                  decoration:
+                      InputDecoration(labelText: S.t('adminEmail', locale)),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _password,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  obscureText: true,
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return null;
+                    if (v.length < 8) return S.t('passwordMin8', locale);
+                    return null;
+                  },
+                  decoration:
+                      InputDecoration(labelText: S.t('adminPassword', locale)),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: _license,
+                  decoration:
+                      InputDecoration(labelText: S.t('licenseType', locale)),
+                  items: ['trial', 'standard', 'professional', 'enterprise']
+                      .map((l) => DropdownMenuItem(
+                          value: l, child: Text(_licenseText(l, locale))))
+                      .toList(),
+                  onChanged: (v) => setState(() => _license = v ?? 'trial'),
+                ),
+                const SizedBox(height: 20),
+                GradientButton(
+                  label: S.t('createPharmacy', locale),
+                  icon: Icons.add_business_outlined,
+                  loading: _saving,
+                  onPressed: _save,
+                ),
+              ],
             ),
           ),
         ),
@@ -569,12 +570,14 @@ class _PharmacyDetailState extends State<_PharmacyDetail> {
   }
 
   Future<void> _load() async {
-    final result = await ApiClient.instance.get(
-        '/pharmacies/${widget.pharmacy['id']}/stats');
+    final result = await ApiClient.instance
+        .get('/pharmacies/${widget.pharmacy['id']}/stats');
     if (!mounted) return;
     if (result.success) {
       final d = result.data;
-      setState(() => _stats = d is Map<String, dynamic> ? d : (d is Map ? Map<String, dynamic>.from(d) : null));
+      setState(() => _stats = d is Map<String, dynamic>
+          ? d
+          : (d is Map ? Map<String, dynamic>.from(d) : null));
     } else {
       setState(() => _error = result.error?.message);
     }

@@ -10,6 +10,7 @@ import '../../core/services/api_client.dart';
 import '../../core/services/api_list.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
+import '../../core/widgets/shared/app_search_field.dart';
 import '../shell/shell_nav.dart';
 import 'stock_logic.dart';
 
@@ -128,23 +129,12 @@ class _StockMovementsPageState extends State<StockMovementsPage> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-            child: TextField(
+            child: AppSearchField(
               controller: _search,
+              hint: 'Rechercher produit, motif…',
+              showFilterButton: false,
+              debounceDuration: Duration.zero,
               onChanged: (_) => setState(() {}),
-              style: const TextStyle(color: AppColors.pharmaText),
-              decoration: const InputDecoration(
-                hintText: 'Rechercher produit, motif…',
-                prefixIcon: Icon(Icons.search, color: AppColors.pharmaMuted),
-                hintStyle: TextStyle(color: AppColors.pharmaMuted),
-                fillColor: AppColors.pharmaSurface2,
-                filled: true,
-                border: OutlineInputBorder(
-                    borderSide: BorderSide(color: AppColors.goldBorder)),
-                enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: AppColors.goldBorder)),
-                focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: AppColors.pharmaGold)),
-              ),
             ),
           ),
           SizedBox(
