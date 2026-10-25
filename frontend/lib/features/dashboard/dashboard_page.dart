@@ -429,8 +429,8 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildKpiGrid({required bool compact}) {
-    const green = Color(0xFF43D97C);
-    const amber = Color(0xFFFFA24A);
+    // Couleurs de catégorie : constantes premium centralisées dans
+    // AppColors (une couleur DISTINCTE par carte — pas tout en vert).
     // Tendance affichée UNIQUEMENT si un comparatif réel existe.
     String? pct(double? v) =>
         v == null ? null : '${v >= 0 ? '+' : ''}${v.toStringAsFixed(1)}%';
@@ -443,7 +443,7 @@ class _DashboardPageState extends State<DashboardPage> {
           trendVs: 'vs hier',
           image: 'assets/images/kpi_bg_1.webp',
           badge: Icons.point_of_sale_rounded,
-          badgeColor: green,
+          badgeColor: AppColors.emeraldRich,
           module: 'pos'),
       _KpiDef(
           label: 'MÉDICAMENTS',
@@ -451,7 +451,7 @@ class _DashboardPageState extends State<DashboardPage> {
           sub: 'Références catalogue',
           image: 'assets/images/kpi_bg_2.webp',
           badge: Icons.medication_rounded,
-          badgeColor: green,
+          badgeColor: AppColors.cardBlue,
           module: 'catalog'),
       _KpiDef(
           label: 'PRODUITS EN STOCK',
@@ -459,7 +459,7 @@ class _DashboardPageState extends State<DashboardPage> {
           sub: 'En pharmacie',
           image: 'assets/images/kpi_bg_3.webp',
           badge: Icons.warning_amber_rounded,
-          badgeColor: amber,
+          badgeColor: AppColors.cardAmber,
           module: 'stock'),
       _KpiDef(
           label: 'COMMANDES',
@@ -467,7 +467,7 @@ class _DashboardPageState extends State<DashboardPage> {
           sub: 'En attente',
           image: 'assets/images/kpi_bg_4.webp',
           badge: Icons.fact_check_rounded,
-          badgeColor: green,
+          badgeColor: AppColors.cardPurple,
           module: 'purchases'),
       _KpiDef(
           label: 'FOURNISSEURS',
@@ -475,7 +475,7 @@ class _DashboardPageState extends State<DashboardPage> {
           sub: 'Fournisseurs',
           image: 'assets/images/kpi_bg_5.webp',
           badge: Icons.local_shipping_rounded,
-          badgeColor: green,
+          badgeColor: AppColors.petroleumBlue,
           module: 'suppliers'),
       _KpiDef(
           label: 'CLIENTS',
@@ -483,7 +483,7 @@ class _DashboardPageState extends State<DashboardPage> {
           sub: 'Clients',
           image: 'assets/images/kpi_bg_6.webp',
           badge: Icons.groups_rounded,
-          badgeColor: green,
+          badgeColor: AppColors.emeraldDeep,
           module: 'customers'),
       _KpiDef(
           label: 'EMPLOYÉS',
@@ -491,7 +491,7 @@ class _DashboardPageState extends State<DashboardPage> {
           sub: 'Employés',
           image: 'assets/images/kpi_bg_7.webp',
           badge: Icons.person_rounded,
-          badgeColor: green,
+          badgeColor: AppColors.emeraldInk,
           module: 'employees'),
       _KpiDef(
           label: 'BÉNÉFICE MOIS',
@@ -500,7 +500,7 @@ class _DashboardPageState extends State<DashboardPage> {
           trendVs: 'vs mois dernier',
           image: 'assets/images/kpi_bg_8.webp',
           badge: Icons.bar_chart_rounded,
-          badgeColor: green,
+          badgeColor: AppColors.champagneGold,
           module: 'reports'),
     ].where((k) => k.module == null || auth.canSeeModule(k.module!)).toList();
     // 4 colonnes sur desktop ; 2 sur les écrans étroits (lisible partout).
@@ -580,7 +580,6 @@ class _KpiCard extends StatefulWidget {
 class _KpiCardState extends State<_KpiCard> {
   bool _hover = false;
   bool _press = false;
-  static const _titleGreen = Color(0xFF43D97C);
 
   _KpiDef get def => widget.def;
   int get index => widget.index;
@@ -659,16 +658,24 @@ class _KpiCardState extends State<_KpiCard> {
                           ),
                           const SizedBox(width: 6),
                           Container(
+                            key: ValueKey('kpi-badge-${def.label}'),
                             width: 24,
                             height: 24,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF0B1D13),
+                              // Fond coloré propre à la catégorie (thème
+                              // premium) : chaque KPI reste reconnaissable.
+                              color: def.badgeColor,
                               borderRadius: BorderRadius.circular(8),
-                              border:
-                                  Border.all(color: const Color(0xFF2A4A38)),
+                              border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.18)),
                             ),
-                            child: Icon(def.badge,
-                                size: 14, color: def.badgeColor),
+                            child: Icon(
+                              def.badge,
+                              size: 14,
+                              color: def.badgeColor == AppColors.champagneGold
+                                  ? const Color(0xFF3A2A05)
+                                  : Colors.white.withValues(alpha: 0.92),
+                            ),
                           ),
                         ]),
                         const SizedBox(height: 6),
@@ -698,7 +705,7 @@ class _KpiCardState extends State<_KpiCard> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                  color: _titleGreen,
+                                  color: AppColors.emeraldBright,
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w800)),
                           Text(def.trendVs,
@@ -817,36 +824,41 @@ class _TopBar extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 16),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-          decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.03),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
-          child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Row(mainAxisSize: MainAxisSize.min, children: [
-                  Flexible(
-                    child: Text(pharmacyName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800)),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.keyboard_arrow_down,
-                      size: 18, color: AppColors.textSecondary),
+        // Flexible : sur écran étroit la carte pharmacie rétrécit (le nom
+        // est déjà ellipsé) au lieu de faire déborder la barre.
+        Flexible(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.03),
+                borderRadius: BorderRadius.circular(12),
+                border:
+                    Border.all(color: Colors.white.withValues(alpha: 0.10))),
+            child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    Flexible(
+                      child: Text(pharmacyName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800)),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.keyboard_arrow_down,
+                        size: 18, color: AppColors.textSecondary),
+                  ]),
+                  Text(roleLabel,
+                      style: const TextStyle(
+                          color: AppColors.emeraldLight,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700)),
                 ]),
-                Text(roleLabel,
-                    style: const TextStyle(
-                        color: AppColors.emeraldLight,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700)),
-              ]),
+          ),
         ),
         const SizedBox(width: 14),
         // Badge notifications : compteur RÉEL depuis l'API (0 = pas de badge).
@@ -940,12 +952,19 @@ class _DarkPanel extends StatelessWidget {
             Row(children: [
               Icon(icon, size: 17, color: iconColor),
               const SizedBox(width: 8),
-              Text(title,
-                  style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.95),
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.6)),
+              // Flexible + ellipsis : sur smartphone, les panneaux sont
+              // étroits (« ALERTES STOCK », « PLAN 3D… ») — aucun titre ne
+              // doit déborder de son panneau.
+              Flexible(
+                child: Text(title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.95),
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6)),
+              ),
             ]),
             const SizedBox(height: 10),
             child,
@@ -1196,9 +1215,15 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
           ]),
         ),
         const SizedBox(height: 9),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          for (final (letter, name) in _legend) _LegendItem(letter, name),
-        ]),
+        // Wrap : sur écran étroit les 4 étiquettes passent à la ligne
+        // au lieu de déborder (aucune superposition).
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            for (final (letter, name) in _legend) _LegendItem(letter, name),
+          ],
+        ),
       ]),
     );
   }

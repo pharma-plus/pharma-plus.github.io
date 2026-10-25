@@ -509,65 +509,108 @@ class _StockPageState extends State<StockPage> {
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
               child: Row(children: [
-                // Carte KPI 1 — Valeur du stock (icône pro, MAD).
+                // Carte KPI 1 — Valeur du stock (finance : or + MAD).
                 Expanded(
                   child: GlassCard(
+                    key: const ValueKey('stock-kpi-value'),
                     radius: BorderRadius.circular(14),
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 10),
-                    child: Row(children: [
-                      const Icon(Icons.sell_outlined,
-                          size: 18, color: AppColors.pharmaGold),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(S.t('stockValue', locale),
-                                style: const TextStyle(
-                                    fontSize: 11,
-                                    color: AppColors.pharmaMuted)),
-                            Text('${Fmt.money(_totalValue)} MAD',
-                                style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.pharmaText)),
-                          ],
+                    child: LayoutBuilder(builder: (context, cardConstraints) {
+                      // Illustration 3D masquée sous 210 px de largeur de
+                      // carte (téléphones) : les libellés restent lisibles.
+                      final showIllus = cardConstraints.maxWidth >= 210;
+                      return Row(children: [
+                        const Icon(Icons.sell_outlined,
+                            size: 18, color: AppColors.pharmaGold),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(S.t('stockValue', locale),
+                                  style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.pharmaMuted)),
+                              Text('${Fmt.money(_totalValue)} MAD',
+                                  style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.pharmaText)),
+                            ],
+                          ),
                         ),
-                      ),
-                    ]),
+                        if (showIllus) ...[
+                          const SizedBox(width: 8),
+                          // Illustration 3D (même famille que les KPI du
+                          // Dashboard) : graphique ascendant + pièces.
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: SizedBox(
+                              width: 58,
+                              height: 46,
+                              child: Image.asset(
+                                'assets/images/kpi_bg_8.webp',
+                                fit: BoxFit.cover,
+                                alignment: Alignment.bottomRight,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ]);
+                    }),
                   ),
                 ),
                 const SizedBox(width: 8),
-                // Carte KPI 2 — Quantité totale (icône distincte, unité).
+                // Carte KPI 2 — Quantité totale (cartons + unités).
                 Expanded(
                   child: GlassCard(
+                    key: const ValueKey('stock-kpi-qty'),
                     radius: BorderRadius.circular(14),
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 10),
-                    child: Row(children: [
-                      const Icon(Icons.inventory_2_outlined,
-                          size: 18, color: AppColors.emerald),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(S.t('stockQtyTotal', locale),
-                                style: const TextStyle(
-                                    fontSize: 11,
-                                    color: AppColors.pharmaMuted)),
-                            Text('${Fmt.number(_totalQty)} u.',
-                                style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.pharmaText)),
-                          ],
+                    child: LayoutBuilder(builder: (context, cardConstraints) {
+                      final showIllus = cardConstraints.maxWidth >= 210;
+                      return Row(children: [
+                        const Icon(Icons.inventory_2_outlined,
+                            size: 18, color: AppColors.emerald),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(S.t('stockQtyTotal', locale),
+                                  style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.pharmaMuted)),
+                              Text('${Fmt.number(_totalQty)} u.',
+                                  style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.pharmaText)),
+                            ],
+                          ),
                         ),
-                      ),
-                    ]),
+                        if (showIllus) ...[
+                          const SizedBox(width: 8),
+                          // Illustration 3D distincte : cartons de stock.
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: SizedBox(
+                              width: 58,
+                              height: 46,
+                              child: Image.asset(
+                                'assets/images/kpi_bg_3.webp',
+                                fit: BoxFit.cover,
+                                alignment: Alignment.bottomRight,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ]);
+                    }),
                   ),
                 ),
               ]),

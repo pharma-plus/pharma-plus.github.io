@@ -1900,6 +1900,21 @@ class _PosPageState extends State<PosPage> {
                   ),
                   child: Row(
                     children: [
+                      // Pastille catégorie — langage premium, fond sombre
+                      // coloré (bleu Médicaments), sans gonfler la ligne.
+                      Container(
+                        width: 34,
+                        height: 34,
+                        margin: const EdgeInsets.only(right: 10),
+                        decoration: BoxDecoration(
+                          color: AppColors.cardBlue,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.14)),
+                        ),
+                        child: const Icon(Icons.medication_rounded,
+                            size: 18, color: Colors.white70),
+                      ),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1919,14 +1934,32 @@ class _PosPageState extends State<PosPage> {
                                       color:
                                           Colors.white.withValues(alpha: 0.45),
                                       fontSize: 9.5)),
-                            Text(
-                                'PPV ${Fmt.money(m.priceSale)}  ·  Stock : ${stockQty == null ? 'Non renseigné' : stockQty.round()}',
-                                style: TextStyle(
-                                    color: stockQty == null
-                                        ? Colors.white.withValues(alpha: 0.4)
-                                        : AppColors.emerald,
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w700)),
+                            // Prix en or champagne (information financière),
+                            // stock en émeraude — lecture immédiate.
+                            Text.rich(
+                              TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: 'PPV ${Fmt.money(m.priceSale)}',
+                                    style: const TextStyle(
+                                        color: AppColors.champagneGold,
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w800),
+                                  ),
+                                  TextSpan(
+                                    text:
+                                        '  ·  Stock : ${stockQty == null ? 'Non renseigné' : stockQty.round()}',
+                                    style: TextStyle(
+                                        color: stockQty == null
+                                            ? Colors.white
+                                                .withValues(alpha: 0.4)
+                                            : AppColors.emerald,
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w700),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                       ),
