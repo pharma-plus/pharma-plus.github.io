@@ -22,6 +22,7 @@ import '../shell/shell_nav.dart';
 import '../stock/stock_page.dart';
 import 'pos_panel.dart';
 import 'global_search.dart';
+import 'kpi_art.dart';
 
 /// ============================================================
 /// DASHBOARD PHARMA+ — reconstruction IDENTIQUE à la maquette :
@@ -441,66 +442,78 @@ class _DashboardPageState extends State<DashboardPage> {
           value: Fmt.money(_revenueToday),
           trendPct: pct(_trendRevenueToday),
           trendVs: 'vs hier',
-          image: 'assets/images/kpi_bg_1.webp',
+          art: KpiArt.register,
+          cardColor: AppColors.deepGreen,
           badge: Icons.point_of_sale_rounded,
-          badgeColor: AppColors.emeraldRich,
+          badgeColor: AppColors.champagne,
           module: 'pos'),
       _KpiDef(
           label: 'MÉDICAMENTS',
           value: Fmt.number(_medications),
           sub: 'Références catalogue',
-          image: 'assets/images/kpi_bg_2.webp',
+          art: KpiArt.bottle,
+          cardColor: AppColors.petrolMenu,
           badge: Icons.medication_rounded,
-          badgeColor: AppColors.cardBlue,
+          badgeColor: AppColors.champagne,
           module: 'catalog'),
       _KpiDef(
           label: 'PRODUITS EN STOCK',
           value: Fmt.number(_productsInStock),
           sub: 'En pharmacie',
-          image: 'assets/images/kpi_bg_3.webp',
-          badge: Icons.warning_amber_rounded,
-          badgeColor: AppColors.cardAmber,
+          art: KpiArt.boxes,
+          cardColor: Colors.white,
+          textColor: AppColors.deepGreen,
+          badge: Icons.inventory_rounded,
+          badgeColor: AppColors.actionGreen,
           module: 'stock'),
       _KpiDef(
           label: 'COMMANDES',
           value: '$_pendingOrders',
           sub: 'En attente',
-          image: 'assets/images/kpi_bg_4.webp',
+          art: KpiArt.clipboard,
+          cardColor: AppColors.pageBg,
+          textColor: AppColors.textMain,
           badge: Icons.fact_check_rounded,
-          badgeColor: AppColors.cardPurple,
+          badgeColor: AppColors.secondaryGreen,
           module: 'purchases'),
       _KpiDef(
           label: 'FOURNISSEURS',
           value: Fmt.number(_suppliers),
           sub: 'Fournisseurs',
-          image: 'assets/images/kpi_bg_5.webp',
+          art: KpiArt.truck,
+          cardColor: AppColors.surfaceSecondary,
+          textColor: AppColors.textMain,
           badge: Icons.local_shipping_rounded,
-          badgeColor: AppColors.petroleumBlue,
+          badgeColor: AppColors.actionGreen,
           module: 'suppliers'),
       _KpiDef(
           label: 'CLIENTS',
           value: Fmt.number(_customers),
           sub: 'Clients',
-          image: 'assets/images/kpi_bg_6.webp',
+          art: KpiArt.people,
+          cardColor: AppColors.pageBg,
+          textColor: AppColors.textMain,
           badge: Icons.groups_rounded,
-          badgeColor: AppColors.emeraldDeep,
+          badgeColor: AppColors.secondaryGreen,
           module: 'customers'),
       _KpiDef(
           label: 'EMPLOYÉS',
           value: '$_employees',
           sub: 'Employés',
-          image: 'assets/images/kpi_bg_7.webp',
+          art: KpiArt.pharmacist,
+          cardColor: AppColors.deepGreen,
           badge: Icons.person_rounded,
-          badgeColor: AppColors.emeraldInk,
+          badgeColor: AppColors.champagne,
           module: 'employees'),
       _KpiDef(
           label: 'BÉNÉFICE MOIS',
           value: Fmt.money(_profitMonth),
           trendPct: pct(_trendProfitMonth),
           trendVs: 'vs mois dernier',
-          image: 'assets/images/kpi_bg_8.webp',
+          art: KpiArt.bars,
+          cardColor: AppColors.actionGreen,
           badge: Icons.bar_chart_rounded,
-          badgeColor: AppColors.champagneGold,
+          badgeColor: AppColors.champagne,
           module: 'reports'),
     ].where((k) => k.module == null || auth.canSeeModule(k.module!)).toList();
     // 4 colonnes sur desktop ; 2 sur les écrans étroits (lisible partout).
@@ -536,10 +549,15 @@ class _KpiDef {
   final String? trendPct;
   final String trendVs;
 
-  /// Fond photo extrait de la maquette (assets/images/kpi_bg_N.png) :
-  /// dégradé du carton + cadre + illustration 3D sur socle, textes de la
-  /// maquette effacés — l'app dessine les valeurs réelles par-dessus.
-  final String image;
+  /// Illustration 3D peinte (CustomPainter, pas d'image plate).
+  final KpiArt art;
+
+  /// Fond opaque de la carte — adapté à sa catégorie (pas de transparence).
+  final Color cardColor;
+
+  /// Couleur de texte si différente du blanc par défaut (sur fonds clairs).
+  final Color? textColor;
+
   final IconData badge;
   final Color badgeColor;
 
@@ -551,7 +569,9 @@ class _KpiDef {
     this.sub = '',
     this.trendPct,
     this.trendVs = '',
-    required this.image,
+    required this.art,
+    required this.cardColor,
+    this.textColor,
     required this.badge,
     required this.badgeColor,
     this.module,
@@ -619,22 +639,20 @@ class _KpiCardState extends State<_KpiCard> {
                       blurRadius: 18,
                       offset: const Offset(0, 8)),
               ],
-              // L'illustration webp EST le carton de la maquette (dégradé
-              // coloré + 3D) : fond plein cadre gérée par le Stack ci-dessous.
-              color: const Color(0xFF05130D),
+              color: def.cardColor,
             ),
             child: ClipRect(
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Illustration plein cadre = carton maquette exact
-                  // (BoxFit.cover + ancrage bas → le podium n'est jamais
-                  // rogné, le léger excédent se prend en haut).
-                  Positioned.fill(
-                    child: Image.asset(
-                      def.image,
-                      fit: BoxFit.cover,
-                      alignment: Alignment.bottomCenter,
+                  // Illustration 3D peinte (CustomPainter) — rendement
+                  // volumétrique fidèle à la maquette, léger, sans image.
+                  Center(
+                    child: SizedBox.expand(
+                      child: CustomPaint(
+                        painter: KpiArtPainter(def.art),
+                        size: Size.infinite,
+                      ),
                     ),
                   ),
                   Padding(
@@ -649,8 +667,8 @@ class _KpiCardState extends State<_KpiCard> {
                               alignment: Alignment.centerLeft,
                               child: Text('$index. ${def.label}',
                                   maxLines: 1,
-                                  style: const TextStyle(
-                                      color: Colors.white,
+                                  style: TextStyle(
+                                      color: def.textColor ?? Colors.white,
                                       fontSize: 10.5,
                                       fontWeight: FontWeight.w800,
                                       letterSpacing: 0.8)),
@@ -684,8 +702,8 @@ class _KpiCardState extends State<_KpiCard> {
                           alignment: Alignment.centerLeft,
                           child: Text(def.value,
                               maxLines: 1,
-                              style: const TextStyle(
-                                  color: Colors.white,
+                              style: TextStyle(
+                                  color: def.textColor ?? Colors.white,
                                   fontSize: 20,
                                   fontWeight: FontWeight.w900)),
                         ),
@@ -695,7 +713,8 @@ class _KpiCardState extends State<_KpiCard> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.75),
+                                  color: (def.textColor ?? Colors.white)
+                                      .withValues(alpha: 0.75),
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w600)),
                         ],
@@ -704,15 +723,17 @@ class _KpiCardState extends State<_KpiCard> {
                           Text(def.trendPct!,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  color: AppColors.emeraldBright,
+                              style: TextStyle(
+                                  color: def.textColor ??
+                                      AppColors.successGreen,
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w800)),
                           Text(def.trendVs,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.70),
+                                  color: (def.textColor ?? Colors.white)
+                                      .withValues(alpha: 0.70),
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.w600)),
                         ],

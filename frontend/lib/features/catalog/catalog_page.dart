@@ -1046,7 +1046,7 @@ class _CatalogPageState extends State<CatalogPage> {
   Widget _tableHeader({required double medW}) {
     return Container(
       height: 44,
-      color: AppColors.primary,
+      color: AppColors.deepGreen,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [

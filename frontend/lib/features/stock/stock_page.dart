@@ -791,7 +791,7 @@ class _StockPageState extends State<StockPage> {
     return Container(
       key: const ValueKey('stock_table_header'),
       height: 44,
-      color: AppColors.primary,
+      color: AppColors.deepGreen,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [

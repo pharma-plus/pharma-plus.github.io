@@ -56,7 +56,7 @@ abstract final class PharmaTokens {
   static const Color borderDark = AppColors.dividerDark;
   static const Color borderGold = AppColors.goldBorder;
   static const Color borderGoldStrong = AppColors.goldBorderStrong;
-  static const Color borderFocus = AppColors.brandGold;
+  static const Color borderFocus = AppColors.primary;
 
   // =========================================================================
   // TYPOGRAPHIE
