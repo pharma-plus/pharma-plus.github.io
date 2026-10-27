@@ -22,6 +22,7 @@ import '../shell/shell_nav.dart';
 import '../stock/stock_page.dart';
 import 'pos_panel.dart';
 import 'global_search.dart';
+import 'kpi_art.dart';
 
 /// ============================================================
 /// DASHBOARD PHARMA+ — reconstruction IDENTIQUE à la maquette :
@@ -441,7 +442,7 @@ class _DashboardPageState extends State<DashboardPage> {
           value: Fmt.money(_revenueToday),
           trendPct: pct(_trendRevenueToday),
           trendVs: 'vs hier',
-          image: 'assets/images/kpi_bg_1.webp',
+          art: KpiArt.register,
           cardColor: AppColors.deepGreen,
           badge: Icons.point_of_sale_rounded,
           badgeColor: AppColors.champagne,
@@ -450,7 +451,7 @@ class _DashboardPageState extends State<DashboardPage> {
           label: 'MÉDICAMENTS',
           value: Fmt.number(_medications),
           sub: 'Références catalogue',
-          image: 'assets/images/kpi_bg_2.webp',
+          art: KpiArt.bottle,
           cardColor: AppColors.petrolMenu,
           badge: Icons.medication_rounded,
           badgeColor: AppColors.champagne,
@@ -459,7 +460,7 @@ class _DashboardPageState extends State<DashboardPage> {
           label: 'PRODUITS EN STOCK',
           value: Fmt.number(_productsInStock),
           sub: 'En pharmacie',
-          image: 'assets/images/kpi_bg_3.webp',
+          art: KpiArt.boxes,
           cardColor: Colors.white,
           textColor: AppColors.deepGreen,
           badge: Icons.inventory_rounded,
@@ -469,7 +470,7 @@ class _DashboardPageState extends State<DashboardPage> {
           label: 'COMMANDES',
           value: '$_pendingOrders',
           sub: 'En attente',
-          image: 'assets/images/kpi_bg_4.webp',
+          art: KpiArt.clipboard,
           cardColor: AppColors.pageBg,
           textColor: AppColors.textMain,
           badge: Icons.fact_check_rounded,
@@ -479,7 +480,7 @@ class _DashboardPageState extends State<DashboardPage> {
           label: 'FOURNISSEURS',
           value: Fmt.number(_suppliers),
           sub: 'Fournisseurs',
-          image: 'assets/images/kpi_bg_5.webp',
+          art: KpiArt.truck,
           cardColor: AppColors.surfaceSecondary,
           textColor: AppColors.textMain,
           badge: Icons.local_shipping_rounded,
@@ -489,7 +490,7 @@ class _DashboardPageState extends State<DashboardPage> {
           label: 'CLIENTS',
           value: Fmt.number(_customers),
           sub: 'Clients',
-          image: 'assets/images/kpi_bg_6.webp',
+          art: KpiArt.people,
           cardColor: AppColors.pageBg,
           textColor: AppColors.textMain,
           badge: Icons.groups_rounded,
@@ -499,7 +500,7 @@ class _DashboardPageState extends State<DashboardPage> {
           label: 'EMPLOYÉS',
           value: '$_employees',
           sub: 'Employés',
-          image: 'assets/images/kpi_bg_7.webp',
+          art: KpiArt.pharmacist,
           cardColor: AppColors.deepGreen,
           badge: Icons.person_rounded,
           badgeColor: AppColors.champagne,
@@ -509,7 +510,7 @@ class _DashboardPageState extends State<DashboardPage> {
           value: Fmt.money(_profitMonth),
           trendPct: pct(_trendProfitMonth),
           trendVs: 'vs mois dernier',
-          image: 'assets/images/kpi_bg_8.webp',
+          art: KpiArt.bars,
           cardColor: AppColors.actionGreen,
           badge: Icons.bar_chart_rounded,
           badgeColor: AppColors.champagne,
@@ -548,8 +549,8 @@ class _KpiDef {
   final String? trendPct;
   final String trendVs;
 
-  /// Illustration de fond de la carte (image webp de la maquette).
-  final String image;
+  /// Illustration 3D peinte (CustomPainter, pas d'image plate).
+  final KpiArt art;
 
   /// Fond opaque de la carte — adapté à sa catégorie (pas de transparence).
   final Color cardColor;
@@ -568,7 +569,7 @@ class _KpiDef {
     this.sub = '',
     this.trendPct,
     this.trendVs = '',
-    required this.image,
+    required this.art,
     required this.cardColor,
     this.textColor,
     required this.badge,
@@ -644,12 +645,14 @@ class _KpiCardState extends State<_KpiCard> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Illustration de fond de la carte (image webp de la maquette)
-                  Positioned.fill(
-                    child: Image.asset(
-                      def.image,
-                      fit: BoxFit.cover,
-                      alignment: Alignment.bottomCenter,
+                  // Illustration 3D peinte (CustomPainter) — rendement
+                  // volumétrique fidèle à la maquette, léger, sans image.
+                  Center(
+                    child: SizedBox.expand(
+                      child: CustomPaint(
+                        painter: KpiArtPainter(def.art),
+                        size: Size.infinite,
+                      ),
                     ),
                   ),
                   Padding(
