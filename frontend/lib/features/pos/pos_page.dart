@@ -246,8 +246,8 @@ class _PosPageState extends State<PosPage> {
       final raw = prefs.getString(_kHeldKey);
       Map<String, dynamic>? held;
       if (raw != null) {
-        for (final e
-            in (jsonDecode(raw) as List? ?? const []).whereType<Map<String, dynamic>>()) {
+        for (final e in (jsonDecode(raw) as List? ?? const [])
+            .whereType<Map<String, dynamic>>()) {
           if ('${e['id']}' == id) {
             held = Map<String, dynamic>.from(e);
             break;
@@ -377,8 +377,8 @@ class _PosPageState extends State<PosPage> {
       _searchMedications('');
       return;
     }
-    _searchDebounce =
-        Timer(const Duration(milliseconds: 350), () => _searchMedications(query));
+    _searchDebounce = Timer(
+        const Duration(milliseconds: 350), () => _searchMedications(query));
   }
 
   // ──────────────── DATA ────────────────
@@ -393,8 +393,8 @@ class _PosPageState extends State<PosPage> {
       final auth = context.read<AuthStore>();
       setState(() {
         _branches = list;
-        _branchId =
-            auth.user?.branchId ?? (list.isNotEmpty ? '${list[0]['id']}' : null);
+        _branchId = auth.user?.branchId ??
+            (list.isNotEmpty ? '${list[0]['id']}' : null);
       });
       if ((widget.initialPayment != null || widget.initialReceived != null) &&
           _cart.lines.isNotEmpty &&
@@ -450,7 +450,8 @@ class _PosPageState extends State<PosPage> {
     // Liste des pathologies tracees (reellement filtree cote Edge) —
     // chargee uniquement si des indications existent.
     if (_indicationsAvailable) {
-      final pr = await ApiClient.instance.get('/catalog/medications/pathologies');
+      final pr =
+          await ApiClient.instance.get('/catalog/medications/pathologies');
       if (!mounted || !pr.success) return;
       setState(() => _pathologies = ApiList.of(pr.data));
     }
@@ -465,7 +466,8 @@ class _PosPageState extends State<PosPage> {
     if (form != null && form.isNotEmpty) params['form'] = 'eq.$form';
     final patho = _activePathologie;
     if (patho != null && patho.isNotEmpty) params['pathologie'] = patho;
-    final result = await ApiClient.instance.get('/catalog/medications', query: params);
+    final result =
+        await ApiClient.instance.get('/catalog/medications', query: params);
     if (!mounted) return;
     List<Map<String, dynamic>> rows;
     if (result.success) {
@@ -520,8 +522,9 @@ class _PosPageState extends State<PosPage> {
             name.contains(ql) ||
             lab.contains(ql) ||
             ean.contains(q);
-        final matchesForm =
-            form == null || form.isEmpty || (r['form'] ?? '').toString() == form;
+        final matchesForm = form == null ||
+            form.isEmpty ||
+            (r['form'] ?? '').toString() == form;
         return matchesQ && matchesForm;
       }).toList();
     } catch (_) {
@@ -537,10 +540,13 @@ class _PosPageState extends State<PosPage> {
 
   /// Stock réel par lot pour les ids affichés (badge stock des cartes).
   Future<void> _loadStockForPage() async {
-    final ids = _catalog.map((m) => m.id).where((id) => !_stock.containsKey(id)).toList();
+    final ids = _catalog
+        .map((m) => m.id)
+        .where((id) => !_stock.containsKey(id))
+        .toList();
     if (ids.isEmpty) return;
-    final r = await ApiClient.instance
-        .get('/catalog/medications/stock', query: {'ids': ids.take(100).join(',')});
+    final r = await ApiClient.instance.get('/catalog/medications/stock',
+        query: {'ids': ids.take(100).join(',')});
     if (!mounted || !r.success || r.data is! List) return;
     setState(() {
       for (final e in r.data as List) {
@@ -662,8 +668,11 @@ class _PosPageState extends State<PosPage> {
   /// provenance + référence liée), fallback sur les données locales.
   Future<void> _showQuickInfo(Medication m) async {
     Map<String, dynamic>? details;
-    final r = await ApiClient.instance.get('/catalog/medications/${m.id}/details');
-    if (r.success && r.data is Map) details = Map<String, dynamic>.from(r.data as Map);
+    final r =
+        await ApiClient.instance.get('/catalog/medications/${m.id}/details');
+    if (r.success && r.data is Map) {
+      details = Map<String, dynamic>.from(r.data as Map);
+    }
     if (!mounted) return;
     final med = details?['medication'] as Map<String, dynamic>? ??
         <String, dynamic>{
@@ -721,8 +730,7 @@ class _PosPageState extends State<PosPage> {
                 row('EAN', med['barcode_ean13']),
                 'PPV : ${Fmt.money((med['price_sale'] as num?)?.toDouble() ?? m.priceSale)}',
                 row('Pathologie', 'Données non disponibles'),
-                row('Source',
-                    prov?['source_name'] ?? prov?['source_url']),
+                row('Source', prov?['source_name'] ?? prov?['source_url']),
                 'Stock : ${_stock[m.id]?.round().toString() ?? 'Non renseigné'}',
               ].join('\n'),
               style: TextStyle(
@@ -752,7 +760,8 @@ class _PosPageState extends State<PosPage> {
   }
 
   Future<void> _scan() async {
-    final code = await BarcodeScannerSheet.show(context, title: 'Scanner produit');
+    final code =
+        await BarcodeScannerSheet.show(context, title: 'Scanner produit');
     if (code != null) await _addScannedToCart(code);
   }
 
@@ -783,7 +792,9 @@ class _PosPageState extends State<PosPage> {
       );
       return;
     }
-    final medMap = medication is Map ? Map<String, dynamic>.from(medication) : <String, dynamic>{};
+    final medMap = medication is Map
+        ? Map<String, dynamic>.from(medication)
+        : <String, dynamic>{};
     final med = Medication.fromJson(medMap);
     final added = await _checkStockAndAdd(med);
     if (!added || !mounted) return;
@@ -791,14 +802,15 @@ class _PosPageState extends State<PosPage> {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           duration: const Duration(seconds: 1),
-          content: Text(
-              '+ ${med.name} — panier : ${_cart.lines.length} ligne(s)')));
+          content:
+              Text('+ ${med.name} — panier : ${_cart.lines.length} ligne(s)')));
     }
   }
 
   // ──────────────── PAYMENT + CHECKOUT ────────────────
 
-  bool get _cashSufficient => _received >= _cart.total || _paymentMode != 'cash';
+  bool get _cashSufficient =>
+      _received >= _cart.total || _paymentMode != 'cash';
   double get _change => (_received > _cart.total) ? _received - _cart.total : 0;
   double get _due => (_received < _cart.total) ? _cart.total - _received : 0;
 
@@ -811,8 +823,9 @@ class _PosPageState extends State<PosPage> {
 
   void _quickReceived(double v) {
     final next = v == _cart.total ? v : _received + v;
-    _receivedCtrl.text =
-        next == next.roundToDouble() ? next.round().toString() : next.toStringAsFixed(2);
+    _receivedCtrl.text = next == next.roundToDouble()
+        ? next.round().toString()
+        : next.toStringAsFixed(2);
     _received = next;
     _receivedVN.value = next;
   }
@@ -888,8 +901,8 @@ class _PosPageState extends State<PosPage> {
         if (_customerId != null) 'customerId': _customerId,
         'payments': [pay.toPayload()],
       };
-      final result = await ApiClient.instance.post('/sales',
-          body: saleBody, timeout: const Duration(seconds: 60));
+      final result = await ApiClient.instance
+          .post('/sales', body: saleBody, timeout: const Duration(seconds: 60));
       if (result.success) {
         final change = pay.change ??
             calculateChange(received: pay.amount, total: _cart.total);
@@ -938,8 +951,8 @@ class _PosPageState extends State<PosPage> {
           'sale-$clientSaleId',
           saleBody,
         );
-        await OfflineStore.instance.enqueue(
-            method: 'POST', path: '/sales', body: saleBody);
+        await OfflineStore.instance
+            .enqueue(method: 'POST', path: '/sales', body: saleBody);
         _cart.clear();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -976,8 +989,7 @@ class _PosPageState extends State<PosPage> {
             content: Text('$e'),
             actions: [
               TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('OK')),
+                  onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
             ],
           ),
         );
@@ -992,8 +1004,7 @@ class _PosPageState extends State<PosPage> {
   // ──────────────── CAISSE : sessions (phases 9-12) ────────────────
   Future<void> _showCaisseDialog() async {
     if (_branchId == null) return;
-    final summary =
-        await CashSessionService.openSession(branchId: _branchId);
+    final summary = await CashSessionService.openSession(branchId: _branchId);
     if (!mounted) return;
     if (summary == null) {
       await _openCashSessionDialog();
@@ -1044,7 +1055,8 @@ class _PosPageState extends State<PosPage> {
         branchId: _branchId!, initialCash: initial);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(done ? 'Caisse ouverte · $initial MAD' : "Échec d'ouverture"),
+        content:
+            Text(done ? 'Caisse ouverte · $initial MAD' : "Échec d'ouverture"),
         backgroundColor: done ? AppColors.success : AppColors.danger,
       ));
     }
@@ -1091,8 +1103,7 @@ class _PosPageState extends State<PosPage> {
               _cashRow('Sorties', '${summary['exits']} MAD'),
               _cashRow('Remboursements', '${summary['refunds']} MAD'),
               const Divider(),
-              _cashRow('Espèces théoriques',
-                  '${summary['expectedCash']} MAD',
+              _cashRow('Espèces théoriques', '${summary['expectedCash']} MAD',
                   bold: true),
             ],
           ),
@@ -1145,8 +1156,7 @@ class _PosPageState extends State<PosPage> {
             const SizedBox(height: 10),
             TextField(
               controller: noteCtrl,
-              decoration:
-                  const InputDecoration(labelText: 'Note (optionnel)'),
+              decoration: const InputDecoration(labelText: 'Note (optionnel)'),
             ),
           ],
         ),
@@ -1204,8 +1214,8 @@ class _PosPageState extends State<PosPage> {
                   final counted = double.tryParse(v) ?? 0;
                   setState(() => diff = counted - expected);
                 },
-                decoration: const InputDecoration(
-                    labelText: 'Espèces comptées (MAD)'),
+                decoration:
+                    const InputDecoration(labelText: 'Espèces comptées (MAD)'),
               ),
               const SizedBox(height: 12),
               _cashRow('ÉCART (réel − théorique)',
@@ -1233,8 +1243,7 @@ class _PosPageState extends State<PosPage> {
         content: Text(result != null
             ? 'Caisse fermée · Écart : ${result['difference']} MAD (historisé)'
             : 'Échec de fermeture'),
-        backgroundColor:
-            result != null ? AppColors.success : AppColors.danger,
+        backgroundColor: result != null ? AppColors.success : AppColors.danger,
       ));
     }
   }
@@ -1282,129 +1291,143 @@ class _PosPageState extends State<PosPage> {
               onTap: () => FocusScope.of(context).unfocus(),
               child: LayoutBuilder(
                 builder: (context, constraints) {
-            final isWide = constraints.maxWidth > 768;
-            // ── PC/Mac : deux colonnes, boutons fixés en bas de la colonne droite ──
-            if (isWide) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ── GAUCHE : scrollable ──
-                    Expanded(
-                      flex: 5,
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _buildSearchRow(locale),
-                            const SizedBox(height: 8),
-                            _buildCategoriesGrid(locale, aspectRatio: 3.5),
-                            const SizedBox(height: 10),
-                            _buildResultsTable(locale),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    // ── DROITE : scroll + boutons fixes en bas ──
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                  final isWide = constraints.maxWidth > 768;
+                  // ── PC/Mac : deux colonnes, boutons fixés en bas de la colonne droite ──
+                  if (isWide) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // ── GAUCHE : scrollable ──
                           Expanded(
+                            flex: 5,
                             child: SingleChildScrollView(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  _buildHeldSales(locale),
-                                  _buildClientRow(locale),
+                                  _buildSearchRow(locale),
                                   const SizedBox(height: 8),
-                                  _buildDiscountRow(locale),
-                                  const SizedBox(height: 8),
-                                  _buildTotals(locale),
+                                  _buildCategoriesGrid(locale,
+                                      aspectRatio: 3.5),
                                   const SizedBox(height: 10),
-                                  _buildPaymentMode(locale),
-                                  const SizedBox(height: 8),
-                                  if (_paymentMode == 'cash' && !_cart.isEmpty)
-                                    _buildCashReceived(locale),
-                                  if (_paymentMode == 'cash' && !_cart.isEmpty)
-                                    const SizedBox(height: 12),
+                                  _buildResultsTable(locale),
                                 ],
                               ),
                             ),
                           ),
-                          // ── Boutons fixes en bas de la colonne droite ──
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: AppColors.pharmaSurface.withValues(alpha: 0.92),
-                              border: Border(
-                                top: BorderSide(color: AppColors.goldBorder.withValues(alpha: 0.3)),
-                              ),
+                          const SizedBox(width: 14),
+                          // ── DROITE : scroll + boutons fixes en bas ──
+                          Expanded(
+                            flex: 2,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(
+                                  child: SingleChildScrollView(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        _buildHeldSales(locale),
+                                        _buildClientRow(locale),
+                                        const SizedBox(height: 8),
+                                        _buildDiscountRow(locale),
+                                        const SizedBox(height: 8),
+                                        _buildTotals(locale),
+                                        const SizedBox(height: 10),
+                                        _buildPaymentMode(locale),
+                                        const SizedBox(height: 8),
+                                        if (_paymentMode == 'cash' &&
+                                            !_cart.isEmpty)
+                                          _buildCashReceived(locale),
+                                        if (_paymentMode == 'cash' &&
+                                            !_cart.isEmpty)
+                                          const SizedBox(height: 12),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                // ── Boutons fixes en bas de la colonne droite ──
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.pharmaSurface
+                                        .withValues(alpha: 0.92),
+                                    border: Border(
+                                      top: BorderSide(
+                                          color: AppColors.goldBorder
+                                              .withValues(alpha: 0.3)),
+                                    ),
+                                  ),
+                                  child: _buildActions(locale),
+                                ),
+                              ],
                             ),
-                            child: _buildActions(locale),
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-              );
-            }
-            // ── Mobile/Tablet : scroll + boutons fixes en bas ──
-            return Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildSearchRow(locale),
-                        const SizedBox(height: 8),
-                        _buildCategoriesGrid(locale),
-                        const SizedBox(height: 10),
-                        _buildResultsTable(locale),
-                        const SizedBox(height: 10),
-                        _buildHeldSales(locale),
-                        _buildClientRow(locale),
-                        const SizedBox(height: 8),
-                        _buildDiscountRow(locale),
-                        const SizedBox(height: 8),
-                        _buildTotals(locale),
-                        const SizedBox(height: 10),
-                        _buildPaymentMode(locale),
-                        const SizedBox(height: 8),
-                        if (_paymentMode == 'cash' && !_cart.isEmpty)
-                          _buildCashReceived(locale),
-                        if (_paymentMode == 'cash' && !_cart.isEmpty)
-                          const SizedBox(height: 12),
-                      ],
-                    ),
-                  ),
-                ),
-                // ── Boutons fixes en bas ──
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.pharmaSurface.withValues(alpha: 0.92),
-                    border: Border(
-                      top: BorderSide(color: AppColors.goldBorder.withValues(alpha: 0.3)),
-                    ),
-                  ),
-                  child: _buildActions(locale),
-                ),
-              ],
-            );
-          },
-        ),
-        ),
-        ),
-      ],
+                    );
+                  }
+                  // ── Mobile/Tablet : scroll + boutons fixes en bas ──
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _buildSearchRow(locale),
+                              const SizedBox(height: 8),
+                              _buildCategoriesGrid(locale),
+                              const SizedBox(height: 10),
+                              _buildResultsTable(locale),
+                              const SizedBox(height: 10),
+                              _buildHeldSales(locale),
+                              _buildClientRow(locale),
+                              const SizedBox(height: 8),
+                              _buildDiscountRow(locale),
+                              const SizedBox(height: 8),
+                              _buildTotals(locale),
+                              const SizedBox(height: 10),
+                              _buildPaymentMode(locale),
+                              const SizedBox(height: 8),
+                              if (_paymentMode == 'cash' && !_cart.isEmpty)
+                                _buildCashReceived(locale),
+                              if (_paymentMode == 'cash' && !_cart.isEmpty)
+                                const SizedBox(height: 12),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // ── Boutons fixes en bas ──
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color:
+                              AppColors.pharmaSurface.withValues(alpha: 0.92),
+                          border: Border(
+                            top: BorderSide(
+                                color: AppColors.goldBorder
+                                    .withValues(alpha: 0.3)),
+                          ),
+                        ),
+                        child: _buildActions(locale),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
       ),
-      );
+    );
   }
 
   // ══════════════════════════════════════════
@@ -1446,13 +1469,15 @@ class _PosPageState extends State<PosPage> {
                       _heldSummary(h),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 11, color: Colors.white70),
+                      style:
+                          const TextStyle(fontSize: 11, color: Colors.white70),
                     ),
                   ),
                   TextButton(
                     onPressed: () => _resumeHeld('${h['id']}'),
                     child: const Text('Reprendre',
-                        style: TextStyle(fontSize: 11, color: Color(0xFF7BEBA4))),
+                        style:
+                            TextStyle(fontSize: 11, color: Color(0xFF7BEBA4))),
                   ),
                   IconButton(
                     tooltip: 'Supprimer la vente suspendue',
@@ -1471,7 +1496,8 @@ class _PosPageState extends State<PosPage> {
 
   String _heldSummary(Map<String, dynamic> h) {
     final items = (h['items'] as List? ?? const []);
-    final n = items.fold<int>(0, (s, e) => s + ((e['qty'] as num?)?.toInt() ?? 0));
+    final n =
+        items.fold<int>(0, (s, e) => s + ((e['qty'] as num?)?.toInt() ?? 0));
     var when = '${h['savedAt'] ?? ''}';
     if (when.length > 16) when = when.replaceFirst('T', ' ').substring(0, 16);
     return '$n article(s) · $when';
@@ -1480,37 +1506,43 @@ class _PosPageState extends State<PosPage> {
   Widget _buildSearchRow(String locale) {
     return Column(
       children: [
-        // ── Barre de recherche pleine largeur ──
-        TextField(
-          controller: _search,
-          onChanged: _onSearchChanged,
-          style: const TextStyle(color: Colors.white, fontSize: 13),
-          decoration: InputDecoration(
-            hintText: S.t('search', locale),
-            prefixIcon:
-                const Icon(Icons.search, color: AppColors.pharmaMuted, size: 20),
-            suffixIcon: _searching
-                ? const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2)),
-                  )
-                : null,
-            fillColor: AppColors.pharmaSurface,
-            filled: true,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.goldBorder)),
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.goldBorder)),
-            focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.pharmaGold)),
+        // ── Barre de recherche (≤ 380 px : règle des 10 cm) ──
+        Align(
+          alignment: Alignment.centerLeft,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 380),
+            child: TextField(
+              controller: _search,
+              onChanged: _onSearchChanged,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              decoration: InputDecoration(
+                hintText: S.t('search', locale),
+                prefixIcon: const Icon(Icons.search,
+                    color: AppColors.pharmaMuted, size: 20),
+                suffixIcon: _searching
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2)),
+                      )
+                    : null,
+                fillColor: AppColors.pharmaSurface,
+                filled: true,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.goldBorder)),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.goldBorder)),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.pharmaGold)),
+              ),
+            ),
           ),
         ),
         // ── Bandeau hors-ligne : signale que prix/stock ne sont pas garantis
@@ -1536,7 +1568,8 @@ class _PosPageState extends State<PosPage> {
                           '(prix/stock non garantis à jour)'
                       : '${S.t('offline', locale)} — cache local '
                           '(prix/stock non garantis à jour)',
-                  style: const TextStyle(fontSize: 11, color: Colors.orangeAccent),
+                  style:
+                      const TextStyle(fontSize: 11, color: Colors.orangeAccent),
                 ),
               ),
             ]),
@@ -1578,8 +1611,7 @@ class _PosPageState extends State<PosPage> {
             onTap: _scanContinuous,
             borderRadius: BorderRadius.circular(12),
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFF1A4A32), Color(0xFF0E2A1C)],
@@ -1621,7 +1653,9 @@ class _PosPageState extends State<PosPage> {
         Text(
           S.t('categories', locale),
           style: const TextStyle(
-              fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.pharmaMuted),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.pharmaMuted),
         ),
         const SizedBox(height: 6),
         GridView.builder(
@@ -1661,7 +1695,8 @@ class _PosPageState extends State<PosPage> {
                     },
             );
             if (!isPatho) return tile;
-            return Opacity(opacity: _indicationsAvailable ? 1 : 0.45, child: tile);
+            return Opacity(
+                opacity: _indicationsAvailable ? 1 : 0.45, child: tile);
           },
         ),
         if (_activePathologie != null)
@@ -1736,7 +1771,8 @@ class _PosPageState extends State<PosPage> {
         decoration: BoxDecoration(
           color: AppColors.pharmaSurface.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.goldBorder.withValues(alpha: 0.4)),
+          border:
+              Border.all(color: AppColors.goldBorder.withValues(alpha: 0.4)),
         ),
         child: const Center(
           child: Text('Recherchez ou scannez un produit pour commencer',
@@ -1758,7 +1794,8 @@ class _PosPageState extends State<PosPage> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
               color: AppColors.pharmaGold.withValues(alpha: 0.12),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(14)),
             ),
             child: const Row(
               children: [
@@ -1835,8 +1872,8 @@ class _PosPageState extends State<PosPage> {
                   }
                   setState(() => line.quantity += 1);
                 },
-                onDelete: () => setState(
-                    () => _cart.removeLine(line.medication.id)),
+                onDelete: () =>
+                    setState(() => _cart.removeLine(line.medication.id)),
               );
             }),
           // ── Search results to add ──
@@ -1845,7 +1882,8 @@ class _PosPageState extends State<PosPage> {
               final m = _results[i];
               final stockQty = _stock[m.id];
               final meta = [
-                if ((m.laboratoryName ?? '').trim().isNotEmpty) m.laboratoryName!,
+                if ((m.laboratoryName ?? '').trim().isNotEmpty)
+                  m.laboratoryName!,
                 if ((m.dosage ?? '').trim().isNotEmpty) m.dosage!,
                 if ((m.form ?? '').trim().isNotEmpty) m.form!,
                 if ((m.presentation ?? '').trim().isNotEmpty) m.presentation!,
@@ -1878,7 +1916,8 @@ class _PosPageState extends State<PosPage> {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                      color: Colors.white.withValues(alpha: 0.45),
+                                      color:
+                                          Colors.white.withValues(alpha: 0.45),
                                       fontSize: 9.5)),
                             Text(
                                 'PPV ${Fmt.money(m.priceSale)}  ·  Stock : ${stockQty == null ? 'Non renseigné' : stockQty.round()}',
@@ -1937,8 +1976,8 @@ class _PosPageState extends State<PosPage> {
                 items: [
                   const DropdownMenuItem(
                     value: null,
-                    child: Text('Client comptoir',
-                        style: TextStyle(fontSize: 13)),
+                    child:
+                        Text('Client comptoir', style: TextStyle(fontSize: 13)),
                   ),
                   ..._customers.map((c) => DropdownMenuItem(
                         value: '${c['id']}',
@@ -1967,8 +2006,7 @@ class _PosPageState extends State<PosPage> {
         Expanded(
           child: TextField(
             controller: _discountCtrl,
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d{0,2}')),
             ],
@@ -1983,8 +2021,7 @@ class _PosPageState extends State<PosPage> {
             decoration: InputDecoration(
               isDense: true,
               hintText: S.t('discount', locale),
-              prefixIcon:
-                  const Icon(Icons.local_offer_outlined, size: 16),
+              prefixIcon: const Icon(Icons.local_offer_outlined, size: 16),
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               fillColor: AppColors.pharmaSurface,
@@ -2117,7 +2154,11 @@ class _PosPageState extends State<PosPage> {
             ? const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFF1A237E), Color(0xFF283593), Color(0xFF1A1F71)])
+                colors: [
+                    Color(0xFF1A237E),
+                    Color(0xFF283593),
+                    Color(0xFF1A1F71)
+                  ])
             : null,
         color: active ? null : const Color(0xFF1A1F71),
         borderRadius: BorderRadius.circular(4),
@@ -2161,120 +2202,122 @@ class _PosPageState extends State<PosPage> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-        const Text('MONTANT REÇU (MAD)',
-            style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: AppColors.pharmaMuted,
-                letterSpacing: 0.6)),
-        const SizedBox(height: 6),
-        TextField(
-          controller: _receivedCtrl,
-          keyboardType:
-              const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d{0,2}')),
-          ],
-          onChanged: _setReceived,
-          style: const TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w900),
-          decoration: InputDecoration(
-            hintText: '0,00',
-            hintStyle: TextStyle(
-                color: Colors.white.withValues(alpha: 0.25), fontSize: 22),
-            fillColor: AppColors.pharmaSurface,
-            filled: true,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                    color: _cashSufficient
-                        ? AppColors.emerald
-                        : AppColors.danger)),
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                    color: _cashSufficient
-                        ? AppColors.emerald
-                        : AppColors.danger)),
-            focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.pharmaGold)),
-            suffixIcon: _received > 0
-                ? IconButton(
-                    icon: const Icon(Icons.close_rounded,
-                        size: 18, color: Colors.white54),
-                    onPressed: () {
-                      _receivedCtrl.clear();
-                      _received = 0;
-                      _receivedVN.value = 0;
-                    })
-                : null,
-          ),
-        ),
-        const SizedBox(height: 8),
-        // Quick amounts
-        Row(
-          children: [
-            _QuickBtn(label: '+20', onTap: () => _quickReceived(20)),
-            const SizedBox(width: 4),
-            _QuickBtn(label: '+50', onTap: () => _quickReceived(50)),
-            const SizedBox(width: 4),
-            _QuickBtn(label: '+100', onTap: () => _quickReceived(100)),
-            const SizedBox(width: 4),
-            _QuickBtn(label: '+200', onTap: () => _quickReceived(200)),
-            const SizedBox(width: 4),
-            _QuickBtn(
-                label: 'Exact',
-                onTap: () {
-                  _receivedCtrl.text = _cart.total == _cart.total.roundToDouble()
-                      ? _cart.total.round().toString()
-                      : Fmt.money(_cart.total);
-                  _received = _cart.total;
-                  _receivedVN.value = _cart.total;
-                }),
-          ],
-        ),
-        const SizedBox(height: 10),
-        // Change / Due
-        if (_received > 0)
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: _cashSufficient
-                  ? AppColors.emerald.withValues(alpha: 0.12)
-                  : AppColors.danger.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                  color: _cashSufficient ? AppColors.emerald : AppColors.danger),
+            const Text('MONTANT REÇU (MAD)',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.pharmaMuted,
+                    letterSpacing: 0.6)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _receivedCtrl,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d{0,2}')),
+              ],
+              onChanged: _setReceived,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900),
+              decoration: InputDecoration(
+                hintText: '0,00',
+                hintStyle: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.25), fontSize: 22),
+                fillColor: AppColors.pharmaSurface,
+                filled: true,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                        color: _cashSufficient
+                            ? AppColors.emerald
+                            : AppColors.danger)),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                        color: _cashSufficient
+                            ? AppColors.emerald
+                            : AppColors.danger)),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.pharmaGold)),
+                suffixIcon: _received > 0
+                    ? IconButton(
+                        icon: const Icon(Icons.close_rounded,
+                            size: 18, color: Colors.white54),
+                        onPressed: () {
+                          _receivedCtrl.clear();
+                          _received = 0;
+                          _receivedVN.value = 0;
+                        })
+                    : null,
+              ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            const SizedBox(height: 8),
+            // Quick amounts
+            Row(
               children: [
-                Text(
-                    _cashSufficient ? 'MONNAIE / RENDU' : 'RESTE À PAYER',
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: _cashSufficient
-                            ? AppColors.emerald
-                            : AppColors.danger)),
-                Text(
-                    '${_cashSufficient ? Fmt.money(_change) : Fmt.money(_due)} MAD',
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        color: _cashSufficient
-                            ? AppColors.emerald
-                            : AppColors.danger)),
+                _QuickBtn(label: '+20', onTap: () => _quickReceived(20)),
+                const SizedBox(width: 4),
+                _QuickBtn(label: '+50', onTap: () => _quickReceived(50)),
+                const SizedBox(width: 4),
+                _QuickBtn(label: '+100', onTap: () => _quickReceived(100)),
+                const SizedBox(width: 4),
+                _QuickBtn(label: '+200', onTap: () => _quickReceived(200)),
+                const SizedBox(width: 4),
+                _QuickBtn(
+                    label: 'Exact',
+                    onTap: () {
+                      _receivedCtrl.text =
+                          _cart.total == _cart.total.roundToDouble()
+                              ? _cart.total.round().toString()
+                              : Fmt.money(_cart.total);
+                      _received = _cart.total;
+                      _receivedVN.value = _cart.total;
+                    }),
               ],
             ),
-          ),
-      ],
-      );
+            const SizedBox(height: 10),
+            // Change / Due
+            if (_received > 0)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _cashSufficient
+                      ? AppColors.emerald.withValues(alpha: 0.12)
+                      : AppColors.danger.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                      color: _cashSufficient
+                          ? AppColors.emerald
+                          : AppColors.danger),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(_cashSufficient ? 'MONNAIE / RENDU' : 'RESTE À PAYER',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: _cashSufficient
+                                ? AppColors.emerald
+                                : AppColors.danger)),
+                    Text(
+                        '${_cashSufficient ? Fmt.money(_change) : Fmt.money(_due)} MAD',
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: _cashSufficient
+                                ? AppColors.emerald
+                                : AppColors.danger)),
+                  ],
+                ),
+              ),
+          ],
+        );
       },
     );
   }
@@ -2293,99 +2336,100 @@ class _PosPageState extends State<PosPage> {
             (_paymentMode != 'cash' || _cashSufficient);
         return Row(
           children: [
-        Expanded(
-          child: _PosButton(
-            label: 'Vider',
-            icon: Icons.delete_outline_rounded,
-            color: const Color(0xFFB3372F),
-            enabled: !_cart.isEmpty,
-            onTap: () {
-              if (_cart.isEmpty) return;
-              showDialog(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Vider le panier ?'),
-                  content:
-                      const Text('Tous les produits seront supprimés.'),
-                  actions: [
-                    TextButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        child: const Text('Annuler')),
-                    TextButton(
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          setState(() {
-                            _cart.clear();
-                            _received = 0;
-                            _receivedCtrl.clear();
-                          });
-                          _receivedVN.value = 0;
-                        },
-                        child: const Text('Vider',
-                            style: TextStyle(color: AppColors.danger))),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(width: 6),
-        Expanded(
-          child: _PosButton(
-            label: 'Suspendre',
-            icon: Icons.pause_circle_outline_rounded,
-            color: const Color(0xFFB98A1F),
-            enabled: !_cart.isEmpty,
-            onTap: () async {
-              if (_cart.isEmpty) return;
-              await _holdCart();
-              if (!mounted) return;
-              setState(() {
-                _cart.clear();
-                _received = 0;
-                _receivedCtrl.clear();
-                _discountCtrl.clear();
-                _discountIsPercent = true;
-              });
-              _receivedVN.value = 0;
-              if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                    content:
-                        Text('Vente suspendue — reprenez-la ici.')),
-              );
-            },
-          ),
-        ),
-        const SizedBox(width: 6),
-        Expanded(
-          child: _PayButton(
-            label: _checkout
-                ? 'Enregistrement…'
-                : canPay
-                    ? 'Payer'
-                    : _paymentMode == 'cash' && _received > 0 && !_cashSufficient
-                        ? 'Montant insuffisant'
-                        : 'Payer',
-            enabled: canPay || _checkout,
-            onTap: canPay ? () => _confirmPayment() : null,
-            // Feedback EXPLICITE : le tap ne doit JAMAIS sembler « mort ».
-            onDisabledTap: () {
-              final reason = _cart.isEmpty
-                  ? 'Ajoutez au moins un produit au panier.'
-                  : _checkout
-                      ? 'Enregistrement en cours…'
-                      : _paymentMode == 'cash' && !_cashSufficient
-                          ? 'Montant reçu insuffisant — reste ${Fmt.money(_due)} MAD à payer.'
-                          : 'Paiement impossible pour le moment.';
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(reason)),
-              );
-            },
-          ),
-        ),
-      ],
-      );
+            Expanded(
+              child: _PosButton(
+                label: 'Vider',
+                icon: Icons.delete_outline_rounded,
+                color: const Color(0xFFB3372F),
+                enabled: !_cart.isEmpty,
+                onTap: () {
+                  if (_cart.isEmpty) return;
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Vider le panier ?'),
+                      content:
+                          const Text('Tous les produits seront supprimés.'),
+                      actions: [
+                        TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('Annuler')),
+                        TextButton(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              setState(() {
+                                _cart.clear();
+                                _received = 0;
+                                _receivedCtrl.clear();
+                              });
+                              _receivedVN.value = 0;
+                            },
+                            child: const Text('Vider',
+                                style: TextStyle(color: AppColors.danger))),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: _PosButton(
+                label: 'Suspendre',
+                icon: Icons.pause_circle_outline_rounded,
+                color: const Color(0xFFB98A1F),
+                enabled: !_cart.isEmpty,
+                onTap: () async {
+                  if (_cart.isEmpty) return;
+                  await _holdCart();
+                  if (!mounted) return;
+                  setState(() {
+                    _cart.clear();
+                    _received = 0;
+                    _receivedCtrl.clear();
+                    _discountCtrl.clear();
+                    _discountIsPercent = true;
+                  });
+                  _receivedVN.value = 0;
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Vente suspendue — reprenez-la ici.')),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: _PayButton(
+                label: _checkout
+                    ? 'Enregistrement…'
+                    : canPay
+                        ? 'Payer'
+                        : _paymentMode == 'cash' &&
+                                _received > 0 &&
+                                !_cashSufficient
+                            ? 'Montant insuffisant'
+                            : 'Payer',
+                enabled: canPay || _checkout,
+                onTap: canPay ? () => _confirmPayment() : null,
+                // Feedback EXPLICITE : le tap ne doit JAMAIS sembler « mort ».
+                onDisabledTap: () {
+                  final reason = _cart.isEmpty
+                      ? 'Ajoutez au moins un produit au panier.'
+                      : _checkout
+                          ? 'Enregistrement en cours…'
+                          : _paymentMode == 'cash' && !_cashSufficient
+                              ? 'Montant reçu insuffisant — reste ${Fmt.money(_due)} MAD à payer.'
+                              : 'Paiement impossible pour le moment.';
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(reason)),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
       },
     );
   }
@@ -2432,8 +2476,7 @@ class _ProductRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
         border: Border(
-            bottom:
-                BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+            bottom: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
       ),
       child: Row(
         children: [
@@ -2573,8 +2616,8 @@ class _PaymentChipState extends State<_PaymentChip>
     super.initState();
     _ac = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 1200));
-    _glow = Tween<double>(begin: 0.3, end: 0.8).animate(
-        CurvedAnimation(parent: _ac, curve: Curves.easeInOut));
+    _glow = Tween<double>(begin: 0.3, end: 0.8)
+        .animate(CurvedAnimation(parent: _ac, curve: Curves.easeInOut));
     // Animation continue UNIQUEMENT si le chip est sélectionné : sinon
     // le contrôleur tournerait à 60 fps inutilement (CPU gaspillé).
     if (widget.selected) _ac.repeat(reverse: true);
@@ -2622,7 +2665,9 @@ class _PaymentChipState extends State<_PaymentChip>
                       ],
                     )
                   : null,
-              color: widget.selected ? null : AppColors.pharmaSurface.withValues(alpha: 0.5),
+              color: widget.selected
+                  ? null
+                  : AppColors.pharmaSurface.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: widget.selected
@@ -2688,9 +2733,7 @@ class _DiscountToggle extends StatelessWidget {
       child: Row(
         children: [
           _ToggleBtn(
-              label: '%',
-              selected: isPercent,
-              onTap: () => onChanged(true)),
+              label: '%', selected: isPercent, onTap: () => onChanged(true)),
           _ToggleBtn(
               label: 'MAD',
               selected: !isPercent,
@@ -2743,7 +2786,8 @@ class _QuickBtn extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.pharmaSurface,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColors.goldBorder.withValues(alpha: 0.4)),
+            border:
+                Border.all(color: AppColors.goldBorder.withValues(alpha: 0.4)),
           ),
           child: Text(label,
               textAlign: TextAlign.center,
@@ -2785,8 +2829,8 @@ class _PosButtonState extends State<_PosButton>
     super.initState();
     _ac = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 1200));
-    _glow = Tween<double>(begin: 0.4, end: 0.8).animate(
-        CurvedAnimation(parent: _ac, curve: Curves.easeInOut));
+    _glow = Tween<double>(begin: 0.4, end: 0.8)
+        .animate(CurvedAnimation(parent: _ac, curve: Curves.easeInOut));
     // Animation continue UNIQUEMENT si le bouton est actif : sinon le
     // contrôleur tournerait à 60 fps inutilement (CPU gaspillé).
     if (widget.enabled) _ac.repeat(reverse: true);
@@ -2910,8 +2954,8 @@ class _PayButtonState extends State<_PayButton>
     super.initState();
     _ac = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 1400));
-    _glow = Tween<double>(begin: 0.4, end: 1.0).animate(
-        CurvedAnimation(parent: _ac, curve: Curves.easeInOut));
+    _glow = Tween<double>(begin: 0.4, end: 1.0)
+        .animate(CurvedAnimation(parent: _ac, curve: Curves.easeInOut));
     // Animation continue UNIQUEMENT si le bouton Payer est actif : sinon
     // le contrôleur tournerait à 60 fps inutilement (CPU gaspillé).
     if (widget.enabled) _ac.repeat(reverse: true);
@@ -2940,9 +2984,7 @@ class _PayButtonState extends State<_PayButton>
   Widget build(BuildContext context) {
     return GestureDetector(
       // Tap TOUJOURS actif : si désactivé, onDisabledTap affiche la raison.
-      onTap: widget.enabled
-          ? widget.onTap
-          : (widget.onDisabledTap ?? () {}),
+      onTap: widget.enabled ? widget.onTap : (widget.onDisabledTap ?? () {}),
       child: AnimatedBuilder(
         animation: _glow,
         builder: (context, child) {
@@ -2955,15 +2997,14 @@ class _PayButtonState extends State<_PayButton>
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Color.lerp(
-                            const Color(0xFF0E8C4F),
-                            const Color(0xFF3BE39A),
-                            g * 0.4)!,
+                        Color.lerp(const Color(0xFF0E8C4F),
+                            const Color(0xFF3BE39A), g * 0.4)!,
                         const Color(0xFF086B3D),
                       ],
                     )
                   : null,
-              color: widget.enabled ? null : Colors.white.withValues(alpha: 0.03),
+              color:
+                  widget.enabled ? null : Colors.white.withValues(alpha: 0.03),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: widget.enabled
@@ -2973,14 +3014,14 @@ class _PayButtonState extends State<_PayButton>
               boxShadow: widget.enabled
                   ? [
                       BoxShadow(
-                        color: const Color(0xFF0E8C4F)
-                            .withValues(alpha: g * 0.45),
+                        color:
+                            const Color(0xFF0E8C4F).withValues(alpha: g * 0.45),
                         blurRadius: 10 + g * 6,
                         offset: const Offset(0, 3),
                       ),
                       BoxShadow(
-                        color: const Color(0xFF3BE39A)
-                            .withValues(alpha: g * 0.2),
+                        color:
+                            const Color(0xFF3BE39A).withValues(alpha: g * 0.2),
                         blurRadius: 16 + g * 8,
                         offset: const Offset(0, 0),
                       ),
@@ -3025,19 +3066,29 @@ class _MastercardLogoPainter extends CustomPainter {
     final cx = s.width / 2, cy = s.height / 2;
     final r = s.height * 0.38;
     c.drawCircle(
-        Offset(cx - r * 0.55, cy), r + 1,
-        Paint()..color = const Color(0x30000000)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2));
+        Offset(cx - r * 0.55, cy),
+        r + 1,
+        Paint()
+          ..color = const Color(0x30000000)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2));
     c.drawCircle(
-        Offset(cx + r * 0.55, cy), r + 1,
-        Paint()..color = const Color(0x30000000)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2));
-    c.drawCircle(Offset(cx - r * 0.55, cy), r,
-        Paint()..shader = ui.Gradient.radial(
-            Offset(cx - r * 0.55 - 3, cy - 3), r,
-            [const Color(0xFFFF4D4D), const Color(0xFFEB001B)]));
-    c.drawCircle(Offset(cx + r * 0.55, cy), r,
-        Paint()..shader = ui.Gradient.radial(
-            Offset(cx + r * 0.55 - 3, cy - 3), r,
-            [const Color(0xFFFFC733), const Color(0xFFF79E1B)]));
+        Offset(cx + r * 0.55, cy),
+        r + 1,
+        Paint()
+          ..color = const Color(0x30000000)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2));
+    c.drawCircle(
+        Offset(cx - r * 0.55, cy),
+        r,
+        Paint()
+          ..shader = ui.Gradient.radial(Offset(cx - r * 0.55 - 3, cy - 3), r,
+              [const Color(0xFFFF4D4D), const Color(0xFFEB001B)]));
+    c.drawCircle(
+        Offset(cx + r * 0.55, cy),
+        r,
+        Paint()
+          ..shader = ui.Gradient.radial(Offset(cx + r * 0.55 - 3, cy - 3), r,
+              [const Color(0xFFFFC733), const Color(0xFFF79E1B)]));
   }
 
   @override

@@ -60,7 +60,16 @@ class _UnknownProductDialogState extends State<UnknownProductDialog> {
 
   @override
   void dispose() {
-    for (final c in [_name, _dci, _dosage, _form, _purchase, _sale, _tva, _search]) {
+    for (final c in [
+      _name,
+      _dci,
+      _dosage,
+      _form,
+      _purchase,
+      _sale,
+      _tva,
+      _search
+    ]) {
       c.dispose();
     }
     super.dispose();
@@ -68,7 +77,8 @@ class _UnknownProductDialogState extends State<UnknownProductDialog> {
 
   /// RECHERCHER — anti-doublon par code, nom, dosage, forme (API catalogue).
   Future<void> _runSearch() async {
-    final q = _search.text.trim().isEmpty ? widget.barcode : _search.text.trim();
+    final q =
+        _search.text.trim().isEmpty ? widget.barcode : _search.text.trim();
     if (q.isEmpty) return;
     setState(() => _searching = true);
     final r = await ApiClient.instance
@@ -87,7 +97,7 @@ class _UnknownProductDialogState extends State<UnknownProductDialog> {
     if (!isValidProductCode(widget.barcode)) {
       setState(() => _error =
           'Code non numérique (${widget.barcode}) — impossible à associer '
-          'comme code-barres. Créez une référence ou annulez.');
+              'comme code-barres. Créez une référence ou annulez.');
       return;
     }
     final id = '${med['id']}';
@@ -213,8 +223,8 @@ class _UnknownProductDialogState extends State<UnknownProductDialog> {
               if (_error != null) ...[
                 const SizedBox(height: 8),
                 Text(_error!,
-                    style: const TextStyle(
-                        color: Colors.white70, fontSize: 12)),
+                    style:
+                        const TextStyle(color: Colors.white70, fontSize: 12)),
               ],
             ],
           ),
@@ -237,11 +247,15 @@ class _UnknownProductDialogState extends State<UnknownProductDialog> {
     return [
       Row(children: [
         Expanded(
-          child: TextField(
-            controller: _search,
-            decoration: const InputDecoration(
-                labelText: 'Nom, dosage, forme ou code-barres'),
-            onSubmitted: (_) => _runSearch(),
+          // Zone de saisie plafonnée à 380 px (règle des 10 cm).
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 380),
+            child: TextField(
+              controller: _search,
+              decoration: const InputDecoration(
+                  labelText: 'Nom, dosage, forme ou code-barres'),
+              onSubmitted: (_) => _runSearch(),
+            ),
           ),
         ),
         IconButton(
@@ -311,8 +325,8 @@ class _UnknownProductDialogState extends State<UnknownProductDialog> {
       const SizedBox(height: 10),
       TextField(
           controller: _form,
-          decoration: const InputDecoration(
-              labelText: 'Forme (comprimé, sirop…)')),
+          decoration:
+              const InputDecoration(labelText: 'Forme (comprimé, sirop…)')),
       const SizedBox(height: 10),
       Row(children: [
         Expanded(

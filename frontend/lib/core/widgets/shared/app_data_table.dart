@@ -226,13 +226,13 @@ class AppDataRow<T> extends StatelessWidget {
         : hovered
             ? (config.hoverColor ??
                 (isDark
-                    ? Colors.white.withValues(alpha: 0.04)
-                    : Colors.grey.withValues(alpha: 0.04)))
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.grey.withValues(alpha: 0.08)))
             : (config.striped && index.isOdd
                 ? (isDark
                     ? Colors.white.withValues(alpha: 0.15)
                     : Colors.grey.withValues(alpha: 0.1))
-                : Colors.transparent);
+                : (isDark ? const Color(0xFF0F2520) : Colors.white));
 
     return Container(
       color: rowColor,
@@ -418,7 +418,7 @@ class AppDataTable<T> extends StatefulWidget {
     this.showRowNumbers = false,
     this.rowNumberColumnWidth = 48,
     this.rowNumberLabel = 'N°',
-    this.fixedHeader = true,
+    this.fixedHeader = false,
     this.scrollController,
     this.columnResizeMode = ColumnResizeMode.none,
     this.onColumnResize,
@@ -458,6 +458,8 @@ class AppDataTable<T> extends StatefulWidget {
 }
 
 class _AppDataTableState<T> extends State<AppDataTable<T>> {
+  final ScrollController _internalVerticalController = ScrollController();
+  final ScrollController _internalHorizontalController = ScrollController();
   late List<T> _selectedItems;
   late int _currentPage;
   late int _pageSize;
@@ -555,6 +557,12 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
+              // En-tête FIXE (sticky) : hors du défilement vertical,
+              // partage le même défilement horizontal que les lignes.
+              if (widget.fixedHeader) {
+                return _buildStickyHeaderTable(
+                    context, constraints, visibleColumns, hasSelection);
+              }
               return SingleChildScrollView(
                 controller: widget.scrollController,
                 scrollDirection: Axis.vertical,
@@ -574,6 +582,204 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
         if (widget.pagination) _buildPagination(context),
       ],
     );
+  }
+
+  /// En-tête FIXE + lignes défilantes, sur le pattern éprouvé du module
+  /// Stock : un SEUL défilement horizontal (SizedBox à largeur totale
+  /// bornée — aucun Stack), largeurs de colonnes EXPLICITES identiques
+  /// pour l'en-tête et les lignes : alignement garanti même en défilement,
+  /// ce que deux DataTable séparés ne peuvent pas assurer.
+  Widget _buildStickyHeaderTable(
+    BuildContext context,
+    BoxConstraints constraints,
+    List<AppDataColumn<T>> visibleColumns,
+    bool hasSelection,
+  ) {
+    final tokens = context.tokens;
+    final isDark = context.isDark;
+
+    // Largeur explicite par colonne — identique en-tête / lignes.
+    final widths = <double>[
+      ...visibleColumns.map((c) => c.width ?? widget.config.defaultColumnWidth),
+    ];
+    final rowNumberW =
+        widget.showRowNumbers ? widget.rowNumberColumnWidth : 0.0;
+    final checkboxW = (widget.config.showCheckboxColumn || hasSelection)
+        ? widget.config.checkboxColumnWidth
+        : 0.0;
+    final contentW =
+        rowNumberW + checkboxW + widths.fold(0.0, (a, b) => a + b);
+    // Marges internes (horizontalMargin × 2) s'ajoutent aux colonnes :
+    // sans elles, le Row déborderait exactement de cette valeur.
+    final minTotalW = contentW + 2 * widget.config.horizontalMargin;
+    // Largeur totale : au minimum l'espace disponible ; le défilement
+    // horizontal ne s'active que si les colonnes dépassent cet espace.
+    final totalW = constraints.maxWidth.isFinite
+        ? (minTotalW > constraints.maxWidth ? minTotalW : constraints.maxWidth)
+        : minTotalW;
+    final verticalController =
+        widget.scrollController ?? _internalVerticalController;
+    final headerColor =
+        isDark ? const Color(0xFF0F2520) : const Color(0xFF006B43);
+    final divider = widget.config.dividerColor ??
+        (isDark ? tokens.borderDark : tokens.borderLight);
+
+    Widget cell(double w, Widget child, {TextAlign align = TextAlign.left}) {
+      return SizedBox(
+        width: w,
+        child: Padding(
+          padding: EdgeInsets.only(right: widget.config.columnSpacing),
+          child: Align(
+            alignment: align == TextAlign.right
+                ? Alignment.centerRight
+                : align == TextAlign.center
+                    ? Alignment.center
+                    : Alignment.centerLeft,
+            child: child,
+          ),
+        ),
+      );
+    }
+
+    // ---- En-tête FIXE (hors du défilement vertical) ----
+    final header = Container(
+      key: const ValueKey('app_table_sticky_header'),
+      height: widget.config.headerHeight,
+      color: headerColor,
+      padding: EdgeInsets.symmetric(horizontal: widget.config.horizontalMargin),
+      child: Row(children: [
+        if (checkboxW > 0)
+          SizedBox(
+            width: checkboxW,
+            child: hasSelection
+                ? Center(
+                    child: Checkbox(
+                      value: _displayData.isNotEmpty &&
+                          _selectedItems.length == _displayData.length,
+                      onChanged: (v) => _handleSelectAll(v),
+                    ),
+                  )
+                : null,
+          ),
+        if (widget.showRowNumbers)
+          cell(rowNumberW,
+              Text(widget.rowNumberLabel, style: tokens.tableHeader),
+              align: TextAlign.right),
+        ...visibleColumns.asMap().entries.map(
+              (e) => cell(
+                widths[e.key],
+                _SortableHeader(
+                  label: e.value.label,
+                  sortable: e.value.sortable,
+                  isSorted: _sortColumnKey == e.value.key,
+                  sortedAscending: _sortAscending,
+                  columnKey: e.value.key,
+                  onSort: _handleSort,
+                ),
+                align: e.value.alignment,
+              ),
+            ),
+      ]),
+    );
+
+    // ---- Lignes défilantes verticalement (fond opaque garanti) ----
+    Widget buildRow(int index) {
+      final item = _displayData[index];
+      final globalIndex =
+          widget.pagination ? _currentPage * _pageSize + index : index;
+      final rowColor = _isSelected(item)
+          ? (isDark ? const Color(0xFF0A2E22) : const Color(0xFFE3F2EC))
+          : (widget.config.striped && index.isOdd)
+              ? (isDark ? const Color(0xFF16362C) : const Color(0xFFF2F5F3))
+              : (isDark ? const Color(0xFF0F2520) : Colors.white);
+      return Material(
+        color: rowColor,
+        child: InkWell(
+          onTap: widget.onRowTap != null ? () => widget.onRowTap!(item) : null,
+          onLongPress: widget.onRowLongPress != null
+              ? () => widget.onRowLongPress!(item)
+              : null,
+          onDoubleTap: widget.onRowDoubleTap != null
+              ? () => widget.onRowDoubleTap!(item)
+              : null,
+          child: Container(
+            constraints: BoxConstraints(minHeight: widget.config.rowHeight),
+            decoration: BoxDecoration(
+              border: widget.config.showHorizontalLines
+                  ? Border(bottom: BorderSide(color: divider, width: 1))
+                  : null,
+            ),
+            padding: EdgeInsets.symmetric(
+                horizontal: widget.config.horizontalMargin),
+            child: Row(children: [
+              if (checkboxW > 0)
+                SizedBox(
+                  width: checkboxW,
+                  child: hasSelection
+                      ? Center(
+                          child: Checkbox(
+                            value: _isSelected(item),
+                            onChanged: (v) => _handleSelectItem(item, v),
+                          ),
+                        )
+                      : null,
+                ),
+              if (widget.showRowNumbers)
+                cell(
+                  rowNumberW,
+                  Text('${globalIndex + 1}', style: tokens.tableCellNumeric),
+                  align: TextAlign.right,
+                ),
+              ...visibleColumns.asMap().entries.map(
+                    (e) => cell(
+                      widths[e.key],
+                      widget.rowBuilder?.call(context, item, index) ??
+                          _buildDefaultCell(context, e.value, item),
+                      align: e.value.alignment,
+                    ),
+                  ),
+            ]),
+          ),
+        ),
+      );
+    }
+
+    return Scrollbar(
+      controller: _internalHorizontalController,
+      thumbVisibility: true,
+      child: SingleChildScrollView(
+        controller: _internalHorizontalController,
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(
+          width: totalW,
+          height: constraints.maxHeight,
+          child: Column(children: [
+            header,
+            Expanded(
+              child: Scrollbar(
+                controller: verticalController,
+                thumbVisibility: true,
+                child: SingleChildScrollView(
+                  controller: verticalController,
+                  child: Column(
+                    children: [
+                      for (var i = 0; i < _displayData.length; i++) buildRow(i),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _internalVerticalController.dispose();
+    _internalHorizontalController.dispose();
+    super.dispose();
   }
 
   Widget _buildLoading(BuildContext context) {
@@ -656,8 +862,8 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
         : rawSortIndex + (widget.showRowNumbers ? 1 : 0);
 
     return DataTable(
-      headingRowColor: WidgetStateProperty.resolveWith(
-          (states) => isDark ? tokens.bgSurfaceRaised : Colors.grey[50]),
+      headingRowColor: WidgetStateProperty.resolveWith((states) =>
+          isDark ? const Color(0xFF0F2520) : const Color(0xFF006B43)),
       headingRowHeight: widget.config.headerHeight,
       dataRowMinHeight: widget.config.rowHeight,
       dataRowMaxHeight: widget.config.rowHeight * 2,
@@ -710,6 +916,17 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
           selected: _isSelected(item),
           onSelectChanged:
               hasSelection ? (v) => _handleSelectItem(item, v) : null,
+          color: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return isDark ? const Color(0xFF0A2E22) : const Color(0xFFE3F2EC);
+            }
+            if (states.contains(WidgetState.hovered)) {
+              return isDark ? const Color(0xFF16362C) : const Color(0xFFEAF2EE);
+            }
+            return (widget.config.striped && index.isOdd)
+                ? (isDark ? const Color(0xFF16362C) : const Color(0xFFF2F5F3))
+                : (isDark ? const Color(0xFF0F2520) : Colors.white);
+          }),
           cells: [
             if (widget.showRowNumbers)
               DataCell(
