@@ -90,7 +90,10 @@ class _SortableHeader extends StatelessWidget {
     if (!sortable) {
       return Text(
         label,
-        style: tokens.tableHeader,
+        style: tokens.tableHeader.copyWith(
+          color: tokens.textPrimary,
+          fontWeight: FontWeight.w800,
+        ),
         overflow: TextOverflow.ellipsis,
       );
     }
@@ -112,8 +115,8 @@ class _SortableHeader extends StatelessWidget {
               child: Text(
                 label,
                 style: tokens.tableHeader.copyWith(
-                  color: isSorted ? tokens.brandPrimary : null,
-                  fontWeight: isSorted ? FontWeight.w700 : FontWeight.w600,
+                  color: isSorted ? tokens.brandGold : tokens.textPrimary,
+                  fontWeight: FontWeight.w800,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -125,7 +128,7 @@ class _SortableHeader extends StatelessWidget {
                     ? Icons.arrow_upward_rounded
                     : Icons.arrow_downward_rounded,
                 size: tokens.fontSizeSm,
-                color: tokens.brandPrimary,
+                color: tokens.brandGold,
               ),
             ] else ...[
               SizedBox(width: tokens.sp1),
@@ -230,9 +233,9 @@ class AppDataRow<T> extends StatelessWidget {
                     : Colors.grey.withValues(alpha: 0.08)))
             : (config.striped && index.isOdd
                 ? (isDark
-                    ? Colors.white.withValues(alpha: 0.15)
-                    : Colors.grey.withValues(alpha: 0.1))
-                : (isDark ? const Color(0xFF0F2520) : Colors.white));
+                    ? tokens.brandPrimary.withValues(alpha: 0.08)
+                    : tokens.brandPrimary.withValues(alpha: 0.03))
+                : (isDark ? tokens.bgSurfaceRaised : Colors.white));
 
     return Container(
       color: rowColor,

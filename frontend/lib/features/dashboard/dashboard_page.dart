@@ -488,8 +488,8 @@ class _DashboardPageState extends State<DashboardPage> {
       _KpiDef(
           label: 'EMPLOYÉS',
           value: '$_employees',
-          sub: 'Employés',
-          image: 'assets/images/kpi_bg_7.webp',
+          sub: '',
+          image: 'assets/images/employer.png',
           badge: Icons.person_rounded,
           badgeColor: green,
           module: 'employees'),
