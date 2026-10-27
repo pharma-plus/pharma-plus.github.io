@@ -11,7 +11,6 @@ import '../../core/utils/validators.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/shared/app_data_table.dart';
-import '../../core/widgets/shared/app_search_field.dart';
 import '../../core/widgets/status_chip.dart';
 import '../shell/shell_nav.dart';
 
@@ -81,13 +80,11 @@ class _SuppliersPageState extends State<SuppliersPage> {
     final saved = await showDialog<bool>(
       context: context,
       builder: (_) => Dialog(
-        child: ConstrainedBox(
-          // 412 px : contenu ~380 après padding du dialogue — chaque champ
-          // du formulaire respecte la règle des 10 cm (Phase 4).
-          constraints: const BoxConstraints(maxWidth: 412),
-          child: SupplierForm(supplier: supplier),
-        ),
-      ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560),
+              child: SupplierForm(supplier: supplier),
+            ),
+          ),
     );
     if (saved == true) {
       _load();
@@ -128,13 +125,24 @@ class _SuppliersPageState extends State<SuppliersPage> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-            child: AppSearchField(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
               controller: _search,
-              hint: 'Rechercher un fournisseur',
-              showFilterButton: false,
-              debounceDuration: Duration.zero,
               onChanged: (_) => _debouncedLoad(),
+              style: const TextStyle(color: AppColors.pharmaText),
+              decoration: const InputDecoration(
+                hintText: 'Rechercher un fournisseur',
+                prefixIcon: Icon(Icons.search, color: AppColors.pharmaMuted),
+                hintStyle: TextStyle(color: AppColors.pharmaMuted),
+                fillColor: AppColors.pharmaSurface2,
+                filled: true,
+                border: OutlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.goldBorder)),
+                enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.goldBorder)),
+                focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.pharmaGold)),
+              ),
             ),
           ),
           Expanded(
@@ -149,99 +157,93 @@ class _SuppliersPageState extends State<SuppliersPage> {
                               return _buildDesktopTable(locale);
                             }
                             return RefreshIndicator(
-                              onRefresh: _load,
-                              child: ListView.builder(
-                                padding:
-                                    const EdgeInsets.fromLTRB(12, 0, 12, 90),
-                                itemCount: _items.length,
-                                itemBuilder: (context, i) {
-                                  final s = _items[i];
-                                  return Padding(
-                                    padding: const EdgeInsets.only(bottom: 8),
-                                    child: GlassCard(
-                                      radius: BorderRadius.circular(16),
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 14, vertical: 12),
-                                      onTap: () => _showDetail(s),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            width: 44,
-                                            height: 44,
-                                            decoration: BoxDecoration(
-                                              color: AppColors.primary
-                                                  .withValues(alpha: 0.1),
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            child: const Icon(
-                                                Icons.local_shipping,
-                                                color: AppColors.primary),
+                            onRefresh: _load,
+                            child: ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(12, 0, 12, 90),
+                              itemCount: _items.length,
+                              itemBuilder: (context, i) {
+                                final s = _items[i];
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: GlassCard(
+                                    radius: BorderRadius.circular(16),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 12),
+                                    onTap: () => _showDetail(s),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 44,
+                                          height: 44,
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primary
+                                                .withValues(alpha: 0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
                                           ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text('${s['name']}',
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.w700)),
-                                                Text(
-                                                  [s['city'], s['contact_name']]
-                                                      .whereType<String>()
-                                                      .where(
-                                                          (v) => v.isNotEmpty)
-                                                      .join(' · '),
+                                          child: const Icon(
+                                              Icons.local_shipping,
+                                              color: AppColors.primary),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text('${s['name']}',
                                                   maxLines: 1,
                                                   overflow:
                                                       TextOverflow.ellipsis,
                                                   style: const TextStyle(
-                                                      fontSize: 12,
-                                                      color: Colors.grey),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.end,
-                                            children: [
-                                              if (s['rating'] != null)
-                                                Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    const Icon(Icons.star,
-                                                        size: 14,
-                                                        color:
-                                                            AppColors.accent),
-                                                    Text(' ${s['rating']}',
-                                                        style: const TextStyle(
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .w700)),
-                                                  ],
-                                                ),
+                                                      fontWeight:
+                                                          FontWeight.w700)),
                                               Text(
-                                                '${s['nb_orders']} ${S.t('nbOrders', locale)}',
+                                                [s['city'], s['contact_name']]
+                                                    .whereType<String>()
+                                                    .where((v) => v.isNotEmpty)
+                                                    .join(' · '),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
                                                 style: const TextStyle(
-                                                    fontSize: 11,
+                                                    fontSize: 12,
                                                     color: Colors.grey),
                                               ),
                                             ],
                                           ),
-                                        ],
-                                      ),
+                                        ),
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
+                                          children: [
+                                            if (s['rating'] != null)
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(Icons.star,
+                                                      size: 14,
+                                                      color: AppColors.accent),
+                                                  Text(' ${s['rating']}',
+                                                      style: const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.w700)),
+                                                ],
+                                              ),
+                                            Text(
+                                              '${s['nb_orders']} ${S.t('nbOrders', locale)}',
+                                              style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: Colors.grey),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
                                     ),
-                                  );
-                                },
-                              ),
-                            );
+                                  ),
+                                );
+                               },
+                             ),
+                             );
                           }),
           ),
         ],
@@ -279,26 +281,21 @@ class _SuppliersPageState extends State<SuppliersPage> {
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 90),
       child: AppDataTable<Map<String, dynamic>>(
         columns: [
+          AppDataColumn(key: 'name', label: S.t('supplier', locale)),
+          AppDataColumn(key: 'city', label: S.t('city', locale)),
           AppDataColumn(
-              key: 'name', label: S.t('supplier', locale), width: 260),
-          AppDataColumn(key: 'city', label: S.t('city', locale), width: 140),
-          AppDataColumn(
-              key: 'contact_name',
-              label: S.t('contactName', locale),
-              width: 170),
+              key: 'contact_name', label: S.t('contactName', locale)),
           AppDataColumn(
             key: 'rating',
             label: S.t('rating', locale),
             numeric: true,
             alignment: TextAlign.right,
-            width: 90,
           ),
           AppDataColumn(
             key: 'nb_orders',
             label: S.t('nbOrders', locale),
             numeric: true,
             alignment: TextAlign.right,
-            width: 130,
           ),
         ],
         data: _sortedItems,
@@ -309,7 +306,6 @@ class _SuppliersPageState extends State<SuppliersPage> {
           _sortAsc = ascending;
         }),
         onRowTap: _showDetail,
-        fixedHeader: true,
         config: const AppDataTableConfig(columnSpacing: 16),
       ),
     );
@@ -472,8 +468,8 @@ class SupplierFormState extends State<SupplierForm> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _paymentTerms,
-                  decoration:
-                      InputDecoration(labelText: S.t('paymentTerms', locale)),
+                  decoration: InputDecoration(
+                      labelText: S.t('paymentTerms', locale)),
                 ),
                 const SizedBox(height: 20),
                 Row(children: [
@@ -523,14 +519,12 @@ class _SupplierDetailState extends State<_SupplierDetail> {
   }
 
   Future<void> _load() async {
-    final result =
-        await ApiClient.instance.get('/suppliers/${widget.supplierId}');
+    final result = await ApiClient.instance
+        .get('/suppliers/${widget.supplierId}');
     if (!mounted) return;
     if (result.success) {
       final d = result.data;
-      setState(() => _supplier = d is Map<String, dynamic>
-          ? d
-          : (d is Map ? Map<String, dynamic>.from(d) : null));
+      setState(() => _supplier = d is Map<String, dynamic> ? d : (d is Map ? Map<String, dynamic>.from(d) : null));
     }
   }
 

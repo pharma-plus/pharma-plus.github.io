@@ -123,8 +123,7 @@ class _GlobalSearchFieldState extends State<GlobalSearchField> {
       hits.add(GlobalSearchHit(
         group: 'Fournisseur',
         title: name,
-        subtitle:
-            [s(m['city']), s(m['type'])].where((x) => x.isNotEmpty).join(' · '),
+        subtitle: [s(m['city']), s(m['type'])].where((x) => x.isNotEmpty).join(' · '),
         icon: Icons.local_shipping_rounded,
         open: () => ShellNav.index.value = 5,
       ));
@@ -173,7 +172,8 @@ class _GlobalSearchFieldState extends State<GlobalSearchField> {
     }
     for (final m in rows(results[5])) {
       if (m is! Map) continue;
-      final name = '${s(m['first_name'])} ${s(m['last_name'])}'.trim();
+      final name =
+          '${s(m['first_name'])} ${s(m['last_name'])}'.trim();
       if (name.isEmpty) continue;
       hits.add(GlobalSearchHit(
         group: 'Employé',
@@ -237,7 +237,7 @@ class _GlobalSearchFieldState extends State<GlobalSearchField> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            constraints: const BoxConstraints(maxWidth: 380),
+            constraints: const BoxConstraints(maxWidth: 700),
             height: 42,
             padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
@@ -296,7 +296,8 @@ class _GlobalSearchFieldState extends State<GlobalSearchField> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                        color: const Color(0xFFC9A24B).withValues(alpha: 0.6)),
+                        color:
+                            const Color(0xFFC9A24B).withValues(alpha: 0.6)),
                   ),
                   child: const Icon(Icons.qr_code_scanner,
                       size: 17, color: Color(0xFFD9B45C)),
@@ -314,7 +315,7 @@ class _GlobalSearchFieldState extends State<GlobalSearchField> {
                 borderRadius: BorderRadius.circular(12),
                 color: const Color(0xFF0C1F19),
                 child: Container(
-                  width: 380,
+                  width: 420,
                   constraints: const BoxConstraints(maxHeight: 340),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
@@ -325,8 +326,8 @@ class _GlobalSearchFieldState extends State<GlobalSearchField> {
                           padding: EdgeInsets.all(14),
                           child: Text(
                             'Aucun résultat',
-                            style:
-                                TextStyle(color: Colors.white54, fontSize: 13),
+                            style: TextStyle(
+                                color: Colors.white54, fontSize: 13),
                           ),
                         )
                       : ListView.builder(
@@ -342,7 +343,8 @@ class _GlobalSearchFieldState extends State<GlobalSearchField> {
                                     horizontal: 12, vertical: 8),
                                 child: Row(children: [
                                   Icon(h.icon,
-                                      size: 18, color: const Color(0xFFD9B45C)),
+                                      size: 18,
+                                      color: const Color(0xFFD9B45C)),
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: Column(
@@ -371,8 +373,8 @@ class _GlobalSearchFieldState extends State<GlobalSearchField> {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 7, vertical: 3),
                                     decoration: BoxDecoration(
-                                      color:
-                                          Colors.white.withValues(alpha: 0.06),
+                                      color: Colors.white
+                                          .withValues(alpha: 0.06),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(h.group,

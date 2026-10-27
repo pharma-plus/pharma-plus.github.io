@@ -103,7 +103,7 @@ void main() {
         ),
       ));
 
-      final table = tester.widget<DataTable>(find.byType(DataTable).first);
+      final table = tester.widget<DataTable>(find.byType(DataTable));
       // Colonnes DataTable = [N°, name, qty] → la colonne triée (index
       // interne 1) doit être décalée de 1. Sans le fix : 1 au lieu de 2.
       expect(table.sortColumnIndex, 2);
@@ -123,7 +123,7 @@ void main() {
         ),
       ));
 
-      final table = tester.widget<DataTable>(find.byType(DataTable).first);
+      final table = tester.widget<DataTable>(find.byType(DataTable));
       expect(table.sortColumnIndex, 0);
 
       // Clé inconnue : aucun index invalide transmis à DataTable (assert).
@@ -136,7 +136,7 @@ void main() {
           sortColumnKey: 'missing',
         ),
       ));
-      final table2 = tester.widget<DataTable>(find.byType(DataTable).first);
+      final table2 = tester.widget<DataTable>(find.byType(DataTable));
       expect(table2.sortColumnIndex, isNull);
     });
 
@@ -250,75 +250,6 @@ void main() {
       expect(find.textContaining('Affichage 1–25 sur 30'), findsOneWidget);
       expect(find.text('Item 25'), findsOneWidget);
       expect(find.text('Item 26'), findsNothing);
-    });
-
-    testWidgets('sticky : en-tête fixe pendant le défilement vertical',
-        (tester) async {
-      await tester.pumpWidget(_wrap(
-        AppDataTable<Map<String, dynamic>>(
-          columns: const [
-            AppDataColumn(key: 'name', label: 'Name', width: 200),
-            AppDataColumn(key: 'qty', label: 'Qty', numeric: true, width: 80),
-          ],
-          data: _rows(40),
-          fixedHeader: true,
-        ),
-      ));
-
-      expect(find.text('Item 1'), findsOneWidget);
-      final headerTop = tester.getTopLeft(find.text('Name')).dy;
-
-      // Défilement vertical : les lignes passent SOUS l'en-tête, qui ne
-      // bouge pas (sticky réel, pas un simple rendu initial).
-      await tester.drag(find.text('Item 5'), const Offset(0, -300));
-      await tester.pumpAndSettle();
-
-      expect(tester.getTopLeft(find.text('Name')).dy, headerTop);
-      expect(tester.getTopLeft(find.text('Item 1')).dy, lessThan(headerTop));
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('sticky : tri, sélection et lignes opaques conservés',
-        (tester) async {
-      String? lastKey;
-      List<Map<String, dynamic>> selected = [];
-      await tester.pumpWidget(_wrap(
-        AppDataTable<Map<String, dynamic>>(
-          columns: const [
-            AppDataColumn(key: 'name', label: 'Name', width: 200),
-            AppDataColumn(key: 'qty', label: 'Qty', numeric: true, width: 80),
-          ],
-          data: _rows(3),
-          fixedHeader: true,
-          config: const AppDataTableConfig(showCheckboxColumn: true),
-          onSort: (key, ascending) => lastKey = key,
-          onSelectionChanged: (items) => selected = items,
-        ),
-      ));
-
-      // Tri via l'en-tête sticky : même contrat que le chemin DataTable.
-      await tester.tap(find.text('Name'));
-      await tester.pump();
-      expect(lastKey, 'name');
-
-      // Lignes OPAQUES (avant toute sélection) : paire blanche, impaire
-      // gris solide — aucun Colors.transparent ne laisse voir l'arrière-plan.
-      final row0 = tester.widget<Material>(find
-          .ancestor(of: find.text('Item 1'), matching: find.byType(Material))
-          .first);
-      final row1 = tester.widget<Material>(find
-          .ancestor(of: find.text('Item 2'), matching: find.byType(Material))
-          .first);
-      expect(row0.color, Colors.white);
-      expect(row1.color, const Color(0xFFF2F5F3));
-
-      // Sélection : 1 case en-tête + 3 cases lignes.
-      expect(find.byType(Checkbox), findsNWidgets(4));
-      await tester.tap(find.byType(Checkbox).at(1));
-      await tester.pump();
-      expect(selected, hasLength(1));
-      expect(selected.first['name'], 'Item 1');
-      expect(tester.takeException(), isNull);
     });
   });
 }

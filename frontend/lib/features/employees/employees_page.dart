@@ -9,7 +9,6 @@ import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/utils/validators.dart';
 import '../../core/widgets/glass_card.dart';
-import '../../core/widgets/shared/app_search_field.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/status_chip.dart';
 import '../shell/shell_nav.dart';
@@ -90,7 +89,7 @@ class _EmployeesPageState extends State<EmployeesPage> {
     final locale = context.read<AuthStore>().locale;
     final saved = await showDialog<bool>(
       context: context,
-      builder: (_) => EmployeeForm(employee: employee),
+        builder: (_) => EmployeeForm(employee: employee),
     );
     if (saved == true) {
       _load();
@@ -110,7 +109,8 @@ class _EmployeesPageState extends State<EmployeesPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(confirmLabel),
-        content: Text('« ${e['first_name'] ?? ''} ${e['last_name'] ?? ''} ». '
+        content: Text(
+            '« ${e['first_name'] ?? ''} ${e['last_name'] ?? ''} ». '
             'L\'historique (ventes, pointages) est conservé.'),
         actions: [
           TextButton(
@@ -136,8 +136,7 @@ class _EmployeesPageState extends State<EmployeesPage> {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-              r.error?.readableMessage ?? 'Erreur lors de la mise à jour')));
+          content: Text(r.error?.readableMessage ?? 'Erreur lors de la mise à jour')));
     }
   }
 
@@ -207,12 +206,13 @@ class _EmployeesPageState extends State<EmployeesPage> {
             ),
           Padding(
             padding: const EdgeInsets.all(12),
-            child: AppSearchField(
+            child: TextField(
               controller: _search,
-              hint: S.t('search', locale),
-              showFilterButton: false,
-              debounceDuration: Duration.zero,
               onChanged: (_) => _debouncedLoad(),
+              decoration: InputDecoration(
+                hintText: S.t('search', locale),
+                prefixIcon: const Icon(Icons.search),
+              ),
             ),
           ),
           Padding(
@@ -502,17 +502,7 @@ class EmployeeFormState extends State<EmployeeForm> {
   @override
   void dispose() {
     _accountPass.dispose();
-    for (final c in [
-      _first,
-      _last,
-      _position,
-      _phone,
-      _email,
-      _cin,
-      _salary,
-      _cnss,
-      _address
-    ]) {
+    for (final c in [_first, _last, _position, _phone, _email, _cin, _salary, _cnss, _address]) {
       c.dispose();
     }
     super.dispose();
@@ -618,225 +608,222 @@ class EmployeeFormState extends State<EmployeeForm> {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 560),
         child: Padding(
-          padding:
-              EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.employee == null
-                        ? 'Nouvel employé'
-                        : 'Modifier l\'employé',
-                    style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.pharmaText),
-                  ),
-                  const SizedBox(height: 16),
-                  _row2(
-                    TextFormField(
-                        controller: _first,
-                        textInputAction: TextInputAction.next,
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                        decoration: InputDecoration(
-                            labelText: S.t('firstName', locale)),
-                        validator: (v) =>
-                            validateRequired(v, S.t('requiredField', locale))),
-                    TextFormField(
-                        controller: _last,
-                        textInputAction: TextInputAction.next,
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                        decoration:
-                            InputDecoration(labelText: S.t('lastName', locale)),
-                        validator: (v) =>
-                            validateRequired(v, S.t('requiredField', locale))),
-                    wide,
-                  ),
-                  const SizedBox(height: 12),
-                  _row2(
-                    TextFormField(
-                        controller: _position,
-                        textInputAction: TextInputAction.next,
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                        decoration:
-                            InputDecoration(labelText: S.t('position', locale)),
-                        validator: (v) =>
-                            validateRequired(v, S.t('requiredField', locale))),
-                    TextFormField(
-                        controller: _phone,
-                        keyboardType: TextInputType.phone,
-                        textInputAction: TextInputAction.next,
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                        decoration:
-                            InputDecoration(labelText: S.t('phone', locale)),
-                        validator: (v) =>
-                            validatePhone(v, S.t('invalidPhone', locale))),
-                    wide,
-                  ),
-                  const SizedBox(height: 12),
-                  _row2(
-                    TextFormField(
-                        controller: _email,
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                        decoration:
-                            InputDecoration(labelText: S.t('email', locale)),
-                        validator: (v) {
-                          if (widget.employee == null && _createAccount) {
-                            return validateRequired(
-                                v, S.t('requiredField', locale));
-                          }
-                          return validateEmail(v, S.t('invalidEmail', locale));
-                        }),
-                    TextField(
-                        controller: _cin,
-                        decoration:
-                            InputDecoration(labelText: S.t('cin', locale))),
-                    wide,
-                  ),
-                  const SizedBox(height: 12),
-                  _row2(
-                    TextField(
-                        controller: _cnss,
-                        decoration: const InputDecoration(labelText: 'CNSS')),
-                    TextField(
-                        controller: _address,
-                        decoration:
-                            InputDecoration(labelText: S.t('address', locale))),
-                    wide,
-                  ),
-                  const SizedBox(height: 12),
-                  _row2(
-                    TextFormField(
-                        controller: _salary,
-                        keyboardType: TextInputType.number,
-                        textInputAction: TextInputAction.next,
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                        decoration:
-                            InputDecoration(labelText: S.t('salary', locale)),
-                        validator: (v) => validateNonNegativeNumber(
-                            v, S.t('invalidNumber', locale))),
-                    DropdownButtonFormField<String>(
-                      initialValue: _contractType,
+          child: Form(
+            key: _formKey,
+            child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+                Text(
+                  widget.employee == null ? 'Nouvel employé' : 'Modifier l\'employé',
+                  style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.pharmaText),
+                ),
+                const SizedBox(height: 16),
+                _row2(
+                  TextFormField(
+                      controller: _first,
+                      textInputAction: TextInputAction.next,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                       decoration: InputDecoration(
-                          labelText: S.t('contractType', locale)),
-                      items: ['cdi', 'cdd', 'stage', 'interim']
-                          .map((c) => DropdownMenuItem(
-                              value: c, child: Text(S.t(c, locale))))
-                          .toList(),
-                      onChanged: (v) => setState(() => _contractType = v),
-                    ),
-                    wide,
+                          labelText: S.t('firstName', locale)),
+                      validator: (v) =>
+                          validateRequired(v, S.t('requiredField', locale))),
+                  TextFormField(
+                      controller: _last,
+                      textInputAction: TextInputAction.next,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      decoration: InputDecoration(
+                          labelText: S.t('lastName', locale)),
+                      validator: (v) =>
+                          validateRequired(v, S.t('requiredField', locale))),
+                  wide,
+                ),
+                const SizedBox(height: 12),
+                _row2(
+                  TextFormField(
+                      controller: _position,
+                      textInputAction: TextInputAction.next,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      decoration: InputDecoration(
+                          labelText: S.t('position', locale)),
+                      validator: (v) =>
+                          validateRequired(v, S.t('requiredField', locale))),
+                  TextFormField(
+                      controller: _phone,
+                      keyboardType: TextInputType.phone,
+                      textInputAction: TextInputAction.next,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      decoration:
+                          InputDecoration(labelText: S.t('phone', locale)),
+                      validator: (v) =>
+                          validatePhone(v, S.t('invalidPhone', locale))),
+                  wide,
+                ),
+                const SizedBox(height: 12),
+                _row2(
+                  TextFormField(
+                      controller: _email,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      decoration:
+                          InputDecoration(labelText: S.t('email', locale)),
+                      validator: (v) {
+                        if (widget.employee == null && _createAccount) {
+                          return validateRequired(
+                              v, S.t('requiredField', locale));
+                        }
+                        return validateEmail(v, S.t('invalidEmail', locale));
+                      }),
+                  TextField(
+                      controller: _cin,
+                      decoration: InputDecoration(labelText: S.t('cin', locale))),
+                  wide,
+                ),
+                const SizedBox(height: 12),
+                _row2(
+                  TextField(
+                      controller: _cnss,
+                      decoration: const InputDecoration(labelText: 'CNSS')),
+                  TextField(
+                      controller: _address,
+                      decoration:
+                          InputDecoration(labelText: S.t('address', locale))),
+                  wide,
+                ),
+                const SizedBox(height: 12),
+                _row2(
+                  TextFormField(
+                      controller: _salary,
+                      keyboardType: TextInputType.number,
+                      textInputAction: TextInputAction.next,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      decoration:
+                          InputDecoration(labelText: S.t('salary', locale)),
+                      validator: (v) => validateNonNegativeNumber(
+                          v, S.t('invalidNumber', locale))),
+                  DropdownButtonFormField<String>(
+                    initialValue: _contractType,
+                    decoration: InputDecoration(
+                        labelText: S.t('contractType', locale)),
+                    items: ['cdi', 'cdd', 'stage', 'interim']
+                        .map((c) => DropdownMenuItem(
+                            value: c, child: Text(S.t(c, locale))))
+                        .toList(),
+                    onChanged: (v) => setState(() => _contractType = v),
                   ),
-                  const SizedBox(height: 12),
-                  // Date d'embauche
-                  InkWell(
-                    onTap: () async {
-                      final d = await showDatePicker(
-                        context: context,
-                        initialDate: _hireDate ?? DateTime.now(),
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime.now(),
-                      );
-                      if (d != null) setState(() => _hireDate = d);
-                    },
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                          labelText: 'Date d\'embauche',
-                          suffixIcon: Icon(Icons.calendar_today, size: 18)),
-                      child: Text(
-                        _hireDate != null
-                            ? '${_hireDate!.day.toString().padLeft(2, '0')}/${_hireDate!.month.toString().padLeft(2, '0')}/${_hireDate!.year}'
-                            : 'Sélectionner une date',
-                        style: TextStyle(
-                          color: _hireDate != null
-                              ? AppColors.pharmaText
-                              : AppColors.pharmaMuted,
-                        ),
+                  wide,
+                ),
+                const SizedBox(height: 12),
+                // Date d'embauche
+                InkWell(
+                  onTap: () async {
+                    final d = await showDatePicker(
+                      context: context,
+                      initialDate: _hireDate ?? DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime.now(),
+                    );
+                    if (d != null) setState(() => _hireDate = d);
+                  },
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                        labelText: 'Date d\'embauche',
+                        suffixIcon: Icon(Icons.calendar_today, size: 18)),
+                    child: Text(
+                      _hireDate != null
+                          ? '${_hireDate!.day.toString().padLeft(2, '0')}/${_hireDate!.month.toString().padLeft(2, '0')}/${_hireDate!.year}'
+                          : 'Sélectionner une date',
+                      style: TextStyle(
+                        color: _hireDate != null
+                            ? AppColors.pharmaText
+                            : AppColors.pharmaMuted,
                       ),
                     ),
                   ),
-                  if (widget.employee == null) ...[
-                    const SizedBox(height: 16),
-                    CheckboxListTile(
-                      value: _createAccount,
-                      onChanged: (v) =>
-                          setState(() => _createAccount = v ?? false),
-                      title:
-                          const Text('Créer également un compte utilisateur'),
-                      subtitle: const Text(
-                          'Login : email ci-dessus · PIN à définir après la création',
-                          style: TextStyle(fontSize: 12)),
-                      controlAffinity: ListTileControlAffinity.leading,
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                    ),
-                    if (_createAccount) ...[
-                      const SizedBox(height: 8),
-                      _row2(
-                        TextFormField(
-                          controller: _accountPass,
-                          obscureText: true,
-                          textInputAction: TextInputAction.next,
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
-                          decoration: const InputDecoration(
-                              labelText: 'Mot de passe du compte (min. 8)'),
-                          validator: (v) {
-                            if (!_createAccount) return null;
-                            if (v == null || v.trim().isEmpty) {
-                              return S.t('requiredField', locale);
-                            }
-                            if (v.trim().length < 8) {
-                              return S.t('passwordMin8', locale);
-                            }
-                            return null;
-                          },
-                        ),
-                        DropdownButtonFormField<String>(
-                          initialValue: _accountRoleId,
-                          decoration: const InputDecoration(
-                              labelText: 'Rôle du compte'),
-                          validator: (v) => (_createAccount && v == null)
-                              ? S.t('requiredField', locale)
-                              : null,
-                          items: _roles
-                              .map((r) => DropdownMenuItem(
-                                  value: '${r['id']}',
-                                  child: Text('${r['name']}')))
-                              .toList(),
-                          onChanged: (v) => setState(() => _accountRoleId = v),
-                        ),
-                        wide,
+                ),
+                if (widget.employee == null) ...[
+                  const SizedBox(height: 16),
+                  CheckboxListTile(
+                    value: _createAccount,
+                    onChanged: (v) =>
+                        setState(() => _createAccount = v ?? false),
+                    title: const Text('Créer également un compte utilisateur'),
+                    subtitle: const Text(
+                        'Login : email ci-dessus · PIN à définir après la création',
+                        style: TextStyle(fontSize: 12)),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                  ),
+                  if (_createAccount) ...[
+                    const SizedBox(height: 8),
+                    _row2(
+                      TextFormField(
+                        controller: _accountPass,
+                        obscureText: true,
+                        textInputAction: TextInputAction.next,
+                        autovalidateMode:
+                            AutovalidateMode.onUserInteraction,
+                        decoration: const InputDecoration(
+                            labelText: 'Mot de passe du compte (min. 8)'),
+                        validator: (v) {
+                          if (!_createAccount) return null;
+                          if (v == null || v.trim().isEmpty) {
+                            return S.t('requiredField', locale);
+                          }
+                          if (v.trim().length < 8) {
+                            return S.t('passwordMin8', locale);
+                          }
+                          return null;
+                        },
                       ),
-                    ],
+                      DropdownButtonFormField<String>(
+                        initialValue: _accountRoleId,
+                        decoration:
+                            const InputDecoration(labelText: 'Rôle du compte'),
+                        validator: (v) => (_createAccount && v == null)
+                            ? S.t('requiredField', locale)
+                            : null,
+                        items: _roles
+                            .map((r) => DropdownMenuItem(
+                                value: '${r['id']}',
+                                child: Text('${r['name']}')))
+                            .toList(),
+                        onChanged: (v) =>
+                            setState(() => _accountRoleId = v),
+                      ),
+                      wide,
+                    ),
                   ],
-                  const SizedBox(height: 20),
-                  Row(children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close),
-                        label: Text(S.t('cancel', locale)),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: GradientButton(
-                        label: S.t('save', locale),
-                        icon: Icons.check,
-                        loading: _saving,
-                        onPressed: _save,
-                      ),
-                    ),
-                  ]),
                 ],
-              ),
+                const SizedBox(height: 20),
+                Row(children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                      label: Text(S.t('cancel', locale)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GradientButton(
+                      label: S.t('save', locale),
+                      icon: Icons.check,
+                      loading: _saving,
+                      onPressed: _save,
+                    ),
+                  ),
+                ]),
+              ],
+            ),
             ),
           ),
         ),
@@ -865,14 +852,12 @@ class _EmployeeDetailState extends State<_EmployeeDetail> {
   }
 
   Future<void> _load() async {
-    final result =
-        await ApiClient.instance.get('/employees/${widget.employeeId}');
+    final result = await ApiClient.instance
+        .get('/employees/${widget.employeeId}');
     if (!mounted) return;
     if (result.success) {
       final d = result.data;
-      setState(() => _employee = d is Map<String, dynamic>
-          ? d
-          : (d is Map ? Map<String, dynamic>.from(d) : null));
+      setState(() => _employee = d is Map<String, dynamic> ? d : (d is Map ? Map<String, dynamic>.from(d) : null));
     }
   }
 

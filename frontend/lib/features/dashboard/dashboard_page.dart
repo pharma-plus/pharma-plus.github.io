@@ -22,7 +22,6 @@ import '../shell/shell_nav.dart';
 import '../stock/stock_page.dart';
 import 'pos_panel.dart';
 import 'global_search.dart';
-import 'kpi_art.dart';
 
 /// ============================================================
 /// DASHBOARD PHARMA+ — reconstruction IDENTIQUE à la maquette :
@@ -430,8 +429,8 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildKpiGrid({required bool compact}) {
-    // Couleurs de catégorie : constantes premium centralisées dans
-    // AppColors (une couleur DISTINCTE par carte — pas tout en vert).
+    const green = Color(0xFF43D97C);
+    const amber = Color(0xFFFFA24A);
     // Tendance affichée UNIQUEMENT si un comparatif réel existe.
     String? pct(double? v) =>
         v == null ? null : '${v >= 0 ? '+' : ''}${v.toStringAsFixed(1)}%';
@@ -442,78 +441,66 @@ class _DashboardPageState extends State<DashboardPage> {
           value: Fmt.money(_revenueToday),
           trendPct: pct(_trendRevenueToday),
           trendVs: 'vs hier',
-          art: KpiArt.register,
-          cardColor: AppColors.deepGreen,
+          image: 'assets/images/kpi_bg_1.webp',
           badge: Icons.point_of_sale_rounded,
-          badgeColor: AppColors.champagne,
+          badgeColor: green,
           module: 'pos'),
       _KpiDef(
           label: 'MÉDICAMENTS',
           value: Fmt.number(_medications),
           sub: 'Références catalogue',
-          art: KpiArt.bottle,
-          cardColor: AppColors.petrolMenu,
+          image: 'assets/images/kpi_bg_2.webp',
           badge: Icons.medication_rounded,
-          badgeColor: AppColors.champagne,
+          badgeColor: green,
           module: 'catalog'),
       _KpiDef(
           label: 'PRODUITS EN STOCK',
           value: Fmt.number(_productsInStock),
           sub: 'En pharmacie',
-          art: KpiArt.boxes,
-          cardColor: Colors.white,
-          textColor: AppColors.deepGreen,
-          badge: Icons.inventory_rounded,
-          badgeColor: AppColors.actionGreen,
+          image: 'assets/images/kpi_bg_3.webp',
+          badge: Icons.warning_amber_rounded,
+          badgeColor: amber,
           module: 'stock'),
       _KpiDef(
           label: 'COMMANDES',
           value: '$_pendingOrders',
           sub: 'En attente',
-          art: KpiArt.clipboard,
-          cardColor: AppColors.pageBg,
-          textColor: AppColors.textMain,
+          image: 'assets/images/kpi_bg_4.webp',
           badge: Icons.fact_check_rounded,
-          badgeColor: AppColors.secondaryGreen,
+          badgeColor: green,
           module: 'purchases'),
       _KpiDef(
           label: 'FOURNISSEURS',
           value: Fmt.number(_suppliers),
           sub: 'Fournisseurs',
-          art: KpiArt.truck,
-          cardColor: AppColors.surfaceSecondary,
-          textColor: AppColors.textMain,
+          image: 'assets/images/kpi_bg_5.webp',
           badge: Icons.local_shipping_rounded,
-          badgeColor: AppColors.actionGreen,
+          badgeColor: green,
           module: 'suppliers'),
       _KpiDef(
           label: 'CLIENTS',
           value: Fmt.number(_customers),
           sub: 'Clients',
-          art: KpiArt.people,
-          cardColor: AppColors.pageBg,
-          textColor: AppColors.textMain,
+          image: 'assets/images/kpi_bg_6.webp',
           badge: Icons.groups_rounded,
-          badgeColor: AppColors.secondaryGreen,
+          badgeColor: green,
           module: 'customers'),
       _KpiDef(
           label: 'EMPLOYÉS',
           value: '$_employees',
           sub: 'Employés',
-          art: KpiArt.pharmacist,
-          cardColor: AppColors.deepGreen,
+          image: 'assets/images/kpi_bg_7.webp',
           badge: Icons.person_rounded,
-          badgeColor: AppColors.champagne,
+          badgeColor: green,
           module: 'employees'),
       _KpiDef(
           label: 'BÉNÉFICE MOIS',
           value: Fmt.money(_profitMonth),
           trendPct: pct(_trendProfitMonth),
           trendVs: 'vs mois dernier',
-          art: KpiArt.bars,
-          cardColor: AppColors.actionGreen,
+          image: 'assets/images/kpi_bg_8.webp',
           badge: Icons.bar_chart_rounded,
-          badgeColor: AppColors.champagne,
+          badgeColor: green,
           module: 'reports'),
     ].where((k) => k.module == null || auth.canSeeModule(k.module!)).toList();
     // 4 colonnes sur desktop ; 2 sur les écrans étroits (lisible partout).
@@ -549,15 +536,10 @@ class _KpiDef {
   final String? trendPct;
   final String trendVs;
 
-  /// Illustration 3D peinte (CustomPainter, pas d'image plate).
-  final KpiArt art;
-
-  /// Fond opaque de la carte — adapté à sa catégorie (pas de transparence).
-  final Color cardColor;
-
-  /// Couleur de texte si différente du blanc par défaut (sur fonds clairs).
-  final Color? textColor;
-
+  /// Fond photo extrait de la maquette (assets/images/kpi_bg_N.png) :
+  /// dégradé du carton + cadre + illustration 3D sur socle, textes de la
+  /// maquette effacés — l'app dessine les valeurs réelles par-dessus.
+  final String image;
   final IconData badge;
   final Color badgeColor;
 
@@ -569,9 +551,7 @@ class _KpiDef {
     this.sub = '',
     this.trendPct,
     this.trendVs = '',
-    required this.art,
-    required this.cardColor,
-    this.textColor,
+    required this.image,
     required this.badge,
     required this.badgeColor,
     this.module,
@@ -600,6 +580,7 @@ class _KpiCard extends StatefulWidget {
 class _KpiCardState extends State<_KpiCard> {
   bool _hover = false;
   bool _press = false;
+  static const _titleGreen = Color(0xFF43D97C);
 
   _KpiDef get def => widget.def;
   int get index => widget.index;
@@ -639,20 +620,22 @@ class _KpiCardState extends State<_KpiCard> {
                       blurRadius: 18,
                       offset: const Offset(0, 8)),
               ],
-              color: def.cardColor,
+              // L'illustration webp EST le carton de la maquette (dégradé
+              // coloré + 3D) : fond plein cadre gérée par le Stack ci-dessous.
+              color: const Color(0xFF05130D),
             ),
             child: ClipRect(
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Illustration 3D peinte (CustomPainter) — rendement
-                  // volumétrique fidèle à la maquette, léger, sans image.
-                  Center(
-                    child: SizedBox.expand(
-                      child: CustomPaint(
-                        painter: KpiArtPainter(def.art),
-                        size: Size.infinite,
-                      ),
+                  // Illustration plein cadre = carton maquette exact
+                  // (BoxFit.cover + ancrage bas → le podium n'est jamais
+                  // rogné, le léger excédent se prend en haut).
+                  Positioned.fill(
+                    child: Image.asset(
+                      def.image,
+                      fit: BoxFit.cover,
+                      alignment: Alignment.bottomCenter,
                     ),
                   ),
                   Padding(
@@ -667,8 +650,8 @@ class _KpiCardState extends State<_KpiCard> {
                               alignment: Alignment.centerLeft,
                               child: Text('$index. ${def.label}',
                                   maxLines: 1,
-                                  style: TextStyle(
-                                      color: def.textColor ?? Colors.white,
+                                  style: const TextStyle(
+                                      color: Colors.white,
                                       fontSize: 10.5,
                                       fontWeight: FontWeight.w800,
                                       letterSpacing: 0.8)),
@@ -676,24 +659,16 @@ class _KpiCardState extends State<_KpiCard> {
                           ),
                           const SizedBox(width: 6),
                           Container(
-                            key: ValueKey('kpi-badge-${def.label}'),
                             width: 24,
                             height: 24,
                             decoration: BoxDecoration(
-                              // Fond coloré propre à la catégorie (thème
-                              // premium) : chaque KPI reste reconnaissable.
-                              color: def.badgeColor,
+                              color: const Color(0xFF0B1D13),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.18)),
+                              border:
+                                  Border.all(color: const Color(0xFF2A4A38)),
                             ),
-                            child: Icon(
-                              def.badge,
-                              size: 14,
-                              color: def.badgeColor == AppColors.champagneGold
-                                  ? const Color(0xFF3A2A05)
-                                  : Colors.white.withValues(alpha: 0.92),
-                            ),
+                            child: Icon(def.badge,
+                                size: 14, color: def.badgeColor),
                           ),
                         ]),
                         const SizedBox(height: 6),
@@ -702,8 +677,8 @@ class _KpiCardState extends State<_KpiCard> {
                           alignment: Alignment.centerLeft,
                           child: Text(def.value,
                               maxLines: 1,
-                              style: TextStyle(
-                                  color: def.textColor ?? Colors.white,
+                              style: const TextStyle(
+                                  color: Colors.white,
                                   fontSize: 20,
                                   fontWeight: FontWeight.w900)),
                         ),
@@ -713,8 +688,7 @@ class _KpiCardState extends State<_KpiCard> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                  color: (def.textColor ?? Colors.white)
-                                      .withValues(alpha: 0.75),
+                                  color: Colors.white.withValues(alpha: 0.75),
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w600)),
                         ],
@@ -723,17 +697,15 @@ class _KpiCardState extends State<_KpiCard> {
                           Text(def.trendPct!,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  color: def.textColor ??
-                                      AppColors.successGreen,
+                              style: const TextStyle(
+                                  color: _titleGreen,
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w800)),
                           Text(def.trendVs,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                  color: (def.textColor ?? Colors.white)
-                                      .withValues(alpha: 0.70),
+                                  color: Colors.white.withValues(alpha: 0.70),
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.w600)),
                         ],
@@ -845,41 +817,36 @@ class _TopBar extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 16),
-        // Flexible : sur écran étroit la carte pharmacie rétrécit (le nom
-        // est déjà ellipsé) au lieu de faire déborder la barre.
-        Flexible(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-            decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.03),
-                borderRadius: BorderRadius.circular(12),
-                border:
-                    Border.all(color: Colors.white.withValues(alpha: 0.10))),
-            child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Row(mainAxisSize: MainAxisSize.min, children: [
-                    Flexible(
-                      child: Text(pharmacyName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800)),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.keyboard_arrow_down,
-                        size: 18, color: AppColors.textSecondary),
-                  ]),
-                  Text(roleLabel,
-                      style: const TextStyle(
-                          color: AppColors.emeraldLight,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700)),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.03),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
+          child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  Flexible(
+                    child: Text(pharmacyName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800)),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.keyboard_arrow_down,
+                      size: 18, color: AppColors.textSecondary),
                 ]),
-          ),
+                Text(roleLabel,
+                    style: const TextStyle(
+                        color: AppColors.emeraldLight,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700)),
+              ]),
         ),
         const SizedBox(width: 14),
         // Badge notifications : compteur RÉEL depuis l'API (0 = pas de badge).
@@ -973,19 +940,12 @@ class _DarkPanel extends StatelessWidget {
             Row(children: [
               Icon(icon, size: 17, color: iconColor),
               const SizedBox(width: 8),
-              // Flexible + ellipsis : sur smartphone, les panneaux sont
-              // étroits (« ALERTES STOCK », « PLAN 3D… ») — aucun titre ne
-              // doit déborder de son panneau.
-              Flexible(
-                child: Text(title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.95),
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.6)),
-              ),
+              Text(title,
+                  style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.95),
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.6)),
             ]),
             const SizedBox(height: 10),
             child,
@@ -1236,15 +1196,9 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
           ]),
         ),
         const SizedBox(height: 9),
-        // Wrap : sur écran étroit les 4 étiquettes passent à la ligne
-        // au lieu de déborder (aucune superposition).
-        Wrap(
-          spacing: 8,
-          runSpacing: 4,
-          children: [
-            for (final (letter, name) in _legend) _LegendItem(letter, name),
-          ],
-        ),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          for (final (letter, name) in _legend) _LegendItem(letter, name),
+        ]),
       ]),
     );
   }

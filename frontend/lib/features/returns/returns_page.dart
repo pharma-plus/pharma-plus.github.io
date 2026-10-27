@@ -7,7 +7,6 @@ import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
-import '../../core/widgets/shared/app_search_field.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../shell/shell_nav.dart';
 
@@ -35,7 +34,6 @@ class _ReturnsPageState extends State<ReturnsPage> {
     _search.dispose();
     super.dispose();
   }
-
   List<Map<String, dynamic>> _sales = [];
   bool _loading = true;
   String? _error;
@@ -73,7 +71,7 @@ class _ReturnsPageState extends State<ReturnsPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => ReturnForm(sale: sale),
+        builder: (_) => ReturnForm(sale: sale),
     ).then((_) => _load());
   }
 
@@ -91,17 +89,14 @@ class _ReturnsPageState extends State<ReturnsPage> {
       body: Column(children: [
         Padding(
           padding: const EdgeInsets.all(12),
-          child: AppSearchField(
+          child: TextField(
             controller: _search,
-            hint: 'N° de vente ou client…',
-            showFilterButton: false,
-            showClearButton: false,
-            debounceDuration: Duration.zero,
             onSubmitted: (_) => _load(),
-            suffixIcon: IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: _load,
-              tooltip: 'Actualiser',
+            decoration: InputDecoration(
+              hintText: 'N° de vente ou client…',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: IconButton(
+                  icon: const Icon(Icons.refresh), onPressed: _load),
             ),
           ),
         ),
@@ -152,14 +147,16 @@ class _ReturnsPageState extends State<ReturnsPage> {
           child: GlassCard(
             onTap: canReturn ? () => _openReturn(s) : null,
             radius: BorderRadius.circular(14),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: ListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
               title: Text(
                   '${s['number'] ?? s['id']} · ${Fmt.money(_num(s['total']))}',
                   style: const TextStyle(fontWeight: FontWeight.w800)),
-              subtitle: Text('${s['customer_name'] ?? 'Client comptoir'} · '
+              subtitle: Text(
+                  '${s['customer_name'] ?? 'Client comptoir'} · '
                   '${Fmt.shortDate(DateTime.tryParse('${s['sale_date']}'))}'),
               trailing: canReturn
                   ? const Icon(Icons.keyboard_return,
@@ -252,8 +249,8 @@ class ReturnFormState extends State<ReturnForm> {
     if (r.success) {
       Navigator.pop(context);
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(S.t('returnSaved', locale))));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(S.t('returnSaved', locale))));
       }
     } else {
       setState(() => _saving = false);
@@ -283,8 +280,7 @@ class ReturnFormState extends State<ReturnForm> {
                   padding: const EdgeInsets.only(bottom: 10),
                   child: Row(children: [
                     Expanded(
-                      child: Text(
-                          '${it['medication_name'] ?? it['name'] ?? '—'}',
+                      child: Text('${it['medication_name'] ?? it['name'] ?? '—'}',
                           style: const TextStyle(fontWeight: FontWeight.w600)),
                     ),
                     Text('vendu ${Fmt.number(sold)}',
@@ -319,7 +315,8 @@ class ReturnFormState extends State<ReturnForm> {
             const SizedBox(height: 10),
             TextField(
               controller: _reason,
-              decoration: const InputDecoration(labelText: 'Motif (optionnel)'),
+              decoration:
+                  const InputDecoration(labelText: 'Motif (optionnel)'),
             ),
             const SizedBox(height: 16),
             GradientButton(

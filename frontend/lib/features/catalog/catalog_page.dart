@@ -14,7 +14,6 @@ import '../../core/widgets/barcode_scanner.dart';
 import '../../core/utils/format.dart';
 import '../../core/utils/validators.dart';
 import '../../core/widgets/glass_card.dart';
-import '../../core/widgets/shared/app_search_field.dart';
 import '../shell/shell_nav.dart';
 
 /// Une option de filtre (facette reelle renvoyee par l'API).
@@ -685,18 +684,44 @@ class _CatalogPageState extends State<CatalogPage> {
           ),
           Padding(
             padding: const EdgeInsets.all(12),
-            child: AppSearchField(
+            child: TextField(
               controller: _search,
-              hint: S.t('search', locale),
-              showFilterButton: false,
-              debounceDuration: Duration.zero,
-              // La requête serveur garde son debounce existant de 300 ms.
+              // Affichage du caractère immédiat (contrôleur local) ;
+              // requête serveur débouncée à 300 ms pour ne pas flood.
               onChanged: (q) {
                 _searchDebounce?.cancel();
                 _searchDebounce = Timer(const Duration(milliseconds: 300), () {
                   if (mounted) _load(page: 1, query: q);
                 });
               },
+              decoration: InputDecoration(
+                hintText: S.t('search', locale),
+                prefixIcon: const Icon(Icons.search),
+                isDense: true,
+                filled: true,
+                fillColor: isDark ? AppColors.pharmaSurface : Colors.white,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(
+                    color:
+                        isDark ? AppColors.borderDark : AppColors.borderLight,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(
+                    color:
+                        isDark ? AppColors.borderDark : AppColors.borderLight,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                      const BorderSide(color: AppColors.emerald, width: 1.6),
+                ),
+              ),
             ),
           ),
           // -------- Filtres combinables (ComboBox + reset) --------
@@ -1046,7 +1071,7 @@ class _CatalogPageState extends State<CatalogPage> {
   Widget _tableHeader({required double medW}) {
     return Container(
       height: 44,
-      color: AppColors.deepGreen,
+      color: AppColors.primary,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [

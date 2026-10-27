@@ -9,7 +9,6 @@ import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/utils/validators.dart';
 import '../../core/widgets/glass_card.dart';
-import '../../core/widgets/shared/app_search_field.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/status_chip.dart';
 import '../shell/shell_nav.dart';
@@ -80,11 +79,11 @@ class _CustomersPageState extends State<CustomersPage> {
     final saved = await showDialog<bool>(
       context: context,
       builder: (_) => Dialog(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
-          child: CustomerForm(customer: customer),
-        ),
-      ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560),
+              child: CustomerForm(customer: customer),
+            ),
+          ),
     );
     if (saved == true) {
       _load();
@@ -133,12 +132,13 @@ class _CustomersPageState extends State<CustomersPage> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-            child: AppSearchField(
+            child: TextField(
               controller: _search,
-              hint: S.t('search', locale),
-              showFilterButton: false,
-              debounceDuration: Duration.zero,
               onChanged: (_) => _debouncedLoad(),
+              decoration: InputDecoration(
+                hintText: S.t('search', locale),
+                prefixIcon: const Icon(Icons.search),
+              ),
             ),
           ),
           Row(
@@ -399,8 +399,8 @@ class CustomerFormState extends State<CustomerForm> {
                   autovalidateMode: AutovalidateMode.onUserInteraction,
                   decoration:
                       InputDecoration(labelText: S.t('creditLimit', locale)),
-                  validator: (v) => validateNonNegativeNumber(
-                      v, S.t('invalidNumber', locale)),
+                  validator: (v) =>
+                      validateNonNegativeNumber(v, S.t('invalidNumber', locale)),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -456,14 +456,12 @@ class _CustomerDetailState extends State<_CustomerDetail> {
   }
 
   Future<void> _load() async {
-    final result =
-        await ApiClient.instance.get('/customers/${widget.customerId}');
+    final result = await ApiClient.instance
+        .get('/customers/${widget.customerId}');
     if (!mounted) return;
     if (result.success) {
       final d = result.data;
-      setState(() => _customer = d is Map<String, dynamic>
-          ? d
-          : (d is Map ? Map<String, dynamic>.from(d) : null));
+      setState(() => _customer = d is Map<String, dynamic> ? d : (d is Map ? Map<String, dynamic>.from(d) : null));
     }
   }
 

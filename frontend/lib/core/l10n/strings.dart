@@ -9,8 +9,7 @@ class S {
       'connectToSpace': 'Connectez-vous à votre espace',
       'slogan': 'Gérez votre pharmacie avec intelligence et simplicité',
       'forgotPassword': 'Mot de passe oublié ?',
-      'forgotPasswordHint':
-          'Pour réinitialiser votre mot de passe, contactez votre administrateur.',
+      'forgotPasswordHint': 'Pour réinitialiser votre mot de passe, contactez votre administrateur.',
       'rememberMe': 'Se souvenir de moi',
       'support': 'Support',
       'versionLabel': 'Version',
@@ -339,9 +338,9 @@ class S {
       'profit': 'Marge',
       'qtySold': 'Qté vendue',
       'avgPrice': 'Prix moyen',
-      'stockValue': 'Valeur du stock',
+      'stockValue': 'Valeur stock',
       'stockCost': 'Coût stock',
-      'stockQtyTotal': 'Quantité totale en stock',
+      'stockQtyTotal': 'Quantité totale',
       'nbProducts': 'Nb produits',
       'grossProfit': 'Marge brute',
       'tvaCollected': 'TVA collectée',
@@ -1048,8 +1047,7 @@ class S {
       'connectToSpace': 'Sign in to your workspace',
       'slogan': 'Manage your pharmacy with intelligence and simplicity',
       'forgotPassword': 'Forgot password?',
-      'forgotPasswordHint':
-          'To reset your password, contact your administrator.',
+      'forgotPasswordHint': 'To reset your password, contact your administrator.',
       'rememberMe': 'Remember me',
       'support': 'Support',
       'versionLabel': 'Version',
@@ -1379,7 +1377,7 @@ class S {
       'avgPrice': 'Avg price',
       'stockValue': 'Stock value',
       'stockCost': 'Stock cost',
-      'stockQtyTotal': 'Total quantity in stock',
+      'stockQtyTotal': 'Total quantity',
       'nbProducts': 'Products',
       'grossProfit': 'Gross profit',
       'tvaCollected': 'VAT collected',
@@ -1580,3 +1578,5 @@ class S {
 
   static bool isRtl(String locale) => _rtl.containsKey(locale);
 }
+
+

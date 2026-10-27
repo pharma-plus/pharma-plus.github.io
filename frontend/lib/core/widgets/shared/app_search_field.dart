@@ -27,7 +27,6 @@ class AppSearchField extends StatefulWidget {
     this.caseSensitive = false,
     this.minCharsForSearch = 0,
     this.showClearButton = true,
-    this.maxWidth = 380,
   });
 
   final TextEditingController? controller;
@@ -50,10 +49,6 @@ class AppSearchField extends StatefulWidget {
   final bool caseSensitive;
   final int minCharsForSearch;
   final bool showClearButton;
-
-  /// Largeur maximale commune des recherches PHARMA+ (environ 10 cm).
-  /// Les petits écrans gardent naturellement la largeur disponible.
-  final double maxWidth;
 
   @override
   State<AppSearchField> createState() => _AppSearchFieldState();
@@ -116,126 +111,117 @@ class _AppSearchFieldState extends State<AppSearchField> {
     final isDark = context.isDark;
     final hasText = _controller.text.isNotEmpty;
 
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: widget.maxWidth),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                focusNode: _focusNode,
-                enabled: widget.enabled,
-                readOnly: widget.readOnly,
-                autofocus: widget.autofocus,
-                onSubmitted: widget.onSubmitted,
-                onTapOutside: (_) => _focusNode.unfocus(),
-                style: tokens.fieldInput,
-                decoration: InputDecoration(
-                  hintText: widget.hint,
-                  prefixIcon: widget.prefixIcon ??
-                      Padding(
-                        padding: EdgeInsets.only(
-                          left: tokens.sp4,
-                          right: tokens.sp2,
-                        ),
-                        child: Icon(
-                          Icons.search_rounded,
-                          size: tokens.fontSizeLg,
-                          color: isDark
-                              ? tokens.textTertiary
-                              : tokens.textDisabled,
-                        ),
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _controller,
+            focusNode: _focusNode,
+            enabled: widget.enabled,
+            readOnly: widget.readOnly,
+            autofocus: widget.autofocus,
+            onSubmitted: widget.onSubmitted,
+            onTapOutside: (_) => _focusNode.unfocus(),
+            style: tokens.fieldInput,
+            decoration: InputDecoration(
+              hintText: widget.hint,
+              prefixIcon: widget.prefixIcon ??
+                  Padding(
+                    padding: EdgeInsets.only(
+                      left: tokens.sp4,
+                      right: tokens.sp2,
+                    ),
+                    child: Icon(
+                      Icons.search_rounded,
+                      size: tokens.fontSizeLg,
+                      color: isDark ? tokens.textTertiary : tokens.textDisabled,
+                    ),
+                  ),
+              suffixIcon: hasText && widget.showClearButton
+                  ? IconButton(
+                      icon: Icon(
+                        Icons.clear_rounded,
+                        size: tokens.fontSizeLg,
+                        color:
+                            isDark ? tokens.textTertiary : tokens.textDisabled,
                       ),
-                  suffixIcon: hasText && widget.showClearButton
-                      ? IconButton(
-                          icon: Icon(
-                            Icons.clear_rounded,
-                            size: tokens.fontSizeLg,
-                            color: isDark
-                                ? tokens.textTertiary
-                                : tokens.textDisabled,
+                      onPressed: _clear,
+                      tooltip: 'Effacer',
+                      splashRadius: 20,
+                    )
+                  : widget.suffixIcon != null
+                      ? Padding(
+                          padding: EdgeInsets.only(
+                            left: tokens.sp2,
+                            right: tokens.sp4,
                           ),
-                          onPressed: _clear,
-                          tooltip: 'Effacer',
-                          splashRadius: 20,
+                          child: widget.suffixIcon,
                         )
-                      : widget.suffixIcon != null
-                          ? Padding(
-                              padding: EdgeInsets.only(
-                                left: tokens.sp2,
-                                right: tokens.sp4,
-                              ),
-                              child: widget.suffixIcon,
-                            )
-                          : null,
-                  filled: true,
-                  fillColor: widget.enabled
-                      ? (isDark ? tokens.bgSurfaceRaised : Colors.white)
-                      : (isDark ? tokens.bgSurface : Colors.grey[100]),
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: tokens.fieldPaddingHorizontal,
-                    vertical: tokens.fieldPaddingVertical,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(tokens.rField),
-                    borderSide: BorderSide(
-                      color: isDark ? tokens.borderDark : tokens.borderLight,
-                      width: 1,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(tokens.rField),
-                    borderSide: BorderSide(
-                      color: isDark ? tokens.borderDark : tokens.borderLight,
-                      width: 1,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(tokens.rField),
-                    borderSide: BorderSide(
-                      color: tokens.borderFocus,
-                      width: 1.6,
-                    ),
-                  ),
-                  disabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(tokens.rField),
-                    borderSide: BorderSide(
-                      color: isDark ? tokens.borderDark : tokens.borderLight,
-                      width: 1,
-                    ),
-                  ),
+                      : null,
+              filled: true,
+              fillColor: widget.enabled
+                  ? (isDark ? tokens.bgSurfaceRaised : Colors.white)
+                  : (isDark ? tokens.bgSurface : Colors.grey[100]),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: tokens.fieldPaddingHorizontal,
+                vertical: tokens.fieldPaddingVertical,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(tokens.rField),
+                borderSide: BorderSide(
+                  color: isDark ? tokens.borderDark : tokens.borderLight,
+                  width: 1,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(tokens.rField),
+                borderSide: BorderSide(
+                  color: isDark ? tokens.borderDark : tokens.borderLight,
+                  width: 1,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(tokens.rField),
+                borderSide: BorderSide(
+                  color: tokens.borderFocus,
+                  width: 1.6,
+                ),
+              ),
+              disabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(tokens.rField),
+                borderSide: BorderSide(
+                  color: isDark ? tokens.borderDark : tokens.borderLight,
+                  width: 1,
                 ),
               ),
             ),
-            if (widget.showFilterButton && widget.onFilterTap != null) ...[
-              SizedBox(width: tokens.sp2),
-              OutlinedButton.icon(
-                onPressed: widget.enabled ? widget.onFilterTap : null,
-                icon: Icon(
-                  widget.filterIcon,
-                  size: tokens.fontSizeBase,
-                ),
-                label: Text(widget.filterLabel, style: tokens.labelMedium),
-                style: OutlinedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: tokens.sp4,
-                    vertical: tokens.sp3,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(tokens.rButton),
-                  ),
-                  side: BorderSide(
-                    color: isDark ? tokens.borderGold : tokens.brandPrimary,
-                    width: 1.5,
-                  ),
-                ),
-              ),
-            ],
-          ],
+          ),
         ),
-      ),
+        if (widget.showFilterButton && widget.onFilterTap != null) ...[
+          SizedBox(width: tokens.sp2),
+          OutlinedButton.icon(
+            onPressed: widget.enabled ? widget.onFilterTap : null,
+            icon: Icon(
+              widget.filterIcon,
+              size: tokens.fontSizeBase,
+            ),
+            label: Text(widget.filterLabel, style: tokens.labelMedium),
+            style: OutlinedButton.styleFrom(
+              padding: EdgeInsets.symmetric(
+                horizontal: tokens.sp4,
+                vertical: tokens.sp3,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(tokens.rButton),
+              ),
+              side: BorderSide(
+                color: isDark ? tokens.borderGold : tokens.brandPrimary,
+                width: 1.5,
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

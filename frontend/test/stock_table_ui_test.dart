@@ -9,7 +9,6 @@ import 'package:provider/provider.dart';
 
 import 'package:pharma_maroc_gold/core/services/auth_store.dart';
 import 'package:pharma_maroc_gold/core/theme/colors.dart';
-import 'package:pharma_maroc_gold/core/widgets/glass_card.dart';
 import 'package:pharma_maroc_gold/features/shell/app_side_menu.dart';
 import 'package:pharma_maroc_gold/features/shell/home_shell.dart';
 import 'package:pharma_maroc_gold/features/shell/shell_nav.dart';
@@ -99,21 +98,10 @@ String _medsJson() {
     );
   }
   if (path.endsWith('/notifications')) {
-    return (
-      jsonEncode({
-        'data': <dynamic>[],
-        'meta': {'unread': 0}
-      }),
-      200
-    );
+    return (jsonEncode({'data': <dynamic>[], 'meta': {'unread': 0}}), 200);
   }
   if (path.contains('/sync/pull/')) {
-    return (
-      jsonEncode({
-        'data': {'maxRevision': 0, 'rows': []}
-      }),
-      200
-    );
+    return (jsonEncode({'data': {'maxRevision': 0, 'rows': []}}), 200);
   }
   return (jsonEncode({'data': <dynamic>[]}), 200);
 }
@@ -338,8 +326,7 @@ Finder _verticalScroll() => find.descendant(
 Finder _horizontalScroll() => find.descendant(
       of: find.byType(StockPage),
       matching: find.byWidgetPredicate(
-        (w) =>
-            w is SingleChildScrollView && w.scrollDirection == Axis.horizontal,
+        (w) => w is SingleChildScrollView && w.scrollDirection == Axis.horizontal,
       ),
     );
 
@@ -386,7 +373,9 @@ void main() {
       expect(zone.color, isNotNull, reason: 'zone $label');
       expect(zone.color!.a, 1.0, reason: 'zone alpha 255 $label');
       expect(
-        brightness == Brightness.dark ? AppColors.pharmaSurface : Colors.white,
+        brightness == Brightness.dark
+            ? AppColors.pharmaSurface
+            : Colors.white,
         zone.color,
         reason: 'couleur de zone attendue $label',
       );
@@ -408,8 +397,7 @@ void main() {
     }
   });
 
-  testWidgets(
-      'Tableau Stock : en-tête et contrôles fixes pendant le défilement',
+  testWidgets('Tableau Stock : en-tête et contrôles fixes pendant le défilement',
       (tester) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await _pumpStock(tester, const Size(1024, 768));
@@ -431,8 +419,8 @@ void main() {
         reason: 'en-tête fixe');
     expect(tester.getTopLeft(find.text('Tous')), chipBefore,
         reason: 'filtres fixes');
-    expect(
-        tester.getTopLeft(find.text('Med 01')).dy, lessThan(firstRowBefore.dy),
+    expect(tester.getTopLeft(find.text('Med 01')).dy,
+        lessThan(firstRowBefore.dy),
         reason: 'les lignes défilent sous l\'en-tête fixe');
 
     // Défilement horizontal : l'en-tête suit les colonnes (même scroll).
@@ -472,12 +460,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     await _settle(tester);
 
-    expect(
-        find.descendant(
-          of: find.byType(StockPage),
-          matching: find.text('Médicament'),
-        ),
-        findsOneWidget);
+    expect(find.descendant(
+      of: find.byType(StockPage),
+      matching: find.text('Médicament'),
+    ), findsOneWidget);
 
     // Le menu reste strictement immobile pendant le défilement du tableau.
     final before = tester.getRect(find.byType(AppSideMenu));
@@ -592,67 +578,6 @@ void main() {
     await _settle(tester);
     expect(find.text('Med 01'), findsWidgets,
         reason: 'filtre réinitialisé : lignes de retour');
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets(
-      'Stock : deux cartes KPI distinctes avec illustrations 3D '
-      '(Valeur MAD / Quantité u.)', (tester) async {
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await _pumpStock(tester, const Size(1024, 768));
-
-    // Deux cartes DISTINCTES côte à côte (la vue mobile n'est pas
-    // construite à cette largeur : seules les 2 KPI utilisent GlassCard).
-    expect(find.byType(GlassCard), findsNWidgets(2));
-    expect(find.byKey(const ValueKey('stock-kpi-value')), findsOneWidget);
-    expect(find.byKey(const ValueKey('stock-kpi-qty')), findsOneWidget);
-
-    // Libellés exacts de la mission.
-    expect(find.text('Valeur du stock'), findsOneWidget);
-    expect(find.text('Quantité totale en stock'), findsOneWidget);
-
-    // Unités non dupliquées — ciblées DANS les cartes KPI (les cellules
-    // « prix » du tableau contiennent aussi « MAD »).
-    expect(
-        find.descendant(
-            of: find.byKey(const ValueKey('stock-kpi-value')),
-            matching: find.textContaining('MAD')),
-        findsOneWidget,
-        reason: 'une seule unité monétaire dans la carte Valeur');
-    expect(
-        find.descendant(
-            of: find.byKey(const ValueKey('stock-kpi-qty')),
-            matching: find.textContaining(' u.')),
-        findsOneWidget,
-        reason: 'une seule unité de quantité dans la carte Quantité');
-
-    // Illustrations 3D réellement intégrées (webp de la famille Dashboard).
-    expect(
-      find.byWidgetPredicate((w) =>
-          w is Image &&
-          w.image is AssetImage &&
-          (w.image as AssetImage)
-              .assetName
-              .startsWith('assets/images/kpi_bg_')),
-      findsNWidgets(2),
-      reason: 'chaque carte doit contenir son illustration 3D',
-    );
-
-    // Responsive : à 360 px, les illustrations se retirent d'elles-mêmes
-    // (aucun débordement des libellés).
-    await _pumpStock(tester, const Size(360, 800));
-    expect(find.byKey(const ValueKey('stock-kpi-value')), findsOneWidget);
-    expect(find.byKey(const ValueKey('stock-kpi-qty')), findsOneWidget);
-    expect(
-      find.byWidgetPredicate((w) =>
-          w is Image &&
-          w.image is AssetImage &&
-          (w.image as AssetImage)
-              .assetName
-              .startsWith('assets/images/kpi_bg_')),
-      findsNothing,
-      reason: 'illustrations masquées sur très petit écran',
-    );
     expect(tester.takeException(), isNull);
   });
 }

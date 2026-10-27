@@ -177,8 +177,7 @@ class _PosPanelState extends State<PosPanel> {
       _doSearch('');
       return;
     }
-    _debounce =
-        Timer(const Duration(milliseconds: 350), () => _doSearch(query));
+    _debounce = Timer(const Duration(milliseconds: 350), () => _doSearch(query));
   }
 
   Future<void> _doSearch(String query) async {
@@ -187,14 +186,14 @@ class _PosPanelState extends State<PosPanel> {
     if (_activeForm != null && _activeForm!.isNotEmpty) {
       params['form'] = 'eq.$_activeForm';
     }
-    final r =
-        await ApiClient.instance.get('/catalog/medications', query: params);
+    final r = await ApiClient.instance
+        .get('/catalog/medications', query: params);
     if (!mounted) return;
     if (!r.success) {
-      debugPrint(
-          '[PosPanel] catalog load failed: ${r.error} base=${ApiClient.instance.baseUrl}');
+      debugPrint('[PosPanel] catalog load failed: ${r.error} base=${ApiClient.instance.baseUrl}');
     }
-    final items = r.success ? ApiList.of(r.data) : <Map<String, dynamic>>[];
+    final items =
+        r.success ? ApiList.of(r.data) : <Map<String, dynamic>>[];
     setState(() {
       _results.clear();
       for (final it in items) {
@@ -222,11 +221,12 @@ class _PosPanelState extends State<PosPanel> {
   /// de la table medications) : sans cet appel, _stock reste vide et tout
   /// ajout affichait « Stock non vérifiable » (bug PC dashboard).
   Future<void> _loadStockForResults() async {
-    final ids = _results.keys.where((id) => !_stock.containsKey(id)).toList();
+    final ids =
+        _results.keys.where((id) => !_stock.containsKey(id)).toList();
     if (ids.isEmpty) return;
     try {
-      final r = await ApiClient.instance.get('/catalog/medications/stock',
-          query: {'ids': ids.take(100).join(',')});
+      final r = await ApiClient.instance
+          .get('/catalog/medications/stock', query: {'ids': ids.take(100).join(',')});
       if (!mounted || !r.success || r.data is! List) return;
       setState(() {
         for (final e in r.data as List) {
@@ -380,8 +380,7 @@ class _PosPanelState extends State<PosPanel> {
   }
 
   Future<void> _scanBarcode() async {
-    final result =
-        await BarcodeScannerSheet.show(context, title: 'Scanner produit');
+    final result = await BarcodeScannerSheet.show(context, title: 'Scanner produit');
     if (result != null) await _addScanned(result);
   }
 
@@ -392,8 +391,7 @@ class _PosPanelState extends State<PosPanel> {
         onScan: (result) => _addScanned(result, continuous: true));
   }
 
-  Future<void> _addScanned(ScanResult scanned,
-      {bool continuous = false}) async {
+  Future<void> _addScanned(ScanResult scanned, {bool continuous = false}) async {
     final code = scanned.lookupCode;
     if (code.isEmpty || !mounted) return;
     final apiResult = await ApiClient.instance.get(
@@ -402,14 +400,13 @@ class _PosPanelState extends State<PosPanel> {
     if (!mounted) return;
     if (!apiResult.success || apiResult.data == null) {
       if (!continuous) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Code inconnu : $code')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Code inconnu : $code')));
       }
       return;
     }
     final med = apiResult.data;
-    final medMap =
-        med is Map ? Map<String, dynamic>.from(med) : <String, dynamic>{};
+    final medMap = med is Map ? Map<String, dynamic>.from(med) : <String, dynamic>{};
     final m = Medication.fromJson(medMap);
     setState(() {
       _qty[m.id] = (_qty[m.id] ?? 0) + 1;
@@ -429,9 +426,10 @@ class _PosPanelState extends State<PosPanel> {
       final list = (jsonDecode(raw) as List? ?? const [])
           .whereType<Map<String, dynamic>>()
           .where((e) {
-        final owner = e['userId'];
-        return owner == null || owner == uid; // entrées héritées: visibles
-      }).toList();
+            final owner = e['userId'];
+            return owner == null || owner == uid; // entrées héritées: visibles
+          })
+          .toList();
       setState(() {
         _heldIds = list.map((e) => '${e['id']}').toList();
         for (final e in list) {
@@ -459,37 +457,37 @@ class _PosPanelState extends State<PosPanel> {
     if (_cart.isEmpty || _holding) return; // anti double-clic
     _holding = true;
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final existing =
-          jsonDecode(prefs.getString(_kHeldKey) ?? '[]') as List? ?? [];
-      final id = 'H${DateTime.now().millisecondsSinceEpoch}';
-      existing.add({
-        'id': id,
-        // Portée multi-employés : la vente suspendue est propriété de
-        // l'employé qui l'a créée (pas de transfert de panier).
-        'userId': asUserId ?? AuthStore.instance.user?.id,
-        'savedAt': DateTime.now().toIso8601String(),
-        'discount': _discount,
-        'isPercent': _discountPercent,
-        'items': [
-          for (final m in _cart.values)
-            {
-              'id': m.id,
-              'name': m.name,
-              'price_sale': m.priceSale,
-              'qty': _qty[m.id] ?? 1,
-            }
-        ],
-      });
-      await prefs.setString(_kHeldKey, jsonEncode(existing));
-      if (!mounted) return;
-      _clearCart();
-      setState(() => _heldIds.add(id));
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Vente suspendue — reprenez-la ici.')));
-    } finally {
-      _holding = false;
-    }
+    final prefs = await SharedPreferences.getInstance();
+    final existing =
+        jsonDecode(prefs.getString(_kHeldKey) ?? '[]') as List? ?? [];
+    final id = 'H${DateTime.now().millisecondsSinceEpoch}';
+    existing.add({
+      'id': id,
+      // Portée multi-employés : la vente suspendue est propriété de
+      // l'employé qui l'a créée (pas de transfert de panier).
+      'userId': asUserId ?? AuthStore.instance.user?.id,
+      'savedAt': DateTime.now().toIso8601String(),
+      'discount': _discount,
+      'isPercent': _discountPercent,
+      'items': [
+        for (final m in _cart.values)
+          {
+            'id': m.id,
+            'name': m.name,
+            'price_sale': m.priceSale,
+            'qty': _qty[m.id] ?? 1,
+          }
+      ],
+    });
+    await prefs.setString(_kHeldKey, jsonEncode(existing));
+    if (!mounted) return;
+    _clearCart();
+    setState(() => _heldIds.add(id));
+    ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vente suspendue — reprenez-la ici.')));
+  } finally {
+    _holding = false;
+  }
   }
 
   /// Supprime définitivement une vente suspendue (annulation autorisée).
@@ -515,59 +513,59 @@ class _PosPanelState extends State<PosPanel> {
     if (_resuming) return; // anti double-clic / reprises rapprochées
     _resuming = true;
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final existing =
-          jsonDecode(prefs.getString(_kHeldKey) ?? '[]') as List? ?? [];
-      Map<String, dynamic>? held;
-      for (final e in existing.whereType<Map<String, dynamic>>()) {
-        if ('${e['id']}' == id) {
-          held = Map<String, dynamic>.from(e);
-          break;
-        }
+    final prefs = await SharedPreferences.getInstance();
+    final existing =
+        jsonDecode(prefs.getString(_kHeldKey) ?? '[]') as List? ?? [];
+    Map<String, dynamic>? held;
+    for (final e in existing.whereType<Map<String, dynamic>>()) {
+      if ('${e['id']}' == id) {
+        held = Map<String, dynamic>.from(e);
+        break;
       }
-      if (held == null) return;
-      final Map<String, dynamic> h = held;
-      // Un employé ne peut reprendre qu'une vente qu'il a suspendue lui-même.
-      final owner = h['userId'];
-      if (owner != null && owner != AuthStore.instance.user?.id) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('Vente suspendue par un autre employé.')));
-        }
-        await _loadHeld();
-        return;
-      }
-      final items = (h['items'] as List? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
-      setState(() {
-        for (final it in items) {
-          final m = Medication(
-            id: '${it['id']}',
-            name: '${it['name']}',
-            priceSale: (it['price_sale'] as num?)?.toDouble() ?? 0,
-          );
-          _cart[m.id] = m;
-          _qty[m.id] = (it['qty'] as num?)?.toInt() ?? 1;
-        }
-        _discount = (h['discount'] as num?)?.toDouble() ?? 0;
-        _discountCtrl.text = _discount == 0 ? '' : '$_discount';
-        _heldIds.remove(id);
-        _heldQty.remove(id);
-      });
-      // Revérifiation du stock après reprise : la suspension peut dater,
-      // un produit peut être épuisé depuis. Message explicite, sans blocage —
-      // la validation finale revérifie côté serveur.
-      await _verifyHeldStock(items);
-      await prefs.setString(
-          _kHeldKey,
-          jsonEncode(existing
-              .whereType<Map<String, dynamic>>()
-              .where((e) => '${e['id']}' != id)
-              .toList()));
-    } finally {
-      _resuming = false;
     }
+    if (held == null) return;
+    final Map<String, dynamic> h = held;
+    // Un employé ne peut reprendre qu'une vente qu'il a suspendue lui-même.
+    final owner = h['userId'];
+    if (owner != null && owner != AuthStore.instance.user?.id) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Vente suspendue par un autre employé.')));
+      }
+      await _loadHeld();
+      return;
+    }
+    final items = (h['items'] as List? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .toList();
+    setState(() {
+      for (final it in items) {
+        final m = Medication(
+          id: '${it['id']}',
+          name: '${it['name']}',
+          priceSale: (it['price_sale'] as num?)?.toDouble() ?? 0,
+        );
+        _cart[m.id] = m;
+        _qty[m.id] = (it['qty'] as num?)?.toInt() ?? 1;
+      }
+      _discount = (h['discount'] as num?)?.toDouble() ?? 0;
+      _discountCtrl.text = _discount == 0 ? '' : '$_discount';
+      _heldIds.remove(id);
+      _heldQty.remove(id);
+    });
+    // Revérifiation du stock après reprise : la suspension peut dater,
+    // un produit peut être épuisé depuis. Message explicite, sans blocage —
+    // la validation finale revérifie côté serveur.
+    await _verifyHeldStock(items);
+    await prefs.setString(
+        _kHeldKey,
+        jsonEncode(existing
+            .whereType<Map<String, dynamic>>()
+            .where((e) => '${e['id']}' != id)
+            .toList()));
+  } finally {
+    _resuming = false;
+  }
   }
 
   /// Revérifie le stock (lots réels) des produits d'une vente reprise.
@@ -609,7 +607,8 @@ class _PosPanelState extends State<PosPanel> {
                     'Vente reprise, mais ces produits ne sont plus disponibles en quantité suffisante :'),
                 const SizedBox(height: 8),
                 for (final p in problems)
-                  Text('• $p', style: const TextStyle(color: AppColors.danger)),
+                  Text('• $p',
+                      style: const TextStyle(color: AppColors.danger)),
                 const SizedBox(height: 8),
                 const Text('Ajustez les quantités avant le paiement.'),
               ],
@@ -630,8 +629,7 @@ class _PosPanelState extends State<PosPanel> {
   void _pay() {
     if (_cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Panier vide — ajoutez un produit avant de payer.')),
+        const SnackBar(content: Text('Panier vide — ajoutez un produit avant de payer.')),
       );
       return;
     }
@@ -662,9 +660,7 @@ class _PosPanelState extends State<PosPanel> {
     if (branchId == null || branchId.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content:
-                  Text('Aucun point de vente assigné — rechargez la page.')),
+          const SnackBar(content: Text('Aucun point de vente assigné — rechargez la page.')),
         );
       }
       return;
@@ -700,8 +696,8 @@ class _PosPanelState extends State<PosPanel> {
         if (_customerId != null) 'customerId': _customerId,
         'payments': [pay.toPayload()],
       };
-      final result = await ApiClient.instance
-          .post('/sales', body: saleBody, timeout: const Duration(seconds: 60));
+      final result = await ApiClient.instance.post('/sales',
+          body: saleBody, timeout: const Duration(seconds: 60));
       if (!mounted) return;
       if (result.success) {
         final saleNumber = (result.data is Map)
@@ -713,8 +709,8 @@ class _PosPanelState extends State<PosPanel> {
                     ? 'Vente enregistrée · Monnaie : ${Fmt.money(pay.change!)} MAD'
                     : 'Vente enregistrée · ${Fmt.money(pay.amount)} MAD') +
             (saleNumber.isNotEmpty ? ' · $saleNumber' : '');
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(duration: const Duration(seconds: 6), content: Text(msg)));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            duration: const Duration(seconds: 6), content: Text(msg)));
         // Impression ticket (même service que le POS complet).
         final receiptLines = [
           for (final m in _cart.values)
@@ -762,7 +758,8 @@ class _PosPanelState extends State<PosPanel> {
             content: Text('$e'),
             actions: [
               TextButton(
-                  onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('OK')),
             ],
           ),
         );
@@ -772,10 +769,8 @@ class _PosPanelState extends State<PosPanel> {
     }
   }
 
-  bool get _cashSufficient =>
-      _received >= _totals.total || _paymentMode != 'cash';
-  double get _change =>
-      (_received > _totals.total) ? _received - _totals.total : 0;
+  bool get _cashSufficient => _received >= _totals.total || _paymentMode != 'cash';
+  double get _change => (_received > _totals.total) ? _received - _totals.total : 0;
 
   void _setReceived(String v) {
     _received = double.tryParse(v.replaceAll(',', '.')) ?? 0;
@@ -786,9 +781,8 @@ class _PosPanelState extends State<PosPanel> {
 
   void _quickReceived(double v) {
     final next = v == _totals.total ? v : _received + v;
-    _receivedCtrl.text = next == next.roundToDouble()
-        ? next.round().toString()
-        : next.toStringAsFixed(2);
+    _receivedCtrl.text =
+        next == next.roundToDouble() ? next.round().toString() : next.toStringAsFixed(2);
     _received = next;
     _receivedVN.value = next;
   }
@@ -823,48 +817,38 @@ class _PosPanelState extends State<PosPanel> {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         // ── 1) RECHERCHE ──
-        // Recherche compacte, plafonnée à 380 px (règle des 10 cm) :
-        // dans le panneau POS elle reste responsive à la largeur disponible.
-        Align(
-          alignment: Alignment.centerLeft,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 380),
-            child: Container(
-              height: 38,
-              decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.035),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                      color: const Color(0xFFC9A24B).withValues(alpha: 0.4))),
-              child: Row(children: [
-                const SizedBox(width: 8),
-                Icon(Icons.search_rounded,
-                    size: 16, color: Colors.white.withValues(alpha: 0.45)),
-                const SizedBox(width: 5),
-                Expanded(
-                  child: TextField(
-                    controller: _search,
-                    onChanged: _onSearchChanged,
-                    style: const TextStyle(color: Colors.white, fontSize: 11.5),
-                    decoration: const InputDecoration(
-                        isDense: true,
-                        border: InputBorder.none,
-                        hintText: 'Rechercher…',
-                        hintStyle:
-                            TextStyle(color: Color(0x66FFFFFF), fontSize: 11)),
-                  ),
-                ),
-                if (_searching)
-                  const Padding(
-                    padding: EdgeInsets.all(8),
-                    child: SizedBox(
-                        width: 12,
-                        height: 12,
-                        child: CircularProgressIndicator(strokeWidth: 1.5)),
-                  ),
-              ]),
+        Container(
+          height: 38,
+          decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.035),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                  color: const Color(0xFFC9A24B).withValues(alpha: 0.4))),
+          child: Row(children: [
+            const SizedBox(width: 8),
+            Icon(Icons.search_rounded,
+                size: 16, color: Colors.white.withValues(alpha: 0.45)),
+            const SizedBox(width: 5),
+            Expanded(
+              child: TextField(
+                controller: _search,
+                onChanged: _onSearchChanged,
+                style: const TextStyle(color: Colors.white, fontSize: 11.5),
+                decoration: const InputDecoration(
+                    isDense: true,
+                    border: InputBorder.none,
+                    hintText: 'Rechercher…',
+                    hintStyle: TextStyle(color: Color(0x66FFFFFF), fontSize: 11)),
+              ),
             ),
-          ),
+            if (_searching)
+              const Padding(
+                padding: EdgeInsets.all(8),
+                child: SizedBox(
+                    width: 12, height: 12,
+                    child: CircularProgressIndicator(strokeWidth: 1.5)),
+              ),
+          ]),
         ),
         const SizedBox(height: 6),
         // ── 2) SCANNER (simple + continu) ──
@@ -973,32 +957,32 @@ class _PosPanelState extends State<PosPanel> {
           child: _cart.isEmpty && _results.isEmpty
               ? Center(
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  if (_heldIds.isNotEmpty)
-                    for (final id in _heldIds)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Row(children: [
-                          Expanded(
-                            child: _PanelButton(
-                                label: 'Reprendre (${_heldQty[id] ?? 0} art.)',
-                                icon: Icons.unarchive_rounded,
-                                color: const Color(0xFF2A7A5A),
-                                onTap: () => _resume(id)),
-                          ),
-                          const SizedBox(width: 6),
-                          IconButton(
-                            tooltip: 'Supprimer la vente suspendue',
-                            icon: const Icon(Icons.delete_outline_rounded,
-                                size: 18, color: AppColors.danger),
-                            onPressed: () => _dropHeld(id),
-                          ),
-                        ]),
-                      ),
-                  Text('Recherchez un médicament',
-                      style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.35),
-                          fontSize: 10)),
-                ]))
+                    if (_heldIds.isNotEmpty)
+                      for (final id in _heldIds)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Row(children: [
+                            Expanded(
+                              child: _PanelButton(
+                                  label: 'Reprendre (${_heldQty[id] ?? 0} art.)',
+                                  icon: Icons.unarchive_rounded,
+                                  color: const Color(0xFF2A7A5A),
+                                  onTap: () => _resume(id)),
+                            ),
+                            const SizedBox(width: 6),
+                            IconButton(
+                              tooltip: 'Supprimer la vente suspendue',
+                              icon: const Icon(Icons.delete_outline_rounded,
+                                  size: 18, color: AppColors.danger),
+                              onPressed: () => _dropHeld(id),
+                            ),
+                          ]),
+                        ),
+                    Text('Recherchez un médicament',
+                        style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.35),
+                            fontSize: 10)),
+                  ]))
               : ListView(
                   shrinkWrap: false,
                   children: [
@@ -1016,8 +1000,7 @@ class _PosPanelState extends State<PosPanel> {
                         InkWell(
                           onTap: () => _add(m),
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 9, vertical: 5),
+                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
                             child: Row(children: [
                               const Icon(Icons.add_circle_outline_rounded,
                                   size: 13, color: AppColors.emeraldLight),
@@ -1025,16 +1008,12 @@ class _PosPanelState extends State<PosPanel> {
                               Expanded(
                                 child: Text(
                                     '${m.name}${m.dosage != null ? ' · ${m.dosage}' : ''}${m.laboratoryName != null && m.laboratoryName!.isNotEmpty ? ' · ${m.laboratoryName}' : ''}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                        color: Colors.white, fontSize: 10.5)),
+                                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(color: Colors.white, fontSize: 10.5)),
                               ),
                               Text(_fmt(m.priceSale),
                                   style: const TextStyle(
-                                      color: Color(0xFFE9C873),
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w800)),
+                                      color: Color(0xFFE9C873), fontSize: 10.5, fontWeight: FontWeight.w800)),
                               /* Marge droite de 20 px : place le prix sous la
                                  colonne TOTAL de l'en-tête (audit Phase 5). */
                               const SizedBox(width: 20),
@@ -1053,8 +1032,7 @@ class _PosPanelState extends State<PosPanel> {
             decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.04),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                    color: const Color(0xFFC9A24B).withValues(alpha: 0.3))),
+                border: Border.all(color: const Color(0xFFC9A24B).withValues(alpha: 0.3))),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 isExpanded: true,
@@ -1067,10 +1045,7 @@ class _PosPanelState extends State<PosPanel> {
                       size: 16, color: Color(0xFFE9C873)),
                   const SizedBox(width: 8),
                   Text('Client comptoir',
-                      style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600)),
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 11.5, fontWeight: FontWeight.w600)),
                 ]),
                 selectedItemBuilder: (ctx) => [
                   for (final c in _customers)
@@ -1080,12 +1055,8 @@ class _PosPanelState extends State<PosPanel> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text('${c['name'] ?? ''}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w600)),
+                            maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Colors.white70, fontSize: 11.5, fontWeight: FontWeight.w600)),
                       ),
                     ]),
                 ],
@@ -1094,8 +1065,7 @@ class _PosPanelState extends State<PosPanel> {
                     DropdownMenuItem(
                       value: '${c['id']}',
                       child: Text('${c['name'] ?? ''}',
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 11.5)),
+                          style: const TextStyle(color: Colors.white, fontSize: 11.5)),
                     ),
                 ],
                 onChanged: (v) => setState(() => _customerId = v),
@@ -1112,8 +1082,8 @@ class _PosPanelState extends State<PosPanel> {
                 controller: _discountCtrl,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
-                onChanged: (v) => setState(() =>
-                    _discount = double.tryParse(v.replaceAll(',', '.')) ?? 0),
+                onChanged: (v) => setState(
+                    () => _discount = double.tryParse(v.replaceAll(',', '.')) ?? 0),
                 style: const TextStyle(color: Colors.white, fontSize: 11),
                 decoration: InputDecoration(
                     isDense: true,
@@ -1126,8 +1096,8 @@ class _PosPanelState extends State<PosPanel> {
                         borderSide: BorderSide(
                             color: Colors.white.withValues(alpha: 0.1))),
                     hintText: 'Remise',
-                    hintStyle: const TextStyle(
-                        color: Color(0x55FFFFFF), fontSize: 10)),
+                    hintStyle:
+                        const TextStyle(color: Color(0x55FFFFFF), fontSize: 10)),
               ),
             ),
             const SizedBox(width: 4),
@@ -1154,9 +1124,11 @@ class _PosPanelState extends State<PosPanel> {
             const Spacer(),
             Text('TVA ${_fmt(t.tva)}',
                 style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.4), fontSize: 9.5)),
+                    color: Colors.white.withValues(alpha: 0.4),
+                    fontSize: 9.5)),
           ]),
-        if (_cart.isNotEmpty) const SizedBox(height: 4),
+        if (_cart.isNotEmpty)
+          const SizedBox(height: 4),
         if (_cart.isNotEmpty)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -1192,29 +1164,18 @@ class _PosPanelState extends State<PosPanel> {
           TextField(
             controller: _receivedCtrl,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d{0,2}'))
-            ],
+            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d{0,2}'))],
             onChanged: _setReceived,
-            style: const TextStyle(
-                color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
+            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
             decoration: InputDecoration(
               hintText: '0,00',
-              hintStyle: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.25), fontSize: 18),
+              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.25), fontSize: 18),
               fillColor: Colors.white.withValues(alpha: 0.04),
               filled: true,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: AppColors.goldBorder)),
-              enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: AppColors.goldBorder)),
-              focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: AppColors.pharmaGold)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.goldBorder)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.goldBorder)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.pharmaGold)),
             ),
           ),
           const SizedBox(height: 6),
@@ -1225,16 +1186,13 @@ class _PosPanelState extends State<PosPanel> {
             const SizedBox(width: 4),
             _QuickPayBtn(label: '+100', onTap: () => _quickReceived(100)),
             const SizedBox(width: 4),
-            _QuickPayBtn(
-                label: 'Exact',
-                onTap: () {
-                  _receivedCtrl.text =
-                      _totals.total == _totals.total.roundToDouble()
-                          ? _totals.total.round().toString()
-                          : _totals.total.toStringAsFixed(2);
-                  _received = _totals.total;
-                  _receivedVN.value = _totals.total;
-                }),
+            _QuickPayBtn(label: 'Exact', onTap: () {
+              _receivedCtrl.text = _totals.total == _totals.total.roundToDouble()
+                  ? _totals.total.round().toString()
+                  : _totals.total.toStringAsFixed(2);
+              _received = _totals.total;
+              _receivedVN.value = _totals.total;
+            }),
           ]),
           // Bannière monnaie / reste : reconstruite seule via le notifier.
           ValueListenableBuilder<double>(
@@ -1251,9 +1209,8 @@ class _PosPanelState extends State<PosPanel> {
                           : AppColors.danger.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                          color: _cashSufficient
-                              ? AppColors.emerald
-                              : AppColors.danger)),
+                          color:
+                              _cashSufficient ? AppColors.emerald : AppColors.danger)),
                   child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -1333,7 +1290,7 @@ class _PosPanelState extends State<PosPanel> {
               ),
               const SizedBox(width: 4),
               Expanded(
-                child: _PaymentModeBtn(
+                  child: _PaymentModeBtn(
                   selected: _paymentMode == 'mastercard',
                   selectedColor: const Color(0xFFD4760A),
                   onTap: () => setState(() => _paymentMode = 'mastercard'),
@@ -1368,7 +1325,8 @@ class _PosPanelState extends State<PosPanel> {
           const SizedBox(width: 6),
           Expanded(
               child: _PayButton(
-                  label: _checkout ? 'Enregistrement…' : 'Payer', onTap: _pay)),
+                  label: _checkout ? 'Enregistrement…' : 'Payer',
+                  onTap: _pay)),
         ]),
       ]),
     );
@@ -1534,8 +1492,7 @@ class _PayButton extends StatelessWidget {
             gradient: const LinearGradient(
                 colors: [Color(0xFF0E8C4F), Color(0xFF086B3D)]),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-                color: const Color(0xFF2A7A5A).withValues(alpha: 0.6))),
+            border: Border.all(color: const Color(0xFF2A7A5A).withValues(alpha: 0.6))),
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           const Icon(Icons.payments_outlined, size: 15, color: Colors.white),
           const SizedBox(width: 5),
@@ -1698,31 +1655,21 @@ class _MastercardPainter extends CustomPainter {
     final r = s.height * 0.38;
     // Ombre portée
     c.drawCircle(
-        Offset(cx - r * 0.55, cy),
-        r + 1,
-        Paint()
-          ..color = const Color(0x30000000)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2));
+        Offset(cx - r * 0.55, cy), r + 1,
+        Paint()..color = const Color(0x30000000)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2));
     c.drawCircle(
-        Offset(cx + r * 0.55, cy),
-        r + 1,
-        Paint()
-          ..color = const Color(0x30000000)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2));
+        Offset(cx + r * 0.55, cy), r + 1,
+        Paint()..color = const Color(0x30000000)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2));
     // Cercle gauche (rouge)
-    c.drawCircle(
-        Offset(cx - r * 0.55, cy),
-        r,
-        Paint()
-          ..shader = ui.Gradient.radial(Offset(cx - r * 0.55 - 3, cy - 3), r,
-              [const Color(0xFFFF4D4D), const Color(0xFFEB001B)]));
+    c.drawCircle(Offset(cx - r * 0.55, cy), r,
+        Paint()..shader = ui.Gradient.radial(
+            Offset(cx - r * 0.55 - 3, cy - 3), r,
+            [const Color(0xFFFF4D4D), const Color(0xFFEB001B)]));
     // Cercle droit (orange)
-    c.drawCircle(
-        Offset(cx + r * 0.55, cy),
-        r,
-        Paint()
-          ..shader = ui.Gradient.radial(Offset(cx + r * 0.55 - 3, cy - 3), r,
-              [const Color(0xFFFFC733), const Color(0xFFF79E1B)]));
+    c.drawCircle(Offset(cx + r * 0.55, cy), r,
+        Paint()..shader = ui.Gradient.radial(
+            Offset(cx + r * 0.55 - 3, cy - 3), r,
+            [const Color(0xFFFFC733), const Color(0xFFF79E1B)]));
   }
 
   @override
