@@ -441,7 +441,7 @@ class _DashboardPageState extends State<DashboardPage> {
           value: Fmt.money(_revenueToday),
           trendPct: pct(_trendRevenueToday),
           trendVs: 'vs hier',
-          image: 'assets/images/kpi_bg_1.webp',
+          image: 'assets/images/kpi/kpi_1.webp',
           badge: Icons.point_of_sale_rounded,
           badgeColor: green,
           module: 'pos'),
@@ -449,7 +449,7 @@ class _DashboardPageState extends State<DashboardPage> {
           label: 'MÉDICAMENTS',
           value: Fmt.number(_medications),
           sub: 'Références catalogue',
-          image: 'assets/images/kpi_bg_2.webp',
+          image: 'assets/images/kpi/kpi_2.webp',
           badge: Icons.medication_rounded,
           badgeColor: green,
           module: 'catalog'),
@@ -457,7 +457,7 @@ class _DashboardPageState extends State<DashboardPage> {
           label: 'PRODUITS EN STOCK',
           value: Fmt.number(_productsInStock),
           sub: 'En pharmacie',
-          image: 'assets/images/kpi_bg_3.webp',
+          image: 'assets/images/kpi/kpi_3.webp',
           badge: Icons.warning_amber_rounded,
           badgeColor: amber,
           module: 'stock'),
@@ -465,7 +465,7 @@ class _DashboardPageState extends State<DashboardPage> {
           label: 'COMMANDES',
           value: '$_pendingOrders',
           sub: 'En attente',
-          image: 'assets/images/kpi_bg_4.webp',
+          image: 'assets/images/kpi/kpi_4.webp',
           badge: Icons.fact_check_rounded,
           badgeColor: green,
           module: 'purchases'),
@@ -473,7 +473,7 @@ class _DashboardPageState extends State<DashboardPage> {
           label: 'FOURNISSEURS',
           value: Fmt.number(_suppliers),
           sub: 'Fournisseurs',
-          image: 'assets/images/kpi_bg_5.webp',
+          image: 'assets/images/kpi/kpi_5.webp',
           badge: Icons.local_shipping_rounded,
           badgeColor: green,
           module: 'suppliers'),
@@ -481,7 +481,7 @@ class _DashboardPageState extends State<DashboardPage> {
           label: 'CLIENTS',
           value: Fmt.number(_customers),
           sub: 'Clients',
-          image: 'assets/images/kpi_bg_6.webp',
+          image: 'assets/images/kpi/kpi_6.webp',
           badge: Icons.groups_rounded,
           badgeColor: green,
           module: 'customers'),
@@ -489,7 +489,7 @@ class _DashboardPageState extends State<DashboardPage> {
           label: 'EMPLOYÉS',
           value: '$_employees',
           sub: '',
-          image: 'assets/images/employer.png',
+          image: 'assets/images/kpi/kpi_7.webp',
           badge: Icons.person_rounded,
           badgeColor: green,
           module: 'employees'),
@@ -498,7 +498,7 @@ class _DashboardPageState extends State<DashboardPage> {
           value: Fmt.money(_profitMonth),
           trendPct: pct(_trendProfitMonth),
           trendVs: 'vs mois dernier',
-          image: 'assets/images/kpi_bg_8.webp',
+          image: 'assets/images/kpi/kpi_8.webp',
           badge: Icons.bar_chart_rounded,
           badgeColor: green,
           module: 'reports'),
@@ -518,7 +518,6 @@ class _DashboardPageState extends State<DashboardPage> {
         for (var i = 0; i < kpis.length; i++)
           _KpiCard(
             key: ValueKey('kpi-${kpis[i].label}'),
-            index: i + 1,
             def: kpis[i],
             onTap: _kpiTap(kpis[i].label),
           ),
@@ -536,7 +535,7 @@ class _KpiDef {
   final String? trendPct;
   final String trendVs;
 
-  /// Fond photo extrait de la maquette (assets/images/kpi_bg_N.png) :
+  /// Fond photo extrait de la maquette (assets/images/kpi/kpi_N.webp) :
   /// dégradé du carton + cadre + illustration 3D sur socle, textes de la
   /// maquette effacés — l'app dessine les valeurs réelles par-dessus.
   final String image;
@@ -564,12 +563,10 @@ class _KpiDef {
 /// Animations RÉELLES codées : survol → élévation + liseré or lumineux ;
 /// pression → léger retrait (feedback immédiat).
 class _KpiCard extends StatefulWidget {
-  final int index;
   final _KpiDef def;
   final VoidCallback? onTap;
   const _KpiCard({
     super.key,
-    required this.index,
     required this.def,
     this.onTap,
   });
@@ -583,7 +580,6 @@ class _KpiCardState extends State<_KpiCard> {
   static const _titleGreen = Color(0xFF43D97C);
 
   _KpiDef get def => widget.def;
-  int get index => widget.index;
 
   @override
   Widget build(BuildContext context) {
@@ -648,7 +644,7 @@ class _KpiCardState extends State<_KpiCard> {
                             child: FittedBox(
                               fit: BoxFit.scaleDown,
                               alignment: Alignment.centerLeft,
-                              child: Text('$index. ${def.label}',
+                              child: Text(def.label,
                                   maxLines: 1,
                                   style: const TextStyle(
                                       color: Colors.white,
