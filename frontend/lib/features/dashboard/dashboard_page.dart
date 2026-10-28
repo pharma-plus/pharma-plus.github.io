@@ -812,36 +812,39 @@ class _TopBar extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 16),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-          decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.03),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
-          child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Row(mainAxisSize: MainAxisSize.min, children: [
-                  Flexible(
-                    child: Text(pharmacyName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800)),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.keyboard_arrow_down,
-                      size: 18, color: AppColors.textSecondary),
+        Flexible(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.03),
+                borderRadius: BorderRadius.circular(12),
+                border:
+                    Border.all(color: Colors.white.withValues(alpha: 0.10))),
+            child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    Flexible(
+                      child: Text(pharmacyName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800)),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.keyboard_arrow_down,
+                        size: 18, color: AppColors.textSecondary),
+                  ]),
+                  Text(roleLabel,
+                      style: const TextStyle(
+                          color: AppColors.emeraldLight,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700)),
                 ]),
-                Text(roleLabel,
-                    style: const TextStyle(
-                        color: AppColors.emeraldLight,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700)),
-              ]),
+          ),
         ),
         const SizedBox(width: 14),
         // Badge notifications : compteur RÉEL depuis l'API (0 = pas de badge).
@@ -935,12 +938,18 @@ class _DarkPanel extends StatelessWidget {
             Row(children: [
               Icon(icon, size: 17, color: iconColor),
               const SizedBox(width: 8),
-              Text(title,
+              Expanded(
+                child: Text(
+                  title,
                   style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.95),
                       fontSize: 13.5,
                       fontWeight: FontWeight.w800,
-                      letterSpacing: 0.6)),
+                      letterSpacing: 0.6),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ]),
             const SizedBox(height: 10),
             child,
@@ -1191,9 +1200,13 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
           ]),
         ),
         const SizedBox(height: 9),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          for (final (letter, name) in _legend) _LegendItem(letter, name),
-        ]),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            for (final (letter, name) in _legend) _LegendItem(letter, name),
+          ]),
+        ),
       ]),
     );
   }
