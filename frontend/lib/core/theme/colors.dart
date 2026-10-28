@@ -41,6 +41,16 @@ class AppColors {
   static const Color emeraldDark = Color(0xFF006B43);    // Vert foncé
   static const Color emeraldLight = Color(0xFF3BE39A);   // Vert clair subtil
 
+  // === COULEURS DE BADGES KPI (dashboard) ===
+  static const Color emeraldRich = Color(0xFF00C96B);
+  static const Color cardBlue = Color(0xFF5B8FD9);
+  static const Color cardAmber = Color(0xFFF59E0B);
+  static const Color cardPurple = Color(0xFF9B5FC0);
+  static const Color petroleumBlue = Color(0xFF0C2418);
+  static const Color emeraldDeep = Color(0xFF006B43);
+  static const Color emeraldInk = Color(0xFF03100D);
+  static const Color champagneGold = Color(0xFFD6A84F);
+
   /// Palette graphique cohérente (illustrations / KPI / rapports)
   static const Color chart = Color(0xFF5B8FD9);         // Bleu outil/graphique
   static const Color chartAccent = Color(0xFF00C96B);    // Dernière barre / flèche ↑
