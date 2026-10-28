@@ -1,0 +1,5 @@
+linter:
+  rules:
+    # Ignoré : faux positifs dans les fichiers de test mocks HTTP
+    unused_field: false
+    override_on_non_overriding_member: false
