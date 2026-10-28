@@ -202,7 +202,6 @@ class _FakeRequest implements HttpClientRequest {
   @override
   bool bufferOutput = true;
 
-  @override
   int bufferSize = 8192;
 
   @override
