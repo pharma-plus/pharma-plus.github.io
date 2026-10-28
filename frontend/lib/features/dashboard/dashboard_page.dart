@@ -655,10 +655,11 @@ class _KpiCardState extends State<_KpiCard> {
                           ),
                           const SizedBox(width: 6),
                           Container(
+                            key: ValueKey('kpi-badge-${def.label}'),
                             width: 24,
                             height: 24,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF0B1D13),
+                              color: def.badgeColor,
                               borderRadius: BorderRadius.circular(8),
                               border:
                                   Border.all(color: const Color(0xFF2A4A38)),
