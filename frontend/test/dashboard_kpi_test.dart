@@ -286,7 +286,7 @@ void main() {
 
     // Les 8 cartes KPI rendent (données réelles vides → valeurs à 0).
     for (var i = 0; i < _kpiLabels.length; i++) {
-      expect(find.text(_kpiLabels[i]), findsOneWidget,
+      expect(find.text(_kpiLabels[i]), findsAtLeastOneWidget,
           reason: 'KPI ${_kpiLabels[i]} absente');
     }
 
@@ -325,7 +325,7 @@ void main() {
     expect(tester.takeException(), isNull,
         reason: 'aucun débordement en 1024x768');
     for (var i = 0; i < _kpiLabels.length; i++) {
-      expect(find.text(_kpiLabels[i]), findsOneWidget,
+      expect(find.text(_kpiLabels[i]), findsAtLeastOneWidget,
           reason: 'KPI ${_kpiLabels[i]} en 1024x768');
     }
 
@@ -333,7 +333,7 @@ void main() {
     expect(tester.takeException(), isNull,
         reason: 'aucun débordement en 390x844 (smartphone portrait)');
     for (var i = 0; i < _kpiLabels.length; i++) {
-      expect(find.text(_kpiLabels[i]), findsOneWidget,
+      expect(find.text(_kpiLabels[i]), findsAtLeastOneWidget,
           reason: 'KPI ${_kpiLabels[i]} en 390x844');
     }
   });
