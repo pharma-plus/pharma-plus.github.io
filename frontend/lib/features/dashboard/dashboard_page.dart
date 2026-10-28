@@ -472,7 +472,7 @@ class _DashboardPageState extends State<DashboardPage> {
       _KpiDef(
           label: 'FOURNISSEURS',
           value: Fmt.number(_suppliers),
-          sub: 'Fournisseurs',
+          sub: '',
           image: 'assets/images/kpi/kpi_5.webp',
           badge: Icons.local_shipping_rounded,
           badgeColor: green,
@@ -480,7 +480,7 @@ class _DashboardPageState extends State<DashboardPage> {
       _KpiDef(
           label: 'CLIENTS',
           value: Fmt.number(_customers),
-          sub: 'Clients',
+          sub: '',
           image: 'assets/images/kpi/kpi_6.webp',
           badge: Icons.groups_rounded,
           badgeColor: green,
