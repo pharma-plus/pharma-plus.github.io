@@ -110,6 +110,9 @@ class _FakeRequest implements HttpClientRequest {
   _FakeRequest(this._uri);
 
   final Uri _uri;
+
+  @override
+  Uri get uri => _uri;
   final _FakeHeaders _headers = _FakeHeaders();
 
   @override
