@@ -429,8 +429,6 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildKpiGrid({required bool compact}) {
-    const green = Color(0xFF43D97C);
-    const amber = Color(0xFFFFA24A);
     // Tendance affichée UNIQUEMENT si un comparatif réel existe.
     String? pct(double? v) =>
         v == null ? null : '${v >= 0 ? '+' : ''}${v.toStringAsFixed(1)}%';
@@ -443,7 +441,7 @@ class _DashboardPageState extends State<DashboardPage> {
           trendVs: 'vs hier',
           image: 'assets/images/kpi/kpi_1.webp',
           badge: Icons.point_of_sale_rounded,
-          badgeColor: green,
+          badgeColor: AppColors.emeraldRich,
           module: 'pos'),
       _KpiDef(
           label: 'MÉDICAMENTS',
@@ -451,7 +449,7 @@ class _DashboardPageState extends State<DashboardPage> {
           sub: 'Références catalogue',
           image: 'assets/images/kpi/kpi_2.webp',
           badge: Icons.medication_rounded,
-          badgeColor: green,
+          badgeColor: AppColors.cardBlue,
           module: 'catalog'),
       _KpiDef(
           label: 'PRODUITS EN STOCK',
@@ -459,7 +457,7 @@ class _DashboardPageState extends State<DashboardPage> {
           sub: 'En pharmacie',
           image: 'assets/images/kpi/kpi_3.webp',
           badge: Icons.warning_amber_rounded,
-          badgeColor: amber,
+          badgeColor: AppColors.cardAmber,
           module: 'stock'),
       _KpiDef(
           label: 'COMMANDES',
@@ -467,7 +465,7 @@ class _DashboardPageState extends State<DashboardPage> {
           sub: 'En attente',
           image: 'assets/images/kpi/kpi_4.webp',
           badge: Icons.fact_check_rounded,
-          badgeColor: green,
+          badgeColor: AppColors.cardPurple,
           module: 'purchases'),
       _KpiDef(
           label: 'FOURNISSEURS',
@@ -475,7 +473,7 @@ class _DashboardPageState extends State<DashboardPage> {
           sub: '',
           image: 'assets/images/kpi/kpi_5.webp',
           badge: Icons.local_shipping_rounded,
-          badgeColor: green,
+          badgeColor: AppColors.petroleumBlue,
           module: 'suppliers'),
       _KpiDef(
           label: 'CLIENTS',
@@ -483,7 +481,7 @@ class _DashboardPageState extends State<DashboardPage> {
           sub: '',
           image: 'assets/images/kpi/kpi_6.webp',
           badge: Icons.groups_rounded,
-          badgeColor: green,
+          badgeColor: AppColors.emeraldDeep,
           module: 'customers'),
       _KpiDef(
           label: 'EMPLOYÉS',
@@ -491,7 +489,7 @@ class _DashboardPageState extends State<DashboardPage> {
           sub: '',
           image: 'assets/images/kpi/kpi_7.webp',
           badge: Icons.person_rounded,
-          badgeColor: green,
+          badgeColor: AppColors.emeraldInk,
           module: 'employees'),
       _KpiDef(
           label: 'BÉNÉFICE MOIS',
@@ -500,7 +498,7 @@ class _DashboardPageState extends State<DashboardPage> {
           trendVs: 'vs mois dernier',
           image: 'assets/images/kpi/kpi_8.webp',
           badge: Icons.bar_chart_rounded,
-          badgeColor: green,
+          badgeColor: AppColors.champagneGold,
           module: 'reports'),
     ].where((k) => k.module == null || auth.canSeeModule(k.module!)).toList();
     // 4 colonnes sur desktop ; 2 sur les écrans étroits (lisible partout).
