@@ -518,33 +518,26 @@ class _DashboardPageState extends State<DashboardPage> {
           badgeColor: AppColors.champagneGold,
           module: 'reports'),
     ].where((k) => k.module == null || auth.canSeeModule(k.module!)).toList();
-    return LayoutBuilder(builder: (context, constraints) {
-      final gap = compact ? 10.0 : 12.0;
-      // Une carte reste lisible à partir d'environ 165 px. Huit cartes ne
-      // passent sur une ligne que si l'espace réel après les menus le permet.
-      final oneLine = constraints.maxWidth >= 8 * 165 + 7 * gap;
-      final cols = oneLine
-          ? 8
-          : constraints.maxWidth >= 980
-              ? 4
-              : 2;
-      return GridView.count(
-        crossAxisCount: cols,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        crossAxisSpacing: gap,
-        mainAxisSpacing: gap,
-        childAspectRatio: cols == 8 ? 4 / 3 : (compact ? 1.28 : 0.95),
-        children: [
-          for (var i = 0; i < kpis.length; i++)
-            _KpiCard(
-              key: ValueKey('kpi-${kpis[i].label}'),
-              def: kpis[i],
-              onTap: _kpiTap(kpis[i].label),
-            ),
-        ],
-      );
-    });
+    // Gabarit précédent validé : quatre colonnes sur PC, deux sur mobile.
+    // La largeur de fenêtre décide du mode, pas la largeur réduite après le
+    // panneau POS, afin d'éviter des cartes géantes en deux colonnes.
+    final cols = MediaQuery.of(context).size.width >= 980 ? 4 : 2;
+    return GridView.count(
+      crossAxisCount: cols,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: compact ? 10 : 12,
+      mainAxisSpacing: compact ? 10 : 12,
+      childAspectRatio: compact ? 1.28 : 0.95,
+      children: [
+        for (var i = 0; i < kpis.length; i++)
+          _KpiCard(
+            key: ValueKey('kpi-${kpis[i].label}'),
+            def: kpis[i],
+            onTap: _kpiTap(kpis[i].label),
+          ),
+      ],
+    );
   }
 }
 
@@ -641,14 +634,6 @@ class _KpiCardState extends State<_KpiCard> {
               // L'illustration webp EST le carton de la maquette (dégradé
               // coloré + 3D) : fond plein cadre gérée par le Stack ci-dessous.
               color: const Color(0xFF05130D),
-              // Remplit les bandes latérales avec le même décor, sans
-              // recadrer l'illustration principale posée par-dessus.
-              image: DecorationImage(
-                image: AssetImage(def.image),
-                fit: BoxFit.cover,
-                alignment: Alignment.bottomCenter,
-                opacity: 0.34,
-              ),
             ),
             child: ClipRect(
               child: Stack(

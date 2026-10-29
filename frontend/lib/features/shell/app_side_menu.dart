@@ -255,32 +255,10 @@ class _AppSideMenuState extends State<AppSideMenu> {
             },
           ),
         ),
-        // Autres modules (rail) — même action qu'en mode étendu.
-        Center(
-          child: Tooltip(
-            message: 'Autres modules',
-            waitDuration: const Duration(milliseconds: 300),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: widget.onMoreModules,
-              child: Container(
-                width: 44,
-                height: 40,
-                decoration: BoxDecoration(
-                    color: const Color(0xFF07271C),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                        color:
-                            const Color(0xFFC9A24B).withValues(alpha: 0.55))),
-                child:
-                    const Icon(Icons.apps_rounded, color: _sideGold, size: 20),
-              ),
-            ),
-          ),
-        ),
         const SizedBox(height: 8),
-        // PIN et déconnexion restent sur une seule ligne, y compris dans
-        // le rail tactile des petits écrans.
+        // PIN et déconnexion restent sur une seule ligne dans le rail.
+        // Les boutons sont volontairement plus étroits que les entrées
+        // principales afin de ne jamais déborder dans le dashboard (rail 64).
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -291,7 +269,7 @@ class _AppSideMenuState extends State<AppSideMenu> {
                   borderRadius: BorderRadius.circular(10),
                   onTap: widget.onLock,
                   child: Container(
-                    width: 44,
+                    width: 26,
                     height: 40,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
@@ -313,7 +291,7 @@ class _AppSideMenuState extends State<AppSideMenu> {
                 borderRadius: BorderRadius.circular(10),
                 onTap: widget.onLogout,
                 child: Container(
-                  width: 44,
+                  width: 26,
                   height: 40,
                   decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
@@ -329,6 +307,33 @@ class _AppSideMenuState extends State<AppSideMenu> {
       ]),
     );
   }
+
+  Widget _expandedLogoutItem() => Padding(
+        padding: const EdgeInsets.only(bottom: 2),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: widget.onLogout,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10.5),
+            decoration: BoxDecoration(
+              color: const Color(0xFF07271C),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                  color: const Color(0xFFC9A24B).withValues(alpha: 0.55)),
+            ),
+            child: const Row(children: [
+              Icon(Icons.logout, size: 19, color: _sideGold),
+              SizedBox(width: 12),
+              Expanded(
+                  child: Text('Se déconnecter',
+                      style: TextStyle(
+                          fontSize: 13.5,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600))),
+            ]),
+          ),
+        ),
+      );
 
   Widget _buildExpanded(BuildContext context) {
     return Container(
@@ -354,7 +359,7 @@ class _AppSideMenuState extends State<AppSideMenu> {
             itemBuilder: (context, i) {
               final item = _visibleItems[i];
               final active = _isActive(item);
-              return Padding(
+              final menuItem = Padding(
                 padding: const EdgeInsets.only(bottom: 2),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(10),
@@ -388,34 +393,10 @@ class _AppSideMenuState extends State<AppSideMenu> {
                   ),
                 ),
               );
+              return item.module == 'settings'
+                  ? Column(children: [_expandedLogoutItem(), menuItem])
+                  : menuItem;
             },
-          ),
-        ),
-        // ---- Autres modules (menu à la demande) ----
-        InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: widget.onMoreModules,
-          child: Container(
-            margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-                color: const Color(0xFF07271C),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                    color: const Color(0xFFC9A24B).withValues(alpha: 0.55))),
-            child: Row(children: [
-              const Icon(Icons.apps_rounded, color: _sideGold, size: 19),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text('Autres modules',
-                    style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700)),
-              ),
-              const Icon(Icons.keyboard_arrow_right_rounded,
-                  color: _sideGold, size: 18),
-            ]),
           ),
         ),
         // ---- Carte Admin ----
@@ -521,22 +502,6 @@ class _AppSideMenuState extends State<AppSideMenu> {
                 ),
                 const SizedBox(width: 8),
               ],
-              Expanded(
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: widget.onLogout,
-                  child: Container(
-                    height: 42,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.08)),
-                    ),
-                    child: const Center(
-                        child: Icon(Icons.logout, color: _sideGold, size: 19)),
-                  ),
-                ),
-              ),
             ],
           ),
         ),
