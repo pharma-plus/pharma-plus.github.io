@@ -633,12 +633,12 @@ class _KpiCardState extends State<_KpiCard> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Contain conserve entièrement l'illustration d'arrière-plan
-                  // et évite tout débordement sur desktop comme mobile.
+                  // Cover remplit réellement toute la carte ; l'alignement
+                  // bas conserve le socle et l'objet 3D dans le cadrage.
                   Positioned.fill(
                     child: Image.asset(
                       def.image,
-                      fit: BoxFit.contain,
+                      fit: BoxFit.cover,
                       alignment: Alignment.bottomCenter,
                       filterQuality: FilterQuality.low,
                     ),

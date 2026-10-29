@@ -320,8 +320,7 @@ void main() {
       reason: '8 illustrations 3D d’arrière-plan attendues',
     );
 
-    // Les illustrations doivent rester entièrement visibles lorsque la
-    // grille change de proportion : aucun recadrage cover autorisé.
+    // Les illustrations remplissent la surface KPI sans sortir de la carte.
     final kpiImages = tester
         .widgetList<Image>(find.byWidgetPredicate((w) =>
             w is Image &&
@@ -331,8 +330,8 @@ void main() {
                 .startsWith('assets/images/kpi_bg_')))
         .toList();
     expect(kpiImages, hasLength(8));
-    expect(kpiImages.every((image) => image.fit == BoxFit.contain), isTrue,
-        reason: 'les 8 illustrations KPI doivent être entièrement visibles');
+    expect(kpiImages.every((image) => image.fit == BoxFit.cover), isTrue,
+        reason: 'les 8 illustrations KPI doivent remplir leur carte');
   });
 
   testWidgets('Dashboard : responsive — fenêtre réduite et smartphone',
