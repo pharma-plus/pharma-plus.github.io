@@ -199,21 +199,21 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   /// Menu latéral rétractable (tablettes / mobiles) : overlay plein écran,
-  /// fermeture par ESC, par clic extérieur et à chaque navigation.
+  /// fermeture par ESC, clic extérieur ou à la sélection d'une option.
+  /// Après chaque sélection, le menu se ferme mais reste immédiatement
+  /// réouvertable via l'icône ☰ du bandeau supérieur.
   void _openMenuDrawer() {
     showDialog<void>(
       context: context,
       barrierColor: Colors.black54,
-      barrierDismissible: true, // clic HORS du menu → fermeture
+      barrierDismissible: true,
       builder: (ctx) {
-        // Focus(autofocus) : gère son propre FocusNode (auto-disposé) —
-        // l'ancien FocusNode()..requestFocus() fuyait à chaque ouverture.
         return Focus(
           autofocus: true,
           onKeyEvent: (node, event) {
             if (event is KeyDownEvent &&
                 event.logicalKey == LogicalKeyboardKey.escape) {
-              Navigator.of(ctx).pop(); // ESC → fermeture
+              Navigator.of(ctx).pop();
               return KeyEventResult.handled;
             }
             return KeyEventResult.ignored;
@@ -622,13 +622,12 @@ class _KpiCardState extends State<_KpiCard> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Illustration plein cadre = carton maquette exact
-                  // (BoxFit.cover + ancrage bas → le podium n'est jamais
-                  // rogné, le léger excédent se prend en haut).
+                  // Illustration complète : contain conserve le ratio et
+                  // empêche le rognage lorsque la grille change de largeur.
                   Positioned.fill(
                     child: Image.asset(
                       def.image,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.contain,
                       alignment: Alignment.bottomCenter,
                     ),
                   ),

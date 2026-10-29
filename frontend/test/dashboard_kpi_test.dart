@@ -320,6 +320,20 @@ void main() {
       findsNWidgets(8),
       reason: '8 illustrations 3D attendues',
     );
+
+    // Les illustrations doivent rester entièrement visibles lorsque la
+    // grille change de proportion : aucun recadrage cover autorisé.
+    final kpiImages = tester
+        .widgetList<Image>(find.byWidgetPredicate((w) =>
+            w is Image &&
+            w.image is AssetImage &&
+            (w.image as AssetImage)
+                .assetName
+                .startsWith('assets/images/kpi/kpi_')))
+        .toList();
+    expect(kpiImages, hasLength(8));
+    expect(kpiImages.every((image) => image.fit == BoxFit.contain), isTrue,
+        reason: 'les 8 illustrations KPI doivent être entièrement visibles');
   });
 
   testWidgets('Dashboard : responsive — fenêtre réduite et smartphone',
