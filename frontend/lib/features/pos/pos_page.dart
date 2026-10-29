@@ -559,9 +559,9 @@ class _PosPageState extends State<PosPage> {
   }
 
   /// Vérifie le stock avant ajout au panier. Retourne true si l'ajout est autorisé.
-  /// - Stock inconnu (null) → dialog « impossible à vérifier »
-  /// - Stock = 0 → dialog « Produit indisponible »
-  /// - Stock insuffisant → dialog avec quantité disponible
+  /// - Stock inconnu (null) → notification « stock impossible à vérifier »
+  /// - Stock = 0 → notification « stock indisponible »
+  /// - Stock insuffisant → notification « stock insuffisant » avec quantités
   Future<bool> _checkStockAndAdd(Medication m, {double quantity = 1}) async {
     // S'assurer que le stock est chargé pour ce médicament
     if (!_stock.containsKey(m.id)) {
@@ -583,13 +583,15 @@ class _PosPageState extends State<PosPage> {
 
     // Stock inconnu / non initialisé
     if (available == null) {
-      _showStockUnknownDialog();
+      _showStockNotification('stock_impossible',
+          'Vérification du stock impossible', 'Impossible de vérifier le stock. Réessayez.');
       return false;
     }
 
     // Stock zéro
     if (available <= 0) {
-      _showStockZeroDialog();
+      _showStockNotification('stock_zero', 'Stock indisponible',
+          'Ce produit n\'est pas disponible en stock.\nStock disponible : 0');
       return false;
     }
 
@@ -598,7 +600,9 @@ class _PosPageState extends State<PosPage> {
         .where((l) => l.medication.id == m.id)
         .fold<double>(0, (sum, l) => sum + l.quantity);
     if (inCart + quantity > available) {
-      _showStockInsufficientDialog(m.name, available - inCart);
+      _showStockNotification('stock_insuffisant', 'Stock insuffisant',
+          'Quantité demandée supérieure au stock disponible.\n'
+          'Demandée : ${(inCart + quantity).round()} · Disponible : ${available.round()}');
       return false;
     }
 
@@ -606,59 +610,58 @@ class _PosPageState extends State<PosPage> {
     return true;
   }
 
-  void _showStockZeroDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Produit indisponible'),
-        content: const Text(
-          'Ce médicament figure dans le catalogue, mais il n\'est actuellement pas disponible en stock dans votre pharmacie. '
-          'Il ne peut pas être ajouté au panier. Enregistrez une réception de stock avant de procéder à la vente.\n\n'
-          'Stock disponible : 0',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Compris'),
-          ),
-        ],
-      ),
-    );
-  }
+  /// Affiche une notification compacte de stock en haut de l'écran POS.
+  void _showStockNotification(String key, String title, String message) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    // SnackBar.width contraint le composant lui-même, contrairement à une
+    // contrainte appliquée uniquement à son contenu.
+    final notificationWidth = screenWidth < 600 ? screenWidth - 32 : 360.0;
+    final icon = key == 'stock_impossible'
+        ? Icons.warning_amber_rounded
+        : key == 'stock_zero'
+            ? Icons.remove_shopping_cart
+            : Icons.error_outline;
 
-  void _showStockUnknownDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Stock non vérifiable'),
-        content: const Text(
-          'Disponibilité du stock impossible à vérifier. Veuillez vérifier le stock avant de continuer.',
+    // Une nouvelle alerte remplace l'ancienne : aucune pile de doublons.
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        width: notificationWidth,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        content: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: AppColors.brandGold, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: '$title\n',
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w800),
+                    ),
+                    TextSpan(
+                      text: message,
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                  ],
+                ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Compris'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showStockInsufficientDialog(String name, double available) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Stock insuffisant'),
-        content: Text(
-          'Quantité disponible pour « $name » : ${available.round()}. '
-          'Vous ne pouvez pas ajouter plus que la quantité en stock.',
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.surfaceDark,
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: 'Fermer',
+          textColor: AppColors.brandGold,
+          onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Compris'),
-          ),
-        ],
       ),
     );
   }
@@ -1864,14 +1867,15 @@ class _PosPageState extends State<PosPage> {
                   });
                 },
                 onPlus: () {
-                  final stock = _stock[line.medication.id];
-                  if (stock != null && line.quantity + 1 > stock) {
-                    _showStockInsufficientDialog(
-                        line.medication.name, stock - line.quantity);
-                    return;
-                  }
-                  setState(() => line.quantity += 1);
-                },
+              final stock = _stock[line.medication.id];
+              if (stock != null && line.quantity + 1 > stock) {
+                _showStockNotification('stock_insuffisant', 'Stock insuffisant',
+                    'Quantité demandée supérieure au stock disponible.\n'
+                    'Demandée : ${(line.quantity + 1).round()} · Disponible : ${stock.round()}');
+                return;
+              }
+              setState(() => line.quantity += 1);
+            },
                 onDelete: () =>
                     setState(() => _cart.removeLine(line.medication.id)),
               );
