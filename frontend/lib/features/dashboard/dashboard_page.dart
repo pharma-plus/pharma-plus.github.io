@@ -126,8 +126,6 @@ class _DashboardPageState extends State<DashboardPage> {
   double get _revenueYesterday =>
       _num(_flat0(_data, 'revenue', 'revenue_yesterday'));
   double get _revenueMonth => _num(_flat0(_data, 'revenue', 'revenue_month'));
-  double get _revenueLastMonth =>
-      _num(_flat0(_data, 'revenue', 'revenue_last_month'));
   double get _profitMonth => _num(_flat0(_data, 'revenue', 'profit_month'));
   double get _profitLastMonth =>
       _num(_flat0(_data, 'revenue', 'profit_last_month'));
@@ -147,8 +145,6 @@ class _DashboardPageState extends State<DashboardPage> {
   /// null = pas de comparaison possible → aucune invention affichée.
   double? get _trendRevenueToday =>
       periodVariation(_revenueToday, _revenueYesterday);
-  double? get _trendRevenueMonth =>
-      periodVariation(_revenueMonth, _revenueLastMonth);
   double? get _trendProfitMonth =>
       periodVariation(_profitMonth, _profitLastMonth);
 
