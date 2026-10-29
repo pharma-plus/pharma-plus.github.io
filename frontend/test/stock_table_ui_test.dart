@@ -98,10 +98,21 @@ String _medsJson() {
     );
   }
   if (path.endsWith('/notifications')) {
-    return (jsonEncode({'data': <dynamic>[], 'meta': {'unread': 0}}), 200);
+    return (
+      jsonEncode({
+        'data': <dynamic>[],
+        'meta': {'unread': 0}
+      }),
+      200
+    );
   }
   if (path.contains('/sync/pull/')) {
-    return (jsonEncode({'data': {'maxRevision': 0, 'rows': []}}), 200);
+    return (
+      jsonEncode({
+        'data': {'maxRevision': 0, 'rows': []}
+      }),
+      200
+    );
   }
   return (jsonEncode({'data': <dynamic>[]}), 200);
 }
@@ -325,7 +336,8 @@ Finder _verticalScroll() => find.descendant(
 Finder _horizontalScroll() => find.descendant(
       of: find.byType(StockPage),
       matching: find.byWidgetPredicate(
-        (w) => w is SingleChildScrollView && w.scrollDirection == Axis.horizontal,
+        (w) =>
+            w is SingleChildScrollView && w.scrollDirection == Axis.horizontal,
       ),
     );
 
@@ -372,9 +384,7 @@ void main() {
       expect(zone.color, isNotNull, reason: 'zone $label');
       expect(zone.color!.a, 1.0, reason: 'zone alpha 255 $label');
       expect(
-        brightness == Brightness.dark
-            ? AppColors.pharmaSurface
-            : Colors.white,
+        brightness == Brightness.dark ? AppColors.pharmaSurface : Colors.white,
         zone.color,
         reason: 'couleur de zone attendue $label',
       );
@@ -396,7 +406,8 @@ void main() {
     }
   });
 
-  testWidgets('Tableau Stock : en-tête et contrôles fixes pendant le défilement',
+  testWidgets(
+      'Tableau Stock : en-tête et contrôles fixes pendant le défilement',
       (tester) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await _pumpStock(tester, const Size(1024, 768));
@@ -418,8 +429,8 @@ void main() {
         reason: 'en-tête fixe');
     expect(tester.getTopLeft(find.text('Tous')), chipBefore,
         reason: 'filtres fixes');
-    expect(tester.getTopLeft(find.text('Med 01')).dy,
-        lessThan(firstRowBefore.dy),
+    expect(
+        tester.getTopLeft(find.text('Med 01')).dy, lessThan(firstRowBefore.dy),
         reason: 'les lignes défilent sous l\'en-tête fixe');
 
     // Défilement horizontal : l'en-tête suit les colonnes (même scroll).
@@ -459,10 +470,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     await _settle(tester);
 
-    expect(find.descendant(
-      of: find.byType(StockPage),
-      matching: find.text('Médicament'),
-    ), findsOneWidget);
+    expect(
+        find.descendant(
+          of: find.byType(StockPage),
+          matching: find.text('Médicament'),
+        ),
+        findsOneWidget);
 
     // Le menu reste strictement immobile pendant le défilement du tableau.
     final before = tester.getRect(find.byType(AppSideMenu));
@@ -554,6 +567,41 @@ void main() {
     await tester.tap(find.text('Point de vente'));
     await tester.pump();
     expect(tapped?.shellIndex, 2);
+
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('Menu : Autres modules est visible avant le réglage',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    var opened = false;
+    await tester.pumpWidget(
+      ChangeNotifierProvider<AuthStore>.value(
+        value: AuthStore.instance,
+        child: MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 232,
+              height: 900,
+              child: AppSideMenu(
+                onNavigate: (_) {},
+                onLogout: () {},
+                onMoreModules: () => opened = true,
+                onToggleCollapse: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.drag(find.byType(ListView), const Offset(0, -520));
+    await tester.pump();
+    expect(find.text('Autres modules'), findsOneWidget);
+    expect(find.text('Tableau de contrôle'), findsOneWidget);
+    await tester.tap(find.text('Autres modules'));
+    expect(opened, isTrue);
 
     await tester.pumpWidget(const SizedBox());
   });

@@ -4,8 +4,9 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
-/// Tuile de categorie du POS — design valide (grille 2x4 illustree) :
-/// glyphe 3D peint (CustomPainter) + degrade vert foret + liseré or.
+/// Tuile de catégorie du POS — illustration 3D légère, sans texte intégré
+/// dans le visuel. Le libellé reste une donnée UI séparée et reste lisible
+/// dans le mini-POS comme dans le POS complet.
 /// Le libelle pilote le glyphe : antalgique, antibiotique, cardio,
 /// diabete, vitamines, respiratoire, digestif, autres.
 class PosCategoryTile extends StatefulWidget {
@@ -37,68 +38,52 @@ class _PosCategoryTileState extends State<PosCategoryTile> {
   @override
   Widget build(BuildContext context) {
     final k = _kind;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          width: widget.width,
-          height: widget.height,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF123324), Color(0xFF0A1D13)]),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-                color: widget.selected || _hover
-                    ? const Color(0xFFC9A24B)
-                    : const Color(0xFF27543C),
-                width: widget.selected ? 1.6 : 1),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.35),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4)),
-              if (widget.selected || _hover)
-                BoxShadow(
-                    color: const Color(0xFF00C96B).withValues(alpha: 0.18),
-                    blurRadius: 14,
-                    offset: const Offset(0, 6)),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Spacer(flex: 1),
-              Expanded(
-                flex: 4,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: FittedBox(
-                    fit: BoxFit.contain,
-                    child: CustomPaint(
-                        size: const Size(68, 50), painter: _GlyphPainter(k)),
-                  ),
+    return Tooltip(
+      message: widget.label,
+      child: Semantics(
+        button: true,
+        label: widget.label,
+        child: MouseRegion(
+          onEnter: (_) => setState(() => _hover = true),
+          onExit: (_) => setState(() => _hover = false),
+          child: GestureDetector(
+            onTap: widget.onTap,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              width: widget.width,
+              height: widget.height,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF123324), Color(0xFF0A1D13)]),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                    color: widget.selected || _hover
+                        ? const Color(0xFFC9A24B)
+                        : const Color(0xFF27543C),
+                    width: widget.selected ? 1.6 : 1),
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.35),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4)),
+                  if (widget.selected || _hover)
+                    BoxShadow(
+                        color: const Color(0xFF00C96B).withValues(alpha: 0.18),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6)),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: FittedBox(
+                  fit: BoxFit.contain,
+                  child: CustomPaint(
+                      size: const Size(82, 62), painter: _GlyphPainter(k)),
                 ),
               ),
-              const Spacer(flex: 1),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(4, 0, 4, 6),
-                child: Text(widget.label,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        color: widget.selected
-                            ? const Color(0xFFE9C873)
-                            : Colors.white,
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w800)),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -166,13 +151,33 @@ class _GlyphPainter extends CustomPainter {
   @override
   void paint(Canvas c, Size s) {
     final cx = s.width / 2, cy = s.height / 2;
-    // Podium lumineux sous l'objet (profondeur 3D du design valide).
+    // Halo, profondeur et podium : l'illustration reste entièrement dans sa
+    // cellule grâce au FittedBox du parent, même sur les écrans tactiles.
+    c.drawCircle(
+        Offset(cx - 4, cy - 5),
+        s.width * .29,
+        Paint()
+          ..shader = ui.Gradient.radial(
+              Offset(cx - 9, cy - 11), s.width * .34, [
+            const Color(0xFFB9F5D9).withValues(alpha: .18),
+            Colors.transparent
+          ]));
     c.drawOval(
         Rect.fromCenter(
             center: Offset(cx, s.height - 4), width: s.width * 0.68, height: 7),
         Paint()
           ..color = const Color(0xFF00C96B).withValues(alpha: 0.20)
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
+    c.drawOval(
+        Rect.fromCenter(
+            center: Offset(cx, s.height - 5), width: s.width * .52, height: 3),
+        Paint()..color = const Color(0xFFB9F5D9).withValues(alpha: .28));
+    // Les objets occupent réellement la carte : le volume reste lisible
+    // même lorsque la grille du POS est compacte.
+    c.save();
+    c.translate(cx, cy);
+    c.scale(1.24, 1.24);
+    c.translate(-cx, -cy);
     switch (kind) {
       case _GlyphKind.pill:
         c.save();
@@ -313,6 +318,20 @@ class _GlyphPainter extends CustomPainter {
               ..strokeWidth = 1.2);
         break;
     }
+    c.restore();
+
+    // Reflet studio commun aux objets, pour une finition 3D plus attractive.
+    c.drawArc(
+        Rect.fromCenter(
+            center: Offset(cx - 5, cy - 8), width: s.width * .22, height: 9),
+        3.7,
+        1.8,
+        false,
+        Paint()
+          ..color = Colors.white.withValues(alpha: .42)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5
+          ..strokeCap = StrokeCap.round);
   }
 
   @override

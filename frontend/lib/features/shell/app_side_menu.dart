@@ -81,6 +81,9 @@ class AppSideNavItem {
   /// Constructeur de page hors shell (Caméras, Scanner).
   final Widget Function()? pageBuilder;
 
+  /// Ouvre le panneau regroupant les modules secondaires.
+  final bool opensMoreModules;
+
   const AppSideNavItem(
     this.icon,
     this.label, {
@@ -88,6 +91,7 @@ class AppSideNavItem {
     this.module,
     this.shellIndex,
     this.pageBuilder,
+    this.opensMoreModules = false,
   });
 }
 
@@ -152,6 +156,8 @@ class _AppSideMenuState extends State<AppSideMenu> {
           pageBuilder: () => const CamerasPage()),
       AppSideNavItem(Icons.qr_code_scanner, 'Scanner',
           pageBuilder: () => const ScannerPage()),
+      const AppSideNavItem(Icons.apps_rounded, 'Autres modules',
+          opensMoreModules: true),
       const AppSideNavItem(Icons.settings_outlined, 'Tableau de contrôle',
           permission: 'settings:view', module: 'settings', shellIndex: 11),
     ]
@@ -164,6 +170,14 @@ class _AppSideMenuState extends State<AppSideMenu> {
   /// pendant le défilement du tableau Stock.
   bool _isActive(AppSideNavItem item) =>
       item.shellIndex != null && item.shellIndex == ShellNav.index.value;
+
+  void _onItemTap(AppSideNavItem item) {
+    if (item.opensMoreModules) {
+      widget.onMoreModules();
+    } else {
+      widget.onNavigate(item);
+    }
+  }
 
   @override
   void initState() {
@@ -229,7 +243,7 @@ class _AppSideMenuState extends State<AppSideMenu> {
                     waitDuration: const Duration(milliseconds: 300),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(10),
-                      onTap: () => widget.onNavigate(item),
+                      onTap: () => _onItemTap(item),
                       child: Container(
                         width: 44,
                         height: 40,
@@ -363,7 +377,7 @@ class _AppSideMenuState extends State<AppSideMenu> {
                 padding: const EdgeInsets.only(bottom: 2),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(10),
-                  onTap: () => widget.onNavigate(item),
+                  onTap: () => _onItemTap(item),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 10.5),

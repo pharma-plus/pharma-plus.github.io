@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -396,15 +398,6 @@ class _DashboardPageState extends State<DashboardPage> {
                                 expiring: _expiring,
                                 expired: _expired,
                                 lowStock: _lowStock,
-                                trendToday: _trendRevenueToday == null
-                                    ? null
-                                    : '${_trendRevenueToday! >= 0 ? '+' : ''}${_trendRevenueToday!.toStringAsFixed(1)}%',
-                                trendMonth: _trendRevenueMonth == null
-                                    ? null
-                                    : '${_trendRevenueMonth! >= 0 ? '+' : ''}${_trendRevenueMonth!.toStringAsFixed(1)}%',
-                                trendProfit: _trendProfitMonth == null
-                                    ? null
-                                    : '${_trendProfitMonth! >= 0 ? '+' : ''}${_trendProfitMonth!.toStringAsFixed(1)}%',
                                 compact: compact,
                               ),
                             ]),
@@ -456,7 +449,7 @@ class _DashboardPageState extends State<DashboardPage> {
           value: Fmt.money(_revenueToday),
           trendPct: pct(_trendRevenueToday),
           trendVs: 'vs hier',
-          image: 'assets/images/kpi/kpi_1.webp',
+          image: 'assets/images/kpi_bg_1.webp',
           badge: Icons.point_of_sale_rounded,
           badgeColor: AppColors.emeraldRich,
           module: 'pos'),
@@ -464,7 +457,7 @@ class _DashboardPageState extends State<DashboardPage> {
           label: 'MÉDICAMENTS',
           value: Fmt.number(_medications),
           sub: 'Références catalogue',
-          image: 'assets/images/kpi/kpi_2.webp',
+          image: 'assets/images/kpi_bg_2.webp',
           badge: Icons.medication_rounded,
           badgeColor: AppColors.cardBlue,
           module: 'catalog'),
@@ -472,7 +465,7 @@ class _DashboardPageState extends State<DashboardPage> {
           label: 'PRODUITS EN STOCK',
           value: Fmt.number(_productsInStock),
           sub: 'En pharmacie',
-          image: 'assets/images/kpi/kpi_3.webp',
+          image: 'assets/images/kpi_bg_3.webp',
           badge: Icons.warning_amber_rounded,
           badgeColor: AppColors.cardAmber,
           module: 'stock'),
@@ -480,7 +473,7 @@ class _DashboardPageState extends State<DashboardPage> {
           label: 'COMMANDES',
           value: '$_pendingOrders',
           sub: 'En attente',
-          image: 'assets/images/kpi/kpi_4.webp',
+          image: 'assets/images/kpi_bg_4.webp',
           badge: Icons.fact_check_rounded,
           badgeColor: AppColors.cardPurple,
           module: 'purchases'),
@@ -488,7 +481,7 @@ class _DashboardPageState extends State<DashboardPage> {
           label: 'FOURNISSEURS',
           value: Fmt.number(_suppliers),
           sub: '',
-          image: 'assets/images/kpi/kpi_5.webp',
+          image: 'assets/images/kpi_bg_5.webp',
           badge: Icons.local_shipping_rounded,
           badgeColor: AppColors.petroleumBlue,
           module: 'suppliers'),
@@ -496,7 +489,7 @@ class _DashboardPageState extends State<DashboardPage> {
           label: 'CLIENTS',
           value: Fmt.number(_customers),
           sub: '',
-          image: 'assets/images/kpi/kpi_6.webp',
+          image: 'assets/images/kpi_bg_6.webp',
           badge: Icons.groups_rounded,
           badgeColor: AppColors.emeraldDeep,
           module: 'customers'),
@@ -504,7 +497,7 @@ class _DashboardPageState extends State<DashboardPage> {
           label: 'EMPLOYÉS',
           value: '$_employees',
           sub: '',
-          image: 'assets/images/kpi/kpi_7.webp',
+          image: 'assets/images/kpi_bg_7.webp',
           badge: Icons.person_rounded,
           badgeColor: AppColors.emeraldInk,
           module: 'employees'),
@@ -513,7 +506,7 @@ class _DashboardPageState extends State<DashboardPage> {
           value: Fmt.money(_profitMonth),
           trendPct: pct(_trendProfitMonth),
           trendVs: 'vs mois dernier',
-          image: 'assets/images/kpi/kpi_8.webp',
+          image: 'assets/images/kpi_bg_8.webp',
           badge: Icons.bar_chart_rounded,
           badgeColor: AppColors.champagneGold,
           module: 'reports'),
@@ -550,9 +543,9 @@ class _KpiDef {
   final String? trendPct;
   final String trendVs;
 
-  /// Fond photo extrait de la maquette (assets/images/kpi/kpi_N.webp) :
-  /// dégradé du carton + cadre + illustration 3D sur socle, textes de la
-  /// maquette effacés — l'app dessine les valeurs réelles par-dessus.
+  /// Illustration 3D d'arrière-plan extraite de la maquette
+  /// (assets/images/kpi_bg_N.webp). Les anciens cartons avec une seconde
+  /// illustration au premier plan ne sont plus utilisés.
   final String image;
   final IconData badge;
   final Color badgeColor;
@@ -572,9 +565,9 @@ class _KpiDef {
   });
 }
 
-/// Carte KPI maquette : titre blanc numéroté · badge d'option en haut à
-/// droite (chaque image a son icône) · grande valeur · sous-titre ·
-/// tendance verte · illustration 3D sur podium lumineux en bas à droite.
+/// Carte KPI maquette : titre blanc · badge d'option en haut à droite ·
+/// grande valeur · sous-titre · tendance verte · une seule illustration 3D
+/// d'arrière-plan, sans doublon au premier plan.
 /// Animations RÉELLES codées : survol → élévation + liseré or lumineux ;
 /// pression → léger retrait (feedback immédiat).
 class _KpiCard extends StatefulWidget {
@@ -631,18 +624,17 @@ class _KpiCardState extends State<_KpiCard> {
                       blurRadius: 18,
                       offset: const Offset(0, 8)),
               ],
-              // L'illustration webp EST le carton de la maquette (dégradé
-              // coloré + 3D) : fond plein cadre gérée par le Stack ci-dessous.
+              // Le fond 3D est la seule illustration de la carte. Les anciens
+              // assets kpi/kpi_N.webp (cartons avec image au premier plan) ne
+              // sont volontairement plus composés par-dessus.
               color: const Color(0xFF05130D),
             ),
             child: ClipRect(
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Les six premiers assets sont presque carrés alors que les
-                  // deux derniers sont panoramiques. Contain conserve toujours
-                  // l'illustration entière ; le décor de la carte remplit les
-                  // éventuelles bandes autour.
+                  // Contain conserve entièrement l'illustration d'arrière-plan
+                  // et évite tout débordement sur desktop comme mobile.
                   Positioned.fill(
                     child: Image.asset(
                       def.image,
@@ -1337,7 +1329,7 @@ class _LegendItem extends StatelessWidget {
 }
 
 /// ============================================================
-/// ANALYTIQUE — valeurs réelles avec une grille lisible et responsive.
+/// ANALYTIQUE — graphiques compacts, 3D et alimentés uniquement par l'API.
 /// ============================================================
 class _AnalyticsSection extends StatelessWidget {
   final double revenueToday;
@@ -1346,9 +1338,6 @@ class _AnalyticsSection extends StatelessWidget {
   final int expiring;
   final int expired;
   final int lowStock;
-  final String? trendToday;
-  final String? trendMonth;
-  final String? trendProfit;
   final bool compact;
   const _AnalyticsSection({
     required this.revenueToday,
@@ -1357,9 +1346,6 @@ class _AnalyticsSection extends StatelessWidget {
     required this.expiring,
     required this.expired,
     required this.lowStock,
-    this.trendToday,
-    this.trendMonth,
-    this.trendProfit,
     this.compact = false,
   });
 
@@ -1376,9 +1362,6 @@ class _AnalyticsSection extends StatelessWidget {
         expiring: expiring,
         expired: expired,
         lowStock: lowStock,
-        trendToday: trendToday,
-        trendMonth: trendMonth,
-        trendProfit: trendProfit,
         compact: compact,
       ),
     );
@@ -1392,9 +1375,6 @@ class _AnalyticsTiles extends StatelessWidget {
   final int expiring;
   final int expired;
   final int lowStock;
-  final String? trendToday;
-  final String? trendMonth;
-  final String? trendProfit;
   final bool compact;
   const _AnalyticsTiles({
     required this.revenueToday,
@@ -1403,110 +1383,54 @@ class _AnalyticsTiles extends StatelessWidget {
     required this.expiring,
     required this.expired,
     required this.lowStock,
-    this.trendToday,
-    this.trendMonth,
-    this.trendProfit,
     this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    const gold = Color(0xFFE9C873);
-    final tiles = <Widget>[
-      _BottomStat(
-          label: "VENTES AUJOURD'HUI",
-          value: Fmt.money(revenueToday),
-          trend: trendToday,
-          compact: compact),
-      _BottomStat(
-          label: 'VENTES MOIS',
-          value: Fmt.money(revenueMonth),
-          trend: trendMonth,
-          compact: compact),
-      _BottomStat(
-          label: 'BÉNÉFICE MOIS',
-          value: Fmt.money(profitMonth),
-          trend: trendProfit,
-          compact: compact),
-      _BottomStat(
-          label: 'PRODUITS EXPIRÉS',
-          value: '$expired',
-          subtitle: 'Produits',
-          valueColor: const Color(0xFFF0A73B),
-          icon: Icons.warning_amber_rounded,
-          iconColor: const Color(0xFFF0A73B),
-          compact: compact),
-      _BottomStat(
-          label: 'STOCK FAIBLE',
-          value: '$lowStock',
-          subtitle: 'Produits',
-          icon: Icons.warning_amber_rounded,
-          iconColor: gold,
-          compact: compact),
-    ];
-    return LayoutBuilder(builder: (context, constraints) {
-      final cols = constraints.maxWidth >= 1150
-          ? 5
-          : constraints.maxWidth >= 700
-              ? 3
-              : 2;
-      return Column(children: [
-        GridView.count(
-          crossAxisCount: cols,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          childAspectRatio: cols == 5
-              ? 3.0
-              : cols == 2
-                  ? 2.45
-                  : 2.15,
-          children: tiles,
+    final charts = [
+      _AnalyticsChartCard(
+        title: 'Ventes & bénéfice',
+        legend: 'Valeurs réelles',
+        painter: _AnalyticsBarsPainter(
+          values: [revenueToday, revenueMonth, profitMonth],
+          colors: const [AppColors.emerald, AppColors.chart, AppColors.gold],
+          labels: const ['Jour', 'Mois', 'Bénéfice'],
+          valueLabels: [
+            Fmt.money(revenueToday),
+            Fmt.money(revenueMonth),
+            Fmt.money(profitMonth),
+          ],
         ),
-        const SizedBox(height: 10),
-        LayoutBuilder(builder: (context, box) {
-          final charts = [
-            _AnalyticsChartCard(
-              title: 'Ventes / bénéfice',
-              legend: 'Montants réels',
-              painter: _AnalyticsBarsPainter(
-                values: [revenueToday, revenueMonth, profitMonth],
-                colors: const [
-                  AppColors.emerald,
-                  AppColors.chart,
-                  AppColors.gold
-                ],
-                labels: const ['Jour', 'Mois', 'Bénéf.'],
-              ),
-            ),
-            _AnalyticsChartCard(
-              title: 'Alertes stock',
-              legend: 'Répartition réelle',
-              painter: _AnalyticsDonutPainter(
-                values: [
-                  lowStock.toDouble(),
-                  expiring.toDouble(),
-                  expired.toDouble()
-                ],
-                colors: const [
-                  AppColors.gold,
-                  AppColors.warning,
-                  AppColors.danger
-                ],
-              ),
-            ),
-          ];
-          return box.maxWidth >= 620
-              ? Row(children: [
-                  Expanded(child: charts[0]),
-                  const SizedBox(width: 10),
-                  Expanded(child: charts[1]),
-                ])
-              : Column(children: charts);
-        }),
-      ]);
-    });
+      ),
+      _AnalyticsChartCard(
+        title: 'Alertes stock',
+        legend: 'Chaque valeur est réelle',
+        painter: _AnalyticsDonutPainter(
+          values: [
+            lowStock.toDouble(),
+            expiring.toDouble(),
+            expired.toDouble()
+          ],
+          colors: const [AppColors.gold, AppColors.warning, AppColors.danger],
+        ),
+      ),
+    ];
+    // Une seule ligne sur toutes les largeurs ; sur mobile elle reste
+    // défilable horizontalement afin de ne jamais écraser les graphiques.
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const ClampingScrollPhysics(),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var i = 0; i < charts.length; i++) ...[
+            SizedBox(width: compact ? 286 : 350, child: charts[i]),
+            if (i != charts.length - 1) const SizedBox(width: 10),
+          ],
+        ],
+      ),
+    );
   }
 }
 
@@ -1527,7 +1451,7 @@ class _AnalyticsChartCard extends StatelessWidget {
         child: Semantics(
           label: '$title — $legend',
           child: Container(
-            height: 158,
+            height: 178,
             padding: const EdgeInsets.fromLTRB(12, 9, 12, 8),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.035),
@@ -1561,11 +1485,13 @@ class _AnalyticsBarsPainter extends CustomPainter {
   final List<double> values;
   final List<Color> colors;
   final List<String> labels;
+  final List<String> valueLabels;
 
   const _AnalyticsBarsPainter({
     required this.values,
     required this.colors,
     required this.labels,
+    required this.valueLabels,
   });
 
   @override
@@ -1583,11 +1509,24 @@ class _AnalyticsBarsPainter extends CustomPainter {
           RRect.fromRectAndRadius(
               Rect.fromLTWH(left + 4, top + 4, width, height),
               const Radius.circular(4)),
-          Paint()..color = colors[i].withValues(alpha: .20));
+          Paint()..color = colors[i].withValues(alpha: .18));
       canvas.drawRRect(
           RRect.fromRectAndRadius(Rect.fromLTWH(left, top, width, height),
               const Radius.circular(4)),
-          Paint()..color = colors[i]);
+          Paint()
+            ..shader = ui.Gradient.linear(
+                Offset(left, top),
+                Offset(left + width, top + height),
+                [colors[i], colors[i].withValues(alpha: .62)]));
+      final value = TextPainter(
+        text: TextSpan(
+            text: valueLabels[i],
+            style: const TextStyle(
+                color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800)),
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: slot);
+      value.paint(canvas,
+          Offset(i * slot + (slot - value.width) / 2, math.max(0, top - 14)));
       final text = TextPainter(
         text: TextSpan(
             text: labels[i],
@@ -1654,77 +1593,6 @@ class _AnalyticsDonutPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _AnalyticsDonutPainter oldDelegate) =>
       oldDelegate.values != values;
-}
-
-class _BottomStat extends StatelessWidget {
-  final String label;
-  final String value;
-  final String? trend;
-  final String? subtitle;
-  final Color valueColor;
-  final IconData? icon;
-  final Color? iconColor;
-  final bool compact;
-  const _BottomStat({
-    required this.label,
-    required this.value,
-    this.trend,
-    this.subtitle,
-    this.valueColor = Colors.white,
-    this.icon,
-    this.iconColor,
-    this.compact = false,
-  });
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: compact ? 46 : 56,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.035),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.07))),
-      child: Row(children: [
-        Expanded(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: AlignmentDirectional.centerStart,
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.45),
-                          fontSize: 8.8,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.4)),
-                  const SizedBox(height: 3),
-                  Text(value,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: valueColor,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900)),
-                  if (trend != null)
-                    Text(trend!,
-                        style: const TextStyle(
-                            color: AppColors.emeraldLight, fontSize: 9.5)),
-                  if (subtitle != null)
-                    Text(subtitle!,
-                        style: TextStyle(
-                            color: valueColor.withValues(alpha: 0.85),
-                            fontSize: 9.5)),
-                ]),
-          ),
-        ),
-        if (icon != null) Icon(icon, size: 20, color: iconColor ?? valueColor),
-      ]),
-    );
-  }
 }
 
 /// ============================================================

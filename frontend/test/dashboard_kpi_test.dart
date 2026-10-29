@@ -15,7 +15,7 @@ import 'package:pharma_maroc_gold/features/dashboard/dashboard_page.dart';
 ///  1. les 8 cartes KPI illustrées rendent SANS débordement ;
 ///  2. chaque carte porte la couleur de SA catégorie (palette premium
 ///     centralisée dans AppColors — pas de KPI tout vert) ;
-///  3. chaque KPI embarque son illustration 3D (webp maquette) ;
+///  3. chaque KPI embarque son illustration 3D d'arrière-plan (webp maquette) ;
 ///  4. responsive : desktop large, fenêtre réduite, smartphone portrait.
 
 const _kpiLabels = [
@@ -288,8 +288,7 @@ void main() {
     // Chaque carte est identifiée par sa clé de badge unique (pas de doublon
     // possible même si un libellé apparaît ailleurs dans le dashboard).
     for (var i = 0; i < _kpiLabels.length; i++) {
-      expect(find.byKey(ValueKey('kpi-badge-${_kpiLabels[i]}')),
-          findsOneWidget,
+      expect(find.byKey(ValueKey('kpi-badge-${_kpiLabels[i]}')), findsOneWidget,
           reason: 'KPI ${_kpiLabels[i]} absente');
     }
 
@@ -309,16 +308,16 @@ void main() {
     expect(badgeColorOf('EMPLOYÉS'), AppColors.emeraldInk);
     expect(badgeColorOf('BÉNÉFICE MOIS'), AppColors.champagneGold);
 
-    // Illustrations 3D : chaque KPI embarque son webp maquette.
+    // Illustrations 3D : chaque KPI utilise uniquement son fond illustré.
     expect(
       find.byWidgetPredicate((w) =>
           w is Image &&
           w.image is AssetImage &&
           (w.image as AssetImage)
               .assetName
-              .startsWith('assets/images/kpi/kpi_')),
+              .startsWith('assets/images/kpi_bg_')),
       findsNWidgets(8),
-      reason: '8 illustrations 3D attendues',
+      reason: '8 illustrations 3D d’arrière-plan attendues',
     );
 
     // Les illustrations doivent rester entièrement visibles lorsque la
@@ -329,7 +328,7 @@ void main() {
             w.image is AssetImage &&
             (w.image as AssetImage)
                 .assetName
-                .startsWith('assets/images/kpi/kpi_')))
+                .startsWith('assets/images/kpi_bg_')))
         .toList();
     expect(kpiImages, hasLength(8));
     expect(kpiImages.every((image) => image.fit == BoxFit.contain), isTrue,
@@ -342,8 +341,7 @@ void main() {
     expect(tester.takeException(), isNull,
         reason: 'aucun débordement en 1024x768');
     for (var i = 0; i < _kpiLabels.length; i++) {
-      expect(find.byKey(ValueKey('kpi-badge-${_kpiLabels[i]}')),
-          findsOneWidget,
+      expect(find.byKey(ValueKey('kpi-badge-${_kpiLabels[i]}')), findsOneWidget,
           reason: 'KPI ${_kpiLabels[i]} en 1024x768');
     }
 
@@ -351,8 +349,7 @@ void main() {
     expect(tester.takeException(), isNull,
         reason: 'aucun débordement en 390x844 (smartphone portrait)');
     for (var i = 0; i < _kpiLabels.length; i++) {
-      expect(find.byKey(ValueKey('kpi-badge-${_kpiLabels[i]}')),
-          findsOneWidget,
+      expect(find.byKey(ValueKey('kpi-badge-${_kpiLabels[i]}')), findsOneWidget,
           reason: 'KPI ${_kpiLabels[i]} en 390x844');
     }
   });
