@@ -17,6 +17,7 @@ import '../../core/theme/colors.dart';
 import '../../core/utils/calculations.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/barcode_scanner.dart';
+import '../../core/widgets/stock_notification.dart';
 import '../pos/payment_models.dart';
 import '../pos/pos_models.dart';
 import 'pos_category_grid.dart';
@@ -264,8 +265,10 @@ class _PosPanelState extends State<PosPanel> {
     }
     final stock = _stock[m.id];
     if (stock == null) {
-      _showStockNotification('stock_impossible',
-          'Vérification du stock impossible', 'Impossible de vérifier le stock. Réessayez.');
+      _showStockNotification(
+          'stock_impossible',
+          'Vérification du stock impossible',
+          'Impossible de vérifier le stock. Réessayez.');
       return;
     }
     if (stock <= 0) {
@@ -275,9 +278,11 @@ class _PosPanelState extends State<PosPanel> {
     }
     final inCart = _qty[m.id] ?? 0;
     if (inCart + 1 > stock) {
-      _showStockNotification('stock_insuffisant', 'Stock insuffisant',
+      _showStockNotification(
+          'stock_insuffisant',
+          'Stock insuffisant',
           'Quantité demandée supérieure au stock disponible.\n'
-          'Demandée : ${(inCart + 1).round()} · Disponible : ${stock.round()}');
+              'Demandée : ${(inCart + 1).round()} · Disponible : ${stock.round()}');
       return;
     }
     setState(() {
@@ -289,52 +294,11 @@ class _PosPanelState extends State<PosPanel> {
   }
 
   void _showStockNotification(String key, String title, String message) {
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final notificationWidth = screenWidth < 600 ? screenWidth - 32 : 360.0;
-    final icon = key == 'stock_impossible'
-        ? Icons.warning_amber_rounded
-        : key == 'stock_zero'
-            ? Icons.remove_shopping_cart
-            : Icons.error_outline;
-
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        width: notificationWidth,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        content: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: AppColors.brandGold, size: 20),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text.rich(
-                TextSpan(children: [
-                  TextSpan(
-                    text: '$title\n',
-                    style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w800),
-                  ),
-                  TextSpan(
-                    text: message,
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                ]),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.surfaceDark,
-        duration: const Duration(seconds: 5),
-        action: SnackBarAction(
-          label: 'Fermer',
-          textColor: AppColors.brandGold,
-          onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
-        ),
-      ),
+    StockNotification.show(
+      context,
+      key: key,
+      title: title,
+      message: message,
     );
   }
 
@@ -345,9 +309,11 @@ class _PosPanelState extends State<PosPanel> {
       if (stock != null) {
         final current = _qty[id] ?? 0;
         if (current + delta > stock) {
-          _showStockNotification('stock_insuffisant', 'Stock insuffisant',
+          _showStockNotification(
+              'stock_insuffisant',
+              'Stock insuffisant',
               'Quantité demandée supérieure au stock disponible.\n'
-              'Demandée : ${(current + delta).round()} · Disponible : ${stock.round()}');
+                  'Demandée : ${(current + delta).round()} · Disponible : ${stock.round()}');
           return;
         }
       }

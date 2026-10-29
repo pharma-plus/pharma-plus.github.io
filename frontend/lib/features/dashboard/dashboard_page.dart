@@ -231,6 +231,10 @@ class _DashboardPageState extends State<DashboardPage> {
                   Navigator.of(ctx).pop();
                   _onLogout();
                 },
+                onLock: () {
+                  Navigator.of(ctx).pop();
+                  context.read<AuthStore>().lockSession(manual: true);
+                },
                 onMoreModules: () {
                   Navigator.of(ctx).pop();
                   _showModulesMenu();
@@ -383,7 +387,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                     ),
                                   ]),
                               SizedBox(height: compact ? 10 : 12),
-                              _BottomBar(
+                              _AnalyticsSection(
                                 revenueToday: _revenueToday,
                                 revenueMonth: _revenueMonth,
                                 profitMonth: _profitMonth,
@@ -1287,9 +1291,9 @@ class _LegendItem extends StatelessWidget {
 }
 
 /// ============================================================
-/// BARRE STATS — 5 tuiles (3 KPI + tendances réelles + 2 alertes)
+/// ANALYTIQUE — valeurs réelles avec une grille lisible et responsive.
 /// ============================================================
-class _BottomBar extends StatelessWidget {
+class _AnalyticsSection extends StatelessWidget {
   final double revenueToday;
   final double revenueMonth;
   final double profitMonth;
@@ -1300,7 +1304,53 @@ class _BottomBar extends StatelessWidget {
   final String? trendMonth;
   final String? trendProfit;
   final bool compact;
-  const _BottomBar({
+  const _AnalyticsSection({
+    required this.revenueToday,
+    required this.revenueMonth,
+    required this.profitMonth,
+    required this.expiring,
+    required this.expired,
+    required this.lowStock,
+    this.trendToday,
+    this.trendMonth,
+    this.trendProfit,
+    this.compact = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _DarkPanel(
+      title: 'ANALYTIQUE',
+      icon: Icons.bar_chart_rounded,
+      iconColor: AppColors.chart,
+      child: _AnalyticsTiles(
+        revenueToday: revenueToday,
+        revenueMonth: revenueMonth,
+        profitMonth: profitMonth,
+        expiring: expiring,
+        expired: expired,
+        lowStock: lowStock,
+        trendToday: trendToday,
+        trendMonth: trendMonth,
+        trendProfit: trendProfit,
+        compact: compact,
+      ),
+    );
+  }
+}
+
+class _AnalyticsTiles extends StatelessWidget {
+  final double revenueToday;
+  final double revenueMonth;
+  final double profitMonth;
+  final int expiring;
+  final int expired;
+  final int lowStock;
+  final String? trendToday;
+  final String? trendMonth;
+  final String? trendProfit;
+  final bool compact;
+  const _AnalyticsTiles({
     required this.revenueToday,
     required this.revenueMonth,
     required this.profitMonth,
@@ -1316,47 +1366,54 @@ class _BottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const gold = Color(0xFFE9C873);
-    return Row(children: [
-      Expanded(
-          child: _BottomStat(
-              label: "VENTES AUJOURD'HUI",
-              value: Fmt.money(revenueToday),
-              trend: trendToday,
-              compact: compact)),
-      const SizedBox(width: 8),
-      Expanded(
-          child: _BottomStat(
-              label: 'VENTES MOIS',
-              value: Fmt.money(revenueMonth),
-              trend: trendMonth,
-              compact: compact)),
-      const SizedBox(width: 8),
-      Expanded(
-          child: _BottomStat(
-              label: 'BÉNÉFICE MOIS',
-              value: Fmt.money(profitMonth),
-              trend: trendProfit,
-              compact: compact)),
-      const SizedBox(width: 8),
-      Expanded(
-          child: _BottomStat(
-              label: 'PRODUITS EXPIRÉS',
-              value: '$expired',
-              subtitle: 'Produits',
-              valueColor: const Color(0xFFF0A73B),
-              icon: Icons.warning_amber_rounded,
-              iconColor: const Color(0xFFF0A73B),
-              compact: compact)),
-      const SizedBox(width: 8),
-      Expanded(
-          child: _BottomStat(
-              label: 'STOCK FAIBLE',
-              value: '$lowStock',
-              subtitle: 'Produits',
-              icon: Icons.warning_amber_rounded,
-              iconColor: gold,
-              compact: compact)),
-    ]);
+    final tiles = <Widget>[
+      _BottomStat(
+          label: "VENTES AUJOURD'HUI",
+          value: Fmt.money(revenueToday),
+          trend: trendToday,
+          compact: compact),
+      _BottomStat(
+          label: 'VENTES MOIS',
+          value: Fmt.money(revenueMonth),
+          trend: trendMonth,
+          compact: compact),
+      _BottomStat(
+          label: 'BÉNÉFICE MOIS',
+          value: Fmt.money(profitMonth),
+          trend: trendProfit,
+          compact: compact),
+      _BottomStat(
+          label: 'PRODUITS EXPIRÉS',
+          value: '$expired',
+          subtitle: 'Produits',
+          valueColor: const Color(0xFFF0A73B),
+          icon: Icons.warning_amber_rounded,
+          iconColor: const Color(0xFFF0A73B),
+          compact: compact),
+      _BottomStat(
+          label: 'STOCK FAIBLE',
+          value: '$lowStock',
+          subtitle: 'Produits',
+          icon: Icons.warning_amber_rounded,
+          iconColor: gold,
+          compact: compact),
+    ];
+    return LayoutBuilder(builder: (context, constraints) {
+      final cols = constraints.maxWidth >= 1150
+          ? 5
+          : constraints.maxWidth >= 700
+              ? 3
+              : 2;
+      return GridView.count(
+        crossAxisCount: cols,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        childAspectRatio: cols == 2 ? 2.45 : 2.15,
+        children: tiles,
+      );
+    });
   }
 }
 

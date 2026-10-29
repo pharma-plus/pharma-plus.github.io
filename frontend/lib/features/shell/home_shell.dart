@@ -262,16 +262,6 @@ class _HomeShellState extends State<HomeShell> {
         final showSideMenu = vw >= _sideMenuBreakpoint;
         return Scaffold(
           backgroundColor: Colors.transparent,
-          appBar: AppBar(
-            // Bouton verrouillage pour tous les rôles sauf super admin
-            leading: IconButton(
-              icon: const Icon(Icons.lock_open_outlined),
-              onPressed: () =>
-                  context.read<AuthStore>().lockSession(manual: true),
-            ),
-            title: const Text('PHARMA+'),
-            actions: const [],
-          ),
           body: PharmaBackground(
             assetImage: 'assets/images/background.webp',
             child: SafeArea(
@@ -306,6 +296,9 @@ class _HomeShellState extends State<HomeShell> {
                               child: AppSideMenu(
                                 collapsed: collapsed,
                                 onToggleCollapse: SideMenuState.toggle,
+                                onLock: () => context
+                                    .read<AuthStore>()
+                                    .lockSession(manual: true),
                                 onNavigate: _onSideNavNavigate,
                                 onLogout: _onSideNavLogout,
                                 onMoreModules: _onSideNavMoreModules,

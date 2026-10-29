@@ -94,6 +94,7 @@ class AppSideNavItem {
 class AppSideMenu extends StatefulWidget {
   final ValueChanged<AppSideNavItem> onNavigate;
   final VoidCallback onLogout;
+  final VoidCallback? onLock;
   final VoidCallback onMoreModules;
 
   /// true = rail réduit (icônes seules + tooltips).
@@ -102,6 +103,7 @@ class AppSideMenu extends StatefulWidget {
   const AppSideMenu({
     required this.onNavigate,
     required this.onLogout,
+    this.onLock,
     required this.onMoreModules,
     this.collapsed = false,
     this.onToggleCollapse,
@@ -277,25 +279,51 @@ class _AppSideMenuState extends State<AppSideMenu> {
           ),
         ),
         const SizedBox(height: 8),
-        // Déconnexion (rail).
-        Center(
-          child: Tooltip(
-            message: 'Se déconnecter',
-            waitDuration: const Duration(milliseconds: 300),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: widget.onLogout,
-              child: Container(
-                width: 44,
-                height: 40,
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.08))),
-                child: const Icon(Icons.logout, color: _sideGold, size: 18),
+        // PIN et déconnexion restent sur une seule ligne, y compris dans
+        // le rail tactile des petits écrans.
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (widget.onLock != null) ...[
+              Tooltip(
+                message: 'Verrouiller avec le PIN',
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: widget.onLock,
+                  child: Container(
+                    width: 44,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                          color:
+                              const Color(0xFFC9A24B).withValues(alpha: 0.55)),
+                    ),
+                    child: const Icon(Icons.lock_open_outlined,
+                        color: _sideGold, size: 18),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Tooltip(
+              message: 'Se déconnecter',
+              waitDuration: const Duration(milliseconds: 300),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: widget.onLogout,
+                child: Container(
+                  width: 44,
+                  height: 40,
+                  decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.08))),
+                  child: const Icon(Icons.logout, color: _sideGold, size: 18),
+                ),
               ),
             ),
-          ),
+          ],
         ),
         const SizedBox(height: 12),
       ]),
@@ -466,29 +494,50 @@ class _AppSideMenuState extends State<AppSideMenu> {
             ),
           ]),
         ),
-        // ---- Se déconnecter ----
-        InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: widget.onLogout,
-          child: Container(
-            margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border:
-                    Border.all(color: Colors.white.withValues(alpha: 0.08))),
-            child: Row(children: [
-              const Icon(Icons.restart_alt, color: _sideGold, size: 18),
-              const SizedBox(width: 10),
+        // ---- PIN et déconnexion sur une seule ligne ----
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+          child: Row(
+            children: [
+              if (widget.onLock != null) ...[
+                Expanded(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: widget.onLock,
+                    child: Container(
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF07271C),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: const Color(0xFFC9A24B)
+                                .withValues(alpha: 0.55)),
+                      ),
+                      child: const Center(
+                          child: Icon(Icons.lock_open_outlined,
+                              color: _sideGold, size: 19)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               Expanded(
-                child: Text('Se déconnecter',
-                    style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.88),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600)),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: widget.onLogout,
+                  child: Container(
+                    height: 42,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.08)),
+                    ),
+                    child: const Center(
+                        child: Icon(Icons.logout, color: _sideGold, size: 19)),
+                  ),
+                ),
               ),
-              const Icon(Icons.logout, color: _sideGold, size: 17),
-            ]),
+            ],
           ),
         ),
         // ---- Horloge + date ----
