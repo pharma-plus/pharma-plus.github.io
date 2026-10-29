@@ -44,6 +44,10 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void initState() {
     super.initState();
+    // Affiche immédiatement la structure du dashboard pendant que les
+    // données réelles arrivent. Les getters utilisent 0/vides tant que
+    // l'aperçu n'est pas encore disponible : on évite un écran bloquant.
+    _data = const <String, dynamic>{};
     _load();
   }
 
@@ -286,13 +290,6 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Scaffold(
-        backgroundColor: Colors.transparent,
-        body:
-            Center(child: CircularProgressIndicator(color: AppColors.emerald)),
-      );
-    }
     if (_error != null) {
       return Scaffold(
         backgroundColor: Colors.transparent,
@@ -333,7 +330,6 @@ class _DashboardPageState extends State<DashboardPage> {
         // entièrement visible, sans carte ni cellule coupée.
         final vh = MediaQuery.sizeOf(context).height;
         final compact = vh < 900;
-        final noDashboardScroll = vw >= 1000 && vh < 900;
         return Stack(children: [
           Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Expanded(
@@ -357,9 +353,9 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                     Expanded(
                       child: SingleChildScrollView(
-                        physics: noDashboardScroll
-                            ? const NeverScrollableScrollPhysics()
-                            : null,
+                        // L'analytique doit rester atteignable sur les
+                        // écrans desktop bas, à la molette comme au tactile.
+                        physics: const ClampingScrollPhysics(),
                         padding: EdgeInsets.fromLTRB(
                             14, compact ? 10 : 14, 14, compact ? 8 : 10),
                         child: Column(
@@ -433,6 +429,17 @@ class _DashboardPageState extends State<DashboardPage> {
                       compact: compact)),
             ],
           ]),
+          if (_loading)
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: LinearProgressIndicator(
+                minHeight: 2,
+                color: AppColors.emerald,
+                backgroundColor: Colors.transparent,
+              ),
+            ),
         ]);
       }),
     );
@@ -511,29 +518,33 @@ class _DashboardPageState extends State<DashboardPage> {
           badgeColor: AppColors.champagneGold,
           module: 'reports'),
     ].where((k) => k.module == null || auth.canSeeModule(k.module!)).toList();
-    // 4 colonnes sur desktop ; 2 sur les écrans étroits (lisible partout).
-    // Ratio plus haut (cartes plus hautes) → le webp portrait remplit
-    // la case (cover ancré en bas, podium intact).
-    final cols = MediaQuery.of(context).size.width >= 980 ? 4 : 2;
-    return GridView.count(
-      crossAxisCount: cols,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: compact ? 10 : 12,
-      mainAxisSpacing: compact ? 10 : 12,
-      // Les écrans desktop bas doivent voir le dashboard sans descendre :
-      // les cartes restent lisibles mais la hauteur est volontairement
-      // réduite, tandis que les smartphones gardent une carte respirable.
-      childAspectRatio: compact ? 1.28 : 0.95,
-      children: [
-        for (var i = 0; i < kpis.length; i++)
-          _KpiCard(
-            key: ValueKey('kpi-${kpis[i].label}'),
-            def: kpis[i],
-            onTap: _kpiTap(kpis[i].label),
-          ),
-      ],
-    );
+    return LayoutBuilder(builder: (context, constraints) {
+      final gap = compact ? 10.0 : 12.0;
+      // Une carte reste lisible à partir d'environ 165 px. Huit cartes ne
+      // passent sur une ligne que si l'espace réel après les menus le permet.
+      final oneLine = constraints.maxWidth >= 8 * 165 + 7 * gap;
+      final cols = oneLine
+          ? 8
+          : constraints.maxWidth >= 980
+              ? 4
+              : 2;
+      return GridView.count(
+        crossAxisCount: cols,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisSpacing: gap,
+        mainAxisSpacing: gap,
+        childAspectRatio: cols == 8 ? 4 / 3 : (compact ? 1.28 : 0.95),
+        children: [
+          for (var i = 0; i < kpis.length; i++)
+            _KpiCard(
+              key: ValueKey('kpi-${kpis[i].label}'),
+              def: kpis[i],
+              onTap: _kpiTap(kpis[i].label),
+            ),
+        ],
+      );
+    });
   }
 }
 
@@ -630,18 +641,29 @@ class _KpiCardState extends State<_KpiCard> {
               // L'illustration webp EST le carton de la maquette (dégradé
               // coloré + 3D) : fond plein cadre gérée par le Stack ci-dessous.
               color: const Color(0xFF05130D),
+              // Remplit les bandes latérales avec le même décor, sans
+              // recadrer l'illustration principale posée par-dessus.
+              image: DecorationImage(
+                image: AssetImage(def.image),
+                fit: BoxFit.cover,
+                alignment: Alignment.bottomCenter,
+                opacity: 0.34,
+              ),
             ),
             child: ClipRect(
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Illustration complète : contain conserve le ratio et
-                  // empêche le rognage lorsque la grille change de largeur.
+                  // Les six premiers assets sont presque carrés alors que les
+                  // deux derniers sont panoramiques. Contain conserve toujours
+                  // l'illustration entière ; le décor de la carte remplit les
+                  // éventuelles bandes autour.
                   Positioned.fill(
                     child: Image.asset(
                       def.image,
                       fit: BoxFit.contain,
                       alignment: Alignment.bottomCenter,
+                      filterQuality: FilterQuality.low,
                     ),
                   ),
                   Padding(
@@ -1443,21 +1465,210 @@ class _AnalyticsTiles extends StatelessWidget {
           : constraints.maxWidth >= 700
               ? 3
               : 2;
-      return GridView.count(
-        crossAxisCount: cols,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: cols == 5
-            ? 3.0
-            : cols == 2
-                ? 2.45
-                : 2.15,
-        children: tiles,
-      );
+      return Column(children: [
+        GridView.count(
+          crossAxisCount: cols,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+          childAspectRatio: cols == 5
+              ? 3.0
+              : cols == 2
+                  ? 2.45
+                  : 2.15,
+          children: tiles,
+        ),
+        const SizedBox(height: 10),
+        LayoutBuilder(builder: (context, box) {
+          final charts = [
+            _AnalyticsChartCard(
+              title: 'Ventes / bénéfice',
+              legend: 'Montants réels',
+              painter: _AnalyticsBarsPainter(
+                values: [revenueToday, revenueMonth, profitMonth],
+                colors: const [
+                  AppColors.emerald,
+                  AppColors.chart,
+                  AppColors.gold
+                ],
+                labels: const ['Jour', 'Mois', 'Bénéf.'],
+              ),
+            ),
+            _AnalyticsChartCard(
+              title: 'Alertes stock',
+              legend: 'Répartition réelle',
+              painter: _AnalyticsDonutPainter(
+                values: [
+                  lowStock.toDouble(),
+                  expiring.toDouble(),
+                  expired.toDouble()
+                ],
+                colors: const [
+                  AppColors.gold,
+                  AppColors.warning,
+                  AppColors.danger
+                ],
+              ),
+            ),
+          ];
+          return box.maxWidth >= 620
+              ? Row(children: [
+                  Expanded(child: charts[0]),
+                  const SizedBox(width: 10),
+                  Expanded(child: charts[1]),
+                ])
+              : Column(children: charts);
+        }),
+      ]);
     });
   }
+}
+
+class _AnalyticsChartCard extends StatelessWidget {
+  final String title;
+  final String legend;
+  final CustomPainter painter;
+
+  const _AnalyticsChartCard({
+    required this.title,
+    required this.legend,
+    required this.painter,
+  });
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+        message: legend,
+        child: Semantics(
+          label: '$title — $legend',
+          child: Container(
+            height: 158,
+            padding: const EdgeInsets.fromLTRB(12, 9, 12, 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.035),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800)),
+                const SizedBox(height: 2),
+                Text(legend,
+                    style: const TextStyle(
+                        color: AppColors.textTertiary, fontSize: 9)),
+                const SizedBox(height: 4),
+                Expanded(
+                    child: CustomPaint(
+                        painter: painter, child: const SizedBox.expand())),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
+class _AnalyticsBarsPainter extends CustomPainter {
+  final List<double> values;
+  final List<Color> colors;
+  final List<String> labels;
+
+  const _AnalyticsBarsPainter({
+    required this.values,
+    required this.colors,
+    required this.labels,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final maxValue = values.fold<double>(0, (m, v) => v > m ? v : m);
+    final usable = maxValue <= 0 ? 1.0 : maxValue;
+    final base = size.height - 18;
+    final slot = size.width / values.length;
+    for (var i = 0; i < values.length; i++) {
+      final height = (values[i] / usable) * (size.height - 30);
+      final left = i * slot + slot * .22;
+      final width = slot * .42;
+      final top = base - height;
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              Rect.fromLTWH(left + 4, top + 4, width, height),
+              const Radius.circular(4)),
+          Paint()..color = colors[i].withValues(alpha: .20));
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(Rect.fromLTWH(left, top, width, height),
+              const Radius.circular(4)),
+          Paint()..color = colors[i]);
+      final text = TextPainter(
+        text: TextSpan(
+            text: labels[i],
+            style: const TextStyle(color: AppColors.textTertiary, fontSize: 9)),
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: slot);
+      text.paint(canvas, Offset(i * slot + (slot - text.width) / 2, base + 4));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _AnalyticsBarsPainter oldDelegate) =>
+      oldDelegate.values != values;
+}
+
+class _AnalyticsDonutPainter extends CustomPainter {
+  final List<double> values;
+  final List<Color> colors;
+
+  const _AnalyticsDonutPainter({required this.values, required this.colors});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final total = values.fold<double>(0, (sum, value) => sum + value);
+    final center = Offset(size.width * .28, size.height / 2);
+    final radius = size.height * .34;
+    canvas.drawCircle(
+        center,
+        radius,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 13
+          ..color = Colors.white.withValues(alpha: .08));
+    if (total <= 0) return;
+    var start = -1.5708;
+    for (var i = 0; i < values.length; i++) {
+      final sweep = values[i] / total * 6.28318;
+      canvas.drawArc(
+          Rect.fromCircle(center: center, radius: radius),
+          start,
+          sweep,
+          false,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 13
+            ..color = colors[i]);
+      start += sweep;
+    }
+    const labels = ['Faible', 'Bientôt', 'Périmés'];
+    for (var i = 0; i < labels.length; i++) {
+      final y = 12.0 + i * 22;
+      canvas.drawCircle(
+          Offset(size.width * .58, y + 5), 4, Paint()..color = colors[i]);
+      final text = TextPainter(
+        text: TextSpan(
+            text: '${labels[i]} ${values[i].round()}',
+            style: const TextStyle(color: Colors.white70, fontSize: 9)),
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: size.width * .38);
+      text.paint(canvas, Offset(size.width * .58 + 8, y));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _AnalyticsDonutPainter oldDelegate) =>
+      oldDelegate.values != values;
 }
 
 class _BottomStat extends StatelessWidget {

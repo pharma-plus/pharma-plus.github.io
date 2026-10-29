@@ -567,19 +567,24 @@ class _AppSideMenuState extends State<AppSideMenu> {
                             fontWeight: FontWeight.w600)),
                   ]),
             ),
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
+            Tooltip(
+              message: 'Ouvrir l’agenda des jours fériés',
+              child: Material(
+                color: AppColors.surfaceDark,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    side: BorderSide(
+                        color: const Color(0xFFC9A24B).withValues(alpha: 0.7))),
+                child: InkWell(
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                      color: const Color(0xFFC9A24B).withValues(alpha: 0.55))),
-              child: IconButton(
-                tooltip: 'Ouvrir l’agenda des jours fériés',
-                padding: EdgeInsets.zero,
-                icon: const Icon(Icons.calendar_today_outlined,
-                    color: _sideGold, size: 18),
-                onPressed: () => _showMoroccanCalendar(context),
+                  onTap: () => _showMoroccanCalendar(context),
+                  child: const SizedBox(
+                    width: 42,
+                    height: 42,
+                    child: Icon(Icons.calendar_today_outlined,
+                        color: _sideGold, size: 19),
+                  ),
+                ),
               ),
             ),
           ]),
@@ -589,9 +594,13 @@ class _AppSideMenuState extends State<AppSideMenu> {
   }
 
   void _showMoroccanCalendar(BuildContext context) {
-    showDialog<void>(
+    showGeneralDialog<void>(
       context: context,
-      builder: (_) => const _MoroccanCalendarDialog(),
+      barrierDismissible: true,
+      barrierLabel: 'Fermer l’agenda',
+      barrierColor: Colors.black54,
+      transitionDuration: Duration.zero,
+      pageBuilder: (_, __, ___) => const _MoroccanCalendarDialog(),
     );
   }
 }
@@ -712,7 +721,7 @@ class _MoroccanCalendarDialogState extends State<_MoroccanCalendarDialog> {
                 style: TextStyle(color: Colors.white, fontSize: 18))),
         IconButton(
             tooltip: 'Fermer',
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
             icon: const Icon(Icons.close, color: Colors.white70)),
       ]),
       content: SizedBox(

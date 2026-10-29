@@ -50,8 +50,8 @@ class _ReportsPageState extends State<ReportsPage> {
     final results = await Future.wait([
       ApiClient.instance.get('/reports/financial', query: query),
       ApiClient.instance.get('/reports/sales', query: query),
-      ApiClient.instance.get('/reports/products',
-          query: {...query, 'limit': '10'}),
+      ApiClient.instance
+          .get('/reports/products', query: {...query, 'limit': '10'}),
       ApiClient.instance.get('/reports/employees', query: query),
       ApiClient.instance.get('/reports/stock'),
     ]);
@@ -66,12 +66,16 @@ class _ReportsPageState extends State<ReportsPage> {
     }
     setState(() {
       final fd = results[0].data;
-      _financial = fd is Map<String, dynamic> ? fd : (fd is Map ? Map<String, dynamic>.from(fd) : null);
+      _financial = fd is Map<String, dynamic>
+          ? fd
+          : (fd is Map ? Map<String, dynamic>.from(fd) : null);
       _sales = ApiList.of(results[1].data);
       _products = ApiList.of(results[2].data);
       _employees = ApiList.of(results[3].data);
       final sd = results[4].data;
-      _stock = sd is Map<String, dynamic> ? sd : (sd is Map ? Map<String, dynamic>.from(sd) : null);
+      _stock = sd is Map<String, dynamic>
+          ? sd
+          : (sd is Map ? Map<String, dynamic>.from(sd) : null);
       _loading = false;
     });
   }
@@ -110,15 +114,20 @@ class _ReportsPageState extends State<ReportsPage> {
         ? stock['value'] as Map<String, dynamic>
         : const <String, dynamic>{};
     return [
-      ReportExport.section(
-          'Synthèse financière', ['Indicateur', 'Montant'], [
+      ReportExport.section('Synthèse financière', [
+        'Indicateur',
+        'Montant'
+      ], [
         ['CA période', ReportExport.numStr(revenue['revenue'])],
         ['Dépenses', ReportExport.numStr(fin['expenses'])],
         ['Bénéfice net', ReportExport.numStr(fin['net_profit'])],
         ['Créances', ReportExport.numStr(fin['receivables'])],
         ['Dettes', ReportExport.numStr(fin['payables'])],
       ]),
-      ReportExport.section('Instantané stock', ['Indicateur', 'Valeur'], [
+      ReportExport.section('Instantané stock', [
+        'Indicateur',
+        'Valeur'
+      ], [
         ['Valeur du stock', ReportExport.numStr(value['stock_value'])],
         ['Coût du stock', ReportExport.numStr(value['stock_cost'])],
         ['Nb produits', '${value['nb_products'] ?? 0}'],
@@ -126,30 +135,39 @@ class _ReportsPageState extends State<ReportsPage> {
         ['Péremptions proches', '${stock['expiring'] ?? 0}'],
         ['Périmés', '${stock['expired'] ?? 0}'],
       ]),
-      ReportExport.section('Ventes',
+      ReportExport.section(
+          'Ventes',
           ['Période', 'Nb ventes', 'Total', 'Bénéfice'],
-          _sales.map((s) => [
-                '${s['period'] ?? ''}',
-                '${s['nb_sales'] ?? 0}',
-                ReportExport.numStr(s['total']),
-                ReportExport.numStr(s['profit']),
-              ]).toList()),
+          _sales
+              .map((s) => [
+                    '${s['period'] ?? ''}',
+                    '${s['nb_sales'] ?? 0}',
+                    ReportExport.numStr(s['total']),
+                    ReportExport.numStr(s['profit']),
+                  ])
+              .toList()),
       ReportExport.section(
-          'Top produits', ['Produit', 'Catégorie', 'Qté vendue', 'CA'],
-          _products.map((p) => [
-                '${p['name'] ?? ''}',
-                '${p['category_name'] ?? '—'}',
-                '${p['qty_sold'] ?? 0}',
-                ReportExport.numStr(p['revenue']),
-              ]).toList()),
+          'Top produits',
+          ['Produit', 'Catégorie', 'Qté vendue', 'CA'],
+          _products
+              .map((p) => [
+                    '${p['name'] ?? ''}',
+                    '${p['category_name'] ?? '—'}',
+                    '${p['qty_sold'] ?? 0}',
+                    ReportExport.numStr(p['revenue']),
+                  ])
+              .toList()),
       ReportExport.section(
-          'Employés', ['Nom', 'Nb ventes', 'CA', 'Bénéfice'],
-          _employees.map((e) => [
-                '${e['first_name'] ?? ''} ${e['last_name'] ?? ''}',
-                '${e['nb_sales'] ?? 0}',
-                ReportExport.numStr(e['revenue']),
-                ReportExport.numStr(e['profit']),
-              ]).toList()),
+          'Employés',
+          ['Nom', 'Nb ventes', 'CA', 'Bénéfice'],
+          _employees
+              .map((e) => [
+                    '${e['first_name'] ?? ''} ${e['last_name'] ?? ''}',
+                    '${e['nb_sales'] ?? 0}',
+                    ReportExport.numStr(e['revenue']),
+                    ReportExport.numStr(e['profit']),
+                  ])
+              .toList()),
     ];
   }
 
@@ -337,6 +355,7 @@ class _ReportsPageState extends State<ReportsPage> {
           ),
         ),
         const SizedBox(height: 12),
+        _financialCharts(fin, revenue, locale),
         _sectionCard(
           locale,
           S.t('stockSnapshot', locale),
@@ -455,6 +474,63 @@ class _ReportsPageState extends State<ReportsPage> {
     );
   }
 
+  Widget _financialCharts(
+      Map<String, dynamic> fin, Map<String, dynamic> revenue, String locale) {
+    final revenueValue = double.tryParse('${revenue['revenue'] ?? 0}') ?? 0;
+    final expensesValue = double.tryParse('${fin['expenses'] ?? 0}') ?? 0;
+    final netValue = double.tryParse('${fin['net_profit'] ?? 0}') ?? 0;
+    final periods = _sales.take(6).toList();
+    final profitValues = periods
+        .map((s) => double.tryParse('${s['profit'] ?? 0}') ?? 0)
+        .toList();
+    return _sectionCard(
+      locale,
+      'Analyse financière',
+      LayoutBuilder(builder: (context, constraints) {
+        final bars = _ReportChartCard(
+          title: 'Bénéfice par période',
+          painter: _ReportBarsPainter(
+            values: profitValues,
+            labels: periods
+                .map((s) => '${s['period'] ?? ''}'
+                    .substring(0, '${s['period'] ?? ''}'.length.clamp(0, 7)))
+                .toList(),
+            color: AppColors.emerald,
+          ),
+        );
+        final donut = _ReportChartCard(
+          title: 'Répartition financière',
+          painter: _ReportDonutPainter(
+            values: [
+              revenueValue < 0 ? 0 : revenueValue,
+              expensesValue < 0 ? 0 : expensesValue
+            ],
+            labels: const ['CA', 'Dépenses'],
+            colors: const [AppColors.chart, AppColors.warning],
+          ),
+        );
+        final margin = revenueValue == 0 ? null : netValue / revenueValue * 100;
+        final charts = constraints.maxWidth >= 700
+            ? Row(children: [
+                Expanded(child: bars),
+                const SizedBox(width: 12),
+                Expanded(child: donut),
+              ])
+            : Column(children: [bars, const SizedBox(height: 10), donut]);
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          charts,
+          if (margin != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: Text(
+                  'Marge calculée sur le bénéfice net : ${margin.toStringAsFixed(1)}%',
+                  style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            ),
+        ]);
+      }),
+    );
+  }
+
   Widget _chip(String label, String value) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -507,4 +583,128 @@ class _ReportsPageState extends State<ReportsPage> {
         padding: const EdgeInsets.all(24),
         child: Center(child: Text(S.t('noResults', locale))),
       );
+}
+
+class _ReportChartCard extends StatelessWidget {
+  final String title;
+  final CustomPainter painter;
+
+  const _ReportChartCard({required this.title, required this.painter});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        height: 170,
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceDark.withValues(alpha: .52),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.goldBorder),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title,
+              style:
+                  const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 5),
+          Expanded(
+              child: CustomPaint(
+                  painter: painter, child: const SizedBox.expand())),
+        ]),
+      );
+}
+
+class _ReportBarsPainter extends CustomPainter {
+  final List<double> values;
+  final List<String> labels;
+  final Color color;
+
+  const _ReportBarsPainter(
+      {required this.values, required this.labels, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.isEmpty) return;
+    final maxValue = values.fold<double>(0, (m, v) => v > m ? v : m);
+    final max = maxValue <= 0 ? 1.0 : maxValue;
+    final slot = size.width / values.length;
+    final base = size.height - 20;
+    for (var i = 0; i < values.length; i++) {
+      final h = (values[i] / max) * (size.height - 30);
+      final rect =
+          Rect.fromLTWH(i * slot + slot * .18, base - h, slot * .48, h);
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              Rect.fromLTWH(
+                  rect.left + 4, rect.top + 4, rect.width, rect.height),
+              const Radius.circular(4)),
+          Paint()..color = color.withValues(alpha: .20));
+      canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(4)),
+          Paint()..color = color);
+      final label = labels.length > i ? labels[i] : '';
+      final text = TextPainter(
+          text: TextSpan(
+              text: label,
+              style: const TextStyle(fontSize: 8, color: Colors.grey)),
+          textDirection: TextDirection.ltr)
+        ..layout(maxWidth: slot);
+      text.paint(canvas, Offset(i * slot + (slot - text.width) / 2, base + 4));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ReportBarsPainter oldDelegate) =>
+      oldDelegate.values != values;
+}
+
+class _ReportDonutPainter extends CustomPainter {
+  final List<double> values;
+  final List<String> labels;
+  final List<Color> colors;
+
+  const _ReportDonutPainter({
+    required this.values,
+    required this.labels,
+    required this.colors,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final total = values.fold<double>(0, (s, v) => s + v);
+    final center = Offset(size.width * .28, size.height / 2);
+    final radius = size.height * .32;
+    final base = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 14
+      ..color = Colors.grey.withValues(alpha: .15);
+    canvas.drawCircle(center, radius, base);
+    if (total <= 0) return;
+    var start = -1.5708;
+    for (var i = 0; i < values.length; i++) {
+      final sweep = values[i] / total * 6.28318;
+      canvas.drawArc(
+          Rect.fromCircle(center: center, radius: radius),
+          start,
+          sweep,
+          false,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 14
+            ..color = colors[i]);
+      start += sweep;
+      final y = 25.0 + i * 25;
+      canvas.drawCircle(
+          Offset(size.width * .58, y + 5), 4, Paint()..color = colors[i]);
+      TextPainter(
+          text: TextSpan(
+              text: '${labels[i]} ${values[i].toStringAsFixed(0)}',
+              style: const TextStyle(fontSize: 9, color: Colors.grey)),
+          textDirection: TextDirection.ltr)
+        ..layout(maxWidth: size.width * .38)
+        ..paint(canvas, Offset(size.width * .58 + 8, y));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ReportDonutPainter oldDelegate) =>
+      oldDelegate.values != values;
 }

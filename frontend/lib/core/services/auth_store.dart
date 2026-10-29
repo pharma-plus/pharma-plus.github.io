@@ -70,6 +70,7 @@ class AuthStore extends ChangeNotifier {
       await prefs.remove(key);
     }
   }
+
   static const _kAccess = 'pmg_access_token';
   static const _kRefresh = 'pmg_refresh_token';
   static const _kUser = 'pmg_user';
@@ -120,12 +121,17 @@ class AuthStore extends ChangeNotifier {
   /// Filtres d'accès par rôle (additifs, aucune suppression destructive)
   bool get canViewStock => isSuperAdmin || permissions.contains('stock:view');
   bool get canViewSales => isSuperAdmin || permissions.contains('sales:view');
-  bool get canViewCustomers => isSuperAdmin || permissions.contains('customers:view');
-  bool get canViewCatalog => isSuperAdmin || permissions.contains('catalog:view');
-  bool get canViewSettings => isSuperAdmin || permissions.contains('settings:view');
-  bool get canViewEmployees => isSuperAdmin || permissions.contains('employees:view');
+  bool get canViewCustomers =>
+      isSuperAdmin || permissions.contains('customers:view');
+  bool get canViewCatalog =>
+      isSuperAdmin || permissions.contains('catalog:view');
+  bool get canViewSettings =>
+      isSuperAdmin || permissions.contains('settings:view');
+  bool get canViewEmployees =>
+      isSuperAdmin || permissions.contains('employees:view');
   bool get canViewUsers => isSuperAdmin || permissions.contains('users:view');
-  bool get canViewReports => isSuperAdmin || permissions.contains('reports:view');
+  bool get canViewReports =>
+      isSuperAdmin || permissions.contains('reports:view');
 
   /// Visibilité d'un module par l'utilisateur connecté.
   /// `visibleModules == null` → tous les modules visibles (défaut).
@@ -144,8 +150,10 @@ class AuthStore extends ChangeNotifier {
   static String get _defaultBaseUrl {
     if (kIsWeb) {
       final host = Uri.base.host.toLowerCase();
-      final isLocal =
-          host.isEmpty || host == 'localhost' || host == '127.0.0.1' || host == '::1';
+      final isLocal = host.isEmpty ||
+          host == 'localhost' ||
+          host == '127.0.0.1' ||
+          host == '::1';
       if (isLocal) return 'http://127.0.0.1:4000/api/v1';
     }
     return 'https://lwepnnecnrqdzadesyqo.supabase.co/functions/v1/pharma-api/api/v1';
@@ -179,7 +187,8 @@ class AuthStore extends ChangeNotifier {
       final isMissingPlugin = e is MissingPluginException;
       if (!_forcedLogin && !isMissingPlugin) _initError = true;
     } finally {
-      debugPrint('[PHARMA+] AuthStore.init() finally, _initialized=$_initialized, _forcedLogin=$_forcedLogin');
+      debugPrint(
+          '[PHARMA+] AuthStore.init() finally, _initialized=$_initialized, _forcedLogin=$_forcedLogin');
       if (!_forcedLogin) {
         _initialized = true;
         notifyListeners();
@@ -275,13 +284,16 @@ class AuthStore extends ChangeNotifier {
     _user = user;
     _locked = false;
     _manualLock = false;
-    await _tokenWrite(_kAccess, accessToken);
-    await _tokenWrite(_kRefresh, refreshToken);
-    await _tokenWrite(_kUser, jsonEncode(user.toJson()));
+    // Les trois écritures sont indépendantes. En parallèle, elles évitent
+    // d'ajouter trois allers-retours localStorage avant l'affichage du shell.
+    await Future.wait([
+      _tokenWrite(_kAccess, accessToken),
+      _tokenWrite(_kRefresh, refreshToken),
+      _tokenWrite(_kUser, jsonEncode(user.toJson())),
+    ]);
     // Changement de pharmacie (poste partagé) : purge le cache catalogue pour
     // qu'aucun produit de l'ancienne pharmacie ne soit visible hors-ligne.
-    if (previousPharmacyId != null &&
-        previousPharmacyId != user.pharmacyId) {
+    if (previousPharmacyId != null && previousPharmacyId != user.pharmacyId) {
       try {
         await OfflineStore.instance.clearCatalog();
       } catch (_) {}
@@ -300,7 +312,8 @@ class AuthStore extends ChangeNotifier {
     _inactivityTimer?.cancel();
     _inactivityTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       if (_lastActivity != null &&
-          DateTime.now().difference(_lastActivity!).inMinutes >= _inactivityMinutes) {
+          DateTime.now().difference(_lastActivity!).inMinutes >=
+              _inactivityMinutes) {
         lockSession();
       }
     });
@@ -395,12 +408,10 @@ class AuthStore extends ChangeNotifier {
     final token = _accessToken;
     if (token != null && token.isNotEmpty) {
       try {
-        await http
-            .post(
-              Uri.parse('$_baseUrl/auth/logout'),
-              headers: {'Authorization': 'Bearer $token'},
-            )
-            .timeout(const Duration(seconds: 5));
+        await http.post(
+          Uri.parse('$_baseUrl/auth/logout'),
+          headers: {'Authorization': 'Bearer $token'},
+        ).timeout(const Duration(seconds: 5));
       } catch (_) {}
     }
     _accessToken = null;
