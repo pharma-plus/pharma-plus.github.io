@@ -574,14 +574,230 @@ class _AppSideMenuState extends State<AppSideMenu> {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                       color: const Color(0xFFC9A24B).withValues(alpha: 0.55))),
-              child: const Icon(Icons.calendar_today_outlined,
-                  color: _sideGold, size: 18),
+              child: IconButton(
+                tooltip: 'Ouvrir l’agenda des jours fériés',
+                padding: EdgeInsets.zero,
+                icon: const Icon(Icons.calendar_today_outlined,
+                    color: _sideGold, size: 18),
+                onPressed: () => _showMoroccanCalendar(context),
+              ),
             ),
           ]),
         ),
       ]),
     );
   }
+
+  void _showMoroccanCalendar(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => const _MoroccanCalendarDialog(),
+    );
+  }
+}
+
+class _MoroccanCalendarDialog extends StatefulWidget {
+  const _MoroccanCalendarDialog();
+
+  @override
+  State<_MoroccanCalendarDialog> createState() =>
+      _MoroccanCalendarDialogState();
+}
+
+class _MoroccanCalendarDialogState extends State<_MoroccanCalendarDialog> {
+  late DateTime _month;
+  DateTime? _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _month = DateTime(now.year, now.month);
+    _selected = DateTime(now.year, now.month, now.day);
+  }
+
+  static String _key(DateTime date) =>
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+  static Map<String, String> _holidays(int year) {
+    final fixed = <String, String>{
+      '$year-01-01': 'Nouvel an',
+      '$year-01-11': 'Manifeste de l’indépendance',
+      '$year-01-14': 'Nouvel an amazigh',
+      '$year-05-01': 'Fête du Travail',
+      '$year-07-30': 'Fête du Trône',
+      '$year-08-14': 'Allégeance Oued Eddahab',
+      '$year-08-20': 'Révolution du Roi et du Peuple',
+      '$year-08-21': 'Fête de la Jeunesse',
+      '$year-11-06': 'Marche Verte',
+      '$year-11-18': 'Fête de l’Indépendance',
+    };
+    // Dates religieuses 2026 selon le calendrier civil prévisionnel. Elles
+    // restent indicatives jusqu’à l’annonce officielle des autorités.
+    if (year == 2026) {
+      fixed.addAll({
+        '2026-03-20': 'Aïd Al-Fitr',
+        '2026-03-21': 'Aïd Al-Fitr',
+        '2026-05-27': 'Aïd Al-Adha',
+        '2026-05-28': 'Aïd Al-Adha',
+        '2026-06-17': 'Nouvel an de l’Hégire',
+        '2026-08-26': 'Aïd Al-Mawlid',
+        '2026-08-27': 'Aïd Al-Mawlid',
+      });
+    }
+    return fixed;
+  }
+
+  void _moveMonth(int offset) {
+    setState(() {
+      _month = DateTime(_month.year, _month.month + offset);
+      _selected = null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final holidays = _holidays(_month.year);
+    final first = DateTime(_month.year, _month.month, 1);
+    final daysInMonth = DateTime(_month.year, _month.month + 1, 0).day;
+    final mondayOffset = (first.weekday + 6) % 7;
+    final cells = <Widget>[];
+    for (var i = 0; i < mondayOffset; i++) {
+      cells.add(const SizedBox.shrink());
+    }
+    for (var day = 1; day <= daysInMonth; day++) {
+      final date = DateTime(_month.year, _month.month, day);
+      final holiday = holidays[_key(date)];
+      final selected = _selected != null && _key(_selected!) == _key(date);
+      cells.add(
+        InkWell(
+          borderRadius: BorderRadius.circular(9),
+          onTap: () => setState(() => _selected = date),
+          child: Container(
+            decoration: BoxDecoration(
+              color: selected
+                  ? AppColors.emerald.withValues(alpha: 0.24)
+                  : holiday == null
+                      ? Colors.transparent
+                      : AppColors.danger.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(9),
+              border:
+                  selected ? Border.all(color: AppColors.emeraldLight) : null,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '$day',
+              style: TextStyle(
+                color: holiday == null ? Colors.white : AppColors.danger,
+                fontWeight: holiday == null || selected
+                    ? FontWeight.w600
+                    : FontWeight.w900,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+    final selectedHoliday =
+        _selected == null ? null : holidays[_key(_selected!)];
+    return AlertDialog(
+      backgroundColor: AppColors.surfaceDark,
+      titlePadding: const EdgeInsets.fromLTRB(20, 18, 16, 8),
+      contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+      title: Row(children: [
+        const Icon(Icons.calendar_month_rounded, color: _sideGold),
+        const SizedBox(width: 10),
+        const Expanded(
+            child: Text('Agenda marocain',
+                style: TextStyle(color: Colors.white, fontSize: 18))),
+        IconButton(
+            tooltip: 'Fermer',
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.close, color: Colors.white70)),
+      ]),
+      content: SizedBox(
+        width: 360,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            IconButton(
+                tooltip: 'Mois précédent',
+                onPressed: () => _moveMonth(-1),
+                icon: const Icon(Icons.chevron_left, color: _sideGold)),
+            Text(DateFormat('MMMM yyyy', 'fr').format(_month),
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w800)),
+            IconButton(
+                tooltip: 'Mois suivant',
+                onPressed: () => _moveMonth(1),
+                icon: const Icon(Icons.chevron_right, color: _sideGold)),
+          ]),
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _WeekDay('L'),
+              _WeekDay('M'),
+              _WeekDay('M'),
+              _WeekDay('J'),
+              _WeekDay('V'),
+              _WeekDay('S'),
+              _WeekDay('D'),
+            ],
+          ),
+          const SizedBox(height: 6),
+          GridView.count(
+            crossAxisCount: 7,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 4,
+            crossAxisSpacing: 4,
+            children: cells,
+          ),
+          const SizedBox(height: 12),
+          if (selectedHoliday != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.danger.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+                border:
+                    Border.all(color: AppColors.danger.withValues(alpha: 0.45)),
+              ),
+              child: Text(selectedHoliday,
+                  style: const TextStyle(
+                      color: AppColors.danger, fontWeight: FontWeight.w800)),
+            )
+          else
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Les jours fériés apparaissent en rouge.',
+                  style: TextStyle(color: AppColors.textSecondary)),
+            ),
+          const SizedBox(height: 8),
+          const Text(
+            'Les fêtes religieuses peuvent être ajustées après l’annonce officielle.',
+            style: TextStyle(color: AppColors.textTertiary, fontSize: 10),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+class _WeekDay extends StatelessWidget {
+  final String label;
+  const _WeekDay(this.label);
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: 32,
+        child: Text(label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+                color: AppColors.textTertiary,
+                fontSize: 11,
+                fontWeight: FontWeight.w800)),
+      );
 }
 
 /// ============================================================

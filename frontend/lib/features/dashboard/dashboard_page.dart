@@ -333,6 +333,7 @@ class _DashboardPageState extends State<DashboardPage> {
         // entièrement visible, sans carte ni cellule coupée.
         final vh = MediaQuery.sizeOf(context).height;
         final compact = vh < 900;
+        final noDashboardScroll = vw >= 1000 && vh < 900;
         return Stack(children: [
           Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Expanded(
@@ -348,12 +349,17 @@ class _DashboardPageState extends State<DashboardPage> {
                         onScan: () => _push(const ScannerPage()),
                         onNotifications: () => _push(const NotificationsPage()),
                         onSettings: () => ShellNav.index.value = 11,
+                        onLock: () =>
+                            context.read<AuthStore>().lockSession(manual: true),
                         onLogout: _onLogout,
                         notificationCount: _notificationCount,
                       ),
                     ),
                     Expanded(
                       child: SingleChildScrollView(
+                        physics: noDashboardScroll
+                            ? const NeverScrollableScrollPhysics()
+                            : null,
                         padding: EdgeInsets.fromLTRB(
                             14, compact ? 10 : 14, 14, compact ? 8 : 10),
                         child: Column(
@@ -515,7 +521,10 @@ class _DashboardPageState extends State<DashboardPage> {
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: compact ? 10 : 12,
       mainAxisSpacing: compact ? 10 : 12,
-      childAspectRatio: compact ? 1.0 : 0.95,
+      // Les écrans desktop bas doivent voir le dashboard sans descendre :
+      // les cartes restent lisibles mais la hauteur est volontairement
+      // réduite, tandis que les smartphones gardent une carte respirable.
+      childAspectRatio: compact ? 1.28 : 0.95,
       children: [
         for (var i = 0; i < kpis.length; i++)
           _KpiCard(
@@ -742,6 +751,7 @@ class _TopBar extends StatelessWidget {
   final VoidCallback onScan;
   final VoidCallback onNotifications;
   final VoidCallback onSettings;
+  final VoidCallback onLock;
   final VoidCallback onLogout;
   final int notificationCount;
   const _TopBar({
@@ -751,6 +761,7 @@ class _TopBar extends StatelessWidget {
     required this.onScan,
     required this.onNotifications,
     required this.onSettings,
+    required this.onLock,
     required this.onLogout,
     this.notificationCount = 0,
   });
@@ -762,6 +773,10 @@ class _TopBar extends StatelessWidget {
         ? user!.pharmacyName!
         : 'PHARMA+';
     final roleLabel = user?.roleName ?? 'Admin';
+    final userName = (user?.fullName.trim().isNotEmpty ?? false)
+        ? user!.fullName.trim()
+        : pharmacyName;
+    final narrow = MediaQuery.sizeOf(context).width < 700;
     return Container(
       height: 62,
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -815,40 +830,62 @@ class _TopBar extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 16),
-        Flexible(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-            decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.03),
-                borderRadius: BorderRadius.circular(12),
-                border:
-                    Border.all(color: Colors.white.withValues(alpha: 0.10))),
-            child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Row(mainAxisSize: MainAxisSize.min, children: [
-                    Flexible(
-                      child: Text(pharmacyName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800)),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.keyboard_arrow_down,
-                        size: 18, color: AppColors.textSecondary),
+        if (narrow)
+          Tooltip(
+            message: '$userName · $roleLabel',
+            child: Container(
+              width: 36,
+              height: 36,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.goldBorderStrong),
+              ),
+              child: Text(
+                userName.isEmpty
+                    ? '?'
+                    : userName.characters.first.toUpperCase(),
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w900),
+              ),
+            ),
+          )
+        else
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(12),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.10))),
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Row(mainAxisSize: MainAxisSize.min, children: [
+                      Flexible(
+                        child: Text(pharmacyName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800)),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.keyboard_arrow_down,
+                          size: 18, color: AppColors.textSecondary),
+                    ]),
+                    Text('$userName · $roleLabel',
+                        style: const TextStyle(
+                            color: AppColors.emeraldLight,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700)),
                   ]),
-                  Text(roleLabel,
-                      style: const TextStyle(
-                          color: AppColors.emeraldLight,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700)),
-                ]),
+            ),
           ),
-        ),
         const SizedBox(width: 14),
         // Badge notifications : compteur RÉEL depuis l'API (0 = pas de badge).
         _TopIcon(
@@ -857,6 +894,8 @@ class _TopBar extends StatelessWidget {
             onTap: onNotifications),
         const SizedBox(width: 8),
         _TopIcon(icon: Icons.settings_outlined, onTap: onSettings),
+        const SizedBox(width: 8),
+        _TopIcon(icon: Icons.lock_open_outlined, onTap: onLock),
         const SizedBox(width: 8),
         _TopIcon(icon: Icons.logout_rounded, onTap: onLogout),
       ]),
@@ -1410,7 +1449,11 @@ class _AnalyticsTiles extends StatelessWidget {
         physics: const NeverScrollableScrollPhysics(),
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
-        childAspectRatio: cols == 2 ? 2.45 : 2.15,
+        childAspectRatio: cols == 5
+            ? 3.0
+            : cols == 2
+                ? 2.45
+                : 2.15,
         children: tiles,
       );
     });
@@ -1439,8 +1482,8 @@ class _BottomStat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: compact ? 52 : 64,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      height: compact ? 46 : 56,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.035),
           borderRadius: BorderRadius.circular(10),

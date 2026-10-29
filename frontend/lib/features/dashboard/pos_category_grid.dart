@@ -80,7 +80,7 @@ class _PosCategoryTileState extends State<PosCategoryTile> {
                   child: FittedBox(
                     fit: BoxFit.contain,
                     child: CustomPaint(
-                        size: const Size(54, 40), painter: _GlyphPainter(k)),
+                        size: const Size(68, 50), painter: _GlyphPainter(k)),
                   ),
                 ),
               ),
@@ -88,14 +88,14 @@ class _PosCategoryTileState extends State<PosCategoryTile> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(4, 0, 4, 6),
                 child: Text(widget.label,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         color: widget.selected
                             ? const Color(0xFFE9C873)
                             : Colors.white,
-                        fontSize: 10,
+                        fontSize: 10.5,
                         fontWeight: FontWeight.w800)),
               ),
             ],
@@ -123,21 +123,36 @@ _GlyphKind _kindFor(String label) {
   if (s.contains('vitam') || s.contains('compl') || s.contains('nutrit')) {
     return _GlyphKind.citrus;
   }
-  if (s.contains('respir') || s.contains('toux') || s.contains('poumon') ||
-      s.contains('spray') || s.contains('aérosol') || s.contains('aerosol') ||
+  if (s.contains('respir') ||
+      s.contains('toux') ||
+      s.contains('poumon') ||
+      s.contains('spray') ||
+      s.contains('aérosol') ||
+      s.contains('aerosol') ||
       s.contains('inhal')) {
     return _GlyphKind.lungs;
   }
   if (s.contains('digest') || s.contains('estomac')) return _GlyphKind.stomach;
   // Formes galéniques réelles (facettes du catalogue).
-  if (s.contains('comprim') || s.contains('gélul') || s.contains('gelul') ||
-      s.contains('capsul') || s.contains('dragée') || s.contains('dragee') ||
-      s.contains('granul') || s.contains('lyophilisat')) {
+  if (s.contains('comprim') ||
+      s.contains('gélul') ||
+      s.contains('gelul') ||
+      s.contains('capsul') ||
+      s.contains('dragée') ||
+      s.contains('dragee') ||
+      s.contains('granul') ||
+      s.contains('lyophilisat')) {
     return _GlyphKind.pill;
   }
-  if (s.contains('sirop') || s.contains('solution') || s.contains('suspension') ||
-      s.contains('inject') || s.contains('collyre') || s.contains('gouttes') ||
-      s.contains('crème') || s.contains('creme') || s.contains('pommade') ||
+  if (s.contains('sirop') ||
+      s.contains('solution') ||
+      s.contains('suspension') ||
+      s.contains('inject') ||
+      s.contains('collyre') ||
+      s.contains('gouttes') ||
+      s.contains('crème') ||
+      s.contains('creme') ||
+      s.contains('pommade') ||
       s.contains('gel')) {
     return _GlyphKind.drop;
   }
