@@ -323,13 +323,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                     ),
                                   ]),
                               SizedBox(height: compact ? 10 : 12),
-                              // Analytics aligné sur la largeur de la carte Alertes Stock (flex: 5)
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    flex: 5,
-                                    child: _AnalyticsSection(
+                              // Analytics : sur mobile pleine largeur, sur desktop aligné sur Alertes Stock (flex: 5)
+                              compact
+                                  ? _AnalyticsSection(
                                       revenueToday: _revenueToday,
                                       revenueMonth: _revenueMonth,
                                       profitMonth: _profitMonth,
@@ -337,12 +333,26 @@ class _DashboardPageState extends State<DashboardPage> {
                                       expired: _expired,
                                       lowStock: _lowStock,
                                       compact: compact,
+                                    )
+                                  : Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          flex: 5,
+                                          child: _AnalyticsSection(
+                                            revenueToday: _revenueToday,
+                                            revenueMonth: _revenueMonth,
+                                            profitMonth: _profitMonth,
+                                            expiring: _expiring,
+                                            expired: _expired,
+                                            lowStock: _lowStock,
+                                            compact: compact,
+                                          ),
+                                        ),
+                                        // Espace flex: 7 pour aligner avec la proportion Alertes Stock / Plan3D
+                                        const Expanded(flex: 7, child: SizedBox.shrink()),
+                                      ],
                                     ),
-                                  ),
-                                  // Espace flex: 7 pour aligner avec la proportion Alertes Stock / Plan3D
-                                  const Expanded(flex: 7, child: SizedBox.shrink()),
-                                ],
-                              ),
                             ]),
                       ),
                     ),
@@ -396,10 +406,9 @@ class _DashboardPageState extends State<DashboardPage> {
           badge: Icons.point_of_sale_rounded,
           badgeColor: AppColors.emeraldRich,
           module: 'pos',
-          // Illustration légèrement zoomée + alignement descendu (~0.3cm)
-          // pour montrer plus le bas de l'illustration 3D.
-          imageScale: 1.15,
-          imageAlignment: const Alignment(0, 0.92)),
+          // Image centrée et légèrement réduite pour tenir dans la carte sans être coupée.
+          imageScale: 1.05,
+          imageAlignment: Alignment.center),
       _KpiDef(
           label: 'MÉDICAMENTS',
           value: Fmt.number(_medications),
@@ -429,9 +438,9 @@ class _DashboardPageState extends State<DashboardPage> {
           badge: Icons.fact_check_rounded,
           badgeColor: AppColors.cardPurple,
           module: 'purchases',
-          // Légèrement zoomé pour présence équilibrée + descendue.
-          imageScale: 1.10,
-          imageAlignment: const Alignment(0, 0.92)),
+          // Image centrée et légèrement réduite pour tenir dans la carte.
+          imageScale: 1.05,
+          imageAlignment: Alignment.center),
       _KpiDef(
           label: 'FOURNISSEURS',
           value: Fmt.number(_suppliers),
