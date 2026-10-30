@@ -510,7 +510,9 @@ class _DashboardPageState extends State<DashboardPage> {
           image: 'assets/images/kpi_bg_8.webp',
           badge: Icons.bar_chart_rounded,
           badgeColor: AppColors.champagneGold,
-          module: 'reports'),
+          module: 'reports',
+          // Légèrement zoomé pour présence équilibrée sans couper.
+          imageScale: 1.10),
     ].where((k) => k.module == null || auth.canSeeModule(k.module!)).toList();
     // Gabarit précédent validé : quatre colonnes sur PC, deux sur mobile.
     // La largeur de fenêtre décide du mode, pas la largeur réduite après le
@@ -635,33 +637,32 @@ class _KpiCardState extends State<_KpiCard> {
               // sont volontairement plus composés par-dessus.
               color: const Color(0xFF05130D),
             ),
-            child: ClipRect(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // Cover remplit réellement toute la carte ; l'alignement
-                  // bas conserve le socle et l'objet 3D dans le cadrage.
-                  // Pour "Ventes du jour" (imageScale > 1), on zoome via Transform
-                  // pour éviter les problèmes de détection d'image dans les tests.
-                  Positioned.fill(
-                    child: def.imageScale > 1.0
-                        ? Transform.scale(
-                            scale: def.imageScale,
-                            alignment: Alignment.bottomCenter,
-                            child: Image.asset(
-                              def.image,
-                              fit: BoxFit.cover,
-                              alignment: Alignment.bottomCenter,
-                              filterQuality: FilterQuality.low,
-                            ),
-                          )
-                        : Image.asset(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // Illustration de fond unique : BoxFit.cover remplit la carte,
+                // Alignment.bottomCenter garde le socle 3D visible.
+                // Pour imageScale > 1.0, on utilise Transform.scale SANS ClipRect
+                // parent (le AnimatedContainer a déjà clipBehavior: Clip.antiAlias).
+                Positioned.fill(
+                  child: def.imageScale > 1.0
+                      ? Transform.scale(
+                          scale: def.imageScale,
+                          alignment: Alignment.bottomCenter,
+                          child: Image.asset(
                             def.image,
                             fit: BoxFit.cover,
                             alignment: Alignment.bottomCenter,
                             filterQuality: FilterQuality.low,
                           ),
-                  ),
+                        )
+                      : Image.asset(
+                          def.image,
+                          fit: BoxFit.cover,
+                          alignment: Alignment.bottomCenter,
+                          filterQuality: FilterQuality.low,
+                        ),
+                ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(14, 11, 14, 8),
                     child: Column(
@@ -742,8 +743,7 @@ class _KpiCardState extends State<_KpiCard> {
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 }
 
