@@ -323,14 +323,25 @@ class _DashboardPageState extends State<DashboardPage> {
                                     ),
                                   ]),
                               SizedBox(height: compact ? 10 : 12),
-                              _AnalyticsSection(
-                                revenueToday: _revenueToday,
-                                revenueMonth: _revenueMonth,
-                                profitMonth: _profitMonth,
-                                expiring: _expiring,
-                                expired: _expired,
-                                lowStock: _lowStock,
-                                compact: compact,
+                              // Analytics aligné sur la largeur de la carte Alertes Stock (flex: 5)
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    flex: 5,
+                                    child: _AnalyticsSection(
+                                      revenueToday: _revenueToday,
+                                      revenueMonth: _revenueMonth,
+                                      profitMonth: _profitMonth,
+                                      expiring: _expiring,
+                                      expired: _expired,
+                                      lowStock: _lowStock,
+                                      compact: compact,
+                                    ),
+                                  ),
+                                  // Espace flex: 7 pour aligner avec la proportion Alertes Stock / Plan3D
+                                  const Expanded(flex: 7, child: SizedBox.shrink()),
+                                ],
                               ),
                             ]),
                       ),
@@ -406,7 +417,10 @@ class _DashboardPageState extends State<DashboardPage> {
           image: 'assets/images/kpi_bg_3.webp',
           badge: Icons.warning_amber_rounded,
           badgeColor: AppColors.cardAmber,
-          module: 'stock'),
+          module: 'stock',
+          // Descendre l'illustration pour bien caler le socle 3D en bas.
+          imageAlignment: const Alignment(0, 0.92),
+          imageScale: 1.05),
       _KpiDef(
           label: 'COMMANDES',
           value: '$_pendingOrders',
@@ -415,8 +429,9 @@ class _DashboardPageState extends State<DashboardPage> {
           badge: Icons.fact_check_rounded,
           badgeColor: AppColors.cardPurple,
           module: 'purchases',
-          // Légèrement zoomé pour présence équilibrée.
-          imageScale: 1.10),
+          // Légèrement zoomé pour présence équilibrée + descendue.
+          imageScale: 1.10,
+          imageAlignment: const Alignment(0, 0.92)),
       _KpiDef(
           label: 'FOURNISSEURS',
           value: Fmt.number(_suppliers),
@@ -628,19 +643,8 @@ class _KpiCardState extends State<_KpiCard> {
                             ),
                           ),
                           const SizedBox(width: 6),
-                          Container(
-                            key: ValueKey('kpi-badge-${def.label}'),
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              color: def.badgeColor,
-                              borderRadius: BorderRadius.circular(8),
-                              border:
-                                  Border.all(color: const Color(0xFF2A4A38)),
-                            ),
-                            child: Icon(def.badge,
-                                size: 14, color: def.badgeColor),
-                          ),
+                          // Badge icône seul, sans fond coloré décoratif
+                          Icon(def.badge, size: 18, color: def.badgeColor),
                         ]),
                         const SizedBox(height: 6),
                         FittedBox(
