@@ -216,9 +216,9 @@
       }
     } catch (e) {}
   </script>
-  <!-- Version publique renouvelée à chaque build (empreinte Git injectée par
-       deploy-web.yml) pour invalider l'index et le bootstrap en cache CDN. -->
-  <script src="flutter_bootstrap.js?v=__PMG_BUILD_STAMP__" async></script>
+  <!-- Version publique renouvelée à chaque build (numéro GitHub Actions injecté
+       via --web-define) pour invalider le bootstrap en cache CDN. -->
+  <script src="flutter_bootstrap.js?v={{PMG_BUILD_NUMBER}}" async></script>
   <script>
     (function () {
       var fill = document.getElementById('pmg-fill');

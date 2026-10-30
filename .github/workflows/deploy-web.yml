@@ -34,20 +34,9 @@ jobs:
         run: flutter test --no-pub
 
       - name: Build Flutter Web (release)
-        run: flutter build web --release --no-wasm-dry-run
-
-      - name: Stamp build (Service Worker + bootstrap uniques par build)
-        # Sans cette empreinte, flutter_service_worker.js est identique à
-        # chaque build : le navigateur mobile ne voit jamais « nouvelle
-        # version » et conserve l'ancien cache d'assets (vieilles
-        # illustrations). L'empreinte force la mise à jour → purge → rechargement.
-        run: |
-          cd frontend/build/web
-          SHA="${{ github.sha }}"
-          SHA_SHORT="${SHA:0:7}"
-          sed -i "s/__PMG_BUILD_STAMP__/$SHA_SHORT/g" flutter_service_worker.js index.html
-          grep -q "$SHA_SHORT" flutter_service_worker.js && echo "SW stamp OK: $SHA_SHORT"
-          grep -q "$SHA_SHORT" index.html && echo "Bootstrap stamp OK: $SHA_SHORT"
+        # Le numéro de build GitHub (unique et croissant) est injecté dans
+        # l'URL bootstrap pour forcer le rechargement des assets sur mobile.
+        run: flutter build web --release --no-wasm-dry-run --web-define=PMG_BUILD_NUMBER=${{ github.run_number }}
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
