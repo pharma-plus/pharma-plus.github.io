@@ -452,7 +452,7 @@ class _DashboardPageState extends State<DashboardPage> {
           // Illustration légèrement zoomée + alignement descendu (~0.3cm)
           // pour montrer plus le bas de l'illustration 3D.
           imageScale: 1.15,
-          imageAlignment: Alignment(0, 0.92)),
+          imageAlignment: const Alignment(0, 0.92)),
       _KpiDef(
           label: 'MÉDICAMENTS',
           value: Fmt.number(_medications),
@@ -462,7 +462,7 @@ class _DashboardPageState extends State<DashboardPage> {
           badgeColor: AppColors.cardBlue,
           module: 'catalog',
           // Descendre l'illustration pour bien caler le socle 3D en bas.
-          imageAlignment: Alignment(0, 0.92)),
+          imageAlignment: const Alignment(0, 0.92)),
       _KpiDef(
           label: 'PRODUITS EN STOCK',
           value: Fmt.number(_productsInStock),
@@ -516,7 +516,7 @@ class _DashboardPageState extends State<DashboardPage> {
           module: 'reports',
           // Légèrement zoomé + descendu pour caler le socle 3D.
           imageScale: 1.10,
-          imageAlignment: Alignment(0, 0.92)),
+          imageAlignment: const Alignment(0, 0.92)),
     ].where((k) => k.module == null || auth.canSeeModule(k.module!)).toList();
     // Gabarit précédent validé : quatre colonnes sur PC, deux sur mobile.
     // La largeur de fenêtre décide du mode, pas la largeur réduite après le
@@ -685,7 +685,7 @@ class _KpiCardState extends State<_KpiCard> {
                               alignment: Alignment.centerLeft,
                               child: Text(def.label,
                                   maxLines: 1,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       color: _gold,
                                       fontSize: 10.5,
                                       fontWeight: FontWeight.w800,
@@ -713,7 +713,7 @@ class _KpiCardState extends State<_KpiCard> {
                           alignment: Alignment.centerLeft,
                           child: Text(def.value,
                               maxLines: 1,
-                              style: TextStyle(
+                              style: const TextStyle(
                                   color: _gold,
                                   fontSize: 20,
                                   fontWeight: FontWeight.w900)),
@@ -942,20 +942,21 @@ class _TopBar extends StatelessWidget {
                     itemBuilder: (context) => [
                       PopupMenuItem(
                           value: 'notifications',
+                          onTap: onNotifications,
                           child: Row(children: [
                             const Icon(Icons.notifications_outlined,
                                 size: 18, color: _gold),
                             const SizedBox(width: 10),
-                            Text('Notifications',
-                                style: const TextStyle(fontSize: 14)),
+                            const Text('Notifications',
+                                style: TextStyle(fontSize: 14)),
                             if (notificationCount > 0) ...[
                               const SizedBox(width: 6),
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 6, vertical: 1),
-                                decoration: BoxDecoration(
+                                decoration: const BoxDecoration(
                                   color: AppColors.danger,
-                                  borderRadius: BorderRadius.circular(9),
+                                  borderRadius: BorderRadius.all(Radius.circular(9)),
                                 ),
                                 child: Text('$notificationCount',
                                     style: const TextStyle(
@@ -965,17 +966,19 @@ class _TopBar extends StatelessWidget {
                               ),
                             ],
                           ]),
-                          onTap: onNotifications),
-                      PopupMenuItem(
+                        ),
+                        PopupMenuItem(
                           value: 'settings',
+                          onTap: onSettings,
+                          // ignore: prefer_const_constructors, prefer_const_literals_to_create_immutables
                           child: Row(children: [
                             const Icon(Icons.settings_outlined,
                                 size: 18, color: _gold),
                             const SizedBox(width: 10),
-                            Text('Paramètres',
-                                style: const TextStyle(fontSize: 14)),
+                            const Text('Paramètres',
+                                style: TextStyle(fontSize: 14)),
                           ]),
-                          onTap: onSettings),
+                        ),
                     ],
                   ),
                 ],
