@@ -24,6 +24,9 @@ import '../floor_plan/pharmacy_plan_page.dart';
 import '../settings/settings_page.dart';
 import 'app_side_menu.dart';
 
+/// Global key for the HomeShell scaffold, accessible from DashboardPage to open the drawer.
+import 'package:pharma_maroc_gold/core/services/scaffold_key.dart';
+
 /// Coquille principale : sidebar 3D + navigation.
 /// La navigation est filtrée par `AuthStore.canSeeModule(key)` :
 /// les modules non visibles pour le rôle sont masqués de la bottom bar
@@ -55,6 +58,15 @@ class _HomeShellState extends State<HomeShell> {
   bool _syncing = false;
   bool _lockRouteShown = false;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  /// Expose the scaffold key globally so DashboardPage can access the drawer.
+  @override
+  void dispose() {
+    ScaffoldKeyService.clear();
+    ShellNav.index.removeListener(_onShellIndexChanged);
+    _auth.removeListener(_onAuthLockChanged);
+    super.dispose();
+  }
 
   /// Pages déjà visitées : montées à la demande (lazy) pour éviter
   /// d'inflammer ~24 requêtes API + 12 initState d'un coup au login.
@@ -113,14 +125,6 @@ class _HomeShellState extends State<HomeShell> {
       });
     });
   }
-
-  @override
-  void dispose() {
-    ShellNav.index.removeListener(_onShellIndexChanged);
-    _auth.removeListener(_onAuthLockChanged);
-    super.dispose();
-  }
-
   void _onAuthLockChanged() {
     final locked = context.read<AuthStore>().isLocked;
     if (locked && !_lockRouteShown && mounted) {

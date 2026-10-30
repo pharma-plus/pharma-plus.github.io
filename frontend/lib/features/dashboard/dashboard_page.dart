@@ -12,6 +12,8 @@ import '../../core/theme/colors.dart';
 import '../../core/utils/calculations.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/pharma_logo.dart';
+
+import '../../core/services/scaffold_key.dart';
 import '../floor_plan/pharmacy_plan_page.dart';
 import '../notifications/notifications_page.dart';
 import '../pos/payment_models.dart';
@@ -190,9 +192,9 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  /// Ouvre le drawer latéral (mobile/tablette) via la clé Scaffold partagée.
+  /// Ouvre le drawer latéral (mobile/tablette) via le service de clé Scaffold.
   void _openMenuDrawer() {
-    final scaffold = _scaffoldKey.currentState;
+    final scaffold = ScaffoldKeyService.scaffoldKey?.currentState;
     if (scaffold != null) {
       scaffold.openDrawer();
     }
@@ -406,9 +408,9 @@ class _DashboardPageState extends State<DashboardPage> {
           badge: Icons.point_of_sale_rounded,
           badgeColor: AppColors.emeraldRich,
           module: 'pos',
-          // Image centrée et légèrement réduite pour tenir dans la carte sans être coupée.
+          // Image centrée et légèrement réduite, légèrement descendue pour caler le socle 3D.
           imageScale: 1.05,
-          imageAlignment: Alignment.center),
+          imageAlignment: const Alignment(0, 0.03)),
       _KpiDef(
           label: 'MÉDICAMENTS',
           value: Fmt.number(_medications),
@@ -438,9 +440,9 @@ class _DashboardPageState extends State<DashboardPage> {
           badge: Icons.fact_check_rounded,
           badgeColor: AppColors.cardPurple,
           module: 'purchases',
-          // Image centrée et légèrement réduite pour tenir dans la carte.
+          // Image centrée et légèrement réduite, légèrement descendue pour caler le socle 3D.
           imageScale: 1.05,
-          imageAlignment: Alignment.center),
+          imageAlignment: const Alignment(0, 0.03)),
       _KpiDef(
           label: 'FOURNISSEURS',
           value: Fmt.number(_suppliers),

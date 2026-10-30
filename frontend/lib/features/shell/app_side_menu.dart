@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/services/auth_store.dart';
+import '../../core/services/hijri_calendar.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/pharma_logo.dart';
 import '../accounting/accounting_page.dart';
@@ -615,18 +616,14 @@ class _MoroccanCalendarDialogState extends State<_MoroccanCalendarDialog> {
       '$year-11-06': 'Marche Verte',
       '$year-11-18': 'Fête de l’Indépendance',
     };
-    // Dates religieuses 2026 selon le calendrier civil prévisionnel. Elles
-    // restent indicatives jusqu’à l’annonce officielle des autorités.
-    if (year == 2026) {
-      fixed.addAll({
-        '2026-03-20': 'Aïd Al-Fitr',
-        '2026-03-21': 'Aïd Al-Fitr',
-        '2026-05-27': 'Aïd Al-Adha',
-        '2026-05-28': 'Aïd Al-Adha',
-        '2026-06-17': 'Nouvel an de l’Hégire',
-        '2026-08-26': 'Aïd Al-Mawlid',
-        '2026-08-27': 'Aïd Al-Mawlid',
-      });
+    // Dates religieuses calculées dynamiquement selon le calendrier hégirien
+    final religious = HijriCalendar.religiousHolidaysForGregorianYear(year);
+    for (final entry in religious.entries) {
+      final dateKey = '${entry.value.year}-${entry.value.month.toString().padLeft(2, '0')}-${entry.value.day.toString().padLeft(2, '0')}';
+      final data = HijriCalendar.fixedReligiousHolidays[entry.key];
+      if (data != null) {
+        fixed[dateKey] = data.nameFr;
+      }
     }
     return fixed;
   }
@@ -652,6 +649,9 @@ class _MoroccanCalendarDialogState extends State<_MoroccanCalendarDialog> {
       final date = DateTime(_month.year, _month.month, day);
       final holiday = holidays[_key(date)];
       final selected = _selected != null && _key(_selected!) == _key(date);
+      // Date hégirienne correspondante
+      final hijri = HijriCalendar.gregorianToHijri(date);
+      final hijriDayStr = '${hijri.day}';
       cells.add(
         InkWell(
           borderRadius: BorderRadius.circular(9),
@@ -668,14 +668,29 @@ class _MoroccanCalendarDialogState extends State<_MoroccanCalendarDialog> {
                   selected ? Border.all(color: AppColors.emeraldLight) : null,
             ),
             alignment: Alignment.center,
-            child: Text(
-              '$day',
-              style: TextStyle(
-                color: holiday == null ? Colors.white : AppColors.danger,
-                fontWeight: holiday == null || selected
-                    ? FontWeight.w600
-                    : FontWeight.w900,
-              ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '$day',
+                  style: TextStyle(
+                    color: holiday == null ? Colors.white : AppColors.danger,
+                    fontWeight: holiday == null || selected
+                        ? FontWeight.w600
+                        : FontWeight.w900,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  hijriDayStr,
+                  style: TextStyle(
+                    color: holiday == null ? AppColors.gold : AppColors.danger,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -706,9 +721,24 @@ class _MoroccanCalendarDialogState extends State<_MoroccanCalendarDialog> {
                 tooltip: 'Mois précédent',
                 onPressed: () => _moveMonth(-1),
                 icon: const Icon(Icons.chevron_left, color: _sideGold)),
-            Text(DateFormat('MMMM yyyy', 'fr').format(_month),
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w800)),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(DateFormat('MMMM yyyy', 'fr').format(_month),
+                    style: const TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.w800)),
+                // Date hégirienne correspondante au 1er du mois
+                Builder(builder: (context) {
+                  final hijri = HijriCalendar.gregorianToHijri(DateTime(_month.year, _month.month, 1));
+                  return Text(
+                    '${HijriCalendar.monthNameFr(hijri.month)} ${hijri.year} هـ',
+                    style: const TextStyle(
+                        color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w700),
+                  );
+                }),
+              ],
+            ),
             IconButton(
                 tooltip: 'Mois suivant',
                 onPressed: () => _moveMonth(1),
