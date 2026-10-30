@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/services/api_client.dart';
@@ -39,6 +38,7 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   Map<String, dynamic>? _data;
   bool _loading = true;
   String? _error;
@@ -190,78 +190,12 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  void _onSidebarNavigate(AppSideNavItem item) {
-    // Navigation via ShellNav (IndexedStack) au lieu de push : évite les
-    // doublons de pages (2× requêtes API, pile Navigator qui grossit).
-    if (item.shellIndex != null) {
-      ShellNav.index.value = item.shellIndex!;
-    } else if (item.pageBuilder != null) {
-      _push(item.pageBuilder!());
-    }
-  }
-
-  /// Menu latéral rétractable (tablettes / mobiles) : overlay plein écran,
-  /// fermeture par ESC, clic extérieur ou à la sélection d'une option.
-  /// Après chaque sélection, le menu se ferme mais reste immédiatement
-  /// réouvertable via l'icône ☰ du bandeau supérieur.
+  /// Ouvre le drawer latéral (mobile/tablette) via la clé Scaffold partagée.
   void _openMenuDrawer() {
-    showDialog<void>(
-      context: context,
-      barrierColor: Colors.black54,
-      barrierDismissible: true,
-      builder: (ctx) {
-        return Focus(
-          autofocus: true,
-          onKeyEvent: (node, event) {
-            if (event is KeyDownEvent &&
-                event.logicalKey == LogicalKeyboardKey.escape) {
-              Navigator.of(ctx).pop();
-              return KeyEventResult.handled;
-            }
-            return KeyEventResult.ignored;
-          },
-          child: Dialog(
-            alignment: Alignment.centerLeft,
-            insetPadding: EdgeInsets.zero,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            child: SizedBox(
-              width: 250,
-              child: AppSideMenu(
-                onNavigate: _onSidebarNavigate,
-                onLogout: () {
-                  Navigator.of(ctx).pop();
-                  _onLogout();
-                },
-                onLock: () {
-                  Navigator.of(ctx).pop();
-                  context.read<AuthStore>().lockSession(manual: true);
-                },
-                onMoreModules: () {
-                  Navigator.of(ctx).pop();
-                  _showModulesMenu();
-                },
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  /// Menu « Autres modules » : s'ouvre à la demande depuis la sidebar et
-  /// se referme au choix d'une option ou au clic en dehors (barrière).
-  void _showModulesMenu() {
-    showDialog<void>(
-      context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.55),
-      builder: (dialogContext) => ModulesMenuDialog(
-        onOpen: (page) {
-          Navigator.of(dialogContext).pop();
-          _push(page);
-        },
-      ),
-    );
+    final scaffold = _scaffoldKey.currentState;
+    if (scaffold != null) {
+      scaffold.openDrawer();
+    }
   }
 
   VoidCallback? _kpiTap(String label) {
@@ -290,6 +224,7 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
     if (_error != null) {
       return Scaffold(
+        key: _scaffoldKey,
         backgroundColor: Colors.transparent,
         body: Center(
           child: Padding(
@@ -311,6 +246,7 @@ class _DashboardPageState extends State<DashboardPage> {
       );
     }
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: Colors.transparent,
       body: Builder(builder: (context) {
         // Breakpoints calculés sur la LARGEUR TOTALE de la fenêtre (et non

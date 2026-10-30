@@ -54,6 +54,7 @@ const _pageModuleKeys = <int, String?>{
 class _HomeShellState extends State<HomeShell> {
   bool _syncing = false;
   bool _lockRouteShown = false;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   /// Pages déjà visitées : montées à la demande (lazy) pour éviter
   /// d'inflammer ~24 requêtes API + 12 initState d'un coup au login.
@@ -166,6 +167,11 @@ class _HomeShellState extends State<HomeShell> {
       Navigator.of(context)
           .push(MaterialPageRoute(builder: (_) => item.pageBuilder!()));
     }
+    // Sur mobile, fermer le drawer après sélection.
+    final vw = MediaQuery.sizeOf(context).width;
+    if (vw < _sideMenuBreakpoint) {
+      Navigator.of(_scaffoldKey.currentContext!).pop();
+    }
   }
 
   Future<void> _onSideNavLogout() async {
@@ -261,7 +267,24 @@ class _HomeShellState extends State<HomeShell> {
         final vw = MediaQuery.sizeOf(context).width;
         final showSideMenu = vw >= _sideMenuBreakpoint;
         return Scaffold(
-          backgroundColor: Colors.transparent,
+          key: _scaffoldKey,
+          drawer: !showSideMenu
+              ? Drawer(
+                  backgroundColor: AppColors.surfaceSidebar,
+                  child: SafeArea(
+                    child: AppSideMenu(
+                      collapsed: false,
+                      onToggleCollapse: SideMenuState.toggle,
+                      onLock: () => context
+                          .read<AuthStore>()
+                          .lockSession(manual: true),
+                      onNavigate: _onSideNavNavigate,
+                      onLogout: _onSideNavLogout,
+                      onMoreModules: _onSideNavMoreModules,
+                    ),
+                  ),
+                )
+              : null,
           body: PharmaBackground(
             assetImage: 'assets/images/background.webp',
             child: SafeArea(
