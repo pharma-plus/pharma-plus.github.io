@@ -4,7 +4,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'dart:math';
 
 /// Convertit une date grégorienne en date hégirienne
 /// Retourne un tuple (year, month, day) hégirien
