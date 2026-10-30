@@ -352,20 +352,4 @@ void main() {
           reason: 'KPI ${_kpiLabels[i]} en 390x844');
     }
   });
-
-  // TEMPORAIRE : capture visuelle de la section ANALYTIQUE (3D), retirée
-  // après inspection manuelle.
-  testWidgets('SNAP analytique 3D', (tester) async {
-    await _pumpDashboard(tester, const Size(1440, 950));
-    final bars = find
-        .ancestor(
-            of: find.text('Ventes & bénéfice'), matching: find.byType(Container))
-        .first;
-    final donut = find
-        .ancestor(
-            of: find.text('Alertes stock'), matching: find.byType(Container))
-        .first;
-    await expectLater(bars, matchesGoldenFile('goldens/analytics_bars.png'));
-    await expectLater(donut, matchesGoldenFile('goldens/analytics_donut.png'));
-  });
 }
