@@ -49,7 +49,8 @@ test("auth/lock : echec d'audit visible, pas silencieux", () => {
 test("frontend : verrou inactivite -> /auth/lock, deverrouillage -> /auth/pin/verify", () => {
   assert.match(store, /lockSession\(\)/);
   assert.match(store, /post\('\/auth\/lock'\)/);
-  assert.match(store, /difference\(_lastActivity!\)\.inMinutes >= _inactivityMinutes/);
+  // `\s*` : dart format peut couper la condition sur plusieurs lignes.
+  assert.match(store, /difference\(_lastActivity!\)\.inMinutes\s*>=\s*_inactivityMinutes/);
   assert.match(lockScreen, /\/auth\/pin\/verify/);
   assert.match(lockScreen, /S\.t\('verrouillage_verrouille'/);
 });
