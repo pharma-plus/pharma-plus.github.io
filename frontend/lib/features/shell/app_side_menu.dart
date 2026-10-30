@@ -270,30 +270,55 @@ class _AppSideMenuState extends State<AppSideMenu> {
           ),
         ),
         const SizedBox(height: 8),
-        // PIN uniquement dans le rail (la déconnexion est dans la TopBar).
-        // Le bouton est volontairement plus étroit que les entrées
+        // PIN + Déconnexion côte à côte dans le rail.
+        // Les boutons sont volontairement plus étroits que les entrées
         // principales afin de ne jamais déborder dans le dashboard (rail 64).
-        if (widget.onLock != null) ...[
-          Tooltip(
-            message: 'Verrouiller avec le PIN',
-            child: InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: widget.onLock,
-              child: Container(
-                width: 26,
-                height: 40,
-                decoration: BoxDecoration(
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (widget.onLock != null) ...[
+              Tooltip(
+                message: 'Verrouiller avec le PIN',
+                child: InkWell(
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                      color:
-                          const Color(0xFFC9A24B).withValues(alpha: 0.55)),
+                  onTap: widget.onLock,
+                  child: Container(
+                    width: 26,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                          color:
+                              const Color(0xFFC9A24B).withValues(alpha: 0.55)),
+                    ),
+                    child: const Icon(Icons.lock_open_outlined,
+                        color: _sideGold, size: 18),
+                  ),
                 ),
-                child: const Icon(Icons.lock_open_outlined,
-                    color: _sideGold, size: 18),
+              ),
+              const SizedBox(width: 8),
+            ],
+            // Déconnexion — toujours à droite du PIN dans le rail.
+            Tooltip(
+              message: 'Se déconnecter',
+              waitDuration: const Duration(milliseconds: 300),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: widget.onLogout,
+                child: Container(
+                  width: 26,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: const Color(0xFFC9A24B).withValues(alpha: 0.55)),
+                  ),
+                  child: const Icon(Icons.logout, color: _sideGold, size: 18),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
         const SizedBox(height: 12),
       ]),
     );
@@ -440,28 +465,55 @@ class _AppSideMenuState extends State<AppSideMenu> {
             ),
           ]),
         ),
-        // ---- PIN uniquement (la déconnexion est dans la TopBar) ----
-        if (widget.onLock != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: widget.onLock,
-              child: Container(
-                height: 42,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF07271C),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: const Color(0xFFC9A24B)
-                          .withValues(alpha: 0.55)),
+        // ---- PIN + Déconnexion côte à côte (PIN puis Déconnexion) ----
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+          child: Row(
+            children: [
+              if (widget.onLock != null) ...[
+                Expanded(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: widget.onLock,
+                    child: Container(
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF07271C),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: const Color(0xFFC9A24B)
+                                .withValues(alpha: 0.55)),
+                      ),
+                      child: const Center(
+                          child: Icon(Icons.lock_open_outlined,
+                              color: _sideGold, size: 19)),
+                    ),
+                  ),
                 ),
-                child: const Center(
-                    child: Icon(Icons.lock_open_outlined,
-                        color: _sideGold, size: 19)),
+                const SizedBox(width: 8),
+              ],
+              // Déconnexion — immédiatement à droite du PIN.
+              Expanded(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: widget.onLogout,
+                  child: Container(
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF07271C),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: const Color(0xFFC9A24B)
+                              .withValues(alpha: 0.55)),
+                    ),
+                    child: const Center(
+                        child: Icon(Icons.logout, color: _sideGold, size: 19)),
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
+        ),
         // ---- Horloge + date ----
         Container(
           margin: const EdgeInsets.all(12),

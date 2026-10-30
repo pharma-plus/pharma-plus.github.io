@@ -449,9 +449,10 @@ class _DashboardPageState extends State<DashboardPage> {
           badge: Icons.point_of_sale_rounded,
           badgeColor: AppColors.emeraldRich,
           module: 'pos',
-          // Illustration légèrement zoomée pour être plus présente
-          // sans couper les bords (était 1.35 → trop fort).
-          imageScale: 1.15),
+          // Illustration légèrement zoomée + alignement descendu (~0.3cm)
+          // pour montrer plus le bas de l'illustration 3D.
+          imageScale: 1.15,
+          imageAlignment: Alignment(0, 0.92)),
       _KpiDef(
           label: 'MÉDICAMENTS',
           value: Fmt.number(_medications),
@@ -459,7 +460,9 @@ class _DashboardPageState extends State<DashboardPage> {
           image: 'assets/images/kpi_bg_2.webp',
           badge: Icons.medication_rounded,
           badgeColor: AppColors.cardBlue,
-          module: 'catalog'),
+          module: 'catalog',
+          // Descendre l'illustration pour bien caler le socle 3D en bas.
+          imageAlignment: Alignment(0, 0.92)),
       _KpiDef(
           label: 'PRODUITS EN STOCK',
           value: Fmt.number(_productsInStock),
@@ -511,8 +514,9 @@ class _DashboardPageState extends State<DashboardPage> {
           badge: Icons.bar_chart_rounded,
           badgeColor: AppColors.champagneGold,
           module: 'reports',
-          // Légèrement zoomé pour présence équilibrée sans couper.
-          imageScale: 1.10),
+          // Légèrement zoomé + descendu pour caler le socle 3D.
+          imageScale: 1.10,
+          imageAlignment: Alignment(0, 0.92)),
     ].where((k) => k.module == null || auth.canSeeModule(k.module!)).toList();
     // Gabarit précédent validé : quatre colonnes sur PC, deux sur mobile.
     // La largeur de fenêtre décide du mode, pas la largeur réduite après le
@@ -557,6 +561,11 @@ class _KpiDef {
   /// >1.0 = zoom (plus présent), <1.0 = recule.
   final double imageScale;
 
+  /// Alignement vertical de l'illustration (défaut: bottomCenter).
+  /// Pour "descendre" l'image (montrer plus le bas), utiliser un y < 1.0.
+  /// Ex: Alignment(0, 0.85) montre plus le bas que bottomCenter (0, 1.0).
+  final Alignment imageAlignment;
+
   /// Clé de module visible (null = toujours visible).
   final String? module;
   const _KpiDef({
@@ -569,6 +578,7 @@ class _KpiDef {
     required this.badge,
     required this.badgeColor,
     this.imageScale = 1.0,
+    this.imageAlignment = Alignment.bottomCenter,
     this.module,
   });
 }
@@ -641,25 +651,25 @@ class _KpiCardState extends State<_KpiCard> {
               fit: StackFit.expand,
               children: [
                 // Illustration de fond unique : BoxFit.cover remplit la carte,
-                // Alignment.bottomCenter garde le socle 3D visible.
+                // alignment garde le socle 3D visible.
                 // Pour imageScale > 1.0, on utilise Transform.scale SANS ClipRect
                 // parent (le AnimatedContainer a déjà clipBehavior: Clip.antiAlias).
                 Positioned.fill(
                   child: def.imageScale > 1.0
                       ? Transform.scale(
                           scale: def.imageScale,
-                          alignment: Alignment.bottomCenter,
+                          alignment: def.imageAlignment,
                           child: Image.asset(
                             def.image,
                             fit: BoxFit.cover,
-                            alignment: Alignment.bottomCenter,
+                            alignment: def.imageAlignment,
                             filterQuality: FilterQuality.low,
                           ),
                         )
                       : Image.asset(
                           def.image,
                           fit: BoxFit.cover,
-                          alignment: Alignment.bottomCenter,
+                          alignment: def.imageAlignment,
                           filterQuality: FilterQuality.low,
                         ),
                 ),
@@ -675,8 +685,8 @@ class _KpiCardState extends State<_KpiCard> {
                               alignment: Alignment.centerLeft,
                               child: Text(def.label,
                                   maxLines: 1,
-                                  style: const TextStyle(
-                                      color: Colors.white,
+                                  style: TextStyle(
+                                      color: _gold,
                                       fontSize: 10.5,
                                       fontWeight: FontWeight.w800,
                                       letterSpacing: 0.8)),
@@ -703,8 +713,8 @@ class _KpiCardState extends State<_KpiCard> {
                           alignment: Alignment.centerLeft,
                           child: Text(def.value,
                               maxLines: 1,
-                              style: const TextStyle(
-                                  color: Colors.white,
+                              style: TextStyle(
+                                  color: _gold,
                                   fontSize: 20,
                                   fontWeight: FontWeight.w900)),
                         ),
@@ -714,9 +724,9 @@ class _KpiCardState extends State<_KpiCard> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.75),
+                                  color: _gold.withValues(alpha: 0.85),
                                   fontSize: 10.5,
-                                  fontWeight: FontWeight.w600)),
+                                  fontWeight: FontWeight.w700)),
                         ],
                         if (def.trendPct != null) ...[
                           const SizedBox(height: 3),
@@ -905,17 +915,75 @@ class _TopBar extends StatelessWidget {
             ),
           ),
         const SizedBox(width: 14),
-        // Badge notifications : compteur RÉEL depuis l'API (0 = pas de badge).
-        _TopIcon(
-            icon: Icons.notifications_outlined,
-            badge: notificationCount > 0 ? '$notificationCount' : null,
-            onTap: onNotifications),
-        const SizedBox(width: 8),
-        _TopIcon(icon: Icons.settings_outlined, onTap: onSettings),
-        const SizedBox(width: 8),
-        _TopIcon(icon: Icons.lock_open_outlined, onTap: onLock),
-        const SizedBox(width: 8),
-        _TopIcon(icon: Icons.logout_rounded, onTap: onLogout),
+        // Actions utilisateur : responsive — sur très petit écran, on regroupe
+        // dans un PopupMenu pour éviter tout débordement.
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isVeryNarrow = constraints.maxWidth < 360;
+            final actions = <Widget>[
+              _TopIcon(
+                  icon: Icons.notifications_outlined,
+                  badge: notificationCount > 0 ? '$notificationCount' : null,
+                  onTap: onNotifications),
+              const SizedBox(width: 8),
+              _TopIcon(icon: Icons.settings_outlined, onTap: onSettings),
+              const SizedBox(width: 8),
+              _TopIcon(icon: Icons.lock_open_outlined, onTap: onLock),
+            ];
+            if (isVeryNarrow) {
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _TopIcon(icon: Icons.lock_open_outlined, onTap: onLock),
+                  const SizedBox(width: 8),
+                  PopupMenuButton<String>(
+                    tooltip: 'Plus d\'actions',
+                    icon: const Icon(Icons.more_vert, size: 22, color: _gold),
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                          value: 'notifications',
+                          child: Row(children: [
+                            const Icon(Icons.notifications_outlined,
+                                size: 18, color: _gold),
+                            const SizedBox(width: 10),
+                            Text('Notifications',
+                                style: const TextStyle(fontSize: 14)),
+                            if (notificationCount > 0) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: AppColors.danger,
+                                  borderRadius: BorderRadius.circular(9),
+                                ),
+                                child: Text('$notificationCount',
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w900)),
+                              ),
+                            ],
+                          ]),
+                          onTap: onNotifications),
+                      PopupMenuItem(
+                          value: 'settings',
+                          child: Row(children: [
+                            const Icon(Icons.settings_outlined,
+                                size: 18, color: _gold),
+                            const SizedBox(width: 10),
+                            Text('Paramètres',
+                                style: const TextStyle(fontSize: 14)),
+                          ]),
+                          onTap: onSettings),
+                    ],
+                  ),
+                ],
+              );
+            }
+            return Row(mainAxisSize: MainAxisSize.min, children: actions);
+          },
+        ),
       ]),
     );
   }
