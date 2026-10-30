@@ -34,7 +34,24 @@ jobs:
         run: flutter test --no-pub
 
       - name: Build Flutter Web (release)
-        run: flutter build web --release --no-wasm-dry-run
+        # Stratégie PWA « prefer-web » : le Service Worker sert le réseau en
+        # priorité (cache en secours hors-ligne). En « offline-first » (défaut
+        # Flutter), le téléphone continue d'afficher les illustrations de la
+        # version précédente jusqu'à la visite suivante — c'est exactement le
+        # symptôme « les images n'ont pas changé sur mobile ».
+        run: flutter build web --release --no-wasm-dry-run --pwa-strategy=prefer-web
+
+      - name: Stamp build (Service Worker + bootstrap uniques par build)
+        # Sans cette empreinte, flutter_service_worker.js est identique à
+        # chaque build : le navigateur mobile ne voit jamais « nouvelle
+        # version » et conserve l'ancien cache d'assets (vieilles
+        # illustrations). L'empreinte force la mise à jour → purge → rechargement.
+        run: |
+          cd frontend/build/web
+          SHA="$(git rev-parse --short HEAD)"
+          sed -i "s/__PMG_BUILD_STAMP__/$SHA/g" flutter_service_worker.js index.html
+          grep -q "$SHA" flutter_service_worker.js && echo "SW stamp OK: $SHA"
+          grep -q "$SHA" index.html && echo "Bootstrap stamp OK: $SHA"
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

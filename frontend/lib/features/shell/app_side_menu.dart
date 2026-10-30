@@ -308,9 +308,10 @@ class _AppSideMenuState extends State<AppSideMenu> {
                   width: 26,
                   height: 40,
                   decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.08))),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: const Color(0xFFC9A24B).withValues(alpha: 0.55)),
+                  ),
                   child: const Icon(Icons.logout, color: _sideGold, size: 18),
                 ),
               ),

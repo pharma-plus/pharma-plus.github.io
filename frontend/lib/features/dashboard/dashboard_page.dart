@@ -448,7 +448,9 @@ class _DashboardPageState extends State<DashboardPage> {
           image: 'assets/images/kpi_bg_1.webp',
           badge: Icons.point_of_sale_rounded,
           badgeColor: AppColors.emeraldRich,
-          module: 'pos'),
+          module: 'pos',
+          // Illustration plus zoomée pour être plus présente sur la carte.
+          imageScale: 1.35),
       _KpiDef(
           label: 'MÉDICAMENTS',
           value: Fmt.number(_medications),
@@ -546,6 +548,10 @@ class _KpiDef {
   final IconData badge;
   final Color badgeColor;
 
+  /// Facteur d'échelle de l'illustration (1.0 = cover normal).
+  /// >1.0 = zoom (plus présent), <1.0 = recule.
+  final double imageScale;
+
   /// Clé de module visible (null = toujours visible).
   final String? module;
   const _KpiDef({
@@ -557,6 +563,7 @@ class _KpiDef {
     required this.image,
     required this.badge,
     required this.badgeColor,
+    this.imageScale = 1.0,
     this.module,
   });
 }
@@ -631,13 +638,26 @@ class _KpiCardState extends State<_KpiCard> {
                 children: [
                   // Cover remplit réellement toute la carte ; l'alignement
                   // bas conserve le socle et l'objet 3D dans le cadrage.
+                  // Pour "Ventes du jour" (imageScale > 1), on zoome via Transform
+                  // pour éviter les problèmes de détection d'image dans les tests.
                   Positioned.fill(
-                    child: Image.asset(
-                      def.image,
-                      fit: BoxFit.cover,
-                      alignment: Alignment.bottomCenter,
-                      filterQuality: FilterQuality.low,
-                    ),
+                    child: def.imageScale > 1.0
+                        ? Transform.scale(
+                            scale: def.imageScale,
+                            alignment: Alignment.bottomCenter,
+                            child: Image.asset(
+                              def.image,
+                              fit: BoxFit.cover,
+                              alignment: Alignment.bottomCenter,
+                              filterQuality: FilterQuality.low,
+                            ),
+                          )
+                        : Image.asset(
+                            def.image,
+                            fit: BoxFit.cover,
+                            alignment: Alignment.bottomCenter,
+                            filterQuality: FilterQuality.low,
+                          ),
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(14, 11, 14, 8),
@@ -1447,8 +1467,10 @@ class _AnalyticsChartCard extends StatelessWidget {
         child: Semantics(
           label: '$title — $legend',
           child: Container(
-            height: 178,
-            padding: const EdgeInsets.fromLTRB(12, 9, 12, 8),
+            // Hauteur portée à 192 : les valeurs passent de 8-9 px à
+            // 11-13 px pour rester lisibles sans microscope.
+            height: 192,
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.035),
               borderRadius: BorderRadius.circular(12),
@@ -1460,12 +1482,12 @@ class _AnalyticsChartCard extends StatelessWidget {
                 Text(title,
                     style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 11,
+                        fontSize: 12.5,
                         fontWeight: FontWeight.w800)),
                 const SizedBox(height: 2),
                 Text(legend,
                     style: const TextStyle(
-                        color: AppColors.textTertiary, fontSize: 9)),
+                        color: AppColors.textTertiary, fontSize: 10.5)),
                 const SizedBox(height: 4),
                 Expanded(
                     child: CustomPaint(
@@ -1494,39 +1516,77 @@ class _AnalyticsBarsPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final maxValue = values.fold<double>(0, (m, v) => v > m ? v : m);
     final usable = maxValue <= 0 ? 1.0 : maxValue;
-    final base = size.height - 18;
+    // Profondeur 3D : face latérale + face supérieure en perspective.
+    final depth = math.min(9.0, size.width * .03);
+    final base = size.height - 20;
     final slot = size.width / values.length;
     for (var i = 0; i < values.length; i++) {
-      final height = (values[i] / usable) * (size.height - 30);
-      final left = i * slot + slot * .22;
-      final width = slot * .42;
+      // 6 px minimum : une valeur à 0 garde un volume 3D visible.
+      final height =
+          ((values[i] / usable) * (size.height - 44)).clamp(6.0, 999.0);
+      final left = i * slot + slot * .20;
+      final width = slot * .44;
       final top = base - height;
+      final color = colors[i];
+      final side = Color.lerp(color, Colors.black, .40)!;
+      final topFace = Color.lerp(color, Colors.white, .34)!;
+      // Ombre flottante sous la tour (socle 3D).
       canvas.drawRRect(
           RRect.fromRectAndRadius(
-              Rect.fromLTWH(left + 4, top + 4, width, height),
+              Rect.fromLTWH(left + 4, top + 5, width, height),
               const Radius.circular(4)),
-          Paint()..color = colors[i].withValues(alpha: .18));
+          Paint()..color = color.withValues(alpha: .16));
+      // Face latérale (droite, sombre) — perspective oblique.
+      final sidePath = Path()
+        ..moveTo(left + width, top)
+        ..lineTo(left + width + depth, top - depth)
+        ..lineTo(left + width + depth, base - depth)
+        ..lineTo(left + width, base)
+        ..close();
+      canvas.drawPath(sidePath, Paint()..color = side);
+      // Face supérieure (claire) — sommet éclairé.
+      final topPath = Path()
+        ..moveTo(left, top)
+        ..lineTo(left + depth, top - depth)
+        ..lineTo(left + width + depth, top - depth)
+        ..lineTo(left + width, top)
+        ..close();
+      canvas.drawPath(topPath, Paint()..color = topFace);
+      // Face avant : dégradé vertical de la couleur principale.
       canvas.drawRRect(
           RRect.fromRectAndRadius(Rect.fromLTWH(left, top, width, height),
-              const Radius.circular(4)),
+              const Radius.circular(3)),
           Paint()
             ..shader = ui.Gradient.linear(
                 Offset(left, top),
                 Offset(left + width, top + height),
-                [colors[i], colors[i].withValues(alpha: .62)]));
-      final value = TextPainter(
-        text: TextSpan(
-            text: valueLabels[i],
-            style: const TextStyle(
-                color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800)),
-        textDirection: TextDirection.ltr,
-      )..layout(maxWidth: slot);
-      value.paint(canvas,
-          Offset(i * slot + (slot - value.width) / 2, math.max(0, top - 14)));
+                [color, color.withValues(alpha: .74)]));
+      // Valeur au-dessus : police adaptative (13 → 9) pour rester lisible
+      // sans dépasser l'emplacement.
+      var fontSize = 13.0;
+      TextPainter value;
+      do {
+        value = TextPainter(
+          text: TextSpan(
+              text: valueLabels[i],
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.w800)),
+          textDirection: TextDirection.ltr,
+          maxLines: 2,
+        )..layout(maxWidth: slot * .94);
+        if (value.width <= slot * .94) break;
+        fontSize -= 1;
+      } while (fontSize > 9);
+      value.paint(
+          canvas,
+          Offset(i * slot + (slot - value.width) / 2,
+              math.max(0, top - depth - value.height - 2)));
       final text = TextPainter(
         text: TextSpan(
             text: labels[i],
-            style: const TextStyle(color: AppColors.textTertiary, fontSize: 9)),
+            style: const TextStyle(color: AppColors.textTertiary, fontSize: 11)),
         textDirection: TextDirection.ltr,
       )..layout(maxWidth: slot);
       text.paint(canvas, Offset(i * slot + (slot - text.width) / 2, base + 4));
@@ -1547,42 +1607,73 @@ class _AnalyticsDonutPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final total = values.fold<double>(0, (sum, value) => sum + value);
-    final center = Offset(size.width * .28, size.height / 2);
-    final radius = size.height * .34;
-    canvas.drawCircle(
-        center,
-        radius,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 13
-          ..color = Colors.white.withValues(alpha: .08));
-    if (total <= 0) return;
-    var start = -1.5708;
-    for (var i = 0; i < values.length; i++) {
-      final sweep = values[i] / total * 6.28318;
+    // Anneau incliné en perspective (écrasé verticalement) avec épaisseur :
+    // 7 couches sombres empilées sous la face supérieure = effet 3D.
+    final cx = size.width * .27;
+    final cy = size.height * .46;
+    final radius = size.height * .36;
+    const tilt = .60;
+    const layers = 7;
+    for (var l = layers; l >= 0; l--) {
+      canvas.save();
+      canvas.translate(cx, cy + l * 1.5);
+      canvas.scale(1, tilt);
+      final circle = Rect.fromCircle(center: Offset.zero, radius: radius);
+      // Fond de l'anneau (piste).
       canvas.drawArc(
-          Rect.fromCircle(center: center, radius: radius),
-          start,
-          sweep,
+          circle,
+          0,
+          math.pi * 2,
           false,
           Paint()
             ..style = PaintingStyle.stroke
             ..strokeWidth = 13
-            ..color = colors[i]);
-      start += sweep;
+            ..color = Colors.white
+                .withValues(alpha: .07 - l * .008));
+      if (total > 0) {
+        var start = -1.5708;
+        for (var i = 0; i < values.length; i++) {
+          final sweep = (values[i] / total * math.pi * 2) - .06;
+          if (sweep <= 0) {
+            start += values[i] / total * math.pi * 2;
+            continue;
+          }
+          canvas.drawArc(
+              circle,
+              start,
+              sweep,
+              false,
+              Paint()
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = 13
+                ..color = Color.lerp(
+                    colors[i], Colors.black, (l / layers) * .55)!);
+          start += sweep + .06;
+        }
+      }
+      canvas.restore();
     }
+    // Légende : libellé 11 px + valeur en GRAS 12.5 px (lisible).
     const labels = ['Faible', 'Bientôt', 'Périmés'];
     for (var i = 0; i < labels.length; i++) {
-      final y = 12.0 + i * 22;
+      final y = 14.0 + i * 25;
       canvas.drawCircle(
-          Offset(size.width * .58, y + 5), 4, Paint()..color = colors[i]);
+          Offset(size.width * .56, y + 7), 4.5, Paint()..color = colors[i]);
       final text = TextPainter(
-        text: TextSpan(
-            text: '${labels[i]} ${values[i].round()}',
-            style: const TextStyle(color: Colors.white70, fontSize: 9)),
+        text: TextSpan(children: [
+          TextSpan(
+              text: '${labels[i]} ',
+              style: const TextStyle(color: Colors.white70, fontSize: 11)),
+          TextSpan(
+              text: '${values[i].round()}',
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800)),
+        ]),
         textDirection: TextDirection.ltr,
-      )..layout(maxWidth: size.width * .38);
-      text.paint(canvas, Offset(size.width * .58 + 8, y));
+      )..layout(maxWidth: size.width * .40);
+      text.paint(canvas, Offset(size.width * .56 + 10, y));
     }
   }
 

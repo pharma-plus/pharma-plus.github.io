@@ -1,14 +1,16 @@
 'use strict';
 
-// SW AUTO-DESTRUCTEUR v2
-// Objectif : ne JAMAIS servir une version cacee du site.
-// 1) install  -> skipWaiting (prend le controle immediatement)
-// 2) activate -> purge TOUS les caches du domaine, claim (controle les
-//    onglets ouverts), recharge chaque onglet, puis desinscription.
-// Aucun fetch handler : aucune reponse ne vient jamais du cache.
+// BUILD STAMP : __PMG_BUILD_STAMP__
+// Ce SW est volontairement « auto-destructeur » : il purge TOUS les caches
+// du domaine, recharge les onglets ouverts puis se désinscrit.
+// IMPORTANT : le fichier DOIT changer à chaque build (empreinte injectée par
+// le workflow deploy-web.yml). Sans cela, le navigateur considère le script
+// inchangé → il n'installe jamais cette version → l'ancien SW Flutter
+// (qui sert les assets en cache) reste actif et l'utilisateur continue de
+// voir les illustrations d'une version précédente, indéfiniment, sur mobile.
 
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
+  event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', (event) => {
