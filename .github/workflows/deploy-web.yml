@@ -34,12 +34,7 @@ jobs:
         run: flutter test --no-pub
 
       - name: Build Flutter Web (release)
-        # Stratégie PWA « prefer-web » : le Service Worker sert le réseau en
-        # priorité (cache en secours hors-ligne). En « offline-first » (défaut
-        # Flutter), le téléphone continue d'afficher les illustrations de la
-        # version précédente jusqu'à la visite suivante — c'est exactement le
-        # symptôme « les images n'ont pas changé sur mobile ».
-        run: flutter build web --release --no-wasm-dry-run --pwa-strategy=prefer-web
+        run: flutter build web --release --no-wasm-dry-run
 
       - name: Stamp build (Service Worker + bootstrap uniques par build)
         # Sans cette empreinte, flutter_service_worker.js est identique à
