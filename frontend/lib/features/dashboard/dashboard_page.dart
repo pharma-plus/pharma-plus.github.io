@@ -449,8 +449,9 @@ class _DashboardPageState extends State<DashboardPage> {
           badge: Icons.point_of_sale_rounded,
           badgeColor: AppColors.emeraldRich,
           module: 'pos',
-          // Illustration plus zoomée pour être plus présente sur la carte.
-          imageScale: 1.35),
+          // Illustration légèrement zoomée pour être plus présente
+          // sans couper les bords (était 1.35 → trop fort).
+          imageScale: 1.15),
       _KpiDef(
           label: 'MÉDICAMENTS',
           value: Fmt.number(_medications),
@@ -474,7 +475,9 @@ class _DashboardPageState extends State<DashboardPage> {
           image: 'assets/images/kpi_bg_4.webp',
           badge: Icons.fact_check_rounded,
           badgeColor: AppColors.cardPurple,
-          module: 'purchases'),
+          module: 'purchases',
+          // Légèrement zoomé pour présence équilibrée.
+          imageScale: 1.10),
       _KpiDef(
           label: 'FOURNISSEURS',
           value: Fmt.number(_suppliers),

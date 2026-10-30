@@ -499,14 +499,16 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             },
           ),
           const SizedBox(height: 10),
+          // Ligne unique : "Se souvenir de moi" + "Mot de passe oublié ?"
+          // LayoutBuilder + largeur fixe pour le lien (évite tout débordement).
           LayoutBuilder(builder: (context, constraints) {
-            // Les deux actions gardent une largeur réservée sur mobile :
-            // le lien de récupération peut passer sur deux lignes, mais ne
-            // chevauche jamais la case « Se souvenir ».
-            final forgotWidth = constraints.maxWidth < 360 ? 116.0 : 140.0;
+            // Largeur réservée au lien : 120 px (<360) / 145 px (≥360).
+            // Suffisant pour "Mot de passe oublié ?" sur 1 ligne sans couper.
+            final forgotWidth = constraints.maxWidth < 360 ? 120.0 : 145.0;
             return Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                // "Se souvenir de moi" — prend l'espace restant.
                 Expanded(
                   child: InkWell(
                     borderRadius: BorderRadius.circular(10),
@@ -528,7 +530,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         const Expanded(
                           child: Text(
                             'Se souvenir de moi',
-                            maxLines: 2,
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: Colors.white70,
@@ -541,13 +543,14 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                   ),
                 ),
                 const SizedBox(width: 4),
+                // "Mot de passe oublié ?" — largeur fixe, 1 ligne, aligné à droite.
                 SizedBox(
                   width: forgotWidth,
                   child: TextButton(
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                         content: Text(
-                          'La réinitialisation se fait par l’administrateur de la pharmacie : '
+                          'La réinitialisation se fait par l\'administrateur de la pharmacie : '
                           'connectez-vous à votre espace admin puis Utilisateurs → Réinitialiser le mot de passe.',
                         ),
                         backgroundColor: Color(0xFF6B7280),
@@ -561,8 +564,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                     ),
                     child: const Text(
                       'Mot de passe oublié ?',
-                      maxLines: 2,
-                      softWrap: true,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.right,
                       style: TextStyle(
                         color: Color(0xFFE9C873),
