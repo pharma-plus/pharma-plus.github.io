@@ -43,10 +43,11 @@ jobs:
         # illustrations). L'empreinte force la mise à jour → purge → rechargement.
         run: |
           cd frontend/build/web
-          SHA="$(git rev-parse --short HEAD)"
-          sed -i "s/__PMG_BUILD_STAMP__/$SHA/g" flutter_service_worker.js index.html
-          grep -q "$SHA" flutter_service_worker.js && echo "SW stamp OK: $SHA"
-          grep -q "$SHA" index.html && echo "Bootstrap stamp OK: $SHA"
+          SHA="${{ github.sha }}"
+          SHA_SHORT="${SHA:0:7}"
+          sed -i "s/__PMG_BUILD_STAMP__/$SHA_SHORT/g" flutter_service_worker.js index.html
+          grep -q "$SHA_SHORT" flutter_service_worker.js && echo "SW stamp OK: $SHA_SHORT"
+          grep -q "$SHA_SHORT" index.html && echo "Bootstrap stamp OK: $SHA_SHORT"
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
