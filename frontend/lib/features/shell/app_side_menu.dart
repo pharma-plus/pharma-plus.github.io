@@ -350,6 +350,8 @@ class _AppSideMenuState extends State<AppSideMenu> {
       );
 
   Widget _buildExpanded(BuildContext context) {
+    final visibleItems = _visibleItems;
+    final hasSettings = visibleItems.any((item) => item.module == 'settings');
     return Container(
       color: AppColors.surfaceSidebar,
       child: Column(children: [
@@ -369,9 +371,9 @@ class _AppSideMenuState extends State<AppSideMenu> {
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-            itemCount: _visibleItems.length,
+            itemCount: visibleItems.length,
             itemBuilder: (context, i) {
-              final item = _visibleItems[i];
+              final item = visibleItems[i];
               final active = _isActive(item);
               final menuItem = Padding(
                 padding: const EdgeInsets.only(bottom: 2),
@@ -515,6 +517,33 @@ class _AppSideMenuState extends State<AppSideMenu> {
                   ),
                 ),
                 const SizedBox(width: 8),
+              ],
+              // Si l'utilisateur n'a pas la permission Paramètres, le
+              // bouton de déconnexion ne doit pas disparaître avec cette
+              // entrée : on le garde visible dans le pied du menu.
+              if (!hasSettings) ...[
+                Expanded(
+                  child: Tooltip(
+                    message: 'Se déconnecter',
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: widget.onLogout,
+                      child: Container(
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF07271C),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: const Color(0xFFC9A24B)
+                                  .withValues(alpha: 0.55)),
+                        ),
+                        child: const Center(
+                            child:
+                                Icon(Icons.logout, color: _sideGold, size: 19)),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ],
           ),

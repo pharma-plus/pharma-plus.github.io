@@ -20,8 +20,7 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage>
-    with TickerProviderStateMixin {
+class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -84,11 +83,7 @@ class _LoginPageState extends State<LoginPage>
       body: {
         'email': _emailController.text.trim(),
         'password': _passwordController.text,
-        'device': {
-          'name': 'Flutter',
-          'type': 'mobile',
-          'userAgent': 'pmg-app'
-        },
+        'device': {'name': 'Flutter', 'type': 'mobile', 'userAgent': 'pmg-app'},
       },
     );
 
@@ -99,8 +94,8 @@ class _LoginPageState extends State<LoginPage>
       final network =
           result.error?.code == 'NETWORK_ERROR' || result.statusCode == 0;
       final starting = result.error?.code == 'SERVER_STARTING';
-      final isValidation = result.statusCode == 422 ||
-          result.error?.code == 'VALIDATION_ERROR';
+      final isValidation =
+          result.statusCode == 422 || result.error?.code == 'VALIDATION_ERROR';
       setState(() {
         _error = network
             ? (starting
@@ -123,7 +118,8 @@ class _LoginPageState extends State<LoginPage>
 
     final data = result.data;
     if (data is! Map) {
-      setState(() => _error = 'Réponse inattendue du serveur. Veuillez réessayer.');
+      setState(
+          () => _error = 'Réponse inattendue du serveur. Veuillez réessayer.');
       return;
     }
     final map = Map<String, dynamic>.from(data);
@@ -131,8 +127,7 @@ class _LoginPageState extends State<LoginPage>
       if (!mounted) return;
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) =>
-              TwoFactorPage(token: map['twoFactorToken'] as String),
+          builder: (_) => TwoFactorPage(token: map['twoFactorToken'] as String),
         ),
       );
       return;
@@ -140,10 +135,10 @@ class _LoginPageState extends State<LoginPage>
 
     if (!mounted) return;
     await context.read<AuthStore>().saveSession(
-      accessToken: map['accessToken'] as String,
-      refreshToken: map['refreshToken'] as String,
-      user: User.fromSession(map),
-    );
+          accessToken: map['accessToken'] as String,
+          refreshToken: map['refreshToken'] as String,
+          user: User.fromSession(map),
+        );
   }
 
   @override
@@ -152,41 +147,52 @@ class _LoginPageState extends State<LoginPage>
 
     return Scaffold(
       backgroundColor: const Color(0xFF010503),
-      body: Stack(
-        children: [
-          // Grande carte arrondie contenant scène + formulaire (maquette).
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Container(
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF092019),
-                  borderRadius: BorderRadius.circular(26),
-                  border: Border.all(
-                    color: const Color(0xFF2FB563).withValues(alpha: 0.20),
-                    width: 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.55),
-                      blurRadius: 34,
-                      offset: const Offset(0, 18),
+      body: SizedBox.expand(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Grande carte arrondie contenant scène + formulaire (maquette).
+            Positioned.fill(
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Container(
+                      clipBehavior: Clip.antiAlias,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF092019),
+                        borderRadius: BorderRadius.circular(26),
+                        border: Border.all(
+                          color:
+                              const Color(0xFF2FB563).withValues(alpha: 0.20),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.55),
+                            blurRadius: 34,
+                            offset: const Offset(0, 18),
+                          ),
+                        ],
+                      ),
+                      child: SizedBox.expand(
+                        child: FadeTransition(
+                          opacity: _fade,
+                          child: SlideTransition(
+                            position: _slide,
+                            child: isSplit ? _buildSplit() : _buildMobile(),
+                          ),
+                        ),
+                      ),
                     ),
-                  ],
-                ),
-                child: FadeTransition(
-                  opacity: _fade,
-                  child: SlideTransition(
-                    position: _slide,
-                    child: isSplit ? _buildSplit() : _buildMobile(),
                   ),
                 ),
               ),
             ),
-          ),
-          const _ThemeToggle(),
-        ],
+            const _ThemeToggle(),
+          ],
+        ),
       ),
     );
   }
@@ -238,6 +244,8 @@ class _LoginPageState extends State<LoginPage>
   /// panneau vert sombre et la courbe) ; sur mobile, carte translucide sombre.
   Widget _buildFormPanel({bool transparent = false}) {
     return Container(
+      key: const ValueKey('login-form-panel'),
+      width: double.infinity,
       margin: transparent
           ? EdgeInsets.zero
           : const EdgeInsets.fromLTRB(0, 12, 12, 12),
@@ -262,23 +270,25 @@ class _LoginPageState extends State<LoginPage>
               ),
             ),
       child: LayoutBuilder(
-      builder: (context, constraints) {
-        return SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: Center(
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 30, vertical: 24),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 400),
-                  child: _buildForm(),
+        builder: (context, constraints) {
+          final formWidth =
+              (constraints.maxWidth - 60).clamp(0.0, 400.0).toDouble();
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minWidth: constraints.maxWidth,
+                minHeight: constraints.maxHeight,
+              ),
+              child: Center(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 24),
+                  child: SizedBox(width: formWidth, child: _buildForm()),
                 ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
       ),
     );
   }
@@ -448,8 +458,10 @@ class _LoginPageState extends State<LoginPage>
               if (text.isEmpty) {
                 return 'Veuillez saisir votre nom d\'utilisateur ou votre e-mail';
               }
-              final isEmail = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(text);
-              final isUsername = RegExp(r'^[a-zA-Z0-9._-]{3,40}$').hasMatch(text);
+              final isEmail =
+                  RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(text);
+              final isUsername =
+                  RegExp(r'^[a-zA-Z0-9._-]{3,40}$').hasMatch(text);
               if (!isEmail && !isUsername) {
                 return 'Nom d\'utilisateur ou adresse e-mail invalide';
               }
@@ -469,7 +481,9 @@ class _LoginPageState extends State<LoginPage>
               suffix: IconButton(
                 splashRadius: 18,
                 icon: Icon(
-                  _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  _obscure
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
                   color: AppColors.emeraldLight,
                 ),
                 onPressed: () => setState(() => _obscure = !_obscure),
@@ -485,53 +499,82 @@ class _LoginPageState extends State<LoginPage>
             },
           ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(10),
-                  onTap: () => setState(() => _remember = !_remember),
-                  child: Row(
-                    children: [
-                      Checkbox(
-                        value: _remember,
-                        activeColor: AppColors.emerald,
-                        side: const BorderSide(color: Colors.white70),
-                        onChanged: (value) =>
-                            setState(() => _remember = value ?? false),
-                      ),
-                      const Text(
-                        'Se souvenir de moi',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
+          LayoutBuilder(builder: (context, constraints) {
+            // Les deux actions gardent une largeur réservée sur mobile :
+            // le lien de récupération peut passer sur deux lignes, mais ne
+            // chevauche jamais la case « Se souvenir ».
+            final forgotWidth = constraints.maxWidth < 360 ? 116.0 : 140.0;
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () => setState(() => _remember = !_remember),
+                    child: Row(
+                      children: [
+                        Checkbox(
+                          value: _remember,
+                          activeColor: AppColors.emerald,
+                          side: const BorderSide(color: Colors.white70),
+                          visualDensity:
+                              const VisualDensity(horizontal: -3, vertical: -3),
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                          onChanged: (value) =>
+                              setState(() => _remember = value ?? false),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text(
-                      'La réinitialisation se fait par l’administrateur de la pharmacie : '
-                      'connectez-vous à votre espace admin puis Utilisateurs → Réinitialiser le mot de passe.',
+                        const SizedBox(width: 2),
+                        const Expanded(
+                          child: Text(
+                            'Se souvenir de moi',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12.5,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    backgroundColor: Color(0xFF6B7280),
-                  ));
-                },
-                child: const Text(
-                  'Mot de passe oublié ?',
-                  style: TextStyle(
-                    color: Color(0xFFE9C873),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 4),
+                SizedBox(
+                  width: forgotWidth,
+                  child: TextButton(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text(
+                          'La réinitialisation se fait par l’administrateur de la pharmacie : '
+                          'connectez-vous à votre espace admin puis Utilisateurs → Réinitialiser le mot de passe.',
+                        ),
+                        backgroundColor: Color(0xFF6B7280),
+                      ));
+                    },
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      alignment: Alignment.centerRight,
+                    ),
+                    child: const Text(
+                      'Mot de passe oublié ?',
+                      maxLines: 2,
+                      softWrap: true,
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        color: Color(0xFFE9C873),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }),
           if (_error != null) ...[
             const SizedBox(height: 8),
             _ErrorBanner(message: _error!),
@@ -559,31 +602,35 @@ class _LoginPageState extends State<LoginPage>
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (_loading)
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Color(0xFF123527),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (_loading)
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFF123527),
+                        ),
+                      )
+                    else ...[
+                      const Text(
+                        'SE CONNECTER',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14.5,
+                          letterSpacing: 0.6,
+                        ),
                       ),
-                    )
-                  else ...[
-                    const Text(
-                      'SE CONNECTER',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14.5,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Icon(Icons.arrow_forward, size: 18),
+                      const SizedBox(width: 12),
+                      const Icon(Icons.arrow_forward, size: 18),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
@@ -597,13 +644,21 @@ class _LoginPageState extends State<LoginPage>
                   color: Colors.white.withValues(alpha: 0.16),
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  'ou continuez avec',
-                  style: TextStyle(
-                    color: Color(0xFF8FA39A),
-                    fontSize: 12,
+              // Le libellé cède la place au besoin : jamais de débordement
+              // sur les petits écrans / grandes polices d'accessibilité.
+              const Flexible(
+                flex: 6,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'ou continuez avec',
+                      style: TextStyle(
+                        color: Color(0xFF8FA39A),
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -628,43 +683,50 @@ class _LoginPageState extends State<LoginPage>
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CustomPaint(
-                  painter: _GoogleLogoPainter(),
-                  size: Size(18, 18),
-                ),
-                SizedBox(width: 10),
-                Text(
-                  'Continuer avec Google',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14.5,
+            child: const FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CustomPaint(
+                    painter: _GoogleLogoPainter(),
+                    size: Size(18, 18),
                   ),
-                ),
-              ],
+                  SizedBox(width: 10),
+                  Text(
+                    'Continuer avec Google',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14.5,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 20),
           // Pied : connexion sécurisée (maquette).
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.lock_outline,
-                color: Color(0xFFE9C873),
-                size: 13,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'Connexion sécurisée avec chiffrement 256-bit SSL',
-                style: TextStyle(
-                  color: const Color(0xFF8FA39A).withValues(alpha: 0.85),
-                  fontSize: 11,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.lock_outline,
+                  color: Color(0xFFE9C873),
+                  size: 13,
                 ),
-              ),
-            ],
+                const SizedBox(width: 6),
+                Text(
+                  'Connexion sécurisée avec chiffrement 256-bit SSL',
+                  style: TextStyle(
+                    color: const Color(0xFF8FA39A).withValues(alpha: 0.85),
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 6),
         ],
@@ -821,4 +883,3 @@ class _GoogleLogoPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-
