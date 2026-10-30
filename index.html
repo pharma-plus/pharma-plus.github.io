@@ -216,8 +216,9 @@
       }
     } catch (e) {}
   </script>
-  <!-- Version publique renouvelée pour invalider l'ancien index/service worker CDN. -->
-  <script src="flutter_bootstrap.js?v=261" async></script>
+  <!-- Version publique renouvelée à chaque build (numéro GitHub Actions injecté
+       via --web-define) pour invalider le bootstrap en cache CDN. -->
+  <script src="flutter_bootstrap.js?v=46" async></script>
   <script>
     (function () {
       var fill = document.getElementById('pmg-fill');
