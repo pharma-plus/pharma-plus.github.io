@@ -603,7 +603,6 @@ class _KpiCard extends StatefulWidget {
 class _KpiCardState extends State<_KpiCard> {
   bool _hover = false;
   bool _press = false;
-  static const _titleGreen = Color(0xFF43D97C);
 
   _KpiDef get def => widget.def;
 
