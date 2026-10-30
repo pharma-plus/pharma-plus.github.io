@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:ui' as ui;
+import 'dart:math' as math;
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/api_list.dart';
@@ -483,33 +485,42 @@ class _ReportsPageState extends State<ReportsPage> {
     final profitValues = periods
         .map((s) => double.tryParse('${s['profit'] ?? 0}') ?? 0)
         .toList();
+    final profitLabels = profitValues.map((v) => Fmt.money(v)).toList();
+
     return _sectionCard(
       locale,
-      'Analyse financière',
+      'Analyse financière 3D',
       LayoutBuilder(builder: (context, constraints) {
         final bars = _ReportChartCard(
-          title: 'Bénéfice par période',
-          painter: _ReportBarsPainter(
+          title: 'Bénéfice par période (3D)',
+          painter: _BenefitBars3DPainter(
             values: profitValues,
             labels: periods
                 .map((s) => '${s['period'] ?? ''}'
                     .substring(0, '${s['period'] ?? ''}'.length.clamp(0, 7)))
                 .toList(),
+            valueLabels: profitLabels,
             color: AppColors.emerald,
           ),
         );
         final donut = _ReportChartCard(
-          title: 'Répartition financière',
-          painter: _ReportDonutPainter(
+          title: 'Répartition CA / Dépenses (3D)',
+          painter: _BenefitDonut3DPainter(
             values: [
               revenueValue < 0 ? 0 : revenueValue,
-              expensesValue < 0 ? 0 : expensesValue
+              expensesValue < 0 ? 0 : expensesValue,
             ],
             labels: const ['CA', 'Dépenses'],
             colors: const [AppColors.chart, AppColors.warning],
           ),
         );
         final margin = revenueValue == 0 ? null : netValue / revenueValue * 100;
+        final trendArrow = _TrendArrowPainter(
+          isPositive: netValue >= 0,
+          size: 32,
+          color: netValue >= 0 ? AppColors.success : AppColors.danger,
+        );
+
         final charts = constraints.maxWidth >= 700
             ? Row(children: [
                 Expanded(child: bars),
@@ -517,8 +528,41 @@ class _ReportsPageState extends State<ReportsPage> {
                 Expanded(child: donut),
               ])
             : Column(children: [bars, const SizedBox(height: 10), donut]);
+
         return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           charts,
+          const SizedBox(height: 12),
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: (netValue >= 0 ? AppColors.success : AppColors.danger).withValues(alpha: .15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: (netValue >= 0 ? AppColors.success : AppColors.danger).withValues(alpha: .4)),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                CustomPaint(size: const Size(40, 40), painter: trendArrow),
+                const SizedBox(width: 10),
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(
+                    netValue >= 0 ? 'Bénéfice net positif' : 'Perte nette',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: netValue >= 0 ? AppColors.success : AppColors.danger),
+                  ),
+                  Text(
+                    'Marge nette : ${margin?.toStringAsFixed(1) ?? 'N/A'}% | ${Fmt.money(netValue)}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white.withValues(alpha: .8),
+                      fontWeight: FontWeight.w600),
+                  ),
+                ]),
+              ]),
+            ),
+          ]),
           if (margin != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
@@ -707,4 +751,230 @@ class _ReportDonutPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _ReportDonutPainter oldDelegate) =>
       oldDelegate.values != values;
+}
+
+/// ============================================================
+/// PAINTERS 3D POUR PAGE BÉNÉFICE — cohérents avec le dashboard
+/// ============================================================
+
+/// Barres 3D extrudées : face avant + face latérale + face supérieure
+class _BenefitBars3DPainter extends CustomPainter {
+  final List<double> values;
+  final List<String> labels;
+  final List<String> valueLabels;
+  final Color color;
+
+  const _BenefitBars3DPainter({
+    required this.values,
+    required this.labels,
+    required this.valueLabels,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.isEmpty) return;
+    final maxValue = values.fold<double>(0, (m, v) => v > m ? v : m);
+    final max = maxValue <= 0 ? 1.0 : maxValue;
+    final depth = math.min(10.0, size.width * .035);
+    final base = size.height - 24;
+    final slot = size.width / values.length;
+
+    for (var i = 0; i < values.length; i++) {
+      final h = ((values[i] / max) * (size.height - 50)).clamp(8.0, 999.0);
+      final left = i * slot + slot * .18;
+      final width = slot * .5;
+      final top = base - h;
+
+      final side = Color.lerp(color, Colors.black, .42)!;
+      final topFace = Color.lerp(color, Colors.white, .30)!;
+
+      // Ombre flottante
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(left + 5, top + 6, width, h),
+          const Radius.circular(4)),
+        Paint()..color = color.withValues(alpha: .14));
+
+      // Face latérale (droite, perspective)
+      final sidePath = Path()
+        ..moveTo(left + width, top)
+        ..lineTo(left + width + depth, top - depth)
+        ..lineTo(left + width + depth, base - depth)
+        ..lineTo(left + width, base)
+        ..close();
+      canvas.drawPath(sidePath, Paint()..color = side);
+
+      // Face supérieure
+      final topPath = Path()
+        ..moveTo(left, top)
+        ..lineTo(left + depth, top - depth)
+        ..lineTo(left + width + depth, top - depth)
+        ..lineTo(left + width, top)
+        ..close();
+      canvas.drawPath(topPath, Paint()..color = topFace);
+
+      // Face avant avec dégradé
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(left, top, width, h),
+          const Radius.circular(4)),
+        Paint()
+          ..shader = ui.Gradient.linear(
+            Offset(left, top),
+            Offset(left + width, top + h),
+            [color, color.withValues(alpha: .65)]));
+
+      // Valeur au-dessus (taille adaptative)
+      var fs = 12.0;
+      TextPainter vp;
+      do {
+        vp = TextPainter(
+          text: TextSpan(
+            text: valueLabels[i],
+            style: TextStyle(
+              color: Colors.white, fontSize: fs, fontWeight: FontWeight.w800)),
+          textDirection: TextDirection.ltr,
+          maxLines: 2,
+        )..layout(maxWidth: slot * .95);
+        if (vp.width <= slot * .95) break;
+        fs -= 1;
+      } while (fs > 8);
+      vp.paint(canvas,
+        Offset(i * slot + (slot - vp.width) / 2, math.max(0, top - depth - vp.height - 2)));
+
+      // Label en bas
+      final tp = TextPainter(
+        text: TextSpan(
+          text: labels[i],
+          style: const TextStyle(color: Colors.grey, fontSize: 10)),
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: slot);
+      tp.paint(canvas, Offset(i * slot + (slot - tp.width) / 2, base + 4));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _BenefitBars3DPainter old) =>
+      old.values != values;
+}
+
+/// Donut 3D avec épaisseur (couches empilées) + légende valeurs en gras
+class _BenefitDonut3DPainter extends CustomPainter {
+  final List<double> values;
+  final List<String> labels;
+  final List<Color> colors;
+
+  const _BenefitDonut3DPainter({
+    required this.values,
+    required this.labels,
+    required this.colors,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final total = values.fold<double>(0, (s, v) => s + v);
+    final cx = size.width * .26;
+    final cy = size.height * .44;
+    final radius = size.height * .36;
+
+    for (var l = 7; l >= 0; l--) {
+      canvas.save();
+      canvas.translate(cx, cy + l * 1.6);
+      canvas.scale(1, .58);
+      final circle = Rect.fromCircle(center: Offset.zero, radius: radius);
+
+      canvas.drawArc(
+        circle,
+        0, math.pi * 2, false,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 14
+          ..color = Colors.white.withValues(alpha: .06 - l * .006));
+
+      if (total > 0) {
+        var start = -1.5708;
+        for (var i = 0; i < values.length; i++) {
+          final sweep = (values[i] / total * math.pi * 2) - .05;
+          if (sweep <= 0) { start += values[i] / total * math.pi * 2; continue; }
+          canvas.drawArc(circle, start, sweep, false,
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 14
+              ..color = Color.lerp(colors[i], Colors.black, (l / 7) * .55)!);
+          start += sweep + .05;
+        }
+      }
+      canvas.restore();
+    }
+
+    // Légende : label 11px + valeur GRAS 13px
+    for (var i = 0; i < labels.length; i++) {
+      final y = 16.0 + i * 28;
+      canvas.drawCircle(Offset(size.width * .55, y + 8), 5, Paint()..color = colors[i]);
+      final tp = TextPainter(
+        text: TextSpan(children: [
+          TextSpan(text: '${labels[i]} ', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+          TextSpan(text: '${values[i].round()}', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
+        ]),
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: size.width * .42);
+      tp.paint(canvas, Offset(size.width * .55 + 11, y));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _BenefitDonut3DPainter old) =>
+      old.values != values;
+}
+
+/// Flèche de tendance 3D (montante/descendante)
+class _TrendArrowPainter extends CustomPainter {
+  final bool isPositive;
+  final double size;
+  final Color color;
+
+  const _TrendArrowPainter({
+    required this.isPositive,
+    this.size = 28,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final s = this.size;
+
+    final path = Path();
+    if (isPositive) {
+      path.moveTo(cx, cy + s * 0.45);
+      path.lineTo(cx, cy - s * 0.35);
+      path.moveTo(cx - s * 0.25, cy - s * 0.1);
+      path.lineTo(cx, cy - s * 0.35);
+      path.lineTo(cx + s * 0.25, cy - s * 0.1);
+    } else {
+      path.moveTo(cx, cy - s * 0.45);
+      path.lineTo(cx, cy + s * 0.35);
+      path.moveTo(cx - s * 0.25, cy + s * 0.1);
+      path.lineTo(cx, cy + s * 0.35);
+      path.lineTo(cx + s * 0.25, cy + s * 0.1);
+    }
+
+    canvas.drawPath(path.shift(const Offset(1, 1)), Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.5
+      ..strokeCap = StrokeCap.round
+      ..color = Colors.black.withValues(alpha: .25));
+
+    canvas.drawPath(path, Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.5
+      ..strokeCap = StrokeCap.round
+      ..color = color);
+  }
+
+  @override
+  bool shouldRepaint(covariant _TrendArrowPainter old) =>
+      old.isPositive != isPositive;
 }

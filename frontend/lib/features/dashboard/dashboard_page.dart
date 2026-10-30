@@ -730,13 +730,17 @@ class _KpiCardState extends State<_KpiCard> {
                         ],
                         if (def.trendPct != null) ...[
                           const SizedBox(height: 3),
-                          Text(def.trendPct!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  color: _titleGreen,
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w800)),
+                          (() {
+                            final t = def.trendPct!;
+                            final isPositive = !t.startsWith('-');
+                            return Text(t,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color: isPositive ? AppColors.success : AppColors.danger,
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w900));
+                          })(),
                           Text(def.trendVs,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
