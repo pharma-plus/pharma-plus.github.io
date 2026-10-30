@@ -294,9 +294,8 @@ void main() {
 
     // Couleur de catégorie par carte (palette premium centralisée).
     Color badgeColorOf(String label) {
-      final container =
-          tester.widget<Container>(find.byKey(ValueKey('kpi-badge-$label')));
-      return (container.decoration! as BoxDecoration).color!;
+      final icon = tester.widget<Icon>(find.byKey(ValueKey('kpi-badge-$label')));
+      return icon.color!;
     }
 
     expect(badgeColorOf('VENTES DU JOUR'), AppColors.emeraldRich);

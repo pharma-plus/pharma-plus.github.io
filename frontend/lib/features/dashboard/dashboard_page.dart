@@ -644,7 +644,7 @@ class _KpiCardState extends State<_KpiCard> {
                           ),
                           const SizedBox(width: 6),
                           // Badge icône seul, sans fond coloré décoratif
-                          Icon(def.badge, size: 18, color: def.badgeColor),
+                          Icon(def.badge, key: ValueKey('kpi-badge-${def.label}'), size: 18, color: def.badgeColor),
                         ]),
                         const SizedBox(height: 6),
                         FittedBox(
