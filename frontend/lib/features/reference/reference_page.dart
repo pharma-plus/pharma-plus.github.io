@@ -1,17 +1,28 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
+import '../../core/services/offline_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
-import '../../core/widgets/pharma_background.dart';
 import '../../core/widgets/shared/app_search_field.dart';
+import '../../core/widgets/shared/app_data_table.dart';
+import '../../core/widgets/shared/app_filter_bar.dart';
+import '../../core/widgets/status_chip.dart';
+import '../../core/utils/table_columns.dart';
+import '../../core/widgets/shared.dart';
 import '../shell/shell_nav.dart';
 
+/// Catalogue centralisé — Référentiel unique pour POS, Stock, Achats, Ventes, IA
+/// Gère médicaments, parapharmacie, vétérinaire, dispositifs médicaux
 class ReferencePage extends StatefulWidget {
   const ReferencePage({super.key});
 
@@ -21,530 +32,583 @@ class ReferencePage extends StatefulWidget {
 
 class _ReferencePageState extends State<ReferencePage> {
   final _search = TextEditingController();
-  List<dynamic> _products = [];
-  List<dynamic> _categories = [];
-  Map<String, dynamic>? _syncStatus;
+  Timer? _debounce;
+  List<Map<String, dynamic>> _items = [];
   bool _loading = true;
-  bool _syncing = false;
   String? _error;
-  String? _activeCategory;
-  int _page = 1;
-  bool _hasMore = true;
-  final int _limit = 30;
+  String _activeTab = 'medicaments';
+  
+  // Filtres
+  String? _filterForm;
+  String? _filterLabo;
+  String? _filterStatus;
+  String? _filterPathologie;
+  RangeValues? _priceRange;
+  
+  // Données de référence
+  List<Map<String, dynamic>> _forms = [];
+  List<Map<String, dynamic>> _labs = [];
+  List<Map<String, dynamic>> _pathologies = [];
+  int _indicationsTotal = 0;
 
-  // Navigation clavier : fleches haut/bas pour parcourir la liste.
-  int _selected = 0;
-  int _lastDelta = 0;
-  final ScrollController _listCtrl = ScrollController();
-  final GlobalKey _selectedKey = GlobalKey();
+  static const _tabs = [
+    ('medicaments', Icons.medication_outlined, 'medicaments'),
+    ('parapharmacie', Icons.spa_outlined, 'parapharmacy'),
+    ('veterinaire', Icons.pets_outlined, 'veterinaire'),
+    ('dispositifs', Icons.medical_services_outlined, 'dispositifs'),
+  ];
 
   @override
   void initState() {
     super.initState();
-    _init();
+    _loadFacets();
+    _load();
   }
 
-  Future<void> _init() async {
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _search.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadFacets() async {
+    final f = await ApiClient.instance.get('/catalog/medications/facets');
+    if (!mounted || !f.success || f.data is! Map) return;
+    final d = Map<String, dynamic>.from(f.data as Map);
     setState(() {
-      _loading = true;
-      _error = null;
+      _forms = (d['forms'] as List? ?? []).whereType<Map<String, dynamic>>().toList();
+      _labs = (d['laboratories'] as List? ?? []).whereType<Map<String, dynamic>>().toList();
+      _indicationsTotal = (d['indications_total'] as num?)?.toInt() ?? 0;
     });
-    final categoriesResult =
-        await ApiClient.instance.get('/reference/categories');
-    final statusResult = await ApiClient.instance.get('/reference/sync/status');
-    if (!mounted) return;
-    if (categoriesResult.success) {
-      final cd = categoriesResult.data;
-      _categories = cd is List ? cd : [];
+    if (_indicationsTotal > 0) {
+      final p = await ApiClient.instance.get('/catalog/medications/pathologies');
+      if (mounted && p.success) {
+        setState(() => _pathologies = ApiList.of(p.data));
+      }
     }
-    if (statusResult.success) {
-      final sd = statusResult.data;
-      _syncStatus = sd is Map ? Map<String, dynamic>.from(sd) : null;
-    }
-    await _loadProducts(reset: true);
   }
 
-  Future<void> _loadProducts({bool reset = false}) async {
-    if (reset) {
-      _page = 1;
-      _hasMore = true;
-      _products = [];
-      _selected = 0;
-    }
-    if (!_hasMore) return;
-    final query = <String, dynamic>{
-      'page': _page,
-      'limit': _limit,
-      if (_search.text.trim().isNotEmpty) 'q': _search.text.trim(),
-      if (_activeCategory != null) 'category': _activeCategory!,
+  void _onSearchChanged(String q) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), () => _load(query: q));
+  }
+
+  Future<void> _load({String? query}) async {
+    setState(() { _loading = true; _error = null; });
+    final params = <String, dynamic>{
+      'limit': 200,
+      if (query != null && query.isNotEmpty) 'q': query,
+      if (_activeTab == 'parapharmacie') 'is_parapharmacie': true,
+      if (_activeTab == 'veterinaire') 'is_veterinaire': true,
+      if (_activeTab == 'dispositifs') 'is_dispositif': true,
+      if (_filterForm != null && _filterForm!.isNotEmpty) 'form': 'eq.$_filterForm',
+      if (_filterLabo != null && _filterLabo!.isNotEmpty) 'laboratory_name': 'eq.$_filterLabo',
+      if (_filterStatus != null && _filterStatus!.isNotEmpty) 'status': 'eq.$_filterStatus',
+      if (_filterPathologie != null && _filterPathologie!.isNotEmpty) 'pathologie': _filterPathologie,
+      if (_priceRange != null) 'price_sale': 'gte.${_priceRange!.start},lte.${_priceRange!.end}',
     };
-    final result =
-        await ApiClient.instance.get('/reference/products', query: query);
+    final r = await ApiClient.instance.get('/catalog/medications', query: params);
     if (!mounted) return;
-    if (!result.success) {
-      setState(() {
-        _loading = false;
-        _error = result.error?.readableMessage ?? 'Erreur';
-      });
+    if (!r.success) {
+      setState(() { _loading = false; _error = r.error?.message ?? 'Erreur'; });
       return;
     }
-    final total = (result.meta?['total'] as num?)?.toInt() ?? 0;
     setState(() {
-      final listData = ApiList.of(result.data);
-      _products = [..._products, ...listData];
-      _page++;
-      _hasMore = _products.length < total;
-      if (_selected >= _products.length) {
-        _selected = _products.isEmpty ? 0 : _products.length - 1;
-      }
+      _items = ApiList.of(r.data);
       _loading = false;
     });
   }
 
-  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      _moveSelection(1);
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      _moveSelection(-1);
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
-  }
-
-  void _moveSelection(int delta) {
-    if (_products.isEmpty) return;
-    final next = (_selected + delta).clamp(0, _products.length - 1);
-    if (next == _selected) return;
-    _lastDelta = delta;
-    setState(() => _selected = next);
-    _ensureSelectedVisible();
-  }
-
-  void _ensureSelectedVisible() {
-    void showSelected() {
-      if (!mounted) return;
-      final ctx = _selectedKey.currentContext;
-      if (ctx != null) {
-        Scrollable.ensureVisible(
-          ctx,
-          duration: const Duration(milliseconds: 150),
-          alignment: 0.5,
-          curve: Curves.easeOut,
-        );
-      }
-    }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      // Item hors zone virtuelle : faire défiler d'un ecran puis reessayer.
-      if (_selectedKey.currentContext == null && _listCtrl.hasClients) {
-        final pos = _listCtrl.position;
-        final target = pos.pixels + _lastDelta * pos.viewportDimension;
-        _listCtrl.jumpTo(target.clamp(0.0, pos.maxScrollExtent).toDouble());
-        WidgetsBinding.instance.addPostFrameCallback((_) => showSelected());
-      } else {
-        showSelected();
-      }
-    });
-  }
-
-  Future<void> _runSync() async {
-    setState(() => _syncing = true);
-    final result = await ApiClient.instance.post('/reference/sync');
-    if (!mounted) return;
-    if (result.success) {
-      final sd = result.data;
-      setState(() => _syncStatus = sd is Map<String, dynamic>
-          ? sd
-          : (sd is Map ? Map<String, dynamic>.from(sd) : null));
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(S.t('syncCompleted', locale))));
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result.error?.readableMessage ?? 'Erreur')));
-    }
-    setState(() => _syncing = false);
-  }
-
-  Future<void> _import(dynamic product) async {
-    final result = await ApiClient.instance
-        .post('/reference/products/${product['id']}/import', body: const {});
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(result.success
-          ? S.t('importSuccess', locale)
-          : result.error?.readableMessage ?? 'Erreur'),
-    ));
-  }
-
-  String get locale => context.watch<AuthStore>().locale;
-
-  @override
-  void dispose() {
-    _search.dispose();
-    _listCtrl.dispose();
-    super.dispose();
-  }
+  void _clearFilters() => setState(() {
+    _filterForm = null; _filterLabo = null; _filterStatus = null; 
+    _filterPathologie = null; _priceRange = null;
+    _load(query: _search.text);
+  });
 
   @override
   Widget build(BuildContext context) {
-    final last = _syncStatus?['last_run'] as Map<String, dynamic>?;
-
+    final locale = context.watch<AuthStore>().locale;
+    
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: const ShellBackButton(),
-        title: Text(S.t('baseMaroc', locale)),
+        title: Text(S.t('referenceCatalog', locale)),
         actions: [
           IconButton(
-            tooltip: S.t('syncNow', locale),
-            onPressed: _syncing ? null : _runSync,
-            icon: _syncing
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.sync),
+            icon: const Icon(Icons.download_outlined),
+            tooltip: S.t('export', locale),
+            onPressed: _exportCsv,
+          ),
+          IconButton(
+            icon: const Icon(Icons.upload_outlined),
+            tooltip: S.t('import', locale),
+            onPressed: _showImportDialog,
           ),
         ],
       ),
-      body: PharmaBackground(
-        assetImage: 'assets/images/background.webp',
-        child: Focus(
-          autofocus: true,
-          onKeyEvent: _onKeyEvent,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
-                child: GlassCard(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.cloud_sync_outlined,
-                          color: AppColors.turquoise),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${S.t('lastSync', locale)}: '
-                              '${Fmt.dateTime(_parseDate(last?['finished_at']), locale: locale)}',
-                              style: const TextStyle(
-                                  fontSize: 13, fontWeight: FontWeight.w600),
-                            ),
-                            Text(
-                              '${S.t('referenceProducts', locale)}: '
-                              '${_syncStatus?['total'] ?? 0}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.white60
-                                    : Colors.black54,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      TextButton.icon(
-                        onPressed: _syncing ? null : _runSync,
-                        icon: const Icon(Icons.refresh, size: 18),
-                        label: Text(_syncing
-                            ? S.t('syncRunning', locale)
-                            : S.t('syncNow', locale)),
-                      ),
-                    ],
-                  ),
+      body: Column(children: [
+        // Onglets types de produits
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+          child: SegmentedButton<String>(
+            segments: [
+              for (final (key, icon, label) in _tabs)
+                ButtonSegment(
+                  value: key,
+                  icon: Icon(icon, size: 18),
+                  label: Text(S.t(label, locale)),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
-                child: AppSearchField(
-                  controller: _search,
-                  hint: S.t('searchReference', locale),
-                  showFilterButton: false,
-                  debounceDuration: Duration.zero,
-                  onSubmitted: (_) => _loadProducts(reset: true),
-                  onClear: () => _loadProducts(reset: true),
-                ),
-              ),
-              if (_categories.isNotEmpty)
-                SizedBox(
-                  height: 48,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: FilterChip(
-                          label: Text(S.t('all', locale)),
-                          selected: _activeCategory == null,
-                          onSelected: (_) {
-                            _activeCategory = null;
-                            _loadProducts(reset: true);
-                          },
-                        ),
-                      ),
-                      for (final c in _categories)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: FilterChip(
-                            label: Text('${c['name_fr'] ?? c['code'] ?? ''}'),
-                            selected: _activeCategory == c['code'],
-                            onSelected: (_) {
-                              _activeCategory = '${c['code']}';
-                              _loadProducts(reset: true);
-                            },
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              const SizedBox(height: 4),
-              Expanded(child: _buildList()),
             ],
+            selected: {_activeTab},
+            onSelectionChanged: (sel) => setState(() {
+              _activeTab = sel.first;
+              _load(query: _search.text);
+            }),
           ),
         ),
-      ),
+        // Barre de recherche
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: AppSearchField(
+            controller: _search,
+            hint: S.t('search', locale),
+            onChanged: _onSearchChanged,
+            showFilterButton: true,
+            onFilterPressed: _showFilterDialog,
+          ),
+        ),
+        // Barre de filtres actifs
+        if (_hasActiveFilters)
+          _ActiveFilterBar(
+            onClear: _clearFilters,
+            locale: locale,
+            form: _filterForm, labo: _filterLabo,
+            status: _filterStatus, patho: _filterPathologie,
+            priceRange: _priceRange,
+          ),
+        // Liste / Tableau
+        Expanded(
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
+                  ? Center(child: Text(_error!))
+                  : _items.isEmpty
+                      ? Center(child: Text(S.t('noProducts', locale)))
+                      : LayoutBuilder(builder: (context, constraints) {
+                          final narrow = constraints.maxWidth < 980;
+                          return RefreshIndicator(
+                            onRefresh: () => _load(query: _search.text),
+                            child: narrow
+                                ? _buildMobileCards(locale)
+                                : _buildDesktopTable(locale),
+                          );
+                        }),
+        ),
+      ]),
     );
   }
 
-  Widget _buildList() {
-    if (_loading && _products.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.cloud_off, size: 56, color: AppColors.warning),
-              const SizedBox(height: 12),
-              Text(_error!, textAlign: TextAlign.center),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: _init,
-                icon: const Icon(Icons.refresh),
-                label: Text(S.t('retry', locale)),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-    if (_products.isEmpty) {
-      return Center(child: Text(S.t('noReferenceProducts', locale)));
-    }
+  bool get _hasActiveFilters =>
+      _filterForm != null || _filterLabo != null || _filterStatus != null ||
+      _filterPathologie != null || _priceRange != null;
+
+  void _onSearchChanged(String q) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), () => _load(query: q));
+  }
+
+  void _clearFilters() => setState(() {
+    _filterForm = null; _filterLabo = null; _filterStatus = null; 
+    _filterPathologie = null; _priceRange = null;
+    _load(query: _search.text);
+  });
+
+  Widget _buildMobileCards(String locale) {
     return ListView.builder(
-      controller: _listCtrl,
-      padding: const EdgeInsets.fromLTRB(14, 8, 14, 24),
-      itemCount: _products.length + 1,
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+      itemCount: _items.length,
       itemBuilder: (context, i) {
-        if (i == _products.length) {
-          if (!_hasMore) return const SizedBox(height: 16);
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Center(
-              child: OutlinedButton(
-                onPressed: _loadProducts,
-                child: Text(S.t('loadMore', locale)),
+        final p = _items[i];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: GlassCard(
+            radius: BorderRadius.circular(16),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            onTap: () => _showDetail(p),
+            child: Row(children: [
+              Container(
+                width: 48, height: 48,
+                decoration: BoxDecoration(
+                  gradient: AppColors.goldGradient,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.medication, color: Color(0xFF3E2A00)),
               ),
-            ),
-          );
-        }
-        final p = _products[i] as Map<String, dynamic>;
-        final selected = i == _selected;
-        // Charger la page suivante des que l'on arrive en bas de la liste.
-        if (selected && _hasMore && !_loading) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted && _hasMore && !_loading) _loadProducts();
-          });
-        }
-        return _ProductTile(
-          key: selected ? _selectedKey : null,
-          product: p,
-          selected: selected,
-          onImport: () => _import(p),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(p['name'] ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                    Text([
+                      p['dci'], p['dosage'], p['form'], p['laboratory_name']
+                    ].where((e) => e != null && e.toString().isNotEmpty).join(' · '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    if (p['price_sale'] != null && (p['price_sale'] as num) > 0)
+                      Text('${Fmt.money((p['price_sale'] as num).toDouble())} DH',
+                          style: const TextStyle(
+                              color: AppColors.pharmaGold,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13)),
+                  ],
+                ),
+              ),
+              _StatusChip(p['status']),
+            ]),
+          ),
         );
       },
     );
   }
-}
 
-class _ProductTile extends StatelessWidget {
-  final Map<String, dynamic> product;
-  final bool selected;
-  final VoidCallback onImport;
-  const _ProductTile(
-      {super.key,
-      required this.product,
-      this.selected = false,
-      required this.onImport});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final locale = context.watch<AuthStore>().locale;
-    final commercialised = product['commercial_status'] == 'commercialise';
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      color: selected ? AppColors.turquoise.withValues(alpha: 0.12) : null,
-      shape: selected
-          ? RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: const BorderSide(color: AppColors.turquoise, width: 1.5),
-            )
-          : null,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: _iconColor(product).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.medication_outlined,
-                    color: _iconColor(product),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${product['name']}',
-                        style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w700),
-                      ),
-                      if (product['dci'] != null)
-                        Text(
-                          '${product['dci']}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isDark ? Colors.white60 : Colors.black54,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color:
-                        (commercialised ? AppColors.success : AppColors.warning)
-                            .withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    commercialised
-                        ? S.t('commercialise', locale)
-                        : S.t('nonCommercialise', locale),
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: commercialised
-                          ? AppColors.success
-                          : AppColors.warning,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 16,
-              runSpacing: 4,
-              children: [
-                _mini('${S.t('ppv', locale)}:', _money(product['ppv']), isDark),
-                _mini('${S.t('ph', locale)}:', _money(product['ph']), isDark),
-                _mini(
-                    '${S.t('pfht', locale)}:', _money(product['pfht']), isDark),
-                if (product['presentation'] != null)
-                  _mini(S.t('productPresentation', locale),
-                      '${product['presentation']}', isDark),
-              ],
-            ),
-            if (product['laboratory'] != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Text(
-                  '${S.t('productLaboratory', locale)}: ${product['laboratory']}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? Colors.white54 : Colors.black54,
-                  ),
-                ),
-              ),
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.tonalIcon(
-                onPressed: onImport,
-                icon: const Icon(Icons.add_shopping_cart, size: 18),
-                label: Text(S.t('importToCatalog', locale)),
-              ),
-            ),
-          ],
-        ),
-      ),
+  Widget _buildDesktopTable(String locale) {
+    final cfg = TableColumnWidths;
+    return AppDataTable<Map<String, dynamic>>(
+      columns: TableColumns.medications(locale),
+      data: _items,
+      fixedHeader: true,
+      config: const AppDataTableConfig(columnSpacing: 16),
+      onRowTap: _showDetail,
     );
   }
 
-  Widget _mini(String label, String value, bool isDark) {
-    return Text.rich(
-      TextSpan(
-        text: '$label ',
-        style: TextStyle(
-          fontSize: 12,
-          color: isDark ? Colors.white54 : Colors.black54,
+  void _onSearchChanged(String q) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), () => _load(query: q));
+  }
+
+  void _clearFilters() => setState(() {
+    _filterForm = null; _filterLabo = null; _filterStatus = null; 
+    _filterPathologie = null; _priceRange = null;
+    _load(query: _search.text);
+  });
+
+  void _showFilterDialog() {
+    final locale = context.read<AuthStore>().locale;
+    String? tmpForm = _filterForm;
+    String? tmpLabo = _filterLabo;
+    String? tmpStatus = _filterStatus;
+    String? tmpPatho = _filterPathologie;
+    RangeValues? tmpPrice = _priceRange;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setState) => AlertDialog(
+        title: Text(S.t('filters', locale)),
+        content: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            _filterDropdown(ctx, S.t('form', locale), _forms, tmpForm,
+                (v) => setState(() => tmpForm = v)),
+            _filterDropdown(ctx, S.t('laboratory', locale), _labs, tmpLabo,
+                (v) => setState(() => tmpLabo = v)),
+            _filterDropdown(ctx, S.t('status', locale), [
+              _Facet('Disponible', 'available'),
+              _Facet('Rupture', 'out_of_stock'),
+              _Facet('Retiré', 'retired'),
+            ], tmpStatus, (v) => setState(() => tmpStatus = v)),
+            if (_indicationsTotal > 0)
+              _filterDropdown(ctx, S.t('pathology', locale), _pathologies, tmpPatho,
+                  (v) => setState(() => tmpPatho = v))
+            else
+              ListTile(
+                leading: const Icon(Icons.filter_alt_off, color: Colors.grey),
+                title: Text(S.t('pathology', locale)),
+                subtitle: Text(S.t('noPathologyData', locale)),
+              ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.attach_money, color: AppColors.pharmaGold),
+              title: Text(S.t('priceRange', locale)),
+              subtitle: tmpPrice != null
+                  ? Text('${tmpPrice!.start.round()} - ${tmpPrice!.end.round()} DH')
+                  : Text(S.t('all', locale)),
+              trailing: IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () => setState(() => tmpPrice = null),
+              ),
+              onTap: () async {
+                final range = await showRangeSliderDialog(
+                  context: ctx,
+                  min: 0,
+                  max: 5000,
+                  current: tmpPrice,
+                );
+                if (range != null) setState(() => tmpPrice = range);
+              ),
+            ),
+          ]),
         ),
-        children: [
-          TextSpan(
-            text: value,
-            style: const TextStyle(fontWeight: FontWeight.w700),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(S.t('cancel', locale))),
+          FilledButton(
+            onPressed: () {
+              setState(() {
+                _filterForm = tmpForm;
+                _filterLabo = tmpLabo;
+                _filterStatus = tmpStatus;
+                _filterPathologie = tmpPatho;
+                _priceRange = tmpPrice;
+              });
+              _load(query: _search.text);
+              Navigator.pop(ctx);
+            },
+            child: Text(S.t('apply', locale)),
           ),
+        ],
+      )),
+    );
+  }
+
+  Widget _filterDropdown(BuildContext ctx, String label, List<Map<String, dynamic>> options,
+      String? value, ValueChanged<String?> onChanged) {
+    final enabled = options.isNotEmpty;
+    return DropdownButtonFormField<String>(
+      initialValue: enabled ? value : null,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: label,
+        filled: true,
+        fillColor: enabled ? Colors.white : Colors.grey[100],
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+      items: [
+        DropdownMenuItem(value: null, child: Text(S.t('all', ctx.read<AuthStore>().locale))),
+        for (final o in options.where((o) => o['label'].toString().isNotEmpty && o['value'].toString().isNotEmpty))
+          DropdownMenuItem(
+            value: o['value'].toString(),
+            child: Text('${o['label']} (${o['total'] ?? 0})',
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
+      ],
+      onChanged: enabled ? onChanged : null,
+    );
+  }
+
+  Future<RangeValues?> showRangeSliderDialog({
+    required BuildContext context,
+    required double min,
+    required double max,
+    RangeValues? current,
+  }) async {
+    RangeValues? result = current;
+    await showDialog<RangeValues>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setState) => AlertDialog(
+        title: const Text('Fourchette de prix'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          RangeSlider(
+            values: result ?? RangeValues(min, max),
+            min: min, max: max,
+            divisions: 100,
+            labels: RangeLabels(
+              '${(result ?? RangeValues(min, max)).start.round()} DH',
+              '${(result ?? RangeValues(min, max)).end.round()} DH',
+            ),
+            onChanged: (v) => setState(() => result = v),
+          ),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, result), child: const Text('OK')),
+        ],
+      )),
+    );
+    return result;
+  }
+
+  void _exportCsv() {
+    final csv = StringBuffer();
+    // En-têtes
+    csv.writeln('EAN-13,Nom,DCI,Dosage,Forme,Présentation,Labo,PPV,PH,PPC,Statut,Princeps/Gen');
+    for (final p in _items) {
+      csv.writeln([
+        p['barcode_ean13'] ?? '',
+        '"${(p['name'] ?? '').replaceAll('"', '""')}"',
+        p['dci'] ?? '',
+        p['dosage'] ?? '',
+        p['form'] ?? '',
+        p['presentation'] ?? '',
+        p['laboratory_name'] ?? '',
+        p['price_sale'] ?? '',
+        p['ph'] ?? '',
+        p['ppc'] ?? '',
+        p['status'] ?? '',
+        p['princeps_generique'] ?? '',
+      ].join(','));
+    }
+    final bytes = utf8.encode(csv.toString());
+    // Note: sur Web, utiliser html.Blob pour télécharger
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Export CSV: ${_items.length} lignes')),
+    );
+  }
+
+  void _showImportDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Import contrôlé'),
+        content: const Text('Sélectionnez un fichier CSV/Excel validé.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
+          FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Choisir fichier')),
         ],
       ),
     );
   }
 
-  static String _money(dynamic v) {
-    final d = double.tryParse('$v') ?? 0;
-    return d > 0 ? Fmt.money(d) : '—';
+  void _showDetail(Map<String, dynamic> p) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (_, controller) => SingleChildScrollView(
+          controller: controller,
+          padding: const EdgeInsets.all(20),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Expanded(child: Text(p['name'] ?? '',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800))),
+              IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+            ]),
+            const SizedBox(height: 12),
+            _detailRow('EAN-13', p['barcode_ean13']),
+            _detailRow('DCI', p['dci']),
+            _detailRow('Dosage', p['dosage']),
+            _detailRow('Forme', p['form']),
+            _detailRow('Présentation', p['presentation']),
+            _detailRow('Laboratoire', p['laboratory_name']),
+            _detailRow('Classe thérapeutique', p['therapeutic_class']),
+            _detailRow('Substance active', p['substance_active']),
+            _detailRow('PPV', p['price_sale'] != null ? '${Fmt.money((p['price_sale'] as num).toDouble())} DH' : null),
+            _detailRow('PH', p['ph'] != null ? '${Fmt.money((p['ph'] as num).toDouble())} DH' : null),
+            _detailRow('PPC', p['ppc'] != null ? '${Fmt.money((p['ppc'] as num).toDouble())} DH' : null),
+            _detailRow('Taux remboursement', p['reimbursement_rate'] != null ? '${p['reimbursement_rate']}%' : null),
+            _detailRow('Princeps/Générique', p['princeps_generique']),
+            _detailRow('Statut', p['status']),
+            _detailRow('AMM', p['amm_number']),
+            _detailRow('Code-barres', p['barcode_ean13']),
+          ]),
+        ),
+      ),
+    );
   }
 
-  static Color _iconColor(Map<String, dynamic> p) {
-    final raw = p['category_color'] as String? ?? '';
-    return raw.isEmpty ? AppColors.turquoise : _parseColor(raw);
-  }
-
-  static Color _parseColor(String hex) {
-    var value = hex.replaceAll('#', '');
-    if (value.length == 6) value = 'FF$value';
-    return Color(int.parse('0x$value'));
+  Widget _detailRow(String label, String? value) {
+    if (value == null || value.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        SizedBox(width: 120, child: Text(label, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w600))),
+        Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600))),
+      ]),
+    );
   }
 }
 
-DateTime? _parseDate(dynamic value) {
-  if (value == null) return null;
-  return DateTime.tryParse('$value');
+class _ActiveFilterBar extends StatelessWidget {
+  final VoidCallback onClear;
+  final String locale;
+  final String? form, labo, status, patho;
+  final RangeValues? priceRange;
+
+  const _ActiveFilterBar({
+    required this.onClear,
+    required this.locale,
+    this.form, this.labo, this.status, this.patho, this.priceRange,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final chips = <Widget>[
+      if (form != null) _FilterChip(label: 'Forme: $form', onRemoved: () {}),
+      if (labo != null) _FilterChip(label: 'Labo: $labo', onRemoved: () {}),
+      if (status != null) _FilterChip(label: 'Statut: $status', onRemoved: () {}),
+      if (patho != null) _FilterChip(label: 'Pathologie: $patho', onRemoved: () {}),
+      if (priceRange != null) _FilterChip(label: 'Prix: ${priceRange!.start.round()}-${priceRange!.end.round()} DH', onRemoved: () {}),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Row(children: [
+        Expanded(child: Wrap(spacing: 8, children: chips)),
+        TextButton.icon(
+          onPressed: onClear,
+          icon: const Icon(Icons.filter_alt_off, size: 16),
+          label: Text(S.t('clearFilters', locale)),
+        ),
+      ]),
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final VoidCallback onRemoved;
+  const _FilterChip({required this.label, required this.onRemoved});
+
+  @override
+  Widget build(BuildContext context) {
+    return InputChip(
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      onDeleted: onRemoved,
+      deleteIcon: const Icon(Icons.close, size: 14),
+      backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+      labelStyle: const TextStyle(color: AppColors.pharmaGold),
+      deleteIconColor: AppColors.pharmaGold,
+    );
+  }
+}
+
+class _Facet {
+  final String label;
+  final String value;
+  final int total;
+  const _Facet(this.label, [this.value = '', this.total = 0]);
+}
+
+class _StatusChip extends StatelessWidget {
+  final String? status;
+  const _StatusChip(this.status);
+  @override
+  Widget build(BuildContext context) {
+    final s = status ?? 'unknown';
+    Color color;
+    String label;
+    switch (s) {
+      case 'available': color = AppColors.success; label = 'Disponible'; break;
+      case 'out_of_stock': color = AppColors.danger; label = 'Rupture'; break;
+      case 'retired': color = Colors.grey; label = 'Retiré'; break;
+      default: color = Colors.grey; label = s;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color, width: 1),
+      ),
+      child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700)),
+    );
+  }
 }
