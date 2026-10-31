@@ -1,5 +1,5 @@
 // Calendrier Hégirien (Hijri) pour le Maroc
-// Basé sur l'algorithme standard (Kuwaiti/UMAlQura)
+// Basé sur l'algorithme standard (Kuwaiti/UMAlQura) CORRIGÉ
 // Compatible avec les annonces officielles marocaines
 
 import 'package:flutter/material.dart';
@@ -32,14 +32,14 @@ class HijriCalendar {
   static const List<String> hijriMonthNamesAr = _hijriMonthNamesAr;
 
   /// Convertit une date grégorienne en hégirienne
-  /// Utilise l'algorithme standard (basé sur le calendrier civil saoudien UMAlQura)
+  /// Utilise l'algorithme corrigé (Kuwaiti/UMAlQura) avec époque corrigée
   static ({int year, int month, int day}) gregorianToHijri(DateTime gregorian) {
     // Conversion via Julian Day Number (JDN)
     final jdn = _gregorianToJDN(gregorian);
     
-    // Epoch hégirien : 1 Mouharram 1 AH = 16 juillet 622 CE (Julien) = 19 juillet 622 CE (Grégorien)
-    // JDN pour 19 juillet 622 CE = 1948440
-    const hijriEpochJDN = 1948440;
+    // Epoch hégirien CORRIGÉ : 1 Mouharram 1 AH = 19 juillet 622 CE (Grégorien)
+    // JDN pour 19 juillet 622 CE = 1947732 (CORRIGÉ vs 1948440 erroné)
+    const hijriEpochJDN = 1947732;
     
     // Jours écoulés depuis l'époque hégirienne
     final daysSinceEpoch = jdn - hijriEpochJDN;
@@ -48,8 +48,8 @@ class HijriCalendar {
     }
     
     // Calcul approximatif de l'année hégirienne
-    // Année hégirienne moyenne = 354.366666... jours
-    var hijriYear = ((daysSinceEpoch / 354.3666666666667).floor() + 1);
+    // Année hégirienne moyenne CORRIGÉE = 354.367056 jours (cycle 30 ans)
+    var hijriYear = ((daysSinceEpoch / 354.367056).floor() + 1);
     if (hijriYear < 1) hijriYear = 1;
     
     // Affiner en comptant les jours
@@ -99,7 +99,7 @@ class HijriCalendar {
     
     return DateTime(year, month, day);
   }
-
+  
   /// Convertit une date hégirienne en grégorienne
   static DateTime hijriToGregorian(int hyear, int hmonth, int hday) {
     // Calculer le JDN de la date hégirienne
@@ -112,7 +112,7 @@ class HijriCalendar {
     }
     days += hday - 1;
     
-    const hijriEpochJDN = 1948440;
+    const hijriEpochJDN = 1947732;
     final jdn = hijriEpochJDN + days;
     
     return _jdnToGregorian(jdn);

@@ -61,11 +61,30 @@ class _HomeShellState extends State<HomeShell> {
 
   /// Expose the scaffold key globally so DashboardPage can access the drawer.
   @override
-  void dispose() {
-    ScaffoldKeyService.clear();
-    ShellNav.index.removeListener(_onShellIndexChanged);
-    _auth.removeListener(_onAuthLockChanged);
-    super.dispose();
+  void initState() {
+    super.initState();
+    ScaffoldKeyService.setScaffoldKey(_scaffoldKey);
+    // Restaure la préférence rail 64 px / menu ouvert 232 px (persistée).
+    SideMenuState.init();
+    // Référence sauvegardée : context.read est INTERDIT dans dispose()
+    // (l'ancêtre Provider peut être déjà déactivé pendant le démontage).
+    _auth = context.read<AuthStore>();
+    // Onglet déjà visité au montage (index non nul possible en restauration).
+    _visited.add(ShellNav.index.value);
+    // Retour système smartphone/tablette : une entrée d'historique par onglet
+    // pour reculer Onglet → Dashboard → dialogue de confirmation.
+    ShellNav.index.addListener(_onShellIndexChanged);
+    systemBackNoteShellIndex(ShellNav.index.value);
+    // Verrouillage automatique : dès que le store bascule en `isLocked`,
+    // l'écran PIN est posé par-dessus le shell (inactivité ou manuel).
+    _auth.addListener(_onAuthLockChanged);
+    // Sync différée : on ne la lance pas pendant la première frame qui
+    // charge déjà le dashboard (concurrence réseau inutile).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) _kickSync();
+      });
+    });
   }
 
   /// Pages déjà visitées : montées à la demande (lazy) pour éviter
@@ -100,31 +119,6 @@ class _HomeShellState extends State<HomeShell> {
     const SettingsPage(),
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    // Restaure la préférence rail 64 px / menu ouvert 232 px (persistée).
-    SideMenuState.init();
-    // Référence sauvegardée : context.read est INTERDIT dans dispose()
-    // (l'ancêtre Provider peut être déjà déactivé pendant le démontage).
-    _auth = context.read<AuthStore>();
-    // Onglet déjà visité au montage (index non nul possible en restauration).
-    _visited.add(ShellNav.index.value);
-    // Retour système smartphone/tablette : une entrée d'historique par onglet
-    // pour reculer Onglet → Dashboard → dialogue de confirmation.
-    ShellNav.index.addListener(_onShellIndexChanged);
-    systemBackNoteShellIndex(ShellNav.index.value);
-    // Verrouillage automatique : dès que le store bascule en `isLocked`,
-    // l'écran PIN est posé par-dessus le shell (inactivité ou manuel).
-    _auth.addListener(_onAuthLockChanged);
-    // Sync différée : on ne la lance pas pendant la première frame qui
-    // charge déjà le dashboard (concurrence réseau inutile).
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) _kickSync();
-      });
-    });
-  }
   void _onAuthLockChanged() {
     final locked = context.read<AuthStore>().isLocked;
     if (locked && !_lockRouteShown && mounted) {
