@@ -26,6 +26,8 @@ import '../settings/settings_page.dart';
 import '../reference/reference_page.dart';
 import '../reorder/reorder_page.dart';
 import '../ai/ai_page_v2.dart';
+import '../whatsapp/whatsapp_center_page.dart';
+import '../super_admin/super_admin_crm_page.dart';
 import 'app_side_menu.dart';
 
 /// Global key for the HomeShell scaffold, accessible from DashboardPage to open the drawer.
@@ -60,6 +62,8 @@ const _pageModuleKeys = <int, String?>{
   13: 'supplier_connectivity', // Connectivité fournisseurs
   14: 'reorder', // Réapprovisionnement intelligent
   15: 'ai', // Assistant IA
+  16: 'whatsapp', // Centre WhatsApp
+  17: 'superadmin_crm', // Super Admin CRM
 };
 
 class _HomeShellState extends State<HomeShell> {
@@ -129,6 +133,8 @@ class _HomeShellState extends State<HomeShell> {
     const SupplierConnectivityPage(),
     const ReorderPage(),
     const AIPageV2(),
+    const WhatsAppCenterPage(),
+    const SuperAdminCRMPage(),
   ];
 
   void _onAuthLockChanged() {
@@ -227,6 +233,8 @@ class _HomeShellState extends State<HomeShell> {
       (Icons.menu_book_outlined, Icons.menu_book, 'reference', 12),
       (Icons.storefront_outlined, Icons.storefront, 'pharmacyPlan', 10),
       (Icons.settings_outlined, Icons.settings, 'settings', 11),
+      (Icons.chat_outlined, Icons.chat, 'whatsapp', 16),
+      (Icons.business_outlined, Icons.business, 'superadmin', 17),
     ];
 
     // Clé de module pour les items de la bottom bar mobile.
@@ -243,6 +251,8 @@ class _HomeShellState extends State<HomeShell> {
       13: 'supplier_connectivity',
       14: 'reorder',
       15: 'ai',
+      16: 'whatsapp',
+      17: 'superadmin_crm',
     };
 
     final mobileItems = allMobileItems.where((m) {
