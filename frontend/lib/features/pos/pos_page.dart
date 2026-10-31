@@ -52,6 +52,7 @@ class _PosPageState extends State<PosPage> {
   final _search = TextEditingController();
   final _receivedCtrl = TextEditingController();
   final _discountCtrl = TextEditingController();
+  final FocusNode _searchFocus = FocusNode(); // FocusNode pour navigation clavier
   List<Medication> _results = [];
   bool _searching = false;
   bool _checkout = false;
@@ -142,6 +143,7 @@ class _PosPageState extends State<PosPage> {
     _discountCtrl.dispose();
     _searchDebounce?.cancel();
     _receivedVN.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -1495,11 +1497,24 @@ class _PosPageState extends State<PosPage> {
           alignment: Alignment.centerLeft,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 380),
-            child: TextField(
-              controller: _search,
-              onChanged: _onSearchChanged,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
-              decoration: InputDecoration(
+            child: Focus(
+              focusNode: _searchFocus,
+              child: RawKeyboardListener(
+                focusNode: _searchFocus,
+                onKey: (event) {
+                  if (event is RawKeyDownEvent) {
+                    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                      if (_results.isNotEmpty) {
+                        _searchFocus.unfocus();
+                      }
+                    } else if (event.logicalKey == LogicalKeyboardKey.escape) {
+                      _searchFocus.unfocus();
+                      _search.clear();
+                      _onSearchChanged('');
+                    }
+                  }
+                },
+                child: TextField(
                 hintText: S.t('search', locale),
                 prefixIcon: const Icon(Icons.search,
                     color: AppColors.pharmaMuted, size: 20),
@@ -1525,9 +1540,10 @@ class _PosPageState extends State<PosPage> {
                 focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: AppColors.pharmaGold)),
+                  ),
+                ),
               ),
             ),
-          ),
         ),
         // ── Bandeau hors-ligne : signale que prix/stock ne sont pas garantis
         // à jour (données servies depuis le cache local, dernière synchro). ──

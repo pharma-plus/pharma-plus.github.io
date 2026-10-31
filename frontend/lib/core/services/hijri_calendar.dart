@@ -37,9 +37,9 @@ class HijriCalendar {
     // Conversion via Julian Day Number (JDN)
     final jdn = _gregorianToJDN(gregorian);
     
-    // Epoch hégirien CORRIGÉ : 1 Mouharram 1 AH = 19 juillet 622 CE (Grégorien)
-    // JDN pour 19 juillet 622 CE = 1947732 (CORRIGÉ vs 1948440 erroné)
-    const hijriEpochJDN = 1947732;
+    // Epoch hégirien CORRIGÉ (Umm al-Qura standard) : 1 Mouharram 1 AH = 16 juillet 622 CE (Grégorien)
+    // JDN = 1948440 → correspond à 20 Joumada al-Ula 1448 AH pour le 31 octobre 2026
+    const hijriEpochJDN = 1948440;
     
     // Jours écoulés depuis l'époque hégirienne
     final daysSinceEpoch = jdn - hijriEpochJDN;
@@ -112,7 +112,7 @@ class HijriCalendar {
     }
     days += hday - 1;
     
-    const hijriEpochJDN = 1947732;
+    const hijriEpochJDN = 1948440;
     final jdn = hijriEpochJDN + days;
     
     return _jdnToGregorian(jdn);

@@ -277,7 +277,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       builder: (context, collapsed, _) => _TopBar(
                         onMenu: showSidebar ? null : _openMenuDrawer,
                         collapsed: collapsed,
-                        onToggleSidebar: SideMenuState.toggle,
+                        onToggleSidebar: showSidebar ? SideMenuState.toggle : null,
                         onScan: () => _push(const ScannerPage()),
                         onNotifications: () => _push(const NotificationsPage()),
                         onSettings: () => ShellNav.index.value = 11,
