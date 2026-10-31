@@ -542,7 +542,7 @@ class UserFormDialogState extends State<UserFormDialog> {
       'last_name': _last.text.trim(),
       'email': _email.text.trim(),
       'phone': _phone.text.trim().isEmpty ? null : _phone.text.trim(),
-      if (_roleId != null) 'role_id': _roleId,
+      'role_id': _roleId,
       if (!_isEdit && _pass.text.isNotEmpty) 'password': _pass.text,
       // Association employé <-> compte : null = aucun (PUT délie).
       'employee_id': _employeeId.isEmpty ? null : _employeeId,
@@ -646,6 +646,9 @@ class UserFormDialogState extends State<UserFormDialog> {
                         value: '${r['id']}', child: Text('${r['name']}')))
                     .toList(),
                 onChanged: (v) => setState(() => _roleId = v),
+                validator: (v) => v == null || v.isEmpty
+                    ? 'Rôle requis'
+                    : null,
               ),
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
@@ -739,7 +742,11 @@ class UserFormDialogState extends State<UserFormDialog> {
             onPressed: () => Navigator.pop(context),
             child: Text(S.t('cancel', locale))),
         FilledButton(
-            onPressed: _saving ? null : _submit,
+            onPressed: _saving ? null : () {
+              if (_formKey.currentState?.validate() ?? false) {
+                _submit();
+              }
+            },
             child: Text(_saving ? '…' : S.t('save', locale))),
       ],
     );
