@@ -139,6 +139,8 @@ class _AppSideMenuState extends State<AppSideMenu> {
           permission: 'catalog:view', module: 'catalog', shellIndex: 3),
       const AppSideNavItem(Icons.menu_book_outlined, 'Référence',
           permission: 'catalog:view', module: 'reference', shellIndex: 12),
+      const AppSideNavItem(Icons.link_outlined, 'Connexions fournisseurs',
+          permission: 'suppliers:view', module: 'supplier_connectivity', shellIndex: 13),
       const AppSideNavItem(Icons.inventory_2_outlined, 'Stock',
           permission: 'stock:view', module: 'stock', shellIndex: 4),
       const AppSideNavItem(Icons.local_shipping_outlined, 'Fournisseurs',
