@@ -222,6 +222,7 @@ class _PosPanelState extends State<PosPanel> {
   /// /catalog/medications ne retourne PAS stock_quantity (colonne absente
   /// de la table medications) : sans cet appel, _stock reste vide et tout
   /// ajout affichait « Stock non vérifiable » (bug PC dashboard).
+  /// Filtre aussi les produits avec stock <= 0 (rupture).
   Future<void> _loadStockForResults() async {
     final ids = _results.keys.where((id) => !_stock.containsKey(id)).toList();
     if (ids.isEmpty) return;
@@ -230,11 +231,21 @@ class _PosPanelState extends State<PosPanel> {
           query: {'ids': ids.take(100).join(',')});
       if (!mounted || !r.success || r.data is! List) return;
       setState(() {
+        // Filtrer les produits avec stock <= 0 (rupture)
+        final toRemove = <String>[];
         for (final e in r.data as List) {
           if (e is Map) {
-            _stock['${e['medication_id']}'] =
-                (e['quantity'] as num?)?.toDouble() ?? 0;
+            final id = '${e['medication_id']}';
+            final qty = (e['quantity'] as num?)?.toDouble() ?? 0;
+            _stock[id] = qty;
+            if (qty <= 0) {
+              toRemove.add(id);
+            }
           }
+        }
+        // Retirer les produits en rupture du résultat affiché
+        for (final id in toRemove) {
+          _results.remove(id);
         }
       });
     } catch (_) {}

@@ -535,8 +535,18 @@ class _PosPageState extends State<PosPage> {
 
   /// Le filtre catégorie est appliqué côté serveur (param form=eq.*) :
   /// plus de filtrage local sur categoryName qui masquait des produits.
+  /// Filtre aussi les produits avec stock <= 0 (rupture).
   void _applyFilter() {
-    setState(() => _results = List.of(_catalog));
+    setState(() {
+      _results = _catalog.where((m) {
+        final stock = _stock[m.id];
+        // Si le stock n'est pas encore chargé (null), on affiche le produit
+        // (il sera masqué automatiquement quand le stock sera chargé s'il est à 0)
+        if (stock == null) return true;
+        // Masquer les produits avec stock <= 0 (rupture)
+        return stock > 0;
+      }).toList();
+    });
   }
 
   /// Stock réel par lot pour les ids affichés (badge stock des cartes).
