@@ -17,6 +17,7 @@ import '../stock/stock_page.dart';
 import '../suppliers/suppliers_page.dart';
 import '../suppliers/supplier_connectivity_page.dart';
 import '../customers/customers_page.dart';
+import '../customers/customers_page_v2.dart';
 import '../employees/employees_page.dart';
 import '../reports/reports_page.dart';
 import '../purchases/purchases_page.dart';
@@ -118,7 +119,7 @@ class _HomeShellState extends State<HomeShell> {
     const StockPage(),
     const SuppliersPage(),
     const PurchasesPage(),
-    const CustomersPage(),
+    const CustomersPageV2(),
     const EmployeesPage(),
     const ReportsPage(),
     const PharmacyPlanPage(),
@@ -217,6 +218,7 @@ class _HomeShellState extends State<HomeShell> {
       (Icons.point_of_sale_outlined, Icons.point_of_sale, 'pos', 2),
       (Icons.medication_outlined, Icons.medication, 'medications', 3),
       (Icons.inventory_2_outlined, Icons.inventory_2, 'stock', 4),
+      (Icons.people_outlined, Icons.people, 'customers', 7),
       (Icons.local_shipping_outlined, Icons.local_shipping, 'reorder', 14),
       (Icons.link_outlined, Icons.link, 'supplierConnectivity', 13),
       (Icons.menu_book_outlined, Icons.menu_book, 'reference', 12),
@@ -231,6 +233,7 @@ class _HomeShellState extends State<HomeShell> {
       2: 'pos',
       3: 'catalog',
       4: 'stock',
+      7: 'customers',
       10: 'plan',
       11: 'settings',
       12: 'reference',
