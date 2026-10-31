@@ -576,7 +576,7 @@ class _PosPageState extends State<PosPage> {
       // Retirer les produits en rupture du résultat affiché
       for (final id in toRemove) {
         _catalog.removeWhere((m) => m.id == id);
-        _results.remove(id);
+        _results.removeWhere((m) => m.id == id);
       }
     });
   }
