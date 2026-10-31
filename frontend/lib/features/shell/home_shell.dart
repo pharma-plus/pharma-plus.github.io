@@ -16,7 +16,6 @@ import '../catalog/catalog_page.dart';
 import '../stock/stock_page.dart';
 import '../suppliers/suppliers_page.dart';
 import '../suppliers/supplier_connectivity_page.dart';
-import '../customers/customers_page.dart';
 import '../customers/customers_page_v2.dart';
 import '../employees/employees_page.dart';
 import '../reports/reports_page.dart';
@@ -26,6 +25,7 @@ import '../floor_plan/pharmacy_plan_page.dart';
 import '../settings/settings_page.dart';
 import '../reference/reference_page.dart';
 import '../reorder/reorder_page.dart';
+import '../ai/ai_page_v2.dart';
 import 'app_side_menu.dart';
 
 /// Global key for the HomeShell scaffold, accessible from DashboardPage to open the drawer.
@@ -59,6 +59,7 @@ const _pageModuleKeys = <int, String?>{
   12: 'reference', // Catalogue centralisé
   13: 'supplier_connectivity', // Connectivité fournisseurs
   14: 'reorder', // Réapprovisionnement intelligent
+  15: 'ai', // Assistant IA
 };
 
 class _HomeShellState extends State<HomeShell> {
@@ -127,6 +128,7 @@ class _HomeShellState extends State<HomeShell> {
     const ReferencePage(),
     const SupplierConnectivityPage(),
     const ReorderPage(),
+    const AIPageV2(),
   ];
 
   void _onAuthLockChanged() {
@@ -219,6 +221,7 @@ class _HomeShellState extends State<HomeShell> {
       (Icons.medication_outlined, Icons.medication, 'medications', 3),
       (Icons.inventory_2_outlined, Icons.inventory_2, 'stock', 4),
       (Icons.people_outlined, Icons.people, 'customers', 7),
+      (Icons.smart_toy_outlined, Icons.smart_toy, 'ai', 15),
       (Icons.local_shipping_outlined, Icons.local_shipping, 'reorder', 14),
       (Icons.link_outlined, Icons.link, 'supplierConnectivity', 13),
       (Icons.menu_book_outlined, Icons.menu_book, 'reference', 12),
@@ -239,6 +242,7 @@ class _HomeShellState extends State<HomeShell> {
       12: 'reference',
       13: 'supplier_connectivity',
       14: 'reorder',
+      15: 'ai',
     };
 
     final mobileItems = allMobileItems.where((m) {
