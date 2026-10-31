@@ -24,6 +24,7 @@ import '../security/lock_screen.dart';
 import '../floor_plan/pharmacy_plan_page.dart';
 import '../settings/settings_page.dart';
 import '../reference/reference_page.dart';
+import '../reorder/reorder_page.dart';
 import 'app_side_menu.dart';
 
 /// Global key for the HomeShell scaffold, accessible from DashboardPage to open the drawer.
@@ -56,6 +57,7 @@ const _pageModuleKeys = <int, String?>{
   11: 'settings',
   12: 'reference', // Catalogue centralisé
   13: 'supplier_connectivity', // Connectivité fournisseurs
+  14: 'reorder', // Réapprovisionnement intelligent
 };
 
 class _HomeShellState extends State<HomeShell> {
@@ -123,6 +125,7 @@ class _HomeShellState extends State<HomeShell> {
     const SettingsPage(),
     const ReferencePage(),
     const SupplierConnectivityPage(),
+    const ReorderPage(),
   ];
 
   void _onAuthLockChanged() {
@@ -214,6 +217,7 @@ class _HomeShellState extends State<HomeShell> {
       (Icons.point_of_sale_outlined, Icons.point_of_sale, 'pos', 2),
       (Icons.medication_outlined, Icons.medication, 'medications', 3),
       (Icons.inventory_2_outlined, Icons.inventory_2, 'stock', 4),
+      (Icons.local_shipping_outlined, Icons.local_shipping, 'reorder', 14),
       (Icons.link_outlined, Icons.link, 'supplierConnectivity', 13),
       (Icons.menu_book_outlined, Icons.menu_book, 'reference', 12),
       (Icons.storefront_outlined, Icons.storefront, 'pharmacyPlan', 10),
@@ -231,6 +235,7 @@ class _HomeShellState extends State<HomeShell> {
       11: 'settings',
       12: 'reference',
       13: 'supplier_connectivity',
+      14: 'reorder',
     };
 
     final mobileItems = allMobileItems.where((m) {
