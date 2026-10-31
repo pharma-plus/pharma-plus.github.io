@@ -10,8 +10,7 @@ import '../../core/utils/format.dart';
 import '../../core/utils/validators.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
-import '../../core/widgets/shared/app_data_table.dart';
-import '../../core/widgets/shared/app_search_field.dart';
+import '../../core/widgets/shared.dart';
 import '../../core/widgets/status_chip.dart';
 import '../shell/shell_nav.dart';
 
@@ -278,29 +277,7 @@ class _SuppliersPageState extends State<SuppliersPage> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 90),
       child: AppDataTable<Map<String, dynamic>>(
-        columns: [
-          AppDataColumn(
-              key: 'name', label: S.t('supplier', locale), width: 260),
-          AppDataColumn(key: 'city', label: S.t('city', locale), width: 140),
-          AppDataColumn(
-              key: 'contact_name',
-              label: S.t('contactName', locale),
-              width: 170),
-          AppDataColumn(
-            key: 'rating',
-            label: S.t('rating', locale),
-            numeric: true,
-            alignment: TextAlign.right,
-            width: 90,
-          ),
-          AppDataColumn(
-            key: 'nb_orders',
-            label: S.t('nbOrders', locale),
-            numeric: true,
-            alignment: TextAlign.right,
-            width: 130,
-          ),
-        ],
+        columns: TableColumns.suppliers(locale),
         data: _sortedItems,
         sortColumnKey: _sortKey,
         sortAscending: _sortAsc,

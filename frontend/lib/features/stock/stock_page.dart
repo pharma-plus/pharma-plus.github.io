@@ -10,7 +10,7 @@ import '../../core/utils/format.dart';
 import '../../core/utils/validators.dart';
 import '../../core/widgets/barcode_scanner.dart';
 import '../../core/widgets/glass_card.dart';
-import '../../core/widgets/shared/app_search_field.dart';
+import '../../core/widgets/shared.dart';
 import '../shell/shell_nav.dart';
 import 'stock_logic.dart';
 import 'stock_movements_page.dart';
@@ -651,17 +651,27 @@ class _StockPageState extends State<StockPage> {
   // en-tête collant (hors défilement vertical), colonnes à largeurs
   // fixes, médicament flexible, un seul défilement horizontal partagé
   // par l'en-tête et les lignes, fonds opaques.
+  // Largeurs standardisées via TableColumnWidths.
   // ─────────────────────────────────────────────────────────────
   static const double _rowPad = 24; // padding horizontal 12 × 2
-  static const double _fixedNonMed = 816;
-  // detail160 + lot110 + expiry110 + qty90 + seuil80 + prix100
-  // + statut110 + actions56
 
   final ScrollController _hScroll = ScrollController();
   final ScrollController _vScroll = ScrollController();
 
   Widget _buildStickyTable() {
     final rows = _filtered;
+    
+    final fixedNonMed = 
+        TableColumnWidths.width(TableColumnType.description) +  // Détail
+        TableColumnWidths.width(TableColumnType.code) +         // Lot
+        TableColumnWidths.width(TableColumnType.date) +         // Péremption
+        TableColumnWidths.width(TableColumnType.quantity) +     // Quantité
+        TableColumnWidths.width(TableColumnType.quantity) +     // Seuil
+        TableColumnWidths.width(TableColumnType.money) +        // Prix
+        TableColumnWidths.width(TableColumnType.status) +       // Statut
+        TableColumnWidths.width(TableColumnType.actions);       // Actions
+    const medMin = 200.0;
+
     // Fond de zone 100 % opaque (palette solide, aucun alpha) : le fond
     // d'application ne transparaît NI entre les lignes, NI sous la dernière
     // ligne, NI derrière les barres de défilement.
@@ -673,11 +683,10 @@ class _StockPageState extends State<StockPage> {
       color: zoneBg,
       child: LayoutBuilder(builder: (context, constraints) {
         final usable = constraints.maxWidth - _rowPad;
-        const medMin = 200.0;
-        final totalW = usable >= medMin + _fixedNonMed
+        final totalW = usable >= medMin + fixedNonMed
             ? constraints.maxWidth
-            : medMin + _fixedNonMed + _rowPad;
-        final medW = totalW - _rowPad - _fixedNonMed;
+            : medMin + fixedNonMed + _rowPad;
+        final medW = totalW - _rowPad - fixedNonMed;
         return Scrollbar(
           controller: _hScroll,
           thumbVisibility: true,
@@ -744,6 +753,7 @@ class _StockPageState extends State<StockPage> {
   }
 
   Widget _tableHeader({required double medW}) {
+    
     // Fond d'en-tête SOLIDE (0xFF006B43) : opaque en toute situation.
     return Container(
       key: const ValueKey('stock_table_header'),
@@ -753,14 +763,14 @@ class _StockPageState extends State<StockPage> {
       child: Row(
         children: [
           _headerCell(medW, 'Médicament'),
-          _headerCell(160, 'Détail'),
-          _headerCell(110, 'Lot'),
-          _headerCell(110, 'Péremption'),
-          _headerCell(90, 'Quantité', align: TextAlign.right),
-          _headerCell(80, 'Seuil', align: TextAlign.right),
-          _headerCell(100, 'Prix', align: TextAlign.right),
-          _headerCell(110, 'Statut'),
-          const SizedBox(width: 56),
+          _headerCell(TableColumnWidths.width(TableColumnType.description), 'Détail'),
+          _headerCell(TableColumnWidths.width(TableColumnType.code), 'Lot'),
+          _headerCell(TableColumnWidths.width(TableColumnType.date), 'Péremption'),
+          _headerCell(TableColumnWidths.width(TableColumnType.quantity), 'Quantité', align: TextAlign.right),
+          _headerCell(TableColumnWidths.width(TableColumnType.quantity), 'Seuil', align: TextAlign.right),
+          _headerCell(TableColumnWidths.width(TableColumnType.money), 'Prix', align: TextAlign.right),
+          _headerCell(TableColumnWidths.width(TableColumnType.status), 'Statut'),
+          _headerCell(TableColumnWidths.width(TableColumnType.actions), ''),
         ],
       ),
     );
@@ -785,6 +795,7 @@ class _StockPageState extends State<StockPage> {
   }
 
   Widget _tableRow(Map<String, dynamic> item, int i, {required double medW}) {
+    
     final status = _statusOf(item);
     final available = _number(item['available']);
     // Ligne 100 % opaque (jamais Colors.transparent) : le fond d'application
@@ -814,21 +825,21 @@ class _StockPageState extends State<StockPage> {
                         fontWeight: FontWeight.w700, fontSize: 12.5)),
               ),
               _cell(
-                160,
+                TableColumnWidths.width(TableColumnType.description),
                 Text('${item['med_detail'] ?? ''}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: cellStyle.copyWith(color: AppColors.pharmaMuted)),
               ),
               _cell(
-                110,
+                TableColumnWidths.width(TableColumnType.code),
                 Text('${item['lot_number'] ?? '—'}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: cellStyle),
               ),
               _cell(
-                110,
+                TableColumnWidths.width(TableColumnType.date),
                 Text(
                   item['expiry_date'] == null
                       ? '—'
@@ -844,7 +855,7 @@ class _StockPageState extends State<StockPage> {
                 ),
               ),
               _cell(
-                90,
+                TableColumnWidths.width(TableColumnType.quantity),
                 Text(Fmt.number(available),
                     textAlign: TextAlign.right,
                     style: cellStyle.copyWith(
@@ -853,7 +864,7 @@ class _StockPageState extends State<StockPage> {
                 align: TextAlign.right,
               ),
               _cell(
-                80,
+                TableColumnWidths.width(TableColumnType.quantity),
                 Text(
                   _number(item['reorder_level']) > 0
                       ? Fmt.number(_number(item['reorder_level']))
@@ -864,16 +875,16 @@ class _StockPageState extends State<StockPage> {
                 align: TextAlign.right,
               ),
               _cell(
-                100,
+                TableColumnWidths.width(TableColumnType.money),
                 Text('${Fmt.money(_number(item['price_sale']))} MAD',
                     textAlign: TextAlign.right,
                     style: cellStyle.copyWith(color: AppColors.pharmaGold)),
                 align: TextAlign.right,
               ),
-              _cell(110, _StatusChip(status: status)),
-              SizedBox(
-                width: 56,
-                child: _canCreate
+              _cell(TableColumnWidths.width(TableColumnType.status), _StatusChip(status: status)),
+              _cell(
+                TableColumnWidths.width(TableColumnType.actions),
+                _canCreate
                     ? PopupMenuButton<String>(
                         padding: EdgeInsets.zero,
                         icon: const Icon(Icons.more_vert, size: 18),
@@ -893,7 +904,7 @@ class _StockPageState extends State<StockPage> {
                                 child: Text('Écrire à zéro')),
                         ],
                       )
-                    : null,
+                    : const SizedBox.shrink(),
               ),
             ],
           ),

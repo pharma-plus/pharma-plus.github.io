@@ -1515,35 +1515,41 @@ class _PosPageState extends State<PosPage> {
                   }
                 },
                 child: TextField(
-                hintText: S.t('search', locale),
-                prefixIcon: const Icon(Icons.search,
-                    color: AppColors.pharmaMuted, size: 20),
-                suffixIcon: _searching
-                    ? const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2)),
-                      )
-                    : null,
-                fillColor: AppColors.pharmaSurface,
-                filled: true,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.goldBorder)),
-                enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.goldBorder)),
-                focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.pharmaGold)),
-                  ),
+                controller: _search,
+                focusNode: _searchFocus,
+                onChanged: _onSearchChanged,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: S.t('search', locale),
+                  prefixIcon: const Icon(Icons.search,
+                      color: AppColors.pharmaMuted, size: 20),
+                  suffixIcon: _searching
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2)),
+                        )
+                      : null,
+                  fillColor: AppColors.pharmaSurface,
+                  filled: true,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.goldBorder)),
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.goldBorder)),
+                  focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.pharmaGold)),
                 ),
               ),
+              ),
             ),
+        ),
         ),
         // ── Bandeau hors-ligne : signale que prix/stock ne sont pas garantis
         // à jour (données servies depuis le cache local, dernière synchro). ──

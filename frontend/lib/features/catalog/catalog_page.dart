@@ -14,7 +14,7 @@ import '../../core/widgets/barcode_scanner.dart';
 import '../../core/utils/format.dart';
 import '../../core/utils/validators.dart';
 import '../../core/widgets/glass_card.dart';
-import '../../core/widgets/shared/app_search_field.dart';
+import '../../core/widgets/shared.dart';
 import '../shell/shell_nav.dart';
 
 /// Une option de filtre (facette reelle renvoyee par l'API).
@@ -965,16 +965,23 @@ class _CatalogPageState extends State<CatalogPage> {
      alignées à droite avec des largeurs stables.
      ------------------------------------------------------------------ */
   Widget _buildStickyTable(bool isDark) {
-    // Largeurs fixes hors colonne « Médicament » (qui absorbe le surplus).
-    const fixedNonMed = 858.0; // dci110+dosage80+forme90+labo140+ppv90
-    // + statut100+stock80+posologie64+actions104
-    const medMin = 220.0;
+    // Utilisation des largeurs standardisées depuis TableColumnWidths
+    final fixedNonMed = 
+        TableColumnWidths.width(TableColumnType.description) +  // DCI
+        TableColumnWidths.width(TableColumnType.code) +         // Dosage
+        TableColumnWidths.width(TableColumnType.code) +         // Forme
+        TableColumnWidths.width(TableColumnType.description) +  // Laboratoire
+        TableColumnWidths.width(TableColumnType.money) +        // PPV
+        TableColumnWidths.width(TableColumnType.status) +       // Statut
+        TableColumnWidths.width(TableColumnType.quantity) +     // Stock
+        TableColumnWidths.width(TableColumnType.code) +         // Posologie
+        TableColumnWidths.width(TableColumnType.actionsWide);   // Actions
+    const medMin = 200.0;
     final muted = isDark ? Colors.white60 : Colors.black54;
     final stripe = isDark ? AppColors.pharmaSurface2 : const Color(0xFFF2F5F3);
     final divider = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return LayoutBuilder(builder: (context, constraints) {
-      // Padding horizontal 12 de chaque bord du header et des lignes.
       const rowPad = 24.0;
       final usable = constraints.maxWidth - rowPad;
       final totalW = usable >= medMin + fixedNonMed
@@ -1044,6 +1051,7 @@ class _CatalogPageState extends State<CatalogPage> {
   }
 
   Widget _tableHeader({required double medW}) {
+    
     return Container(
       height: 44,
       color: AppColors.primary,
@@ -1051,21 +1059,15 @@ class _CatalogPageState extends State<CatalogPage> {
       child: Row(
         children: [
           _headerCell(medW, 'Médicament'),
-          _headerCell(110, 'DCI'),
-          _headerCell(80, 'Dosage'),
-          _headerCell(90, 'Forme'),
-          _headerCell(140, 'Laboratoire'),
-          _headerCell(90, 'PPV', align: TextAlign.right),
-          _headerCell(100, 'Statut'),
-          _headerCell(80, 'Stock', align: TextAlign.right),
-          _headerCell(64, 'Posologie', align: TextAlign.center),
-          const SizedBox(
-            width: 104,
-            child: Text('Actions',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: _headerStyle),
-          ),
+          _headerCell(TableColumnWidths.width(TableColumnType.description), 'DCI'),
+          _headerCell(TableColumnWidths.width(TableColumnType.code), 'Dosage'),
+          _headerCell(TableColumnWidths.width(TableColumnType.code), 'Forme'),
+          _headerCell(TableColumnWidths.width(TableColumnType.description), 'Laboratoire'),
+          _headerCell(TableColumnWidths.width(TableColumnType.money), 'PPV', align: TextAlign.right),
+          _headerCell(TableColumnWidths.width(TableColumnType.status), 'Statut'),
+          _headerCell(TableColumnWidths.width(TableColumnType.quantity), 'Stock', align: TextAlign.right),
+          _headerCell(TableColumnWidths.width(TableColumnType.code), 'Posologie', align: TextAlign.center),
+          _headerCell(TableColumnWidths.width(TableColumnType.actionsWide), 'Actions', align: TextAlign.center),
         ],
       ),
     );
@@ -1098,6 +1100,7 @@ class _CatalogPageState extends State<CatalogPage> {
     required Color stripe,
     required Color divider,
   }) {
+    
     const cellStyle = TextStyle(fontSize: 12.5);
     final qty = _stock[m.id];
     final statusLabel = m.status == 'available'
@@ -1130,35 +1133,35 @@ class _CatalogPageState extends State<CatalogPage> {
                         fontWeight: FontWeight.w700, fontSize: 12.5)),
               ),
               _dataCell(
-                110,
+                TableColumnWidths.width(TableColumnType.description),
                 Text(_notProvided(m.dci),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: cellStyle.copyWith(color: muted)),
               ),
               _dataCell(
-                80,
+                TableColumnWidths.width(TableColumnType.code),
                 Text(_notProvided(m.dosage),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: cellStyle),
               ),
               _dataCell(
-                90,
+                TableColumnWidths.width(TableColumnType.code),
                 Text(_notProvided(m.form),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: cellStyle),
               ),
               _dataCell(
-                140,
+                TableColumnWidths.width(TableColumnType.description),
                 Text(_notProvided(m.laboratoryName),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: cellStyle),
               ),
               _dataCell(
-                90,
+                TableColumnWidths.width(TableColumnType.money),
                 Text(m.priceSale > 0 ? Fmt.money(m.priceSale) : 'Non renseigné',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1167,7 +1170,7 @@ class _CatalogPageState extends State<CatalogPage> {
                 align: TextAlign.right,
               ),
               _dataCell(
-                100,
+                TableColumnWidths.width(TableColumnType.status),
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -1185,7 +1188,7 @@ class _CatalogPageState extends State<CatalogPage> {
                 ),
               ),
               _dataCell(
-                80,
+                TableColumnWidths.width(TableColumnType.quantity),
                 Text(stockText,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1197,7 +1200,7 @@ class _CatalogPageState extends State<CatalogPage> {
                 align: TextAlign.right,
               ),
               _dataCell(
-                64,
+                TableColumnWidths.width(TableColumnType.code),
                 Center(
                   child: IconButton(
                     tooltip: 'Voir posologie',
@@ -1210,9 +1213,9 @@ class _CatalogPageState extends State<CatalogPage> {
                 ),
                 align: TextAlign.center,
               ),
-              SizedBox(
-                width: 104,
-                child: Row(
+              _dataCell(
+                TableColumnWidths.width(TableColumnType.actionsWide),
+                Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
@@ -1233,6 +1236,7 @@ class _CatalogPageState extends State<CatalogPage> {
                     ),
                   ],
                 ),
+                align: TextAlign.center,
               ),
             ],
           ),

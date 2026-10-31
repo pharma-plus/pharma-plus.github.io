@@ -14,3 +14,4 @@ export 'shared/app_data_table.dart';
 export 'shared/app_table_toolbar.dart';
 export 'shared/app_search_field.dart';
 export 'shared/app_filter_bar.dart';
+export '../utils/table_columns.dart';
