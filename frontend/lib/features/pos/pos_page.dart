@@ -550,6 +550,7 @@ class _PosPageState extends State<PosPage> {
   }
 
   /// Stock réel par lot pour les ids affichés (badge stock des cartes).
+  /// Filtre aussi les produits avec stock <= 0 (rupture).
   Future<void> _loadStockForPage() async {
     final ids = _catalog
         .map((m) => m.id)
@@ -560,11 +561,22 @@ class _PosPageState extends State<PosPage> {
         query: {'ids': ids.take(100).join(',')});
     if (!mounted || !r.success || r.data is! List) return;
     setState(() {
+      // Filtrer les produits avec stock <= 0 (rupture)
+      final toRemove = <String>[];
       for (final e in r.data as List) {
         if (e is Map) {
-          _stock['${e['medication_id']}'] =
-              (e['quantity'] as num?)?.toDouble() ?? 0;
+          final id = '${e['medication_id']}';
+          final qty = (e['quantity'] as num?)?.toDouble() ?? 0;
+          _stock[id] = qty;
+          if (qty <= 0) {
+            toRemove.add(id);
+          }
         }
+      }
+      // Retirer les produits en rupture du résultat affiché
+      for (final id in toRemove) {
+        _catalog.removeWhere((m) => m.id == id);
+        _results.remove(id);
       }
     });
   }
