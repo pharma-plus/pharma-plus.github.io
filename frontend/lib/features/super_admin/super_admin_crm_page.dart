@@ -9,8 +9,10 @@ import 'package:provider/provider.dart';
 
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
+import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
+import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/shared/app_search_field.dart';
@@ -32,11 +34,13 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
   List<Map<String, dynamic>> _prospects = [];
   List<Map<String, dynamic>> _invoices = [];
   List<Map<String, dynamic>> _tickets = [];
+  Map<String, dynamic>? _globalStats;
   bool _loading = true;
   String? _error;
   String _activeTab = 'pharmacies';
   int _page = 1;
   bool _hasMore = true;
+  bool _loadingMore = false;
 
   static const _tabs = [
     ('pharmacies', Icons.local_pharmacy_outlined, 'pharmacies'),
@@ -44,6 +48,7 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
     ('invoices', Icons.receipt_long_outlined, 'invoices'),
     ('tickets', Icons.support_agent_outlined, 'tickets'),
     ('analytics', Icons.analytics_outlined, 'analytics'),
+    ('roles', Icons.admin_panel_settings_outlined, 'roles'),
   ];
 
   @override
@@ -100,7 +105,7 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
       }
       return;
     }
-    final items = ApiList.of(listRes.data);
+    final items = _parseList(listRes.data);
     if (mounted) {
       setState(() {
         if (reset) {
@@ -116,6 +121,9 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
               break;
             case 'tickets':
               _tickets = items;
+              break;
+            case 'roles':
+              // handled separately
               break;
           }
         } else {
@@ -139,8 +147,18 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
         _loading = false;
         _loadingMore = false;
         _error = null;
-      }
-    });
+      });
+    }
+  }
+
+  List<Map<String, dynamic>> _parseList(dynamic data) {
+    if (data is List) {
+      return data.whereType<Map<String, dynamic>>().toList();
+    }
+    if (data is Map && data['data'] is List) {
+      return (data['data'] as List).whereType<Map<String, dynamic>>().toList();
+    }
+    return [];
   }
 
   void _onSearchChanged(String q) {
@@ -152,6 +170,8 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
     _search.clear();
     _load(reset: true);
   });
+
+  bool get _hasActiveFilters => _search.text.trim().isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -212,7 +232,7 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
               : _error != null
                   ? Center(child: Text(_error!))
                   : _getCurrentList().isEmpty
-                      ? _EmptyState(onAdd: _showCreateDialog, locale: locale)
+                      ? _EmptyState(onAdd: _showCreateDialog, locale: locale, activeTab: _activeTab)
                       : RefreshIndicator(
                           onRefresh: () => _load(reset: true),
                           child: _activeTab == 'analytics'
@@ -221,7 +241,7 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
                         ),
         ),
       ]),
-      floatingActionButton: _activeTab != 'analytics'
+      floatingActionButton: _activeTab != 'analytics' && _activeTab != 'roles'
           ? FloatingActionButton.extended(
               onPressed: _showCreateDialog,
               icon: const Icon(Icons.add),
@@ -241,20 +261,12 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
         return _invoices;
       case 'tickets':
         return _tickets;
+      case 'roles':
+        return [];
       default:
         return [];
     }
   }
-
-  void _onSearchChanged(String q) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 350), () => _load(reset: true));
-  }
-
-  void _clearFilters() => setState(() {
-    _search.clear();
-    _load(reset: true);
-  });
 
   Widget _buildListView(String locale) {
     final items = _getCurrentList();
@@ -322,7 +334,8 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
             ],
           ),
         ),
-      );
+      ),
+    );
   }
 
   void _showCreateDialog() {
@@ -332,11 +345,11 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 560),
           child: switch (_activeTab) {
-            'pharmacies' => _PharmacyForm(onSaved: _load),
-            'prospects' => _ProspectForm(onSaved: _load),
-            'invoices' => _InvoiceForm(onSaved: _load),
-            'tickets' => _TicketForm(onSaved: _load),
-            default => const SizedBox.shrink(),
+            'pharmacies' => _PharmacyForm(onSaved: () => _load(reset: true)),
+            'prospects' => _ProspectForm(onSaved: () => _load(reset: true)),
+            'invoices' => _InvoiceForm(onSaved: () => _load(reset: true)),
+            'tickets' => _TicketForm(onSaved: () => _load(reset: true)),
+            _ => const SizedBox.shrink(),
           },
         ),
       ),
@@ -348,34 +361,6 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
       context: context,
       isScrollControlled: true,
       builder: (_) => _DetailSheet(item: item, activeTab: _activeTab, onChanged: () => _load(reset: true)),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  final VoidCallback onAdd;
-  final String locale;
-  const _EmptyState({required this.onAdd, required this.locale});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.inbox_outlined, size: 64, color: AppColors.warning),
-          const SizedBox(height: 16),
-          Text(S.t('no${_activeTab.capitalize()}', locale),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          Text(S.t('addFirst${_activeTab.capitalize()}', locale),
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey)),
-          const SizedBox(height: 24),
-          GradientButton(label: S.t('create', locale), icon: Icons.add, onPressed: _showCreateDialog),
-        ]),
-      ),
     );
   }
 }
@@ -430,7 +415,7 @@ class _PharmacyCard extends StatelessWidget {
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
             Text('${item['nb_users'] ?? 0} ${S.t('nbUsers', locale)}', style: const TextStyle(fontSize: 12)),
             Text('${item['nb_branches'] ?? 0} ${S.t('nbBranches', locale)}', style: const TextStyle(fontSize: 12)),
-            TextButton(onPressed: () => _showDetail(item), child: Text(S.t('manage', locale))),
+            TextButton(onPressed: onTap, child: Text(S.t('manage', locale))),
           ]),
         ]),
       ),
@@ -461,7 +446,9 @@ class _ProspectCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text('${item['estimated_value'] != null ? '${item['estimated_value']} MAD' : ''}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
         ]),
-      ]));
+      ])
+    )
+  );
   }
 }
 
@@ -485,7 +472,9 @@ class _InvoiceCard extends StatelessWidget {
             StatusChip(label: '${item['status']}', color: item['status'] == 'paid' ? AppColors.success : item['status'] == 'pending' ? AppColors.warning : AppColors.danger),
             Text(Fmt.money(double.tryParse('${item['amount'] ?? 0}') ?? 0), style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.pharmaGold)),
           ]),
-        ]));
+        ])
+    )
+  );
   }
 }
 
@@ -507,7 +496,377 @@ class _TicketCard extends StatelessWidget {
             Text('${item['pharmacy_name'] ?? ''} · ${item['created_at'] != null ? DateTime.tryParse('${item['created_at']}')?.toString().substring(0, 10) : ''}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Colors.grey)),
           ])),
           StatusChip(label: item['status']?.toString().capitalize() ?? 'Open', color: item['status'] == 'resolved' ? AppColors.success : item['status'] == 'in_progress' ? AppColors.warning : AppColors.danger),
-        ]));
+        ])
+    )
+  );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final VoidCallback onAdd;
+  final String locale;
+  final String activeTab;
+  const _EmptyState({required this.onAdd, required this.locale, required this.activeTab});
+
+  @override
+  Widget build(BuildContext context) {
+    String emptyTitle = 'no${activeTab.capitalize()}';
+    String emptySubtitle = 'addFirst${activeTab.capitalize()}';
+    
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.inbox_outlined, size: 64, color: AppColors.warning),
+          const SizedBox(height: 16),
+          Text(S.t(emptyTitle, locale),
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          Text(S.t(emptySubtitle, locale),
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.grey)),
+          const SizedBox(height: 24),
+          GradientButton(label: S.t('create', locale), icon: Icons.add, onPressed: onAdd),
+        ]),
+      ),
+    );
+  }
+}
+
+// Forms
+class _PharmacyForm extends StatefulWidget {
+  final VoidCallback onSaved;
+  const _PharmacyForm({required this.onSaved});
+  @override State<_PharmacyForm> createState() => _PharmacyFormState();
+}
+
+class _PharmacyFormState extends State<_PharmacyForm> {
+  final _formKey = GlobalKey<FormState>();
+  final _name = TextEditingController();
+  final _slug = TextEditingController();
+  final _city = TextEditingController();
+  final _email = TextEditingController();
+  final _phone = TextEditingController();
+  final _address = TextEditingController();
+  String _licenseType = 'trial';
+  bool _saving = false;
+
+  @override void dispose() { _name.dispose(); _slug.dispose(); _city.dispose(); _email.dispose(); _phone.dispose(); _address.dispose(); super.dispose(); }
+
+  Future<void> _save() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() => _saving = true);
+    final locale = context.read<AuthStore>().locale;
+    final body = {
+      'name': _name.text.trim(),
+      'slug': _slug.text.trim().toLowerCase(),
+      'city': _city.text.trim(),
+      'email': _email.text.trim(),
+      'phone': _phone.text.trim(),
+      'address': _address.text.trim(),
+      'license_type': _licenseType,
+    };
+    final result = await ApiClient.instance.post('/superadmin/pharmacies', body: body);
+    if (!mounted) return;
+    if (result.success) {
+      Navigator.pop(context);
+      widget.onSaved();
+    } else {
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.error?.readableMessage ?? 'Erreur')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = context.read<AuthStore>().locale;
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: SafeArea(child: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Form(
+        key: _formKey,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(S.t('newPharmacy', locale), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 16),
+          TextFormField(controller: _name, validator: (v) => v?.isEmpty == true ? S.t('requiredField', locale) : null, decoration: InputDecoration(labelText: S.t('name', locale))),
+          const SizedBox(height: 12),
+          TextFormField(controller: _slug, validator: (v) => v?.isEmpty == true ? S.t('requiredField', locale) : null, decoration: InputDecoration(labelText: S.t('slug', locale))),
+          const SizedBox(height: 12),
+          TextFormField(controller: _city, decoration: InputDecoration(labelText: S.t('city', locale))),
+          const SizedBox(height: 12),
+          TextFormField(controller: _email, decoration: InputDecoration(labelText: S.t('email', locale)), keyboardType: TextInputType.emailAddress),
+          const SizedBox(height: 12),
+          TextFormField(controller: _phone, decoration: InputDecoration(labelText: S.t('phone', locale)), keyboardType: TextInputType.phone),
+          const SizedBox(height: 12),
+          TextFormField(controller: _address, decoration: InputDecoration(labelText: S.t('address', locale)), maxLines: 2),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _licenseType,
+            decoration: InputDecoration(labelText: S.t('licenseType', locale)),
+            items: ['trial', 'standard', 'professional', 'enterprise'].map((e) => DropdownMenuItem(value: e, child: Text(S.t(e, locale)))).toList(),
+            onChanged: (v) => setState(() => _licenseType = v!),
+          ),
+          const SizedBox(height: 20),
+          Row(children: [
+            Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close), label: Text(S.t('cancel', locale)))),
+            const SizedBox(width: 12),
+            Expanded(child: GradientButton(label: S.t('save', locale), icon: Icons.check, loading: _saving, onPressed: _save)),
+          ]),
+        ])))));
+  }
+}
+
+class _ProspectForm extends StatefulWidget {
+  final VoidCallback onSaved;
+  const _ProspectForm({required this.onSaved});
+  @override State<_ProspectForm> createState() => _ProspectFormState();
+}
+
+class _ProspectFormState extends State<_ProspectForm> {
+  final _formKey = GlobalKey<FormState>();
+  final _name = TextEditingController();
+  final _company = TextEditingController();
+  final _email = TextEditingController();
+  final _phone = TextEditingController();
+  final _estimatedValue = TextEditingController();
+  bool _saving = false;
+
+  @override void dispose() { _name.dispose(); _company.dispose(); _email.dispose(); _phone.dispose(); _estimatedValue.dispose(); super.dispose(); }
+
+  Future<void> _save() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() => _saving = true);
+    final locale = context.read<AuthStore>().locale;
+    final body = {
+      'name': _name.text.trim(),
+      'company': _company.text.trim(),
+      'email': _email.text.trim(),
+      'phone': _phone.text.trim(),
+      'estimated_value': double.tryParse(_estimatedValue.text.trim()) ?? 0,
+    };
+    final result = await ApiClient.instance.post('/superadmin/prospects', body: body);
+    if (!mounted) return;
+    if (result.success) {
+      Navigator.pop(context);
+      widget.onSaved();
+    } else {
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.error?.readableMessage ?? 'Erreur')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = context.read<AuthStore>().locale;
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: SafeArea(child: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Form(
+        key: _formKey,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(S.t('newProspect', locale), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 16),
+          TextFormField(controller: _name, validator: (v) => v?.isEmpty == true ? S.t('requiredField', locale) : null, decoration: InputDecoration(labelText: S.t('name', locale))),
+          const SizedBox(height: 12),
+          TextFormField(controller: _company, decoration: InputDecoration(labelText: S.t('company', locale))),
+          const SizedBox(height: 12),
+          TextFormField(controller: _email, decoration: InputDecoration(labelText: S.t('email', locale)), keyboardType: TextInputType.emailAddress),
+          const SizedBox(height: 12),
+          TextFormField(controller: _phone, decoration: InputDecoration(labelText: S.t('phone', locale)), keyboardType: TextInputType.phone),
+          const SizedBox(height: 12),
+          TextFormField(controller: _estimatedValue, decoration: InputDecoration(labelText: S.t('estimatedValue', locale)), keyboardType: TextInputType.number),
+          const SizedBox(height: 20),
+          Row(children: [
+            Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close), label: Text(S.t('cancel', locale)))),
+            const SizedBox(width: 12),
+            Expanded(child: GradientButton(label: S.t('save', locale), icon: Icons.check, loading: _saving, onPressed: _save)),
+          ]),
+        ])))));
+  }
+}
+
+class _InvoiceForm extends StatefulWidget {
+  final VoidCallback onSaved;
+  const _InvoiceForm({required this.onSaved});
+  @override State<_InvoiceForm> createState() => _InvoiceFormState();
+}
+
+class _InvoiceFormState extends State<_InvoiceForm> {
+  final _formKey = GlobalKey<FormState>();
+  final _number = TextEditingController();
+  final _pharmacyId = TextEditingController();
+  final _amount = TextEditingController();
+  String _status = 'pending';
+  bool _saving = false;
+
+  @override void dispose() { _number.dispose(); _pharmacyId.dispose(); _amount.dispose(); super.dispose(); }
+
+  Future<void> _save() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() => _saving = true);
+    final locale = context.read<AuthStore>().locale;
+    final body = {
+      'number': _number.text.trim(),
+      'pharmacy_id': _pharmacyId.text.trim(),
+      'amount': double.tryParse(_amount.text.trim()) ?? 0,
+      'status': _status,
+    };
+    final result = await ApiClient.instance.post('/superadmin/invoices', body: body);
+    if (!mounted) return;
+    if (result.success) {
+      Navigator.pop(context);
+      widget.onSaved();
+    } else {
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.error?.readableMessage ?? 'Erreur')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = context.read<AuthStore>().locale;
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: SafeArea(child: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Form(
+        key: _formKey,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(S.t('newInvoice', locale), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 16),
+          TextFormField(controller: _number, validator: (v) => v?.isEmpty == true ? S.t('requiredField', locale) : null, decoration: InputDecoration(labelText: S.t('number', locale))),
+          const SizedBox(height: 12),
+          TextFormField(controller: _pharmacyId, validator: (v) => v?.isEmpty == true ? S.t('requiredField', locale) : null, decoration: InputDecoration(labelText: S.t('pharmacyId', locale))),
+          const SizedBox(height: 12),
+          TextFormField(controller: _amount, validator: (v) => v?.isEmpty == true ? S.t('requiredField', locale) : null, decoration: InputDecoration(labelText: S.t('amount', locale)), keyboardType: TextInputType.number),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _status,
+            decoration: InputDecoration(labelText: S.t('status', locale)),
+            items: ['pending', 'paid', 'overdue', 'cancelled'].map((e) => DropdownMenuItem(value: e, child: Text(e.capitalize()))).toList(),
+            onChanged: (v) => setState(() => _status = v!),
+          ),
+          const SizedBox(height: 20),
+          Row(children: [
+            Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close), label: Text(S.t('cancel', locale)))),
+            const SizedBox(width: 12),
+            Expanded(child: GradientButton(label: S.t('save', locale), icon: Icons.check, loading: _saving, onPressed: _save)),
+          ]),
+        ])))));
+  }
+}
+
+class _TicketForm extends StatefulWidget {
+  final VoidCallback onSaved;
+  const _TicketForm({required this.onSaved});
+  @override State<_TicketForm> createState() => _TicketFormState();
+}
+
+class _TicketFormState extends State<_TicketForm> {
+  final _formKey = GlobalKey<FormState>();
+  final _subject = TextEditingController();
+  final _description = TextEditingController();
+  final _pharmacyId = TextEditingController();
+  String _priority = 'medium';
+  bool _saving = false;
+
+  @override void dispose() { _subject.dispose(); _description.dispose(); _pharmacyId.dispose(); super.dispose(); }
+
+  Future<void> _save() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() => _saving = true);
+    final locale = context.read<AuthStore>().locale;
+    final body = {
+      'subject': _subject.text.trim(),
+      'description': _description.text.trim(),
+      'pharmacy_id': _pharmacyId.text.trim(),
+      'priority': _priority,
+    };
+    final result = await ApiClient.instance.post('/superadmin/tickets', body: body);
+    if (!mounted) return;
+    if (result.success) {
+      Navigator.pop(context);
+      widget.onSaved();
+    } else {
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.error?.readableMessage ?? 'Erreur')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = context.read<AuthStore>().locale;
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: SafeArea(child: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Form(
+        key: _formKey,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(S.t('newTicket', locale), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 16),
+          TextFormField(controller: _subject, validator: (v) => v?.isEmpty == true ? S.t('requiredField', locale) : null, decoration: InputDecoration(labelText: S.t('subject', locale))),
+          const SizedBox(height: 12),
+          TextFormField(controller: _description, decoration: InputDecoration(labelText: S.t('description', locale)), maxLines: 4),
+          const SizedBox(height: 12),
+          TextFormField(controller: _pharmacyId, decoration: InputDecoration(labelText: S.t('pharmacyId', locale))),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _priority,
+            decoration: InputDecoration(labelText: S.t('priority', locale)),
+            items: ['low', 'medium', 'high', 'urgent'].map((e) => DropdownMenuItem(value: e, child: Text(e.capitalize()))).toList(),
+            onChanged: (v) => setState(() => _priority = v!),
+          ),
+          const SizedBox(height: 20),
+          Row(children: [
+            Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close), label: Text(S.t('cancel', locale)))),
+            const SizedBox(width: 12),
+            Expanded(child: GradientButton(label: S.t('save', locale), icon: Icons.check, loading: _saving, onPressed: _save)),
+          ]),
+        ])))));
+  }
+}
+
+class _DetailSheet extends StatelessWidget {
+  final Map<String, dynamic> item;
+  final String activeTab;
+  final VoidCallback onChanged;
+  const _DetailSheet({required this.item, required this.activeTab, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = context.read<AuthStore>().locale;
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      maxChildSize: 0.9,
+      minChildSize: 0.4,
+      expand: false,
+      builder: (_, controller) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(children: [
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            width: 40, height: 4,
+            decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+          ),
+          Expanded(
+            child: ListView(
+              controller: controller,
+              padding: const EdgeInsets.all(20),
+              children: [
+                Text(item['name']?.toString() ?? item['subject']?.toString() ?? item['number']?.toString() ?? 'Détail', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 16),
+                ...item.entries.map((e) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    SizedBox(width: 120, child: Text(e.key, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.grey))),
+                    Expanded(child: Text('${e.value}', style: const TextStyle(fontSize: 14))),
+                  ]),
+                )),
+              ],
+            ),
+          ),
+        ]),
+      ),
+    );
   }
 }
 

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/l10n/strings.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/services/hijri_calendar.dart';
 import '../../core/theme/colors.dart';
@@ -23,6 +24,7 @@ import '../reference/reference_page.dart';
 import '../returns/returns_page.dart';
 import '../scanner/scanner_page.dart';
 import '../shell/shell_nav.dart';
+import '../super_admin/super_admin_crm_page.dart';
 import '../website/website_page.dart';
 
 /// ============================================================
@@ -171,6 +173,8 @@ class _AppSideMenuState extends State<AppSideMenu> {
           opensMoreModules: true),
       const AppSideNavItem(Icons.settings_outlined, 'Tableau de contrôle',
           permission: 'settings:view', module: 'settings', shellIndex: 11),
+      const AppSideNavItem(Icons.business_outlined, 'superAdminCRM',
+          permission: 'superadmin:view', module: 'superadmin_crm', shellIndex: 17),
     ]
         .where((i) => (i.permission == null || p(i.permission!)) && m(i.module))
         .toList();
@@ -250,7 +254,7 @@ class _AppSideMenuState extends State<AppSideMenu> {
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Center(
                   child: Tooltip(
-                    message: item.label,
+                    message: S.t(item.label, context.watch<AuthStore>().locale),
                     waitDuration: const Duration(milliseconds: 300),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(10),
@@ -380,7 +384,7 @@ class _AppSideMenuState extends State<AppSideMenu> {
                       Icon(item.icon, size: 19, color: const Color(0xFFC9A24B)),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Text(item.label,
+                        child: Text(S.t(item.label, context.watch<AuthStore>().locale),
                             style: TextStyle(
                                 fontSize: 13.5,
                                 color: active
@@ -888,6 +892,12 @@ class ModulesMenuDialog extends StatelessWidget {
       'Site web',
       'Blog et contenu public',
       WebsitePage()
+    ),
+    (
+      Icons.business_outlined,
+      'Super Admin CRM',
+      'Gestion pharmacies, prospects, factures',
+      SuperAdminCRMPage()
     ),
     // Interface Médecin : lecteur de médicaments en lecture seule, réservé
     // au rôle « Médecin » (5 permissions limitées — voir doctor_page.dart).

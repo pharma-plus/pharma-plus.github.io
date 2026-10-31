@@ -234,7 +234,7 @@ class _HomeShellState extends State<HomeShell> {
       (Icons.storefront_outlined, Icons.storefront, 'pharmacyPlan', 10),
       (Icons.settings_outlined, Icons.settings, 'settings', 11),
       (Icons.chat_outlined, Icons.chat, 'whatsapp', 16),
-      (Icons.business_outlined, Icons.business, 'superadmin', 17),
+      (Icons.business_outlined, Icons.business, 'superAdminCRM', 17),
     ];
 
     // Clé de module pour les items de la bottom bar mobile.
