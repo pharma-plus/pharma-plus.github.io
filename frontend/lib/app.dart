@@ -16,7 +16,7 @@ import 'core/services/system_back_guard.dart';
 import 'features/audit/employee_space_page.dart';
 import 'features/shell/home_shell.dart';
 import 'features/shell/shell_nav.dart';
-import 'features/super_admin/super_admin_portal.dart';
+import 'features/super_admin/super_admin_crm_page.dart';
 
 
 /// Aiguillage : Splash → Connexion / Dashboard / Erreur d'init.
@@ -39,7 +39,7 @@ class RootGate extends StatelessWidget {
           ));
         }
         if (!auth.isAuthenticated) return _withPopScope(const LoginPage());
-        if (auth.user?.isSuperAdmin == true) return _withPopScope(const SuperAdminPortal());
+        if (auth.user?.isSuperAdmin == true) return _withPopScope(const SuperAdminCRMPage());
         // Bouton retour système (smartphone) — TOUTES les pages :
         // 1) dialogue / formulaire / sous-page poussée → pop (reste sur la page) ;
         // 2) onglet shell ≠ Dashboard → Dashboard ;
