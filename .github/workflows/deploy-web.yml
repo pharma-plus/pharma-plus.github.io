@@ -38,9 +38,11 @@ jobs:
         # l'URL bootstrap pour forcer le rechargement des assets sur mobile.
         run: flutter build web --release --no-wasm-dry-run --web-define=PMG_BUILD_NUMBER=${{ github.run_number }}
 
-      - name: Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages (main branch for username.github.io)
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./frontend/build/web
+          publish_branch: main
           commit_message: "BUILD ${{ github.run_number }} deploy — ${{ github.event.head_commit.message }}"
+          force_orphan: true
