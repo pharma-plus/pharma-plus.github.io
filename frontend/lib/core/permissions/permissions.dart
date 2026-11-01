@@ -1,6 +1,7 @@
 /// ============================================================
 /// PERMISSIONS — Matrice complète rôles/permissions PHARMA+
 /// ============================================================
+// library permissions;
 
 /// Actions possibles sur chaque module
 enum PermissionAction {

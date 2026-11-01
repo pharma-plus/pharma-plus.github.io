@@ -4,7 +4,6 @@ import '../../core/l10n/strings.dart';
 import '../../core/services/ai_engine.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
-import '../../core/widgets/glass_card.dart';
 import '../shell/shell_nav.dart';
 
 /// Page IA — Assistant intelligent PHARMA+

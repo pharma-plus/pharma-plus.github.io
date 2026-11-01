@@ -10,9 +10,7 @@ import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
-import '../../core/utils/validators.dart';
 import '../../core/widgets/glass_card.dart';
-import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/shared/app_search_field.dart';
 import '../../core/widgets/status_chip.dart';
 import '../shell/shell_nav.dart';
@@ -429,9 +427,13 @@ class _CustomerOrganismChips extends StatelessWidget {
         final isExpired = a.isExpired;
         final isExpiring = a.isExpiringSoon;
         Color chipColor;
-        if (isExpired) chipColor = Colors.red;
-        else if (isExpiring) chipColor = Colors.orange;
-        else chipColor = AppColors.success;
+        if (isExpired) {
+          chipColor = Colors.red;
+        } else if (isExpiring) {
+          chipColor = Colors.orange;
+        } else {
+          chipColor = AppColors.success;
+        }
 
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -526,7 +528,7 @@ class _CustomerDetailV2State extends State<_CustomerDetailV2> {
             Row(
               children: [
                 Expanded(
-                    child: Text('${c!['name']}',
+                    child: Text('${c['name']}',
                         style: const TextStyle(
                             fontSize: 20, fontWeight: FontWeight.w800))),
                 IconButton(
@@ -579,9 +581,13 @@ class _AffiliationChip extends StatelessWidget {
     final isExpired = affiliation.isExpired;
     final isExpiring = affiliation.isExpiringSoon;
     Color color;
-    if (isExpired) color = Colors.red;
-    else if (isExpiring) color = Colors.orange;
-    else color = AppColors.success;
+    if (isExpired) {
+      color = Colors.red;
+    } else if (isExpiring) {
+      color = Colors.orange;
+    } else {
+      color = AppColors.success;
+    }
 
     return Container(
       padding: const EdgeInsets.all(10),

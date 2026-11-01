@@ -71,7 +71,6 @@ class _RoleManagementPageState extends State<RoleManagementPage> {
   }
 
   Future<void> _createRole() async {
-    final locale = context.read<AuthStore>().locale;
     final saved = await showDialog<bool>(
       context: context,
       builder: (_) => Dialog(
@@ -270,12 +269,10 @@ class _RoleFormState extends State<RoleForm> {
   late final _description = TextEditingController(text: (widget.role?['description'] as String?) ?? '');
   late final _code = TextEditingController(text: (widget.role?['code'] as String?) ?? '');
   bool _saving = false;
-  bool _isSystem = false;
 
   @override
   void initState() {
     super.initState();
-    _isSystem = widget.role?['is_system'] == true;
   }
 
   @override void dispose() { _name.dispose(); _description.dispose(); _code.dispose(); super.dispose(); }
@@ -359,18 +356,6 @@ class _PermissionMatrixDialogState extends State<PermissionMatrixDialog> {
     }
   }
 
-  void _toggle(Module module, PermissionAction action) {
-    setState(() {
-      final set = _permissions[module.name] ?? {};
-      if (set.contains(action)) {
-        set.remove(action);
-      } else {
-        set.add(action);
-      }
-      _permissions[module.name] = set;
-    });
-  }
-
   Future<void> _save() async {
     setState(() => _saving = true);
     final permsJson = _permissions.map((k, v) => MapEntry(k, v.map((e) => e.name).toList()));
@@ -409,9 +394,8 @@ class _PermissionMatrixDialogState extends State<PermissionMatrixDialog> {
                   for (final a in PermissionAction.values) DataColumn(label: Text(a.name, style: const TextStyle(fontSize: 10)), numeric: true),
                 ],
                 rows: Module.values.map((m) {
-                  final perms = _permissions[m.name] ?? {};
                   return DataRow(cells: [
-                    DataCell(Text(S.t(m.name, locale), style: const TextStyle(fontWeight: FontWeight.w600))),
+                    DataCell(Text(S.t(m.name, context.read<AuthStore>().locale), style: const TextStyle(fontWeight: FontWeight.w600))),
                     for (final a in PermissionAction.values)
                       DataCell(Checkbox(
                         value: _permissions[m.name]?.contains(a) ?? false,

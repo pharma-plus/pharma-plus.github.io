@@ -9,16 +9,12 @@ import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/auth_store.dart';
-import '../../core/services/supplier_integration.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
-import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/shared/app_data_table.dart';
-import '../../core/widgets/shared/app_search_field.dart';
 import '../../core/utils/table_columns.dart';
 import '../../core/widgets/shared.dart';
-import '../../core/widgets/status_chip.dart';
 import '../shell/shell_nav.dart';
 
 /// Page de réapprovisionnement intelligent
@@ -74,7 +70,6 @@ class _ReorderPageState extends State<ReorderPage> {
         _insights = id is Map ? Map<String, dynamic>.from(id) : null;
       }
       _loading = false;
-      _activeTab ??= 'plan';
     });
   }
 
@@ -141,7 +136,6 @@ class _ReorderPageState extends State<ReorderPage> {
     if (_plan == null) return const SizedBox.shrink();
     final items = _plan!['items'] as List? ?? [];
     final totalCost = double.tryParse('${_plan!['total_estimated_cost'] ?? 0}') ?? 0;
-    final totalQty = double.tryParse('${_plan!['total_suggested_qty'] ?? 0}') ?? 0;
     final bySupplier = _plan!['by_supplier'] as List? ?? [];
 
     return Padding(

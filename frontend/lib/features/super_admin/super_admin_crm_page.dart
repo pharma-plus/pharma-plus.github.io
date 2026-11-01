@@ -9,7 +9,6 @@ import 'package:provider/provider.dart';
 
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
-import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';

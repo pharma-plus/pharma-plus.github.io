@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -547,13 +546,6 @@ class _FilterChip extends StatelessWidget {
       deleteIconColor: AppColors.pharmaGold,
     );
   }
-}
-
-class _Facet {
-  final String label;
-  final String value;
-  final int total;
-  const _Facet(this.label, [this.value = '', this.total = 0]);
 }
 
 class _StatusChip extends StatelessWidget {

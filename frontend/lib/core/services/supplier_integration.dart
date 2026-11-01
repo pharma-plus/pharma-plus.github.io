@@ -2,13 +2,11 @@
 /// SUPPLIER INTEGRATION HUB — Architecture modulaire
 /// Adaptateurs indépendants par partenaire (API REST, OAuth, EDI, CSV, XML)
 /// ============================================================
+// library supplier_integration;
 
 import 'dart:async';
-import 'dart:convert';
 
 import '../../core/services/api_client.dart';
-import '../../core/services/auth_store.dart';
-import '../../core/services/offline_store.dart';
 
 /// Interface commune pour tous les adaptateurs fournisseurs
 abstract class SupplierAdapter {
@@ -422,10 +420,15 @@ class RestSupplierAdapter implements SupplierAdapter {
         final mapped = _mapProduct(p);
         // Upsert en base locale via API PHARMA+
         final result = await _upsertProduct(mapped);
-        if (result == 'added') added++;
-        else if (result == 'updated') updated++;
-        else if (result == 'skipped') skipped++;
-        else conflicts++;
+        if (result == 'added') {
+          added++;
+        } else if (result == 'updated') {
+          updated++;
+        } else if (result == 'skipped') {
+          skipped++;
+        } else {
+          conflicts++;
+        }
       }
 
       return SupplierSyncResult(

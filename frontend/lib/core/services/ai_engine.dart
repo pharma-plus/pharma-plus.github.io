@@ -1,6 +1,7 @@
 /// ============================================================
 /// MOTEUR IA CENTRAL — IA déterministe, contextuelle, isolée par pharmacie
 /// ============================================================
+// library ai_engine;
 ///
 /// Architecture:
 /// - Moteur central (PharmaAIEngine) : оркестраteur, gestion contexte, quota, audit
@@ -14,10 +15,8 @@
 /// Actions INTERDITES: modification prix, envoi commande, validation ordonnance, décision médicale
 
 import 'dart:async';
-import 'dart:math' as math;
 
 import '../../core/services/api_client.dart';
-import '../../core/services/auth_store.dart';
 
 /// Contexte d'exécution IA isolé par pharmacie
 class AIContext {
@@ -403,29 +402,29 @@ class PharmaAIAssistant {
     
     // Mots-clés -> module/action
     if (q.contains('réappro') || q.contains('commander') || q.contains('rupture') || q.contains('stocker')) {
-      return _ParsedIntent('reorder', 'plan', {});
+      return const _ParsedIntent('reorder', 'plan', {});
     }
     if (q.contains('vente') || q.contains('chiffre') || q.contains('ca ') || q.contains('panier') || q.contains('marge')) {
-      return _ParsedIntent('sales_analysis', 'analyze', {});
+      return const _ParsedIntent('sales_analysis', 'analyze', {});
     }
     if (q.contains('stock') || q.contains('rupture') || q.contains('périm') || q.contains('expir') || q.contains('surstock')) {
-      return _ParsedIntent('stock_insights', 'ruptures', {});
+      return const _ParsedIntent('stock_insights', 'ruptures', {});
     }
     if (q.contains('client') || q.contains('patient') || q.contains('organisme') || q.contains('amo') || q.contains('cnops') || q.contains('cnss') || q.contains('mutuelle')) {
-      return _ParsedIntent('customers_ai', 'segment', {});
+      return const _ParsedIntent('customers_ai', 'segment', {});
     }
     if (q.contains('fournisseur') || q.contains('prix fournisseur') || q.contains('comparer fournisseur')) {
-      return _ParsedIntent('suppliers_ai', 'compare', {});
+      return const _ParsedIntent('suppliers_ai', 'compare', {});
     }
     if (q.contains('trésorerie') || q.contains('trésorerie') || q.contains('marge') || q.contains('tva') || q.contains('finance') || q.contains('comptab')) {
-      return _ParsedIntent('finance_ai', 'cashflow', {});
+      return const _ParsedIntent('finance_ai', 'cashflow', {});
     }
     if (q.contains('employé') || q.contains('présence') || q.contains('congé') || q.contains('paie') || q.contains('masse salariale')) {
-      return _ParsedIntent('hr_ai', 'attendance', {});
+      return const _ParsedIntent('hr_ai', 'attendance', {});
     }
     
     // Par défaut: réapprovisionnement
-    return _ParsedIntent('reorder', 'plan', {});
+    return const _ParsedIntent('reorder', 'plan', {});
   }
 
   String _formatResponse(AIResult result, _ParsedIntent intent) {

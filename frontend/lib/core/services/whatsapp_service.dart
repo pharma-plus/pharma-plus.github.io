@@ -2,14 +2,12 @@
 /// WHATSAPP BUSINESS API SERVICE
 /// Integration with Meta WhatsApp Business Cloud API
 /// ============================================================
+// library whatsapp_service;
 
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
-
-import '../../core/services/api_client.dart';
-import '../../core/services/auth_store.dart';
 
 /// Configuration WhatsApp Business API
 class WhatsAppConfig {

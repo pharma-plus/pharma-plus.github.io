@@ -5,14 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/l10n/strings.dart';
-import '../../core/services/api_client.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/services/supplier_integration.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/status_chip.dart';
-import '../../core/widgets/shared/app_search_field.dart';
 
 /// Page de gestion des connexions fournisseurs (Supplier Integration Hub)
 class SupplierConnectivityPage extends StatefulWidget {
@@ -430,7 +428,6 @@ class _EditSupplierDialogState extends State<_EditSupplierDialog> {
   late final _code = TextEditingController(text: widget.config.supplierCode);
   late final _name = TextEditingController(text: widget.config.displayName);
   late bool _enabled = widget.config.enabled;
-  bool _saving = false;
 
   @override
   Widget build(BuildContext context) {

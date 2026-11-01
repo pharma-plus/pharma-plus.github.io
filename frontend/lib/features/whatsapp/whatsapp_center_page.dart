@@ -115,10 +115,6 @@ class _WhatsAppCenterPageState extends State<WhatsAppCenterPage> {
     ));
   }
 
-  void _showTemplateDialog() {
-    // Dialogue de création/édition template
-  }
-
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
@@ -257,7 +253,6 @@ class _ConversationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: GlassCard(

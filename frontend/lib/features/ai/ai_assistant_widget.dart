@@ -1,6 +1,7 @@
 /// ============================================================
 /// AI ASSISTANT WIDGET (moved from ai_engine.dart)
 /// ============================================================
+// library ai_assistant_widget;
 
 import 'package:flutter/material.dart';
 
