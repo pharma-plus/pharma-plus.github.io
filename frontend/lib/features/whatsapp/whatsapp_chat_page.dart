@@ -2,8 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
+import '../../core/services/api_client.dart';
 import '../../core/services/auth_store.dart';
-import '../../core/services/whatsapp_service.dart';
+import '../../core/services/whatsapp_service.dart' hide WhatsAppMessageType;
 import '../../core/theme/colors.dart';
 import '../../core/widgets/glass_card.dart';
 import '../shell/shell_nav.dart';
@@ -111,8 +112,11 @@ class _WhatsAppChatPageState extends State<WhatsAppChatPage> {
         if (result is WhatsAppSendResult && result.success) {
           _loadMessages();
         } else {
+          final errMsg = result is WhatsAppSendResult
+              ? (result.error ?? 'Erreur envoi')
+              : 'Erreur envoi';
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(result.error ?? 'Erreur envoi'),
+            content: Text(errMsg),
             backgroundColor: AppColors.danger,
           ));
         }
@@ -180,14 +184,6 @@ class _WhatsAppChatPageState extends State<WhatsAppChatPage> {
   Future<void> _sendContact() async {
     Navigator.pop(context);
     // TODO: Implémenter envoi contact
-  }
-
-  @override
-  void dispose() {
-    _pollTimer?.cancel();
-    _controller.dispose();
-    _scrollController.dispose();
-    super.dispose();
   }
 
   @override
@@ -313,11 +309,11 @@ class WhatsAppMessageUI {
       text: json['text']?.toString() ?? json['body']?.toString() ?? '',
       isMe: json['from_me'] == true || json['is_me'] == true,
       time: json['timestamp'] != null
-          ? DateTime.tryParse(json['timestamp']) ?? DateTime.now()
+          ? DateTime.tryParse(json['timestamp'].toString()) ?? DateTime.now()
           : DateTime.now(),
       mediaUrl: json['media_url']?.toString(),
       mediaType: json['media_type'] != null 
-          ? WhatsAppMessageType.values.byName(json['media_type'])
+          ? WhatsAppMessageType.values.byName(json['media_type'].toString())
           : null,
       status: json['status']?.toString() ?? 'sent',
     );
@@ -391,6 +387,7 @@ class _MessageBubble extends StatelessWidget {
             ),
           ],
         ),
-      );
+      ),
+    );
   }
 }

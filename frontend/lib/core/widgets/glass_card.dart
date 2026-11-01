@@ -12,6 +12,7 @@ class GlassCard extends StatelessWidget {
   final Gradient? gradient;
   final BorderRadius? radius;
   final VoidCallback? onTap;
+  final EdgeInsetsGeometry? margin;
 
   const GlassCard({
     super.key,
@@ -20,6 +21,7 @@ class GlassCard extends StatelessWidget {
     this.gradient,
     this.radius,
     this.onTap,
+    this.margin,
   });
 
   @override
@@ -29,7 +31,7 @@ class GlassCard extends StatelessWidget {
         ? AppColors.pharmaSurface
         : Colors.white;
 
-    return DecoratedBox(
+    Widget card = DecoratedBox(
       decoration: BoxDecoration(
         color: bgColor,
         gradient: gradient,
@@ -55,5 +57,11 @@ class GlassCard extends StatelessWidget {
         ),
       ),
     );
+
+    if (margin != null) {
+      card = Padding(padding: margin!, child: card);
+    }
+
+    return card;
   }
 }

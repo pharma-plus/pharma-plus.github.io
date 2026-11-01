@@ -305,13 +305,13 @@ class SupplierIntegrationHub {
 class SupplierAdapterConfig {
   final String supplierCode;
   final String displayName;
-  final bool enabled;
+  bool enabled;
   final Map<String, dynamic> credentials; // API keys, OAuth tokens, etc.
   final Map<String, dynamic> settings; // Mapping champs, filtres, etc.
   final Duration syncInterval;
-  final DateTime? lastSync;
+  DateTime? lastSync;
 
-  const SupplierAdapterConfig({
+  SupplierAdapterConfig({
     required this.supplierCode,
     required this.displayName,
     this.enabled = true,
@@ -320,11 +320,41 @@ class SupplierAdapterConfig {
     this.syncInterval = const Duration(hours: 6),
     this.lastSync,
   });
+
+  SupplierAdapterConfig copyWith({
+    String? supplierCode,
+    String? displayName,
+    bool? enabled,
+    Map<String, dynamic>? credentials,
+    Map<String, dynamic>? settings,
+    Duration? syncInterval,
+    DateTime? lastSync,
+  }) {
+    return SupplierAdapterConfig(
+      supplierCode: supplierCode ?? this.supplierCode,
+      displayName: displayName ?? this.displayName,
+      enabled: enabled ?? this.enabled,
+      credentials: credentials ?? this.credentials,
+      settings: settings ?? this.settings,
+      syncInterval: syncInterval ?? this.syncInterval,
+      lastSync: lastSync ?? this.lastSync,
+    );
+  }
 }
 
 /// ============================================================
 /// ADAPTATEURS CONCRETS (Exemples)
 /// ============================================================
+
+/// Helper pour extraire une liste de maps depuis une réponse API.
+class ApiList {
+  ApiList._();
+  static List<Map<String, dynamic>> of(dynamic data) =>
+      (data as List? ?? [])
+          .whereType<Map>()
+          .map((m) => Map<String, dynamic>.from(m))
+          .toList();
+}
 
 /// Adaptateur REST générique (OpenAPI / Swagger)
 class RestSupplierAdapter implements SupplierAdapter {
@@ -342,12 +372,13 @@ class RestSupplierAdapter implements SupplierAdapter {
   @override
   String get connectionType => 'rest';
 
+
   @override
   Future<SupplierConnectionResult> testConnection() async {
     final start = DateTime.now();
     try {
       // Endpoint de santé typique: GET /health ou GET /api/v1/ping
-      final r = await _api.get(config.settings['healthEndpoint'] ?? '/health');
+      final r = await _api.get(config.settings['healthEndpoint']?.toString() ?? '/health');
       return SupplierConnectionResult(
         success: r.success,
         error: r.error?.message,
@@ -376,7 +407,7 @@ class RestSupplierAdapter implements SupplierAdapter {
         params['endpoint'] = config.settings['catalogEndpoint'];
       }
 
-      final r = await _api.get(config.settings['catalogEndpoint'] ?? '/api/v1/products', query: params);
+      final r = await _api.get(config.settings['catalogEndpoint']?.toString() ?? '/api/v1/products', query: params);
       if (!r.success) {
         return SupplierSyncResult(
           success: false, error: r.error?.message,
@@ -455,19 +486,19 @@ class RestSupplierAdapter implements SupplierAdapter {
     }
     for (final chunk in chunked) {
       final r = await _api.get(
-        config.settings['stockEndpoint'] ?? '/api/v1/stock',
+        config.settings['stockEndpoint']?.toString() ?? '/api/v1/stock',
         query: {'ean13': chunk.join(',')},
       );
       if (r.success && r.data is List) {
-        for (final item in r.data) {
+        for (final item in r.data as List) {
           if (item is Map) {
-            result[item['ean13']] = SupplierStockInfo(
-              ean13: item['ean13'],
+            result[item['ean13']?.toString() ?? ''] = SupplierStockInfo(
+              ean13: item['ean13']?.toString() ?? '',
               available: (item['available'] as num?)?.toInt() ?? 0,
               reserved: (item['reserved'] as num?)?.toInt() ?? 0,
               incoming: (item['incoming'] as num?)?.toInt() ?? 0,
               nextDelivery: item['nextDelivery'] != null
-                  ? DateTime.tryParse(item['nextDelivery']) : null,
+                  ? DateTime.tryParse(item['nextDelivery'].toString()) : null,
             );
           }
         }
@@ -485,19 +516,19 @@ class RestSupplierAdapter implements SupplierAdapter {
     }
     for (final chunk in chunked) {
       final r = await _api.get(
-        config.settings['priceEndpoint'] ?? '/api/v1/prices',
+        config.settings['priceEndpoint']?.toString() ?? '/api/v1/prices',
         query: {'ean13': chunk.join(',')},
       );
       if (r.success && r.data is List) {
-        for (final item in r.data) {
+        for (final item in r.data as List) {
           if (item is Map) {
-            result[item['ean13']] = SupplierPriceInfo(
-              ean13: item['ean13'],
+            result[item['ean13']?.toString() ?? ''] = SupplierPriceInfo(
+              ean13: item['ean13']?.toString() ?? '',
               priceHT: (item['price'] as num?)?.toDouble() ?? 0,
               discountPercent: (item['discount'] as num?)?.toDouble(),
               currency: item['currency'] as String? ?? 'MAD',
-              validFrom: DateTime.tryParse(item['validFrom']) ?? DateTime.now(),
-              validTo: item['validTo'] != null ? DateTime.tryParse(item['validTo']) : null,
+              validFrom: DateTime.tryParse(item['validFrom']?.toString() ?? '') ?? DateTime.now(),
+              validTo: item['validTo'] != null ? DateTime.tryParse(item['validTo'].toString()) : null,
             );
           }
         }
@@ -522,7 +553,7 @@ class RestSupplierAdapter implements SupplierAdapter {
       'internalReference': request.internalReference,
     };
     final r = await _api.post(
-      config.settings['orderEndpoint'] ?? '/api/v1/orders',
+      config.settings['orderEndpoint']?.toString() ?? '/api/v1/orders',
       body: body,
     );
     if (!r.success) {
@@ -533,13 +564,13 @@ class RestSupplierAdapter implements SupplierAdapter {
       success: true,
       supplierOrderId: data?['orderId']?.toString(),
       estimatedDelivery: data?['estimatedDelivery'] != null
-          ? DateTime.tryParse(data!['estimatedDelivery']) : null,
+          ? DateTime.tryParse(data!['estimatedDelivery'].toString()) : null,
       lines: (data?['lines'] as List?)?.map((l) => SupplierOrderLineResult(
-        ean13: l['ean13'],
-        ordered: l['quantity'],
-        confirmed: l['confirmed'],
+        ean13: l['ean13']?.toString() ?? '',
+        ordered: (l['quantity'] as num?)?.toInt() ?? 0,
+        confirmed: (l['confirmed'] as num?)?.toInt() ?? 0,
         unitPrice: (l['unitPrice'] as num?)?.toDouble(),
-        status: l['status'],
+        status: l['status']?.toString() ?? '',
       )).toList() ?? [],
     );
   }
@@ -547,7 +578,7 @@ class RestSupplierAdapter implements SupplierAdapter {
   @override
   Future<SupplierOrderTracking> trackOrder(String supplierOrderId) async {
     final r = await _api.get(
-      '${config.settings['orderEndpoint'] ?? '/api/v1/orders'}/$supplierOrderId/tracking',
+      '${config.settings['orderEndpoint']?.toString() ?? '/api/v1/orders'}/$supplierOrderId/tracking',
     );
     if (!r.success) {
       return SupplierOrderTracking(
@@ -559,17 +590,17 @@ class RestSupplierAdapter implements SupplierAdapter {
     final data = r.data as Map?;
     return SupplierOrderTracking(
       supplierOrderId: supplierOrderId,
-      status: data?['status'] ?? 'unknown',
-      confirmedAt: data?['confirmedAt'] != null ? DateTime.tryParse(data!['confirmedAt']) : null,
-      shippedAt: data?['shippedAt'] != null ? DateTime.tryParse(data!['shippedAt']) : null,
-      deliveredAt: data?['deliveredAt'] != null ? DateTime.tryParse(data!['deliveredAt']) : null,
-      trackingNumber: data?['trackingNumber'],
-      carrier: data?['carrier'],
+      status: data?['status']?.toString() ?? 'unknown',
+      confirmedAt: data?['confirmedAt'] != null ? DateTime.tryParse(data!['confirmedAt'].toString()) : null,
+      shippedAt: data?['shippedAt'] != null ? DateTime.tryParse(data!['shippedAt'].toString()) : null,
+      deliveredAt: data?['deliveredAt'] != null ? DateTime.tryParse(data!['deliveredAt'].toString()) : null,
+      trackingNumber: data?['trackingNumber']?.toString(),
+      carrier: data?['carrier']?.toString(),
       events: (data?['events'] as List?)?.map((e) => SupplierTrackingEvent(
-        timestamp: DateTime.tryParse(e['timestamp']) ?? DateTime.now(),
-        status: e['status'],
-        location: e['location'],
-        description: e['description'],
+        timestamp: DateTime.tryParse(e['timestamp']?.toString() ?? '') ?? DateTime.now(),
+        status: e['status']?.toString() ?? '',
+        location: e['location']?.toString(),
+        description: e['description']?.toString(),
       )).toList() ?? [],
     );
   }
@@ -580,18 +611,21 @@ class RestSupplierAdapter implements SupplierAdapter {
     if (from != null) query['from'] = from.toIso8601String();
     if (to != null) query['to'] = to.toIso8601String();
     final r = await _api.get(
-      config.settings['invoiceEndpoint'] ?? '/api/v1/invoices',
+      config.settings['invoiceEndpoint']?.toString() ?? '/api/v1/invoices',
       query: query,
     );
     if (!r.success || r.data is! List) return [];
-    return (r.data as List).map((item) => SupplierInvoice(
-      invoiceNumber: item['invoiceNumber'],
-      date: DateTime.tryParse(item['date']) ?? DateTime.now(),
-      amountHT: (item['amountHT'] as num?)?.toDouble() ?? 0,
-      amountTTC: (item['amountTTC'] as num?)?.toDouble() ?? 0,
-      status: item['status'] ?? 'unknown',
-      pdfUrl: item['pdfUrl'],
-    )).toList();
+    return (r.data as List).map((e) {
+      final item = Map<String, dynamic>.from(e as Map);
+      return SupplierInvoice(
+        invoiceNumber: item['invoiceNumber']?.toString() ?? '',
+        date: DateTime.tryParse(item['date']?.toString() ?? '') ?? DateTime.now(),
+        amountHT: (item['amountHT'] as num?)?.toDouble() ?? 0,
+        amountTTC: (item['amountTTC'] as num?)?.toDouble() ?? 0,
+        status: item['status']?.toString() ?? 'unknown',
+        pdfUrl: item['pdfUrl']?.toString(),
+      );
+    }).toList();
   }
 }
 
@@ -610,7 +644,7 @@ class CsvSupplierAdapter implements SupplierAdapter {
 
   @override Future<SupplierSyncResult> syncCatalog({DateTime? since, bool fullSync = false}) async {
     // Implémentation: lecture fichier CSV/Excel, parsing, upsert
-    return const SupplierSyncResult(
+    return SupplierSyncResult(
       success: true, productsAdded: 0, productsUpdated: 0,
       productsSkipped: 0, conflicts: 0,
       duration: Duration.zero, syncedAt: DateTime.now(),

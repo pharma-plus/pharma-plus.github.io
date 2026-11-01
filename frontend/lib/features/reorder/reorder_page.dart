@@ -19,6 +19,7 @@ import '../../core/widgets/shared/app_search_field.dart';
 import '../../core/utils/table_columns.dart';
 import '../../core/widgets/shared.dart';
 import '../../core/widgets/status_chip.dart';
+import '../shell/shell_nav.dart';
 
 /// Page de réapprovisionnement intelligent
 class ReorderPage extends StatefulWidget {
@@ -173,7 +174,7 @@ class _ReorderPageState extends State<ReorderPage> {
                 ),
             ]),
           ],
-        ),
+        ]),
       ),
     );
   }
@@ -217,17 +218,14 @@ class _ReorderPageState extends State<ReorderPage> {
             key: 'priority', label: S.t('priority', locale), type: TableColumnType.status,
             cellBuilder: (ctx, item, idx) => _PriorityChip(item['priority']?.toString() ?? '')),
           TableColumnWidths.column(
-            key: 'suggested_qty', label: S.t('suggestedQty', locale), type: TableColumnType.quantity,
-            numeric: true),
+            key: 'suggested_qty', label: S.t('suggestedQty', locale), type: TableColumnType.quantity),
           TableColumnWidths.column(
-            key: 'stock', label: S.t('stock', locale), type: TableColumnType.quantity,
-            numeric: true),
+            key: 'stock', label: S.t('stock', locale), type: TableColumnType.quantity),
           TableColumnWidths.column(
-            key: 'days_of_cover', label: S.t('daysCover', locale), type: TableColumnType.code,
-            numeric: true, alignment: TextAlign.center),
+            key: 'days_of_cover', label: S.t('daysCover', locale), type: TableColumnType.code),
           TableColumnWidths.column(
             key: 'estimated_cost', label: S.t('estimatedCost', locale), type: TableColumnType.money,
-            numeric: true, cellBuilder: (ctx, item, idx) {
+            cellBuilder: (ctx, item, idx) {
               final c = double.tryParse('${item['estimated_cost'] ?? 0}') ?? 0;
               return Text(Fmt.money(c), style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.pharmaGold));
             }),
@@ -239,7 +237,7 @@ class _ReorderPageState extends State<ReorderPage> {
         fixedHeader: true,
         config: const AppDataTableConfig(columnSpacing: 16),
         onRowTap: (item) => _showDetail(item),
-      );
+      ),
     );
   }
 
@@ -255,10 +253,6 @@ class _ReorderPageState extends State<ReorderPage> {
 
   void _showDetail(Map<String, dynamic> item) {
     // ... dialogue de détail
-  }
-
-  void _showFilterDialog() {
-    // ... dialogue de filtres
   }
 }
 
@@ -342,6 +336,3 @@ class _ActionButtons extends StatelessWidget {
   }
 }
 
-class _SupplierCostChip extends StatelessWidget {
-  // ... déjà défini dans ReorderPage
-}

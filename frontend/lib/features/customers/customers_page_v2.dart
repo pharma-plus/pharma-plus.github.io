@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/api_list.dart';
@@ -14,6 +16,7 @@ import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/shared/app_search_field.dart';
 import '../../core/widgets/status_chip.dart';
 import '../shell/shell_nav.dart';
+import 'customers_page.dart';
 import 'organisms.dart';
 
 /// Fichier clients enrichi : création, édition, historique + gestion des organismes (AMO, CNOPS, CNSS, mutuelles, assurances).
@@ -87,7 +90,7 @@ class _CustomersPageV2State extends State<CustomersPageV2> {
       builder: (_) => Dialog(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 700),
-          child: CustomerFormV2(customer: customer),
+          child: CustomerForm(customer: customer),
         ),
       ),
     );
@@ -149,7 +152,7 @@ class _CustomersPageV2State extends State<CustomersPageV2> {
               showFilterButton: true,
               debounceDuration: Duration.zero,
               onChanged: (_) => _debouncedLoad(),
-              onFilterPressed: _showFilterDialog,
+              onFilterTap: _showFilterDialog,
             ),
           ),
           Row(
@@ -533,9 +536,9 @@ class _CustomerDetailV2State extends State<_CustomerDetailV2> {
             ),
             const SizedBox(height: 12),
             Row(children: [
-              _InfoChip(label: S.t('phone', locale), value: c['phone'] ?? '—'),
-              _InfoChip(label: S.t('email', locale), value: c['email'] ?? '—'),
-              _InfoChip(label: S.t('creditLimit', locale), value: Fmt.money(double.tryParse('${c['credit_limit'] ?? 0}') ?? 0)),
+              _InfoChip(label: S.t('phone', locale), value: c['phone']?.toString() ?? '—'),
+              _InfoChip(label: S.t('email', locale), value: c['email']?.toString() ?? '—'),
+              _InfoChip(label: S.t('creditLimit', locale), value: Fmt.money(double.tryParse(c['credit_limit']?.toString() ?? '0') ?? 0)),
             ]),
             const SizedBox(height: 12),
             // Affiliations / Organismes
@@ -551,14 +554,14 @@ class _CustomerDetailV2State extends State<_CustomerDetailV2> {
               const SizedBox(height: 16),
             ],
             const Divider(),
-            _DetailRow(label: S.t('name', locale), value: c['name'] ?? '—'),
-            _DetailRow(label: S.t('phone', locale), value: c['phone'] ?? '—'),
-            _DetailRow(label: S.t('email', locale), value: c['email'] ?? '—'),
-            _DetailRow(label: S.t('address', locale), value: c['address'] ?? '—'),
-            _DetailRow(label: S.t('creditLimit', locale), value: Fmt.money(double.tryParse('${c['credit_limit'] ?? 0}') ?? 0)),
-            _DetailRow(label: S.t('totalSpent', locale), value: Fmt.money(double.tryParse('${c['total_spent'] ?? 0}') ?? 0)),
-            _DetailRow(label: S.t('creditBalance', locale), value: Fmt.money(double.tryParse('${c['credit_balance'] ?? 0}') ?? 0)),
-            _DetailRow(label: S.t('notes', locale), value: c['notes'] ?? '—'),
+            _DetailRow(label: S.t('name', locale), value: c['name']?.toString() ?? '—'),
+            _DetailRow(label: S.t('phone', locale), value: c['phone']?.toString() ?? '—'),
+            _DetailRow(label: S.t('email', locale), value: c['email']?.toString() ?? '—'),
+            _DetailRow(label: S.t('address', locale), value: c['address']?.toString() ?? '—'),
+            _DetailRow(label: S.t('creditLimit', locale), value: Fmt.money(double.tryParse(c['credit_limit']?.toString() ?? '0') ?? 0)),
+            _DetailRow(label: S.t('totalSpent', locale), value: Fmt.money(double.tryParse(c['total_spent']?.toString() ?? '0') ?? 0)),
+            _DetailRow(label: S.t('creditBalance', locale), value: Fmt.money(double.tryParse(c['credit_balance']?.toString() ?? '0') ?? 0)),
+            _DetailRow(label: S.t('notes', locale), value: c['notes']?.toString() ?? '—'),
           ],
         ),
       ),

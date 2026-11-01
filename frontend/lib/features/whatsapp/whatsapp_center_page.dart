@@ -1,12 +1,17 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
+import '../../core/services/api_client.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/services/whatsapp_service.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/shared/app_search_field.dart';
+import '../shell/shell_nav.dart';
+import 'whatsapp_chat_page.dart';
+import 'models.dart';
 
 /// Centre de communication WhatsApp
 class WhatsAppCenterPage extends StatefulWidget {
@@ -46,10 +51,10 @@ class _WhatsAppCenterPageState extends State<WhatsAppCenterPage> {
       if (configResult.success && configResult.data != null) {
         final config = configResult.data;
         _whatsappService = WhatsAppService(WhatsAppConfig(
-          phoneNumberId: config['phone_number_id'],
-          accessToken: config['access_token'],
-          businessAccountId: config['business_account_id'],
-          webhookVerifyToken: config['webhook_verify_token'],
+          phoneNumberId: config['phone_number_id']?.toString() ?? '',
+          accessToken: config['access_token']?.toString() ?? '',
+          businessAccountId: config['business_account_id']?.toString() ?? '',
+          webhookVerifyToken: config['webhook_verify_token']?.toString() ?? '',
         ));
       }
     } catch (e) {
@@ -217,46 +222,6 @@ class _WhatsAppCenterPageState extends State<WhatsAppCenterPage> {
   }
 }
 
-/// Modèle de conversation WhatsApp
-class WhatsAppConversation {
-  final String id;
-  final String contactName;
-  final String contactPhone;
-  final String? lastMessage;
-  final DateTime? lastMessageTime;
-  final int unreadCount;
-  final bool isGroup;
-  final String? avatarUrl;
-  final String status; // active, closed, pending
-
-  const WhatsAppConversation({
-    required this.id,
-    required this.contactName,
-    required this.contactPhone,
-    this.lastMessage,
-    this.lastMessageTime,
-    this.unreadCount = 0,
-    this.isGroup = false,
-    this.avatarUrl,
-    this.status = 'active',
-  });
-
-  factory WhatsAppConversation.fromJson(Map<String, dynamic> json) {
-    return WhatsAppConversation(
-      id: json['id']?.toString() ?? '',
-      contactName: json['contact_name']?.toString() ?? '',
-      contactPhone: json['contact_phone']?.toString() ?? '',
-      lastMessage: json['last_message']?.toString(),
-      lastMessageTime: json['last_message_time'] != null 
-          ? DateTime.tryParse(json['last_message_time']) : null,
-      unreadCount: (json['unread_count'] as num?)?.toInt() ?? 0,
-      isGroup: json['is_group'] == true,
-      avatarUrl: json['avatar_url']?.toString(),
-      status: json['status']?.toString() ?? 'active',
-    );
-  }
-}
-
 class _EmptyState extends StatelessWidget {
   final VoidCallback onAdd;
   final String locale;
@@ -299,38 +264,40 @@ class _ConversationTile extends StatelessWidget {
         radius: BorderRadius.circular(16),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         onTap: onTap,
-        child: Row(children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-            backgroundImage: conversation.avatarUrl != null ? NetworkImage(conversation.avatarUrl!) : null,
-            child: conversation.avatarUrl == null
-                ? Text(
-                    conversation.contactName.isNotEmpty
-                        ? conversation.contactName[0].toUpperCase()
-                        : '?',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.pharmaGold,
-                        fontSize: 18),
-                  )
-                : null,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(conversation.contactName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w700)),
-                Text(
-                    conversation.lastMessage ?? 'Aucun message',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              ],
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 24,
+              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+              backgroundImage: conversation.avatarUrl != null ? NetworkImage(conversation.avatarUrl!) : null,
+              child: conversation.avatarUrl == null
+                  ? Text(
+                      conversation.contactName.isNotEmpty
+                          ? conversation.contactName[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.pharmaGold,
+                          fontSize: 18),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(conversation.contactName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  Text(
+                      conversation.lastMessage ?? 'Aucun message',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ),
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -357,7 +324,7 @@ class _ConversationTile extends StatelessWidget {
                   ),
               ],
             ),
-          ]),
+          ],
         ),
       ),
     );

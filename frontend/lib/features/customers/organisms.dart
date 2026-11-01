@@ -1,6 +1,9 @@
 /// ============================================================
 /// ORGANISMES — Types d'organismes payeurs au Maroc
 /// ============================================================
+
+import 'package:flutter/material.dart';
+
 enum OrganismType {
   amo('amo', 'AMO', 'Assurance Maladie Obligatoire', Icons.health_and_safety_outlined),
   cnops('cnops', 'CNOPS', 'Caisse Nationale des Organismes de Prévoyance Sociale', Icons.account_balance_outlined),
@@ -59,8 +62,8 @@ class ClientAffiliation {
       organismName: json['organism_name']?.toString() ?? '',
       affiliationNumber: json['affiliation_number']?.toString() ?? '',
       contractNumber: json['contract_number']?.toString(),
-      validityStart: json['validity_start'] != null ? DateTime.tryParse(json['validity_start']) : null,
-      validityEnd: json['validity_end'] != null ? DateTime.tryParse(json['validity_end']) : null,
+      validityStart: json['validity_start'] != null ? DateTime.tryParse(json['validity_start'].toString()) : null,
+      validityEnd: json['validity_end'] != null ? DateTime.tryParse(json['validity_end'].toString()) : null,
       status: json['status']?.toString() ?? 'active',
       coverageRate: (json['coverage_rate'] as num?)?.toDouble(),
       annualCeiling: (json['annual_ceiling'] as num?)?.toDouble(),

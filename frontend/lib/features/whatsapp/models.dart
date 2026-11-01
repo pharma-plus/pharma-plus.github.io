@@ -48,7 +48,7 @@ class WhatsAppConversation {
       contactPhone: json['contact_phone']?.toString() ?? '',
       lastMessage: json['last_message']?.toString(),
       lastMessageTime: json['last_message_time'] != null 
-          ? DateTime.tryParse(json['last_message_time']) : null,
+          ? DateTime.tryParse(json['last_message_time'].toString()) : null,
       unreadCount: (json['unread_count'] as num?)?.toInt() ?? 0,
       isGroup: json['is_group'] == true,
       avatarUrl: json['avatar_url']?.toString(),
@@ -83,11 +83,11 @@ class WhatsAppMessageUI {
       text: json['text']?.toString() ?? json['body']?.toString() ?? '',
       isMe: json['from_me'] == true || json['is_me'] == true,
       time: json['timestamp'] != null
-          ? DateTime.tryParse(json['timestamp']) ?? DateTime.now()
+          ? DateTime.tryParse(json['timestamp'].toString()) ?? DateTime.now()
           : DateTime.now(),
       mediaUrl: json['media_url']?.toString(),
       mediaType: json['media_type'] != null 
-          ? WhatsAppMessageType.values.byName(json['media_type'])
+          ? WhatsAppMessageType.values.byName(json['media_type'].toString())
           : null,
       status: json['status']?.toString() ?? 'sent',
     );

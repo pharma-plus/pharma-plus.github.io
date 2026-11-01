@@ -54,10 +54,10 @@ class AIResult<T> {
     this.metadata = const {},
   });
 
-  static AIResult<T> ok(T data, {Duration latency = Duration.zero, Map<String, dynamic> metadata = const {}}) =>
+  factory AIResult.ok(T data, {Duration latency = Duration.zero, Map<String, dynamic> metadata = const {}}) =>
       AIResult(success: true, data: data, latency: latency, metadata: metadata);
 
-  static AIResult<T> err(String error, {Duration latency = Duration.zero}) =>
+  factory AIResult.err(String error, {Duration latency = Duration.zero}) =>
       AIResult(success: false, error: error, latency: latency);
 }
 
@@ -113,7 +113,7 @@ class PharmaAIEngine {
     final start = DateTime.now();
     try {
       final result = await module.execute(context, action, params);
-      return AIResult.ok(result, latency: DateTime.now().difference(start));
+      return AIResult.ok(result as T, latency: DateTime.now().difference(start));
     } catch (e) {
       return AIResult.err(e.toString(), latency: DateTime.now().difference(start));
     }
@@ -462,11 +462,11 @@ class PharmaAIAssistant {
     
     if (data['by_supplier'] is List) {
       buffer.writeln('**Par fournisseur:**');
-      for (final s in data['by_supplier']) {
+      for (final s in data['by_supplier'] as List) {
         buffer.writeln('• ${s['supplier_name']}: ${s['items_count']} art, ${s['total_qty']} u, ${s['total_cost']} DH');
       }
     }
-    
+
     buffer.writeln('');
     buffer.writeln('💡 Voulez-vous préparer une commande brouillon ?');
     return buffer.toString();
@@ -476,8 +476,8 @@ class PharmaAIAssistant {
     if (data is! Map) return 'Analyse terminée.';
     final summary = data['summary'] as Map? ?? {};
     final revenue = double.tryParse('${summary['revenue'] ?? 0}') ?? 0;
-    final change = summary['revenue_change_pct'];
-    
+    final change = summary['revenue_change_pct'] as num?;
+
     final buffer = StringBuffer();
     buffer.writeln('📈 **Analyse des ventes**');
     buffer.writeln('CA: ${revenue.toStringAsFixed(2)} DH');
@@ -545,92 +545,4 @@ void initializeAIEngine() {
   engine.registerModule(AISuppliersModule());
   engine.registerModule(AIFinanceModule());
   engine.registerModule(AIHRModule());
-}
-
-/// Helper pour créer un assistant dans un widget
-class AIAssistantWidget extends StatefulWidget {
-  final AIContext context;
-  const AIAssistantWidget({super.key, required this.context});
-
-  @override
-  State<AIAssistantWidget> createState() => _AIAssistantWidgetState();
-}
-
-class _AIAssistantWidgetState extends State<AIAssistantWidget> {
-  late final PharmaAIAssistant _assistant;
-  final _controller = TextEditingController();
-  final _messages = <AIMessage>[];
-  bool _sending = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _assistant = PharmaAIAssistant(widget.context);
-  }
-
-  Future<void> _send() async {
-    final text = _controller.text.trim();
-    if (text.isEmpty || _sending) return;
-    
-    setState(() {
-      _messages.add(AIMessage(role: 'user', content: text));
-      _sending = true;
-      _controller.clear();
-    });
-
-    final response = await _assistant.ask(text);
-    
-    if (mounted) {
-      setState(() {
-        _messages.add(AIMessage(role: 'assistant', content: response.text));
-        _sending = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(children: [
-      Expanded(child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _messages.length,
-        itemBuilder: (_, i) {
-          final m = _messages[i];
-          return Align(
-            alignment: m.role == 'user' ? Alignment.centerRight : Alignment.centerLeft,
-            child: Container(
-              margin: const EdgeInsets.symmetric(vertical: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: m.role == 'user' ? AppColors.pharmaGold : AppColors.pharmaSurface,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(m.content, style: TextStyle(
-                color: m.role == 'user' ? Colors.black : Colors.white,
-              )),
-            ),
-          );
-        },
-      )),
-      Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(children: [
-          Expanded(child: TextField(
-            controller: _controller,
-            onSubmitted: (_) => _send(),
-            decoration: InputDecoration(
-              hintText: 'Posez votre question...',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
-          )),
-          const SizedBox(width: 8),
-          IconButton.filled(
-            onPressed: _sending ? null : _send,
-            icon: _sending ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.send),
-          ),
-        ]),
-      ),
-    );
-  }
 }

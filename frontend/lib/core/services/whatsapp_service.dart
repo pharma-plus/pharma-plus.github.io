@@ -5,6 +5,7 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 import '../../core/services/api_client.dart';
@@ -133,14 +134,14 @@ class WhatsAppTemplate {
 
   factory WhatsAppTemplate.fromJson(Map<String, dynamic> json) {
     return WhatsAppTemplate(
-      name: json['name'],
-      language: json['language'],
-      category: WhatsAppTemplateCategory.values.byName(json['category']),
-      components: (json['components'] as List)
-          .map((c) => WhatsAppTemplateComponent.fromJson(c))
+      name: json['name']?.toString() ?? '',
+      language: json['language']?.toString() ?? 'fr',
+      category: WhatsAppTemplateCategory.values.byName(json['category'].toString()),
+      components: (json['components'] as List? ?? [])
+          .map((c) => WhatsAppTemplateComponent.fromJson(Map<String, dynamic>.from(c as Map)))
           .toList(),
-      status: json['status'],
-      id: json['id'],
+      status: json['status']?.toString(),
+      id: json['id']?.toString(),
     );
   }
 }
@@ -167,7 +168,7 @@ class WhatsAppTemplateComponent {
 
   factory WhatsAppTemplateComponent.fromJson(Map<String, dynamic> json) {
     return WhatsAppTemplateComponent(
-      type: WhatsAppComponentType.values.byName(json['type']),
+      type: WhatsAppComponentType.values.byName(json['type'].toString()),
       content: Map<String, dynamic>.from(json)
         ..remove('type'),
     );
@@ -200,7 +201,7 @@ class WhatsAppTemplateButton {
   });
 
   Map<String, dynamic> toJson() {
-    final json = {'type': type, 'text': text};
+    final json = <String, dynamic>{'type': type, 'text': text};
     if (url != null) json['url'] = url;
     if (phoneNumber != null) json['phone_number'] = phoneNumber;
     if (payload != null) json['payload'] = payload;
@@ -399,13 +400,13 @@ class WhatsAppService {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return WhatsAppSendResult(
         success: true,
-        messageId: data['messages']?.first['id'],
+        messageId: data['messages']?.first['id']?.toString(),
         statusCode: response.statusCode,
       );
     }
     return WhatsAppSendResult(
       success: false,
-      error: data['error']?['message'] ?? 'Erreur inconnue',
+      error: data['error']?['message']?.toString() ?? 'Erreur inconnue',
       statusCode: response.statusCode,
     );
   }
@@ -441,7 +442,7 @@ class WhatsAppService {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = jsonDecode(response.body);
         final templates = (data['data'] as List?)
-            ?.map((t) => WhatsAppTemplate.fromJson(t))
+            ?.map((t) => WhatsAppTemplate.fromJson(Map<String, dynamic>.from(t as Map)))
             .toList() ?? [];
         
         _templateCache.clear();
@@ -467,9 +468,12 @@ class WhatsAppService {
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final data = jsonDecode(response.body);
-      final template = WhatsAppTemplate.fromJson({...jsonDecode(jsonEncode(template.toJson())), 'id': data['id']});
-      _templateCache[template.name] = template;
-      return template;
+      final created = WhatsAppTemplate.fromJson({
+        ...template.toJson(),
+        'id': data['id']?.toString(),
+      });
+      _templateCache[created.name] = created;
+      return created;
     }
     throw Exception('Erreur création template: ${response.body}');
   }
@@ -514,9 +518,9 @@ class WhatsAppService {
       if (messages != null && messages.isNotEmpty) {
         return WhatsAppWebhookEvent(
           type: WhatsAppWebhookEventType.message,
-          messages: messages.map((m) => WhatsAppIncomingMessage.fromJson(m)).toList(),
+          messages: messages.map((m) => WhatsAppIncomingMessage.fromJson(Map<String, dynamic>.from(m as Map))).toList(),
           contacts: (value['contacts'] as List?)
-              ?.map((c) => WhatsAppContact.fromJson(c))
+              ?.map((c) => WhatsAppContact.fromJson(Map<String, dynamic>.from(c as Map)))
               .toList(),
         );
       }
@@ -526,7 +530,7 @@ class WhatsAppService {
       if (statuses != null && statuses.isNotEmpty) {
         return WhatsAppWebhookEvent(
           type: WhatsAppWebhookEventType.status,
-          statuses: statuses.map((s) => WhatsAppStatus.fromJson(s)).toList(),
+          statuses: statuses.map((s) => WhatsAppStatus.fromJson(Map<String, dynamic>.from(s as Map))).toList(),
         );
       }
 
@@ -545,7 +549,7 @@ class WhatsAppService {
       );
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return WhatsAppMedia.fromJson(jsonDecode(response.body));
+        return WhatsAppMedia.fromJson(Map<String, dynamic>.from(jsonDecode(response.body) as Map));
       }
       return null;
     } catch (e) {
@@ -615,7 +619,7 @@ class WhatsAppIncomingMessage {
   });
 
   factory WhatsAppIncomingMessage.fromJson(Map<String, dynamic> json) {
-    final typeStr = json['type'] as String;
+    final typeStr = json['type']?.toString() ?? 'text';
     final type = WhatsAppMessageType.values.byName(typeStr);
     
     dynamic content;
@@ -628,14 +632,14 @@ class WhatsAppIncomingMessage {
       case WhatsAppMessageType.video:
       case WhatsAppMessageType.audio:
       case WhatsAppMessageType.sticker:
-        content = WhatsAppMedia.fromJson(json[typeStr]);
+        content = WhatsAppMedia.fromJson(Map<String, dynamic>.from(json[typeStr] as Map));
         break;
       case WhatsAppMessageType.location:
         content = json['location'];
         break;
       case WhatsAppMessageType.contacts:
-        content = (json['contacts'] as List)
-            .map((c) => WhatsAppContact.fromJson(c))
+        content = (json['contacts'] as List? ?? [])
+            .map((c) => WhatsAppContact.fromJson(Map<String, dynamic>.from(c as Map)))
             .toList();
         break;
       case WhatsAppMessageType.interactive:
@@ -649,13 +653,13 @@ class WhatsAppIncomingMessage {
     }
 
     return WhatsAppIncomingMessage(
-      id: json['id'],
-      from: json['from'],
-      timestamp: DateTime.fromMillisecondsSinceEpoch(int.parse(json['timestamp']) * 1000),
+      id: json['id']?.toString() ?? '',
+      from: json['from']?.toString() ?? '',
+      timestamp: DateTime.fromMillisecondsSinceEpoch(int.parse(json['timestamp'].toString()) * 1000),
       type: type,
       content: content,
-      context: json['context'],
-      contact: json['contact'] != null ? WhatsAppContact.fromJson(json['contact']) : null,
+      context: json['context'] as Map<String, dynamic>?,
+      contact: json['contact'] != null ? WhatsAppContact.fromJson(Map<String, dynamic>.from(json['contact'] as Map)) : null,
     );
   }
 }
@@ -673,9 +677,9 @@ class WhatsAppContact {
 
   factory WhatsAppContact.fromJson(Map<String, dynamic> json) {
     return WhatsAppContact(
-      waId: json['wa_id'],
-      name: json['profile']?['name'],
-      phone: json['phone'],
+      waId: json['wa_id']?.toString() ?? '',
+      name: json['profile']?['name']?.toString(),
+      phone: json['phone']?.toString(),
     );
   }
 }
@@ -703,14 +707,14 @@ class WhatsAppStatus {
 
   factory WhatsAppStatus.fromJson(Map<String, dynamic> json) {
     return WhatsAppStatus(
-      id: json['id'],
-      status: json['status'],
-      timestamp: DateTime.fromMillisecondsSinceEpoch(int.parse(json['timestamp']) * 1000),
-      recipientId: json['recipient_id'],
-      conversationId: json['conversation']?['id'],
-      errorCode: json['errors']?.first?['code'],
-      errorTitle: json['errors']?.first?['title'],
-      errorMessage: json['errors']?.first?['message'],
+      id: json['id']?.toString() ?? '',
+      status: json['status']?.toString() ?? '',
+      timestamp: DateTime.fromMillisecondsSinceEpoch(int.parse(json['timestamp'].toString()) * 1000),
+      recipientId: json['recipient_id']?.toString(),
+      conversationId: json['conversation']?['id']?.toString(),
+      errorCode: json['errors']?.first?['code']?.toString(),
+      errorTitle: json['errors']?.first?['title']?.toString(),
+      errorMessage: json['errors']?.first?['message']?.toString(),
     );
   }
 }
@@ -734,12 +738,12 @@ class WhatsAppMedia {
 
   factory WhatsAppMedia.fromJson(Map<String, dynamic> json) {
     return WhatsAppMedia(
-      id: json['id'],
-      mimeType: json['mime_type'],
-      sha256: json['sha256'],
+      id: json['id']?.toString() ?? '',
+      mimeType: json['mime_type']?.toString() ?? '',
+      sha256: json['sha256']?.toString(),
       fileSize: (json['file_size'] as num?)?.toInt(),
-      filename: json['filename'],
-      url: json['url'],
+      filename: json['filename']?.toString(),
+      url: json['url']?.toString() ?? '',
     );
   }
 }
@@ -761,7 +765,7 @@ class WhatsAppInteractiveButton {
   });
 
   Map<String, dynamic> toJson() {
-    final json = {'type': type, 'title': title};
+    final json = <String, dynamic>{'type': type, 'title': title};
     if (url != null) json['url'] = url;
     if (phoneNumber != null) json['phone_number'] = phoneNumber;
     if (payload != null) json['payload'] = payload;

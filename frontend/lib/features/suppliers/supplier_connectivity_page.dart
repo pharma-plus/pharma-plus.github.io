@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:intl/intl.dart';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -12,6 +13,7 @@ import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/status_chip.dart';
 import '../../core/widgets/shared/app_search_field.dart';
+import '../shell/shell_nav.dart';
 
 /// Page de gestion des connexions fournisseurs (Supplier Integration Hub)
 class SupplierConnectivityPage extends StatefulWidget {
@@ -48,7 +50,11 @@ class _SupplierConnectivityPageState extends State<SupplierConnectivityPage> {
     if (adapter == null) return;
     
     final config = _configs.firstWhere((c) => c.supplierCode == supplierCode);
-    setState(() => config.enabled = false); // Disable pendant test
+    final originalEnabled = config.enabled;
+    setState(() {
+      final idx = _configs.indexWhere((c) => c.supplierCode == supplierCode);
+      if (idx >= 0) _configs[idx] = config.copyWith(enabled: false);
+    });
     
     try {
       final result = await adapter.testConnection();
@@ -61,7 +67,12 @@ class _SupplierConnectivityPageState extends State<SupplierConnectivityPage> {
         ));
       }
     } finally {
-      if (mounted) setState(() => config.enabled = true);
+      if (mounted) {
+        setState(() {
+          final idx = _configs.indexWhere((c) => c.supplierCode == supplierCode);
+          if (idx >= 0) _configs[idx] = config.copyWith(enabled: originalEnabled);
+        });
+      }
     }
   }
 
@@ -102,7 +113,10 @@ class _SupplierConnectivityPageState extends State<SupplierConnectivityPage> {
   }
 
   void _toggleEnabled(SupplierAdapterConfig config) {
-    setState(() => config.enabled = !config.enabled);
+    setState(() {
+      final idx = _configs.indexWhere((c) => c.supplierCode == config.supplierCode);
+      if (idx >= 0) _configs[idx] = config.copyWith(enabled: !config.enabled);
+    });
     // Persister...
   }
 
@@ -131,7 +145,10 @@ class _SupplierConnectivityPageState extends State<SupplierConnectivityPage> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        leading: const ShellBackButton(),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: Text(S.t('supplierConnectivity', locale)),
         actions: [
           IconButton(
@@ -243,14 +260,16 @@ class _SupplierCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      child: Row(children: [
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassCard(
+        padding: const EdgeInsets.all(16),
+        child: Row(children: [
         Container(
           width: 48, height: 48,
           decoration: BoxDecoration(
-            gradient: config.enabled ? AppColors.goldGradient : Colors.grey,
+            gradient: config.enabled ? AppColors.goldGradient : null,
+            color: config.enabled ? null : Colors.grey,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(
@@ -319,8 +338,8 @@ class _SupplierCard extends StatelessWidget {
             ],
           ),
         ]),
-      ),
-    );
+      ]),
+    ));
   }
 }
 
@@ -383,6 +402,7 @@ class _AddSupplierDialogState extends State<_AddSupplierDialog> {
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -443,6 +463,7 @@ class _EditSupplierDialogState extends State<_EditSupplierDialog> {
           ],
         ),
       ),
+    ),
     );
   }
 

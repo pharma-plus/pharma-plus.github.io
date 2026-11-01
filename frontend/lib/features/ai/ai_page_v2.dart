@@ -5,6 +5,7 @@ import '../../core/services/ai_engine.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/glass_card.dart';
+import '../shell/shell_nav.dart';
 
 /// Page IA — Assistant intelligent PHARMA+
 class AIPageV2 extends StatefulWidget {
@@ -28,7 +29,7 @@ class _AIPageV2State extends State<AIPageV2> {
     _context = AIContext(
       pharmacyId: auth.user?.pharmacyId ?? '',
       userId: auth.user?.id ?? '',
-      permissions: auth.permissions,
+      permissions: auth.permissions.toList(),
       locale: auth.locale,
     );
     _assistant = PharmaAIAssistant(_context!);

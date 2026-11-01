@@ -176,7 +176,7 @@ class _ReferencePageState extends State<ReferencePage> {
             hint: S.t('search', locale),
             onChanged: _onSearchChanged,
             showFilterButton: true,
-            onFilterPressed: _showFilterDialog,
+            onFilterTap: _showFilterDialog,
           ),
         ),
         // Barre de filtres actifs
@@ -214,17 +214,6 @@ class _ReferencePageState extends State<ReferencePage> {
       _filterForm != null || _filterLabo != null || _filterStatus != null ||
       _filterPathologie != null || _priceRange != null;
 
-  void _onSearchChanged(String q) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 350), () => _load(query: q));
-  }
-
-  void _clearFilters() => setState(() {
-    _filterForm = null; _filterLabo = null; _filterStatus = null; 
-    _filterPathologie = null; _priceRange = null;
-    _load(query: _search.text);
-  });
-
   Widget _buildMobileCards(String locale) {
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
@@ -251,7 +240,7 @@ class _ReferencePageState extends State<ReferencePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(p['name'] ?? '',
+                    Text(p['name']?.toString() ?? '',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -270,7 +259,7 @@ class _ReferencePageState extends State<ReferencePage> {
                   ],
                 ),
               ),
-              _StatusChip(p['status']),
+              _StatusChip(p['status']?.toString()),
             ]),
           ),
         );
@@ -288,17 +277,6 @@ class _ReferencePageState extends State<ReferencePage> {
       onRowTap: _showDetail,
     );
   }
-
-  void _onSearchChanged(String q) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 350), () => _load(query: q));
-  }
-
-  void _clearFilters() => setState(() {
-    _filterForm = null; _filterLabo = null; _filterStatus = null; 
-    _filterPathologie = null; _priceRange = null;
-    _load(query: _search.text);
-  });
 
   void _showFilterDialog() {
     final locale = context.read<AuthStore>().locale;
@@ -319,9 +297,9 @@ class _ReferencePageState extends State<ReferencePage> {
             _filterDropdown(ctx, S.t('laboratory', locale), _labs, tmpLabo,
                 (v) => setState(() => tmpLabo = v)),
             _filterDropdown(ctx, S.t('status', locale), [
-              _Facet('Disponible', 'available'),
-              _Facet('Rupture', 'out_of_stock'),
-              _Facet('Retiré', 'retired'),
+              {'label': 'Disponible', 'value': 'available'},
+              {'label': 'Rupture', 'value': 'out_of_stock'},
+              {'label': 'Retiré', 'value': 'retired'},
             ], tmpStatus, (v) => setState(() => tmpStatus = v)),
             if (_indicationsTotal > 0)
               _filterDropdown(ctx, S.t('pathology', locale), _pathologies, tmpPatho,
@@ -351,7 +329,7 @@ class _ReferencePageState extends State<ReferencePage> {
                   current: tmpPrice,
                 );
                 if (range != null) setState(() => tmpPrice = range);
-              ),
+              },
             ),
           ]),
         ),
@@ -487,27 +465,27 @@ class _ReferencePageState extends State<ReferencePage> {
           padding: const EdgeInsets.all(20),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              Expanded(child: Text(p['name'] ?? '',
+              Expanded(child: Text(p['name']?.toString() ?? '',
                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800))),
               IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
             ]),
             const SizedBox(height: 12),
-            _detailRow('EAN-13', p['barcode_ean13']),
-            _detailRow('DCI', p['dci']),
-            _detailRow('Dosage', p['dosage']),
-            _detailRow('Forme', p['form']),
-            _detailRow('Présentation', p['presentation']),
-            _detailRow('Laboratoire', p['laboratory_name']),
-            _detailRow('Classe thérapeutique', p['therapeutic_class']),
-            _detailRow('Substance active', p['substance_active']),
+            _detailRow('EAN-13', p['barcode_ean13']?.toString()),
+            _detailRow('DCI', p['dci']?.toString()),
+            _detailRow('Dosage', p['dosage']?.toString()),
+            _detailRow('Forme', p['form']?.toString()),
+            _detailRow('Présentation', p['presentation']?.toString()),
+            _detailRow('Laboratoire', p['laboratory_name']?.toString()),
+            _detailRow('Classe thérapeutique', p['therapeutic_class']?.toString()),
+            _detailRow('Substance active', p['substance_active']?.toString()),
             _detailRow('PPV', p['price_sale'] != null ? '${Fmt.money((p['price_sale'] as num).toDouble())} DH' : null),
             _detailRow('PH', p['ph'] != null ? '${Fmt.money((p['ph'] as num).toDouble())} DH' : null),
             _detailRow('PPC', p['ppc'] != null ? '${Fmt.money((p['ppc'] as num).toDouble())} DH' : null),
             _detailRow('Taux remboursement', p['reimbursement_rate'] != null ? '${p['reimbursement_rate']}%' : null),
-            _detailRow('Princeps/Générique', p['princeps_generique']),
-            _detailRow('Statut', p['status']),
-            _detailRow('AMM', p['amm_number']),
-            _detailRow('Code-barres', p['barcode_ean13']),
+            _detailRow('Princeps/Générique', p['princeps_generique']?.toString()),
+            _detailRow('Statut', p['status']?.toString()),
+            _detailRow('AMM', p['amm_number']?.toString()),
+            _detailRow('Code-barres', p['barcode_ean13']?.toString()),
           ]),
         ),
       ),
