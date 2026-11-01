@@ -236,6 +236,7 @@ class AuthStore extends ChangeNotifier {
                 _tokenWrite(_kRefresh, _refreshToken!),
                 _tokenWrite(_kUser, jsonEncode(serverUser.toJson())),
               ]);
+              notifyListeners();
             }
           }
         } catch (e) {
