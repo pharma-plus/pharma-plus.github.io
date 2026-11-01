@@ -227,7 +227,7 @@ class AuthStore extends ChangeNotifier {
         try {
           final userResult = await ApiClient.instance.getCurrentUser();
           if (userResult.success && userResult.data != null) {
-            final serverUser = userResult.data!;
+            final User serverUser = userResult.data! as User;
             // Si isSuperAdmin a changé, mettre à jour le stockage local
             if (_user!.isSuperAdmin != serverUser.isSuperAdmin) {
               _user = serverUser;
