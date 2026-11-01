@@ -65,7 +65,8 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
 
   /// Retour à PHARMA+ : revient au dashboard PHARMA+ (HomeShell) en conservant la session
   @pragma('vm:entry-point')
-  void _returnToPharma(BuildContext context) {
+  @pragma('dart2js:noInline')
+  void returnToPharma(BuildContext context) {
     final authStore = context.read<AuthStore>();
     // Si l'utilisateur est super admin, on revient au HomeShell (PHARMA+ dashboard)
     // en remettant l'index du shell à 0 (Tableau de bord)
@@ -77,7 +78,8 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
 
   /// Déconnexion complète
   @pragma('vm:entry-point')
-  void _confirmLogout(BuildContext context) {
+  @pragma('dart2js:noInline')
+  void confirmLogout(BuildContext context) {
     final locale = context.read<AuthStore>().locale;
     showDialog(
       context: context,
@@ -222,7 +224,7 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           tooltip: S.t('backToPharma', locale),
-          onPressed: () => _returnToPharma(context),
+          onPressed: () => returnToPharma(context),
         ),
         title: Text(S.t('superAdminCRM', locale)),
         actions: [
@@ -234,7 +236,7 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
           IconButton(
             icon: const Icon(Icons.logout_rounded),
             tooltip: S.t('logout', locale),
-            onPressed: () => _confirmLogout(context),
+            onPressed: () => confirmLogout(context),
           ),
           IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
         ],
