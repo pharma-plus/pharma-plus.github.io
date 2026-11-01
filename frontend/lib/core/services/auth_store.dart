@@ -220,6 +220,29 @@ class AuthStore extends ChangeNotifier {
     final userRaw = await _tokenRead(_kUser);
     if (userRaw != null) {
       _user = User.fromJson(jsonDecode(userRaw) as Map<String, dynamic>);
+      
+      // Rafraîchir le profil utilisateur depuis le serveur pour détecter
+      // les changements de rôle (ex: is_super_admin activé en base).
+      if (_accessToken != null) {
+        try {
+          final userResult = await ApiClient.instance.getCurrentUser();
+          if (userResult.success && userResult.data != null) {
+            final serverUser = userResult.data!;
+            // Si isSuperAdmin a changé, mettre à jour le stockage local
+            if (_user!.isSuperAdmin != serverUser.isSuperAdmin) {
+              _user = serverUser;
+              await Future.wait([
+                _tokenWrite(_kAccess, _accessToken!),
+                _tokenWrite(_kRefresh, _refreshToken!),
+                _tokenWrite(_kUser, jsonEncode(serverUser.toJson())),
+              ]);
+            }
+          }
+        } catch (e) {
+          debugPrint('[AuthStore] Impossible de rafraîchir le profil utilisateur: $e');
+          // En cas d'erreur, on garde le profil local (dégradé gracieux)
+        }
+      }
     }
   }
 

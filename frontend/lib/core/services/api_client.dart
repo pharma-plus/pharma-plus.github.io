@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'auth_store.dart';
+import '../models/user.dart';
 
 /// Résultat d'API normalisé par le backend.
 class ApiResult<T> {
@@ -151,6 +152,16 @@ class ApiClient {
   Future<ApiResult<dynamic>> get(String path,
       {Map<String, dynamic>? query}) async {
     return _send(() => _http.get(_uri(path, query), headers: _headers()));
+  }
+
+  /// Récupère le profil utilisateur actuel (is_super_admin, permissions, etc.)
+  Future<ApiResult<User>> getCurrentUser() async {
+    final result = await get('/auth/me');
+    if (!result.success) {
+      return ApiResult._(false, null, null, result.error, result.statusCode);
+    }
+    final user = User.fromJson(result.data as Map<String, dynamic>);
+    return ApiResult._(true, user, null, null, 200);
   }
 
   Future<ApiResult<dynamic>> post(String path,
