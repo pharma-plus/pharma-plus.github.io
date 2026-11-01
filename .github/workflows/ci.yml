@@ -68,6 +68,7 @@ jobs:
           flutter-version: "3.44.6"
           channel: stable
           cache: true
+          cache-key: flutter-v3.44.6-{{ hashFiles('frontend/pubspec.lock') }}-v2
       - name: Dépendances
         run: flutter pub get
       - name: Analyse statique
