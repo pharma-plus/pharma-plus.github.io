@@ -202,7 +202,6 @@ class _RoleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = context.watch<AuthStore>().locale;
     final isSystem = role['is_system'] == true;
     final roleName = role['name']?.toString() ?? '';
     final roleDesc = role['description']?.toString() ?? '';
@@ -280,7 +279,6 @@ class _RoleFormState extends State<RoleForm> {
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _saving = true);
-    final locale = context.read<AuthStore>().locale;
     final body = {
       'name': _name.text.trim(),
       'code': _code.text.trim().toLowerCase(),

@@ -1,12 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../core/l10n/strings.dart';
+
 import '../../core/services/api_client.dart';
-import '../../core/services/auth_store.dart';
 import '../../core/services/whatsapp_service.dart' hide WhatsAppMessageType;
 import '../../core/theme/colors.dart';
-import '../../core/widgets/glass_card.dart';
 import '../shell/shell_nav.dart';
 import 'models.dart';
 
@@ -31,7 +28,6 @@ class _WhatsAppChatPageState extends State<WhatsAppChatPage> {
   List<WhatsAppMessageUI> _messages = [];
   bool _loading = true;
   bool _sending = false;
-  String? _error;
   Timer? _pollTimer;
 
   @override
@@ -188,7 +184,6 @@ class _WhatsAppChatPageState extends State<WhatsAppChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    final locale = context.watch<AuthStore>().locale;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(

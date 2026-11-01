@@ -556,7 +556,6 @@ class _PharmacyFormState extends State<_PharmacyForm> {
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _saving = true);
-    final locale = context.read<AuthStore>().locale;
     final body = {
       'name': _name.text.trim(),
       'slug': _slug.text.trim().toLowerCase(),
@@ -635,7 +634,6 @@ class _ProspectFormState extends State<_ProspectForm> {
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _saving = true);
-    final locale = context.read<AuthStore>().locale;
     final body = {
       'name': _name.text.trim(),
       'company': _company.text.trim(),
@@ -702,7 +700,6 @@ class _InvoiceFormState extends State<_InvoiceForm> {
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _saving = true);
-    final locale = context.read<AuthStore>().locale;
     final body = {
       'number': _number.text.trim(),
       'pharmacy_id': _pharmacyId.text.trim(),
@@ -771,7 +768,6 @@ class _TicketFormState extends State<_TicketForm> {
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _saving = true);
-    final locale = context.read<AuthStore>().locale;
     final body = {
       'subject': _subject.text.trim(),
       'description': _description.text.trim(),
@@ -829,7 +825,6 @@ class _DetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = context.read<AuthStore>().locale;
     return DraggableScrollableSheet(
       initialChildSize: 0.6,
       maxChildSize: 0.9,
