@@ -1,6 +1,7 @@
 /// ============================================================
 /// ORGANISMES — Types d'organismes payeurs au Maroc
 /// ============================================================
+// library organisms;
 
 import 'package:flutter/material.dart';
 
@@ -9,7 +10,7 @@ enum OrganismType {
   cnops('cnops', 'CNOPS', 'Caisse Nationale des Organismes de Prévoyance Sociale', Icons.account_balance_outlined),
   cnss('cnss', 'CNSS', 'Caisse Nationale de Sécurité Sociale', Icons.shield_outlined),
   mutuelle('mutuelle', 'Mutuelle', 'Mutuelle / Assurance Complémentaire', Icons.favorite_outlined),
-  assurance_privee('assurance_privee', 'Assurance Privée', 'Assurance Privée / Internationale', Icons.business_outlined),
+  assurancePrivee('assurance_privee', 'Assurance Privée', 'Assurance Privée / Internationale', Icons.business_outlined),
   autre('autre', 'Autre', 'Autre organisme', Icons.more_horiz);
 
   const OrganismType(this.code, this.label, this.description, this.icon);
@@ -120,11 +121,11 @@ class ClientAffiliation {
 }
 
 /// Organismes pré-définis par type (pour sélection rapide)
-const Map<OrganismType, List<String>> PREDEFINED_ORGANISMS = {
+final Map<OrganismType, List<String>> predefinedOrganisms = {
   OrganismType.amo: ['AMO - Secteur Public', 'AMO - Secteur Privé', 'AMO - Étudiants', 'AMO - Retraités'],
   OrganismType.cnops: ['CNOPS - Secteur Public', 'CNOPS - Secteur Privé', 'CNOPS - Étudiants'],
   OrganismType.cnss: ['CNSS - Salariés', 'CNSS - Indépendants', 'CNSS - Agricoles'],
   OrganismType.mutuelle: ['MAMDA', 'MCMA', 'Mutuelle Générale', 'Mutuelle des Fonctionnaires', 'Wafa Assurance Mutuelle'],
-  OrganismType.assurance_privee: ['AXA', 'Allianz', 'SAHAM', 'Wafa Assurance', 'RMA Watanya', 'Atlanta', 'Saham Assurance'],
+  OrganismType.assurancePrivee: ['AXA', 'Allianz', 'SAHAM', 'Wafa Assurance', 'RMA Watanya', 'Atlanta', 'Saham Assurance'],
   OrganismType.autre: [],
 };

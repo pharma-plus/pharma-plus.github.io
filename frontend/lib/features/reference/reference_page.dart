@@ -3,21 +3,14 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/api_list.dart';
 import '../../core/services/auth_store.dart';
-import '../../core/services/offline_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
-import '../../core/widgets/shared/app_search_field.dart';
-import '../../core/widgets/shared/app_data_table.dart';
-import '../../core/widgets/shared/app_filter_bar.dart';
-import '../../core/widgets/status_chip.dart';
-import '../../core/utils/table_columns.dart';
 import '../../core/widgets/shared.dart';
 import '../shell/shell_nav.dart';
 
@@ -268,7 +261,6 @@ class _ReferencePageState extends State<ReferencePage> {
   }
 
   Widget _buildDesktopTable(String locale) {
-    final cfg = TableColumnWidths;
     return AppDataTable<Map<String, dynamic>>(
       columns: TableColumns.medications(locale),
       data: _items,
@@ -431,7 +423,6 @@ class _ReferencePageState extends State<ReferencePage> {
         p['princeps_generique'] ?? '',
       ].join(','));
     }
-    final bytes = utf8.encode(csv.toString());
     // Note: sur Web, utiliser html.Blob pour télécharger
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Export CSV: ${_items.length} lignes')),

@@ -13,7 +13,6 @@ import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/status_chip.dart';
 import '../../core/widgets/shared/app_search_field.dart';
-import '../shell/shell_nav.dart';
 
 /// Page de gestion des connexions fournisseurs (Supplier Integration Hub)
 class SupplierConnectivityPage extends StatefulWidget {
