@@ -64,6 +64,7 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
   }
 
   /// Retour à PHARMA+ : revient au dashboard PHARMA+ (HomeShell) en conservant la session
+  @pragma('vm:entry-point')
   void _returnToPharma(BuildContext context) {
     final authStore = context.read<AuthStore>();
     // Si l'utilisateur est super admin, on revient au HomeShell (PHARMA+ dashboard)
@@ -75,6 +76,7 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
   }
 
   /// Déconnexion complète
+  @pragma('vm:entry-point')
   void _confirmLogout(BuildContext context) {
     final locale = context.read<AuthStore>().locale;
     showDialog(
