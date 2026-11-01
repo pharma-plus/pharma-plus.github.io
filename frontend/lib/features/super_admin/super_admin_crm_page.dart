@@ -63,6 +63,43 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
     super.dispose();
   }
 
+  /// Retour à PHARMA+ : revient au dashboard PHARMA+ (HomeShell) en conservant la session
+  void _returnToPharma(BuildContext context) {
+    final authStore = context.read<AuthStore>();
+    // Si l'utilisateur est super admin, on revient au HomeShell (PHARMA+ dashboard)
+    // en remettant l'index du shell à 0 (Tableau de bord)
+    ShellNav.goHome();
+    // Le RootGate détectera que l'utilisateur est super admin et affichera le HomeShell
+    // au lieu de SuperAdminCRMPage car on navigue via le shell
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
+  /// Déconnexion complète
+  void _confirmLogout(BuildContext context) {
+    final locale = context.read<AuthStore>().locale;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(S.t('confirmLogout', locale)),
+        content: Text(S.t('confirmLogoutMessage', locale)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(S.t('cancel', locale)),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await context.read<AuthStore>().signOut();
+            },
+            child: Text(S.t('logout', locale)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _load({bool reset = false}) async {
     if (reset) {
       _page = 1;
@@ -175,17 +212,27 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
+    final authStore = context.read<AuthStore>();
     
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        leading: const ShellBackButton(),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: S.t('backToPharma', locale),
+          onPressed: () => _returnToPharma(context),
+        ),
         title: Text(S.t('superAdminCRM', locale)),
         actions: [
           IconButton(
             icon: const Icon(Icons.analytics_outlined, color: AppColors.pharmaGold),
             onPressed: () => setState(() => _activeTab = 'analytics'),
             tooltip: S.t('analytics', locale),
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout_rounded),
+            tooltip: S.t('logout', locale),
+            onPressed: () => _confirmLogout(context),
           ),
           IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
         ],

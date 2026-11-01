@@ -52,7 +52,10 @@ class S {
       'backupStarted': 'Sauvegarde enregistrée (job créé)',
       'noSessions': 'Aucune session active',
       'backToGrid': 'Retour',
+      'backToPharma': 'Retour à PHARMA+',
       'logout': 'Déconnexion',
+      'confirmLogout': 'Confirmer la déconnexion',
+      'confirmLogoutMessage': 'Êtes-vous sûr de vouloir vous déconnecter ?',
       'search': 'Rechercher…',
       'barcode': 'Scanner',
       'todayRevenue': "Chiffre d'affaires du jour",
@@ -645,7 +648,10 @@ class S {
       'backupStarted': 'تم تسجيل النسخة الاحتياطية',
       'noSessions': 'لا توجد جلسات نشطة',
       'backToGrid': 'رجوع',
+      'backToPharma': 'العودة إلى PHARMA+',
       'logout': 'خروج',
+      'confirmLogout': 'تأكيد الخروج',
+      'confirmLogoutMessage': 'هل أنت متأكد من رغبتك في تسجيل الخروج؟',
       'search': 'بحث…',
       'barcode': 'مسح',
       'todayRevenue': 'رقم معاملات اليوم',
@@ -1188,6 +1194,9 @@ class S {
       'noRoles': 'لا توجد أدوار',
     },
     'en': {
+      'backToPharma': 'Back to PHARMA+',
+      'confirmLogout': 'Confirm Logout',
+      'confirmLogoutMessage': 'Are you sure you want to log out?',
     },
   };
 
