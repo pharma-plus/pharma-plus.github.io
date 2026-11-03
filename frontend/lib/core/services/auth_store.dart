@@ -219,29 +219,44 @@ class AuthStore extends ChangeNotifier {
     _refreshToken = await _tokenRead(_kRefresh);
     final userRaw = await _tokenRead(_kUser);
     if (userRaw != null) {
-      _user = User.fromJson(jsonDecode(userRaw) as Map<String, dynamic>);
-      
+      // Restauration : toute valeur admin stockée localement est
+      // rétrogradée en « inconnu ». Seule une réponse serveur authentifiée
+      // contenant explicitement is_super_admin peut autoriser le CRM
+      // (un ancien `true` local ne constitue jamais une autorisation).
+      _user = User.fromJson(jsonDecode(userRaw) as Map<String, dynamic>)
+          .withoutAdminConfirmation();
+
       // Rafraîchir le profil utilisateur depuis le serveur pour détecter
       // les changements de rôle (ex: is_super_admin activé en base).
       if (_accessToken != null) {
+        User? serverUser;
         try {
           final userResult = await ApiClient.instance.getCurrentUser();
           if (userResult.success && userResult.data != null) {
-            final User serverUser = userResult.data! as User;
-            // Si isSuperAdmin a changé, mettre à jour le stockage local
-            if (_user!.isSuperAdmin != serverUser.isSuperAdmin) {
-              _user = serverUser;
-              await Future.wait([
-                _tokenWrite(_kAccess, _accessToken!),
-                _tokenWrite(_kRefresh, _refreshToken!),
-                _tokenWrite(_kUser, jsonEncode(serverUser.toJson())),
-              ]);
-              notifyListeners();
-            }
+            serverUser = userResult.data! as User;
           }
         } catch (e) {
-          debugPrint('[AuthStore] Impossible de rafraîchir le profil utilisateur: $e');
-          // En cas d'erreur, on garde le profil local (dégradé gracieux)
+          debugPrint(
+              '[AuthStore] Impossible de rafraîchir le profil utilisateur: $e');
+          // Erreur réseau : le profil local reste utilisé pour l'affichage,
+          // sans confirmation admin (dégradation gracieuse, jamais un
+          // privilège accordé depuis une valeur locale).
+        }
+        final User merged = _user!.applyServerConfirmation(serverUser);
+        if (!identical(merged, _user)) {
+          // Profil serveur complet (champ admin explicite, true OU false)
+          // : on adopte la valeur confirmée et on la persiste.
+          _user = merged;
+          await _tokenWrite(_kUser, jsonEncode(merged.toJson()));
+          notifyListeners();
+        } else if (serverUser == null ||
+            serverUser.isSuperAdminFlag == null) {
+          // Réponse absente ou contrat incomplet : le profil local est
+          // conservé pour l'affichage mais SANS confirmation admin. On ne
+          // réécrit PAS le stockage (aucune destruction inutile de données,
+          // aucun faux false enregistré comme valeur serveur confirmée).
+          debugPrint(
+              '[AuthStore] /auth/me contrat incomplet : statut admin non confirmé, accès CRM refusé jusqu\'à confirmation serveur');
         }
       }
     }
@@ -402,6 +417,10 @@ class AuthStore extends ChangeNotifier {
   }
 
   /// Une seule tentative de rafraîchissement du jeton.
+  /// Contrat serveur : `{ accessToken, refreshToken, user }` (profil
+  /// assaini, aligné sur /auth/login, /auth/me et la fonction Edge).
+  /// Une réponse SANS profil n'est JAMAIS considérée comme une
+  /// authentification réussie : la session est refusée.
   Future<bool> tryRefresh() async {
     final refresh = _refreshToken;
     if (refresh == null) return false;
@@ -413,11 +432,20 @@ class AuthStore extends ChangeNotifier {
               body: jsonEncode({'refreshToken': refresh}))
           .timeout(const Duration(seconds: 20));
       if (res.statusCode != 200) return false;
-      final data = jsonDecode(res.body)['data'] as Map<String, dynamic>;
+      final decoded = jsonDecode(res.body);
+      final data = decoded is Map<String, dynamic>
+          ? decoded['data']
+          : null;
+      if (data is! Map<String, dynamic>) return false;
+      final userJson = data['user'];
+      if (userJson is! Map<String, dynamic>) return false;
+      final accessToken = data['accessToken'];
+      final refreshToken = data['refreshToken'];
+      if (accessToken is! String || refreshToken is! String) return false;
       await saveSession(
-        accessToken: data['accessToken'] as String,
-        refreshToken: data['refreshToken'] as String,
-        user: User.fromJson(data['user'] as Map<String, dynamic>),
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+        user: User.fromJson(userJson),
       );
       return true;
     } catch (e) {

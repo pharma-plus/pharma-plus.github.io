@@ -201,7 +201,11 @@ export const authService = {
       return createSession(client, user, device);
     });
 
-    return newTokens;
+    /* Contrat aligné sur /auth/login, /auth/me et la fonction Edge :
+       la rotation renvoie le profil assaini (sanitizeUser : aucun hash,
+       aucun secret). Le frontend ne considère jamais une réponse sans
+       profil comme une authentification réussie. */
+    return { user: sanitizeUser(user), ...newTokens };
   },
 
   async logout(sessionId) {
@@ -266,10 +270,14 @@ export const authService = {
   },
 
   async me(userId) {
+    /* Contrat profil complet : is_super_admin (colonne réelle de
+       public.users, jamais déduite du rôle) et visible_modules (text[])
+       sont exposés explicitement. Aucun hash ni secret n'est sélectionné. */
     const { rows } = await query(
       `SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.photo_url,
               u.status, u.must_change_password, u.two_factor_enabled, u.branch_id,
-              u.pharmacy_id, u.role_id, r.name AS role_name, r.code AS role_code,
+              u.pharmacy_id, u.role_id, u.is_super_admin, u.visible_modules,
+              r.name AS role_name, r.code AS role_code,
               p.name AS pharmacy_name, p.slug AS pharmacy_slug, p.colors, p.currency,
               b.name AS branch_name
          FROM users u
