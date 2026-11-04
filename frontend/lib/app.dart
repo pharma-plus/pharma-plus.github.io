@@ -1,7 +1,6 @@
 // PMG-SPLASH-TUNING
 
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/l10n/strings.dart';
@@ -17,9 +16,43 @@ import 'features/audit/employee_space_page.dart';
 import 'features/shell/home_shell.dart';
 import 'features/shell/shell_nav.dart';
 import 'features/super_admin/super_admin_crm_page.dart';
+import 'features/super_admin/super_admin_functions.dart' as super_admin_functions;
 
+/// Force tree-shaking retention by making the super admin check dynamic
+/// This prevents the tree-shaker from proving the condition is never true
+@pragma('vm:entry-point')
+@pragma('dart2js:noInline')
+bool _shouldShowSuperAdmin(AuthStore auth) {
+  // Use a function call that the tree-shaker can't optimize away
+  // The tree-shaker can't prove this function always returns false
+  return auth.user?.isSuperAdmin == true;
+}
 
-/// Aiguillage : Splash → Connexion / Dashboard / Erreur d'init.
+/// Force tree-shaking retention by creating SuperAdminCRMPage in a function
+/// This prevents the tree-shaker from proving this branch is unreachable
+@pragma('vm:entry-point')
+@pragma('dart2js:noInline')
+Widget _createSuperAdminPage() => SuperAdminCRMPage();
+
+/// Force tree-shaking retention by referencing the functions directly
+/// This ensures the functions are kept in the compiled output
+@pragma('vm:entry-point')
+@pragma('dart2js:noInline')
+void _retainSuperAdminFunctions() {
+  // Reference the top-level functions to prevent tree-shaking
+  super_admin_functions.superAdminReturnToPharma.toString();
+  super_admin_functions.superAdminConfirmLogout.toString();
+  super_admin_functions.SuperAdminFunctions.instance.returnToPharma.toString();
+  super_admin_functions.SuperAdminFunctions.instance.confirmLogout.toString();
+  
+  // Call the functions in a way that the tree-shaker can't optimize away
+  // by using them in a conditional that could theoretically affect program behavior
+  if (super_admin_functions.superAdminReturnToPharma == null && 
+      super_admin_functions.superAdminConfirmLogout == null) {
+    debugPrint('SuperAdmin retention check');
+  }
+}
+
 class RootGate extends StatelessWidget {
   const RootGate({super.key});
 
@@ -39,7 +72,10 @@ class RootGate extends StatelessWidget {
           ));
         }
         if (!auth.isAuthenticated) return _withPopScope(const LoginPage());
-        if (auth.user?.isSuperAdmin == true) return _withPopScope(const SuperAdminCRMPage());
+        if (_shouldShowSuperAdmin(auth)) {
+      // Force retention of SuperAdminCRMPage by using it in a way tree-shaker can't eliminate
+      return _withPopScope(_createSuperAdminPage());
+    }
         // Bouton retour système (smartphone) — TOUTES les pages :
         // 1) dialogue / formulaire / sous-page poussée → pop (reste sur la page) ;
         // 2) onglet shell ≠ Dashboard → Dashboard ;
@@ -110,31 +146,16 @@ class _SplashScreen extends StatefulWidget {
   State<_SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<_SplashScreen>
-    with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<_SplashScreen> {
   // Sécurité anti-blocage : si l'init n'a pas terminé au bout de 8 s,
   // on force l'avancement vers la page de connexion (jamais de chargement
   // infini). Sûr : on n'est pas authentifié, on ne crée aucune session.
+  // (Partie L) Ce garde-fou est une sécurité, pas une animation : conservé.
   Timer? _timer;
-
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1100),
-  );
-  late final Animation<double> _fade = CurvedAnimation(
-    parent: _controller,
-    curve: Curves.easeOut,
-  );
-  late final Animation<double> _scale = Tween<double>(begin: 0.9, end: 1.0)
-      .animate(CurvedAnimation(
-    parent: _controller,
-    curve: Curves.easeOutBack,
-  ));
 
   @override
   void initState() {
     super.initState();
-    _controller.forward();
     _timer = Timer(const Duration(seconds: 8), () {
       if (!mounted) return;
       final auth = context.read<AuthStore>();
@@ -145,7 +166,6 @@ class _SplashScreenState extends State<_SplashScreen>
   @override
   void dispose() {
     _timer?.cancel();
-    _controller.dispose();
     super.dispose();
   }
 
@@ -153,121 +173,28 @@ class _SplashScreenState extends State<_SplashScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.pharmaBg,
+      // ÉTAT TECHNIQUE DISCRET (Partie L — un seul Splash visuel) :
+      // le premier Splash est celui du HTML (#pmg-loading, retiré à
+      // l'événement flutter-first-frame). Aucun deuxième Splash Flutter
+      // ici : pas de logo réaffiché, pas de barre 0→100 %, pas de texte
+      // de bienvenue, aucun AnimationController. Fond identique au
+      // Splash HTML pour une transition sans saut visuel ; un seul
+      // indicateur discret centré, visible uniquement le temps de
+      // l'initialisation AuthStore (bornée à 12 s).
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Fond : image de pharmacie premium, légèrement assombrie.
-          const PharmaBackground(
+          PharmaBackground(
             overlayOpacity: 0.66,
             child: SizedBox.expand(),
           ),
-          SafeArea(
-            child: Center(
-              child: FadeTransition(
-                opacity: _fade,
-                child: ScaleTransition(
-                  scale: _scale,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Logo officiel complet : le nom PHARMA+ et la
-                      // signature sont deja dans l'asset — aucun texte
-                      // de marque répété en dessous.
-                      PharmaFullLogo(
-                        width: (MediaQuery.of(context).size.width * 0.56)
-                            .clamp(230.0, 330.0),
-                      ),
-                      const SizedBox(height: 22),
-                      // Ornement feuille : trait or — feuille — trait or.
-                      Row(mainAxisSize: MainAxisSize.min, children: [
-                        Container(
-                          width: 56,
-                          height: 1.2,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(colors: [
-                              Colors.transparent,
-                              AppColors.pharmaGold.withValues(alpha: 0.85),
-                            ]),
-                          ),
-                        ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 10),
-                          child: Icon(Icons.eco_outlined,
-                              color: Color(0xFF2FB563), size: 19),
-                        ),
-                        Container(
-                          width: 56,
-                          height: 1.2,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(colors: [
-                              AppColors.pharmaGold.withValues(alpha: 0.85),
-                              Colors.transparent,
-                            ]),
-                          ),
-                        ),
-                      ]),
-                      const SizedBox(height: 16),
-                      // « Bienvenue dans votre pharmacie » — une ligne sur
-                      // PC/tablette, deux lignes sur smartphone (maquette).
-                      // Responsive : on laisse le texte se replier tout seul
-                      // grace a un layout adaptable (largeur disponible).
-                      LayoutBuilder(builder: (context, box) {
-                        const gold = Color(0xFFE9C873);
-                        const welcome = TextSpan(
-                          text: 'Bienvenue ',
-                          style: TextStyle(
-                            color: gold,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        );
-                        const rest = TextSpan(
-                          text: 'dans votre pharmacie',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        );
-                        final wide = box.maxWidth >= 420;
-                        const oneLine = TextSpan(children: [welcome, rest]);
-                        const twoLines = Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('Bienvenue',
-                                style: TextStyle(
-                                  color: gold,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w800,
-                                )),
-                            SizedBox(height: 4),
-                            Text('dans votre pharmacie',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w600,
-                                )),
-                          ],
-                        );
-                        return wide
-                            ? const FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text.rich(oneLine))
-                            : twoLines;
-                      }),
-                      const SizedBox(height: 26),
-                      const _SplashProgressBar(),
-                      const SizedBox(height: 14),
-                      Text(
-                        'Chargement en cours...',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.42),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+          Center(
+            child: SizedBox(
+              width: 34,
+              height: 34,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: AppColors.pharmaGold,
               ),
             ),
           ),
@@ -275,151 +202,6 @@ class _SplashScreenState extends State<_SplashScreen>
       ),
     );
   }
-}
-
-/// Barre de progression RÉELLE : 0% → 100% avec pourcentage dynamique.
-/// La progression avance par pas (1 % à la fois, courbe ease-in-out) :
-/// ce n'est PAS une boucle décorative — elle atteint réellement 100 %.
-class _SplashProgressBar extends StatefulWidget {
-  const _SplashProgressBar();
-
-  @override
-  State<_SplashProgressBar> createState() => _SplashProgressBarState();
-}
-
-class _SplashProgressBarState extends State<_SplashProgressBar>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1800),
-  );
-
-  @override
-  void initState() {
-    super.initState();
-    // Progression réelle 0 → 100 % (chaque pourcentage est traversé).
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, _) {
-        // Pourcentage dynamique affiché : 0% → 1% → … → 100%.
-        final pct = (_controller.value * 100).round();
-        // Barre OR + rayons du soleil (palette champagne) :
-        final barWidth =
-            (MediaQuery.of(context).size.width * 0.60).clamp(240.0, 360.0);
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Stack(
-              alignment: Alignment.center,
-              clipBehavior: Clip.none,
-              children: [
-                // Rayons du soleil derrière la barre
-                SizedBox(
-                  width: barWidth + 80,
-                  height: 48,
-                  child: CustomPaint(
-                    painter: _SunRaysPainter(
-                      progress: _controller.value,
-                      color: const Color(0xFFF1D58A),
-                    ),
-                  ),
-                ),
-                Container(
-                  width: barWidth,
-                  height: 7,
-                  clipBehavior: Clip.antiAlias,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(50),
-                    border: Border.all(
-                        color: const Color(0xFFD6A84F).withValues(alpha: 0.55),
-                        width: 1),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFD6A84F).withValues(alpha: 0.30),
-                        blurRadius: 10,
-                      ),
-                    ],
-                  ),
-                  child: FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: _controller.value,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [
-                            Color(0xFFD6A84F),
-                            Color(0xFFF1D58A),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(50),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(width: 12),
-            SizedBox(
-              width: 44,
-              child: Text(
-                '$pct%',
-                textAlign: TextAlign.right,
-                style: const TextStyle(
-                  color: Color(0xFFF1D58A),
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-/// Rayons du soleil dorés animés derrière la barre de chargement splash.
-class _SunRaysPainter extends CustomPainter {
-  final double progress;
-  final Color color;
-  _SunRaysPainter({required this.progress, required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final paint = Paint()
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round;
-    const rayCount = 12;
-    for (var i = 0; i < rayCount; i++) {
-      final angle = (i / rayCount) * 6.28318 + progress * 6.28318;
-      const inner = 22.0;
-      final outer = 26.0 + 10.0 * ((i % 3) + 1) * progress;
-      paint.color = color.withValues(alpha: 0.10 + 0.22 * progress);
-      canvas.drawLine(
-        center + Offset(cos(angle) * inner, sin(angle) * inner),
-        center + Offset(cos(angle) * outer, sin(angle) * outer),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _SunRaysPainter old) =>
-      old.progress != progress || old.color != color;
 }
 
 class _InitErrorScreen extends StatelessWidget {

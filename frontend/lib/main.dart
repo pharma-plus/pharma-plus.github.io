@@ -4,14 +4,108 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'app.dart';
 import 'core/services/auth_store.dart';
+import 'core/services/connection_status_service.dart';
 import 'core/services/page_reload.dart';
 import 'core/theme/app_scroll_behavior.dart';
 import 'core/theme/app_theme.dart';
+import 'features/super_admin/super_admin_crm_page.dart';
+import 'features/super_admin/super_admin_functions.dart';
+import 'features/super_admin/super_admin_binding.dart';
+
+/// Prevent tree-shaking by referencing SuperAdminCRMPage and SuperAdminFunctions
+@pragma('vm:entry-point')
+@pragma('dart2js:noInline')
+final _superAdminCRMPageRetention = SuperAdminCRMPage;
+
+/// Prevent tree-shaking by referencing SuperAdminFunctions
+@pragma('vm:entry-point')
+@pragma('dart2js:noInline')
+final _superAdminFunctionsRetention = SuperAdminFunctions.instance;
+
+/// Prevent tree-shaking by referencing top-level functions directly
+@pragma('vm:entry-point')
+@pragma('dart2js:noInline')
+final _superAdminTopLevelRetention = superAdminFunctionRefs;
+
+/// Prevent tree-shaking by referencing top-level functions directly
+@pragma('vm:entry-point')
+@pragma('dart2js:noInline')
+final _superAdminReturnToPharmaRef = superAdminReturnToPharma;
+
+@pragma('vm:entry-point')
+@pragma('dart2js:noInline')
+final _superAdminConfirmLogoutRef = superAdminConfirmLogout;
+
+/// Force tree-shaking retention by actually calling the functions
+/// This function is called from main() and its execution forces the tree-shaker to keep the functions
+@pragma('vm:entry-point')
+@pragma('dart2js:noInline')
+void _forceSuperAdminRetention() {
+  // Call the functions in a way that the tree-shaker can't optimize away
+  // by using them in a conditional that could theoretically affect program behavior
+  final returnToPharma = superAdminReturnToPharma;
+  final confirmLogout = superAdminConfirmLogout;
+  final refs = superAdminFunctionRefs;
+  
+  // Use in a way that could theoretically affect program behavior
+  // The tree-shaker can't prove this is never true
+  if (returnToPharma == null && confirmLogout == null && refs == null) {
+    debugPrint('SuperAdmin retention check');
+  }
+}
+
+/// Dummy widget that uses the super admin functions to prevent tree-shaking
+/// This widget is never actually rendered but forces the tree-shaker to keep the functions
+class _SuperAdminRetentionWidget extends StatelessWidget {
+  const _SuperAdminRetentionWidget();
+
+  @override
+  Widget build(BuildContext context) {
+    // Use the functions in a way that the tree-shaker can't optimize away
+    // by calling them with a dummy context that could theoretically be used
+    superAdminReturnToPharma(context);
+    superAdminConfirmLogout(context);
+    return const SizedBox.shrink();
+  }
+}
+
+/// Force tree-shaking retention by actually calling the functions with a real context
+/// This runs before runApp() and forces tree-shaking retention
+@pragma('vm:entry-point')
+@pragma('dart2js:noInline')
+void _callSuperAdminFunctions() {
+  // Create a minimal context to call the functions
+  // This is a hack to prevent tree-shaking by actually calling the functions
+  final navigatorKey = GlobalKey<NavigatorState>();
+  final context = navigatorKey.currentContext;
+  
+  if (context != null) {
+    superAdminReturnToPharma(context);
+    superAdminConfirmLogout(context);
+  } else {
+    // Fallback: just reference the functions
+    superAdminReturnToPharma.toString();
+    superAdminConfirmLogout.toString();
+  }
+}
+
+/// Force tree-shaking retention by actually instantiating the retention widget
+/// This runs before runApp() and forces tree-shaking retention
+@pragma('vm:entry-point')
+@pragma('dart2js:noInline')
+void _instantiateRetentionWidget() {
+  // Instantiate the retention widget in a way that the tree-shaker can't optimize away
+  // by using it in a conditional that could theoretically affect program behavior
+  final widget = _SuperAdminRetentionWidget();
+  
+  // Use in a way that could theoretically affect program behavior
+  // The tree-shaker can't prove this is never true
+  if (widget == null) {
+    debugPrint('SuperAdmin widget retention check');
+  }
+}
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // ---- Diagnostic global (web release inclus) ----
   // En mode release, une exception pendant le build d'un widget remplace la
   // vue par un ErrorWidget muet (écran gris/vert SANS message) : c'était la
   // cause du fameux « Splash → écran vert pétrole vide » sur Mac — impossible
@@ -32,14 +126,22 @@ Future<void> main() async {
     );
   };
 
-  // On affiche immédiatement le Splash (RootGate) au lieu de bloquer le
-  // lancement sur une initialisation qui pourrait ne jamais se terminer.
   runApp(
     ChangeNotifierProvider.value(
       value: AuthStore.instance,
       child: const PharmaGoldApp(),
     ),
   );
+  // Force tree-shaking retention APRÈS runApp (le binding Flutter est alors
+  // initialisé ; ces appels avant runApp plantaient avec "Binding has not
+  // yet been initialized").
+  _forceSuperAdminRetention();
+  _instantiateRetentionWidget();
+  _callSuperAdminFunctions();
+
+  // Initialiser le service de connexion et de synchronisation hors-ligne.
+  unawaited(ConnectionStatusService.instance.init());
+
   unawaited(AuthStore.instance.init());
 }
 

@@ -16,7 +16,13 @@ import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/shared/app_search_field.dart';
 import '../../core/widgets/status_chip.dart';
-import '../shell/shell_nav.dart';
+import 'role_management_page.dart';
+import 'super_admin_functions.dart';
+
+
+/// Prevent tree-shaking by ensuring SuperAdminCRMPage is referenced
+@pragma('vm:entry-point')
+final _superAdminCRMPageRef = SuperAdminCRMPage;
 
 /// Portail Super Admin — CRM commercial, facturation, support
 class SuperAdminCRMPage extends StatefulWidget {
@@ -63,46 +69,14 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
     super.dispose();
   }
 
-  /// Retour à PHARMA+ : revient au dashboard PHARMA+ (HomeShell) en conservant la session
-  @pragma('vm:entry-point')
-  @pragma('dart2js:noInline')
-  void returnToPharma(BuildContext context) {
-    final authStore = context.read<AuthStore>();
-    // Si l'utilisateur est super admin, on revient au HomeShell (PHARMA+ dashboard)
-    // en remettant l'index du shell à 0 (Tableau de bord)
-    ShellNav.goHome();
-    // Le RootGate détectera que l'utilisateur est super admin et affichera le HomeShell
-    // au lieu de SuperAdminCRMPage car on navigue via le shell
-    Navigator.of(context).popUntil((route) => route.isFirst);
-  }
-
-  /// Déconnexion complète
-  @pragma('vm:entry-point')
-  @pragma('dart2js:noInline')
-  void confirmLogout(BuildContext context) {
-    final locale = context.read<AuthStore>().locale;
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(S.t('confirmLogout', locale)),
-        content: Text(S.t('confirmLogoutMessage', locale)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(S.t('cancel', locale)),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await context.read<AuthStore>().signOut();
-            },
-            child: Text(S.t('logout', locale)),
-          ),
-        ],
-      ),
-    );
-  }
+  /// Partie D — 'analytics' n'a pas d'endpoint de liste dédié (fonction
+  /// Edge : stats, pharmacies, prospects, invoices, tickets, roles) :
+  /// la vue utilise exclusivement /superadmin/stats. 'roles' est géré
+  /// intégralement par RoleManagementBody (son propre chargement).
+  /// Éviter le GET /superadmin/<onglet> (404 systématique) qui masquait
+  /// les données réelles derrière une erreur.
+  bool get _fetchListForTab =>
+      _activeTab != 'analytics' && _activeTab != 'roles';
 
   Future<void> _load({bool reset = false}) async {
     if (reset) {
@@ -115,37 +89,53 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
     setState(() => _loadingMore = !reset);
 
     final locale = context.read<AuthStore>().locale;
-    final results = await Future.wait([
-      if (reset) ApiClient.instance.get('/superadmin/stats'),
-      ApiClient.instance.get('/superadmin/${_activeTab}', query: {
-        'page': _page,
-        'limit': 20,
-        if (_search.text.trim().isNotEmpty) 'q': _search.text.trim(),
-      }),
+    final bool fetchList = _fetchListForTab;
+    ApiResult<dynamic>? statsRes;
+    ApiResult<dynamic>? listRes;
+    await Future.wait([
+      if (reset)
+        ApiClient.instance.get('/superadmin/stats').then((r) => statsRes = r),
+      if (fetchList)
+        ApiClient.instance.get('/superadmin/${_activeTab}', query: {
+          'page': _page,
+          'limit': 20,
+          if (_search.text.trim().isNotEmpty) 'q': _search.text.trim(),
+        }).then((r) => listRes = r),
     ]);
 
     if (!mounted) return;
-    if (reset) {
-      final statsRes = results[0];
-      if (statsRes.success) {
-        final d = statsRes.data;
-        setState(() {
-          _globalStats = d is Map<String, dynamic> ? d : (d is Map ? Map<String, dynamic>.from(d) : null);
-        });
-      }
+    if (statsRes != null && statsRes!.success) {
+      final d = statsRes!.data;
+      setState(() {
+        _globalStats = d is Map<String, dynamic>
+            ? d
+            : (d is Map ? Map<String, dynamic>.from(d) : null);
+      });
     }
-    final listRes = results.last;
-    if (!listRes.success) {
+    final ApiResult<dynamic>? currentListRes = listRes;
+    if (currentListRes == null) {
+      // Onglet sans liste (analytics / roles) : rien à paginer.
       if (mounted) {
         setState(() {
           _loading = false;
           _loadingMore = false;
-          _error = listRes.error?.readableMessage ?? S.t('loadError', locale);
+          _error = null;
         });
       }
       return;
     }
-    final items = _parseList(listRes.data);
+    if (!currentListRes.success) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _loadingMore = false;
+          _error =
+              currentListRes.error?.readableMessage ?? S.t('loadError', locale);
+        });
+      }
+      return;
+    }
+    final items = _parseList(currentListRes.data);
     if (mounted) {
       setState(() {
         if (reset) {
@@ -224,7 +214,7 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           tooltip: S.t('backToPharma', locale),
-          onPressed: () => returnToPharma(context),
+          onPressed: () => superAdminReturnToPharma(context),
         ),
         title: Text(S.t('superAdminCRM', locale)),
         actions: [
@@ -236,7 +226,7 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
           IconButton(
             icon: const Icon(Icons.logout_rounded),
             tooltip: S.t('logout', locale),
-            onPressed: () => confirmLogout(context),
+            onPressed: () => superAdminConfirmLogout(context),
           ),
           IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
         ],
@@ -281,14 +271,32 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
               ? const Center(child: CircularProgressIndicator())
               : _error != null
                   ? Center(child: Text(_error!))
-                  : _getCurrentList().isEmpty
-                      ? _EmptyState(onAdd: _showCreateDialog, locale: locale, activeTab: _activeTab)
-                      : RefreshIndicator(
+                  : _activeTab == 'analytics'
+                      // Partie D — la vue Analytics s'appuie sur
+                      // /superadmin/stats et est TOUJOURS affichée : elle
+                      // n'était atteignable que si la liste courante était
+                      // non vide (jamais vrai) → bouton Créer erroné +
+                      // actions impossibles. ScrollPhysics explicite pour
+                      // garder le tirer-pour-actualiser.
+                      ? RefreshIndicator(
                           onRefresh: () => _load(reset: true),
-                          child: _activeTab == 'analytics'
-                              ? _buildAnalytics(locale)
-                              : _buildListView(locale),
-                        ),
+                          child: SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            child: _buildAnalytics(locale),
+                          ),
+                        )
+                      : _activeTab == 'roles'
+                          // Partie D — module Rôles fonctionnel : gestion
+                          // complète (créer, éditer, permissions,
+                          // supprimer) au lieu d'une liste vide + dialogue
+                          // factice bloquant.
+                          ? const RoleManagementBody()
+                          : _getCurrentList().isEmpty
+                              ? _EmptyState(locale: locale, activeTab: _activeTab)
+                              : RefreshIndicator(
+                                  onRefresh: () => _load(reset: true),
+                                  child: _buildListView(locale),
+                                ),
         ),
       ]),
       floatingActionButton: _activeTab != 'analytics' && _activeTab != 'roles'
@@ -389,6 +397,11 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
   }
 
   void _showCreateDialog() {
+    // Partie D — un onglet sans formulaire de création (analytics, roles)
+    // n'ouvre JAMAIS un dialogue vide sans bouton Fermer (blocage signalé
+    // dans le module Rôles). Le FAB est de toute façon masqué pour ces
+    // onglets ; garde-fou défensif conservé.
+    if (!_fetchListForTab) return;
     showDialog(
       context: context,
       builder: (_) => Dialog(
@@ -519,7 +532,9 @@ class _InvoiceCard extends StatelessWidget {
             Text('${item['pharmacy_name'] ?? ''}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Colors.grey)),
           ])),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            StatusChip(label: '${item['status']}', color: item['status'] == 'paid' ? AppColors.success : item['status'] == 'pending' ? AppColors.warning : AppColors.danger),
+            // Partie D — statuts réels (unpaid est le défaut ; pending
+            // n'existait pas).
+            StatusChip(label: '${item['status']}', color: item['status'] == 'paid' ? AppColors.success : item['status'] == 'overdue' || item['status'] == 'cancelled' ? AppColors.danger : AppColors.warning),
             Text(Fmt.money(double.tryParse('${item['amount'] ?? 0}') ?? 0), style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.pharmaGold)),
           ]),
         ])
@@ -553,16 +568,15 @@ class _TicketCard extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  final VoidCallback onAdd;
   final String locale;
   final String activeTab;
-  const _EmptyState({required this.onAdd, required this.locale, required this.activeTab});
+  const _EmptyState({required this.locale, required this.activeTab});
 
   @override
   Widget build(BuildContext context) {
     String emptyTitle = 'no${activeTab.capitalize()}';
     String emptySubtitle = 'addFirst${activeTab.capitalize()}';
-    
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -576,8 +590,10 @@ class _EmptyState extends StatelessWidget {
           Text(S.t(emptySubtitle, locale),
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.grey)),
-          const SizedBox(height: 24),
-          GradientButton(label: S.t('create', locale), icon: Icons.add, onPressed: onAdd),
+          // Partie D — PAS de bouton « Créer » ici : le FloatingActionButton
+          // « Créer » est déjà visible (un seul bouton de création à l'écran,
+          // plus de doublon). Pour les onglets sans création (analytics,
+          // roles), aucune action de création n'est proposée.
         ]),
       ),
     );
@@ -599,7 +615,6 @@ class _PharmacyFormState extends State<_PharmacyForm> {
   final _email = TextEditingController();
   final _phone = TextEditingController();
   final _address = TextEditingController();
-  String _licenseType = 'trial';
   bool _saving = false;
 
   @override void dispose() { _name.dispose(); _slug.dispose(); _city.dispose(); _email.dispose(); _phone.dispose(); _address.dispose(); super.dispose(); }
@@ -614,7 +629,6 @@ class _PharmacyFormState extends State<_PharmacyForm> {
       'email': _email.text.trim(),
       'phone': _phone.text.trim(),
       'address': _address.text.trim(),
-      'license_type': _licenseType,
     };
     final result = await ApiClient.instance.post('/superadmin/pharmacies', body: body);
     if (!mounted) return;
@@ -648,13 +662,6 @@ class _PharmacyFormState extends State<_PharmacyForm> {
           TextFormField(controller: _phone, decoration: InputDecoration(labelText: S.t('phone', locale)), keyboardType: TextInputType.phone),
           const SizedBox(height: 12),
           TextFormField(controller: _address, decoration: InputDecoration(labelText: S.t('address', locale)), maxLines: 2),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            value: _licenseType,
-            decoration: InputDecoration(labelText: S.t('licenseType', locale)),
-            items: ['trial', 'standard', 'professional', 'enterprise'].map((e) => DropdownMenuItem(value: e, child: Text(S.t(e, locale)))).toList(),
-            onChanged: (v) => setState(() => _licenseType = v!),
-          ),
           const SizedBox(height: 20),
           Row(children: [
             Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close), label: Text(S.t('cancel', locale)))),
@@ -787,7 +794,8 @@ class _InvoiceFormState extends State<_InvoiceForm> {
           DropdownButtonFormField<String>(
             value: _status,
             decoration: InputDecoration(labelText: S.t('status', locale)),
-            items: ['pending', 'paid', 'overdue', 'cancelled'].map((e) => DropdownMenuItem(value: e, child: Text(e.capitalize()))).toList(),
+            // Partie D — statuts réels de la table (défaut 'unpaid').
+            items: ['unpaid', 'paid', 'overdue', 'cancelled'].map((e) => DropdownMenuItem(value: e, child: Text(e.capitalize()))).toList(),
             onChanged: (v) => setState(() => _status = v!),
           ),
           const SizedBox(height: 20),

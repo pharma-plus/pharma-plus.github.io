@@ -7933,10 +7933,16 @@ Deno.serve(async (req) => {
   if (path === "superadmin/pharmacies") {
     if (req.method === "GET") {
       try {
+        /* FIX (partie D) : license_type / license_expiry n'existent pas
+           sur la table pharmacies (source vérifiée) — le utilisé précédent
+           échouait côté PostgREST (colonne inconnue) et renvoyait une
+           liste vide / erreur : c'est la cause signalée « pharmacie de
+           test absente de la liste ». Le statut d'abonnement provient de
+           la table licenses (dernière licence par pharmacie). */
         const { data, error } = await sb
           .from("pharmacies")
           .select(
-            "id, name, slug, city, email, phone, status, license_type, license_expiry, created_at",
+            "id, name, slug, city, email, phone, status, created_at",
           )
           .order("created_at", { ascending: false })
           .limit(200);
@@ -7946,9 +7952,9 @@ Deno.serve(async (req) => {
             500,
           );
 
-        // Enrich with counts
+        // Enrich with license + counts
         const pharmacyIds = (data ?? []).map((p: any) => p.id);
-        const [usersCount, branchesCount] = await Promise.all([
+        const [usersCount, branchesCount, licenses] = await Promise.all([
           sb
             .from("users")
             .select("pharmacy_id", { count: "exact" })
@@ -7957,10 +7963,19 @@ Deno.serve(async (req) => {
             .from("branches")
             .select("pharmacy_id", { count: "exact" })
             .in("pharmacy_id", pharmacyIds),
+          sb
+            .from("licenses")
+            .select("pharmacy_id, type, status, expiry_date")
+            .order("activation_date", { ascending: false }),
         ]);
 
         const usersMap = new Map<string, number>();
         const branchesMap = new Map<string, number>();
+        // Dernière licence par pharmacie (ordre activation décroissant).
+        const licMap = new Map<string, any>();
+        (licenses.data ?? []).forEach((l: any) => {
+          if (!licMap.has(l.pharmacy_id)) licMap.set(l.pharmacy_id, l);
+        });
         (usersCount.data ?? []).forEach((u: any) => {
           usersMap.set(u.pharmacy_id, (usersMap.get(u.pharmacy_id) ?? 0) + 1);
         });
@@ -7970,6 +7985,8 @@ Deno.serve(async (req) => {
 
         const enriched = (data ?? []).map((p: any) => ({
           ...p,
+          license_type: licMap.get(p.id)?.type ?? null,
+          license_expiry: licMap.get(p.id)?.expiry_date ?? null,
           nb_users: usersMap.get(p.id) ?? 0,
           nb_branches: branchesMap.get(p.id) ?? 0,
         }));
@@ -7983,7 +8000,12 @@ Deno.serve(async (req) => {
     if (req.method === "POST") {
       try {
         const body = await req.json().catch(() => ({}));
-        const { name, slug, city, email, phone, address, license_type } = body ?? {};
+        /* FIX (partie D) : la table pharmacies n'a PAS de colonne
+           license_type — l'insert précédent échouait (CREATE_FAILED).
+           La licence est attribuée via la table licenses (fonctionnalité
+           « Attribution d'abonnement », partie H) — création directe
+           sans faux enregistrement. */
+        const { name, slug, city, email, phone, address } = body ?? {};
         if (!name || !slug)
           return json(
             {
@@ -8009,7 +8031,6 @@ Deno.serve(async (req) => {
           email,
           phone,
           address,
-          license_type: license_type ?? "trial",
           status: "active",
         }).select().single();
         if (error)
@@ -8088,7 +8109,16 @@ Deno.serve(async (req) => {
             { error: { code: "QUERY_FAILED", message: error.message } },
             500,
           );
-        return json({ data: data ?? [] });
+        /* FIX (partie D) : mapping compat carte CRM — la carte lit
+           pharmacy_name / amount ; les colonnes réelles sont
+           pharmacies.name (embed) et total. */
+        return json({
+          data: (data ?? []).map((r: any) => ({
+            ...r,
+            pharmacy_name: r.pharmacies?.name ?? null,
+            amount: r.total,
+          })),
+        });
       } catch (e) {
         return json({ error: { code: "QUERY_FAILED", message: String(e) } }, 500);
       }
@@ -8097,7 +8127,7 @@ Deno.serve(async (req) => {
       try {
         const body = await req.json().catch(() => ({}));
         const { number, pharmacy_id, amount, status } = body ?? {};
-        if (!number || !pharmacy_id || !amount)
+        if (!number || !pharmacy_id || amount === undefined || amount === null)
           return json(
             {
               error: {
@@ -8107,11 +8137,42 @@ Deno.serve(async (req) => {
             },
             400,
           );
+        /* FIX (partie D) : la table invoices n'a PAS de colonne "amount"
+           (subtotal/tax_total/total) et branch_id est NOT NULL — l'insert
+           précédent échouait systématiquement (création facture).
+           Colonnes réelles : on écrit total + la première agence de la
+           pharmacie. Aucune donnée fictive : le montant saisi est celui
+           enregistré. */
+        let branchId: string | undefined = body?.branch_id;
+        if (!branchId) {
+          const { data: branch } = await sb
+            .from("branches")
+            .select("id")
+            .eq("pharmacy_id", pharmacy_id)
+            .order("is_main", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          branchId = branch?.id;
+        }
+        if (!branchId)
+          return json(
+            {
+              error: {
+                code: "VALIDATION",
+                message:
+                  "Aucune agence pour cette pharmacie (branch_id requis)",
+              },
+            },
+            400,
+          );
         const { data, error } = await sb.from("invoices").insert({
           number,
           pharmacy_id,
-          amount,
-          status: status ?? "pending",
+          branch_id: branchId,
+          subtotal: amount,
+          tax_total: 0,
+          total: amount,
+          status: status ?? "unpaid",
         }).select().single();
         if (error)
           return json(
@@ -8140,7 +8201,13 @@ Deno.serve(async (req) => {
             { error: { code: "QUERY_FAILED", message: error.message } },
             500,
           );
-        return json({ data: data ?? [] });
+        /* FIX (partie D) : mapping compat carte CRM (pharmacy_name). */
+        return json({
+          data: (data ?? []).map((r: any) => ({
+            ...r,
+            pharmacy_name: r.pharmacies?.name ?? null,
+          })),
+        });
       } catch (e) {
         return json({ error: { code: "QUERY_FAILED", message: String(e) } }, 500);
       }
@@ -8216,7 +8283,21 @@ Deno.serve(async (req) => {
               { error: { code: "NOT_FOUND", message: "Rôle introuvable" } },
               404,
             );
-          return json({ data });
+          /* FIX (partie D) : mapping permissions (role_permissions
+             réelles : role_id + permission_code "module:action"). */
+          const permMap2: Record<string, string[]> = {};
+          (data.role_permissions ?? []).forEach((p: any) => {
+            const code = String(p.permission_code ?? "");
+            const sep = code.indexOf(":");
+            if (sep > 0) {
+              const mod = code.slice(0, sep);
+              const act = code.slice(sep + 1);
+              (permMap2[mod] ??= []).push(act);
+            } else if (code) {
+              (permMap2[code] ??= []).push(code);
+            }
+          });
+          return json({ data: { ...data, permissions: permMap2 } });
         } catch (e) {
           return json({ error: { code: "QUERY_FAILED", message: String(e) } }, 500);
         }
@@ -8232,7 +8313,27 @@ Deno.serve(async (req) => {
               { error: { code: "QUERY_FAILED", message: error.message } },
               500,
             );
-          return json({ data: data ?? [] });
+          /* FIX (partie D) : la table role_permissions a les colonnes
+             réelles (role_id, permission_code) — format "module:action".
+             Mapping compat carte + matrice : permissions = Map<module,
+             actions[]>. description n'existe pas sur la table roles. */
+          return json({
+            data: (data ?? []).map((r: any) => {
+              const permMap: Record<string, string[]> = {};
+              (r.role_permissions ?? []).forEach((p: any) => {
+                const code = String(p.permission_code ?? "");
+                const sep = code.indexOf(":");
+                if (sep > 0) {
+                  const mod = code.slice(0, sep);
+                  const act = code.slice(sep + 1);
+                  (permMap[mod] ??= []).push(act);
+                } else if (code) {
+                  (permMap[code] ??= []).push(code);
+                }
+              });
+              return { ...r, permissions: permMap };
+            }),
+          });
         } catch (e) {
           return json({ error: { code: "QUERY_FAILED", message: String(e) } }, 500);
         }
@@ -8242,7 +8343,11 @@ Deno.serve(async (req) => {
     if (req.method === "POST") {
       try {
         const body = await req.json().catch(() => ({}));
-        const { name, code, description } = body ?? {};
+        /* FIX (partie D) : la table roles n'a PAS de colonne description
+           (colonnes réelles : pharmacy_id, name, code, is_system) —
+           l'insert précédent échouait universellement (action « Créer
+           » du module Rôles non fonctionnelle). */
+        const { name, code } = body ?? {};
         if (!name || !code)
           return json(
             { error: { code: "VALIDATION", message: "name + code requis" } },
@@ -8262,7 +8367,6 @@ Deno.serve(async (req) => {
         const { data, error } = await sb.from("roles").insert({
           name,
           code: normalizedCode,
-          description,
           is_system: false,
         }).select().single();
         if (error)
@@ -8279,11 +8383,12 @@ Deno.serve(async (req) => {
     if (isSingle && (req.method === "PUT" || req.method === "PATCH")) {
       try {
         const body = await req.json().catch(() => ({}));
-        const { name, code, description } = body ?? {};
+        /* FIX (partie D) : pas de colonne description sur la table roles —
+           on ne met à jour que name / code. */
+        const { name, code } = body ?? {};
         const updateData: any = {};
         if (name) updateData.name = name;
         if (code) updateData.code = String(code).trim().toLowerCase();
-        if (description !== undefined) updateData.description = description;
         const { data, error } = await sb
           .from("roles")
           .update(updateData)
@@ -8330,14 +8435,16 @@ Deno.serve(async (req) => {
             { error: { code: "VALIDATION", message: "permissions requis" } },
             500,
           );
-        // Delete existing permissions
+        /* FIX (partie D) : la table role_permissions a les colonnes
+           réelles (role_id, permission_code) — PAS de colonnes module /
+           action. L'insert précédent échouait universellement (édition
+           des permissions non fonctionnelle). Format canonique du code :
+           "module:action" (identique aux permissions des utilisateurs). */
         await sb.from("role_permissions").delete().eq("role_id", roleId);
-        // Insert new permissions
         const permsToInsert = Object.entries(permissions).flatMap(([module, actions]) =>
           (actions as string[]).map((action) => ({
             role_id: roleId,
-            module,
-            action,
+            permission_code: `${module}:${action}`,
           }))
         );
         if (permsToInsert.length > 0) {

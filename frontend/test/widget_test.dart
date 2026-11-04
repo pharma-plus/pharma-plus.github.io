@@ -18,9 +18,13 @@ void main() {
     );
 
         expect(find.byType(MaterialApp), findsOneWidget);
-    // Le splash affiche le logo officiel PHARMA+ (asset image, fond transparent),
-    // pas de texte brut. On vérifie la présence du widget logo au lieu de texte.
-    expect(find.byType(PharmaFullLogo), findsWidgets);
+    // Partie L — UN SEUL Splash visuel (celui du HTML #pmg-loading) :
+    // l'état Flutter pendant l'initialisation est un état technique
+    // DISCRET — un indicateur centré, SANS deuxième splash (pas de logo
+    // réaffiché, pas de barre 0→100 %, pas de texte de bienvenue).
+    expect(find.byType(CircularProgressIndicator), findsWidgets);
+    expect(find.byType(PharmaFullLogo), findsNothing);
+    expect(find.text('Bienvenue dans votre pharmacie'), findsNothing);
 
     // Le Splash s'affiche immédiatement au démarrage (RootGate) : il est
     // la première chose visible tant que l'authentification n'est pas

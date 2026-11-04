@@ -216,9 +216,11 @@
       }
     } catch (e) {}
   </script>
-  <!-- Version publique renouvelée à chaque build (numéro GitHub Actions injecté
-       via --web-define) pour invalider le bootstrap en cache CDN. -->
-  <script src="flutter_bootstrap.js?v={{PMG_BUILD_NUMBER}}" async></script>
+  <!-- Version du bootstrap (cache-busting). En Release, flutter build web
+       génère flutter_bootstrap.js dans build/web/. En Debug, le dev server
+       de Flutter le génère à la volée pour DDC. L'URL doit être statique
+       sans placeholder non remplacé. -->
+  <script src="flutter_bootstrap.js" async></script>
   <script>
     (function () {
       var fill = document.getElementById('pmg-fill');

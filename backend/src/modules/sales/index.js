@@ -37,9 +37,11 @@ router.post('/', requirePerm('sales:create'), validate({
     payments: Joi.array().items(paymentSchema).optional(),
     discount_percent: Joi.number().min(0).default(0),
     discount_amount: Joi.number().min(0).default(0),
+    clientSaleId: Joi.string().uuid().allow(null, ''),
   }),
 }), wrap(async (req, res) => {
-  const sale = await salesService.createSale(req.user.pharmacyId, req.body, req.user);
+  const clientSaleId = req.body.clientSaleId ?? req.headers['idempotency-key'] ?? null;
+  const sale = await salesService.createSale(req.user.pharmacyId, { ...req.body, clientSaleId }, req.user);
   return created(res, sale);
 }));
 

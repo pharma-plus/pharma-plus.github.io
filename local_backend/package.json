@@ -1,0 +1,16 @@
+{
+  "name": "pharma-local-backend",
+  "version": "1.0.0",
+  "description": "PHARMA+ Local Backend Service with SQLite",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.0",
+    "sqlite3": "^5.1.6",
+    "crypto": "^1.0.1"
+  }
+}

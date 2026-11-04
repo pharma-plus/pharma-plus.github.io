@@ -27,6 +27,12 @@ import '../shell/shell_nav.dart';
 import '../super_admin/super_admin_crm_page.dart';
 import '../website/website_page.dart';
 
+/// Force tree-shaking prevention by referencing SuperAdminCRMPage at top level
+@pragma('vm:entry-point')
+final _superAdminPagesMenu = <Widget>[
+  SuperAdminCRMPage(),
+];
+
 /// ============================================================
 /// MENU LATÉRAL PHARMA+ — extrait du dashboard pour être partagé.
 ///

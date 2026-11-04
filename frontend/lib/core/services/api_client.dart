@@ -137,7 +137,7 @@ class ApiClient {
     return uri.replace(queryParameters: query.map((k, v) => MapEntry(k, '$v')));
   }
 
-  Map<String, String> _headers({bool auth = true}) {
+  Map<String, String> _headers({bool auth = true, Map<String, String>? customHeaders}) {
     final headers = <String, String>{
       'Accept': 'application/json',
       'Content-Type': 'application/json',
@@ -146,12 +146,19 @@ class ApiClient {
       final token = _auth.accessToken;
       if (token != null) headers['Authorization'] = 'Bearer $token';
     }
+    if (customHeaders != null) {
+      headers.addAll(customHeaders);
+    }
     return headers;
   }
 
   Future<ApiResult<dynamic>> get(String path,
-      {Map<String, dynamic>? query}) async {
-    return _send(() => _http.get(_uri(path, query), headers: _headers()));
+      {Map<String, dynamic>? query, Map<String, String>? customHeaders, Duration? timeout}) async {
+    return _send(
+      () => _http.get(_uri(path, query),
+          headers: _headers(auth: true, customHeaders: customHeaders)),
+      timeoutOverride: timeout,
+    );
   }
 
   /// Récupère le profil utilisateur actuel (is_super_admin, permissions, etc.)
@@ -165,36 +172,38 @@ class ApiClient {
   }
 
   Future<ApiResult<dynamic>> post(String path,
-      {Object? body, bool auth = true, Duration? timeout}) async {
+      {Object? body, bool auth = true, Map<String, String>? customHeaders, Duration? timeout}) async {
     return _send(
       () => _http.post(
         _uri(path),
-        headers: _headers(auth: auth),
+        headers: _headers(auth: auth, customHeaders: customHeaders),
         body: body is String ? body : jsonEncode(body ?? {}),
       ),
       timeoutOverride: timeout,
     );
   }
 
-  Future<ApiResult<dynamic>> put(String path, {Object? body}) async {
+  Future<ApiResult<dynamic>> put(String path, {Object? body, Map<String, String>? customHeaders}) async {
     return _send(
       () => _http.put(_uri(path),
-          headers: _headers(), body: jsonEncode(body ?? {})),
+          headers: _headers(customHeaders: customHeaders),
+          body: jsonEncode(body ?? {})),
     );
   }
 
   /// Mise à jour partielle (PostgREST PATCH) : seuls les champs envoyés
   /// sont modifiés. Contrairement à PUT (remplace toute la ligne et
   /// remet à défaut les colonnes absentes), PATCH est sans risque.
-  Future<ApiResult<dynamic>> patch(String path, {Object? body}) async {
+  Future<ApiResult<dynamic>> patch(String path, {Object? body, Map<String, String>? customHeaders}) async {
     return _send(
       () => _http.patch(_uri(path),
-          headers: _headers(), body: jsonEncode(body ?? {})),
+          headers: _headers(customHeaders: customHeaders),
+          body: jsonEncode(body ?? {})),
     );
   }
 
-  Future<ApiResult<dynamic>> delete(String path) async {
-    return _send(() => _http.delete(_uri(path), headers: _headers()));
+  Future<ApiResult<dynamic>> delete(String path, {Map<String, String>? customHeaders}) async {
+    return _send(() => _http.delete(_uri(path), headers: _headers(customHeaders: customHeaders)));
   }
 
   /// Envoie la requête. Gère :

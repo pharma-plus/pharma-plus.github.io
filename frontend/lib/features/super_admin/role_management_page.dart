@@ -27,6 +27,42 @@ class RoleManagementPage extends StatefulWidget {
 }
 
 class _RoleManagementPageState extends State<RoleManagementPage> {
+  final _bodyKey = GlobalKey<RoleManagementBodyState>();
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = context.watch<AuthStore>().locale;
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        leading: const ShellBackButton(),
+        title: Text(S.t('roleManagement', locale)),
+        actions: [
+          // Unique bouton Créer (Partie D : pas de doublon FAB + barre,
+          // largeur compacte, aligné à droite de la barre de recherche).
+          IconButton(
+            onPressed: () => _bodyKey.currentState?.reload(),
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      body: RoleManagementBody(key: _bodyKey),
+    );
+  }
+}
+
+/// Corps de la gestion des rôles : recherche, liste, création, édition,
+/// permissions et suppression. Réutilisable :
+///  - page autonome (RoleManagementPage) ;
+///  - onglet « Rôles » du portail Super Admin (super_admin_crm_page).
+class RoleManagementBody extends StatefulWidget {
+  const RoleManagementBody({super.key});
+
+  @override
+  State<RoleManagementBody> createState() => RoleManagementBodyState();
+}
+
+class RoleManagementBodyState extends State<RoleManagementBody> {
   List<Map<String, dynamic>> _roles = [];
   bool _loading = true;
   String? _error;
@@ -44,6 +80,9 @@ class _RoleManagementPageState extends State<RoleManagementPage> {
     _debounce?.cancel();
     super.dispose();
   }
+
+  /// Rechargement public : action « refresh » de la page autonome.
+  void reload() => _load(reset: true);
 
   Future<void> _load({bool reset = false}) async {
     setState(() { _loading = true; _error = null; });
@@ -136,38 +175,55 @@ class _RoleManagementPageState extends State<RoleManagementPage> {
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        leading: const ShellBackButton(),
-        title: Text(S.t('roleManagement', locale)),
-        actions: [
-          IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _createRole,
-        icon: const Icon(Icons.add),
-        label: Text(S.t('newRole', locale)),
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(child: Text(_error!))
-              : Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: AppSearchField(
-                        hint: S.t('search', locale),
-                        onChanged: _onSearchChanged,
-                      ),
-                    ),
-                    Expanded(
-                      child: _roles.isEmpty
-                          ? Center(child: Text(S.t('noRoles', locale)))
-                          : ListView.builder(
-                              padding: const EdgeInsets.fromLTRB(12, 4, 12, 90),
+    // Partie D — un seul bouton de création : compact, aligné à droite,
+    // intégré à la barre de recherche (plus de FAB étroitement doublé par
+    // un autre bouton « Créer », plus de bouton surdimensionné).
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(children: [
+            Expanded(
+              child: AppSearchField(
+                hint: S.t('search', locale),
+                onChanged: _onSearchChanged,
+              ),
+            ),
+            const SizedBox(width: 12),
+            FilledButton.icon(
+              onPressed: _createRole,
+              icon: const Icon(Icons.add, size: 18),
+              label: Text(S.t('newRole', locale)),
+              style: FilledButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+              ),
+            ),
+          ]),
+        ),
+        Expanded(
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
+                  ? Center(child: Text(_error!))
+                  : _roles.isEmpty
+                      ? RefreshIndicator(
+                          onRefresh: () => _load(reset: true),
+                          child: ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(32),
+                                child: Center(
+                                    child: Text(S.t('noRoles', locale))),
+                              ),
+                            ],
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: () => _load(reset: true),
+                          child: ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
                               itemCount: _roles.length,
                               itemBuilder: (context, i) {
                                 final r = _roles[i];
@@ -179,10 +235,10 @@ class _RoleManagementPageState extends State<RoleManagementPage> {
                                 );
                               },
                             ),
-                    ),
-                  ],
-                ),
-      );
+                        ),
+        ),
+      ],
+    );
   }
 }
 
@@ -265,7 +321,6 @@ class RoleForm extends StatefulWidget {
 class _RoleFormState extends State<RoleForm> {
   final _formKey = GlobalKey<FormState>();
   late final _name = TextEditingController(text: (widget.role?['name'] as String?) ?? '');
-  late final _description = TextEditingController(text: (widget.role?['description'] as String?) ?? '');
   late final _code = TextEditingController(text: (widget.role?['code'] as String?) ?? '');
   bool _saving = false;
 
@@ -274,15 +329,16 @@ class _RoleFormState extends State<RoleForm> {
     super.initState();
   }
 
-  @override void dispose() { _name.dispose(); _description.dispose(); _code.dispose(); super.dispose(); }
+  @override void dispose() { _name.dispose(); _code.dispose(); super.dispose(); }
 
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _saving = true);
+    // Partie D — pas de champ description : la table roles n'a pas cette
+    // colonne (aucune donnée saisie ne serait enregistrée = fausse info).
     final body = {
       'name': _name.text.trim(),
       'code': _code.text.trim().toLowerCase(),
-      'description': _description.text.trim(),
       'is_system': false,
     };
     final result = widget.role == null
@@ -310,8 +366,6 @@ class _RoleFormState extends State<RoleForm> {
           TextFormField(controller: _code, autovalidateMode: AutovalidateMode.onUserInteraction, validator: (v) => v?.isEmpty == true ? 'Code requis' : null, decoration: InputDecoration(labelText: 'Code (unique)'), enabled: widget.role == null),
           const SizedBox(height: 12),
           TextFormField(controller: _name, autovalidateMode: AutovalidateMode.onUserInteraction, validator: (v) => v?.isEmpty == true ? 'Nom requis' : null, decoration: InputDecoration(labelText: S.t('name', locale))),
-          const SizedBox(height: 12),
-          TextFormField(controller: _description, decoration: InputDecoration(labelText: S.t('description', locale)), maxLines: 3),
           const SizedBox(height: 20),
           Row(children: [
             Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close), label: Text(S.t('cancel', locale)))),

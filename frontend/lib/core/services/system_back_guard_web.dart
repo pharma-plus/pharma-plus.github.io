@@ -25,7 +25,12 @@ void systemBackInit({
   _onBackAtRoot = onBackAtRoot;
   if (_inited) return;
   _inited = true;
-  _pushGuard();
+  // Ne PAS pousser d'entrée d'historique du navigateur ici : Flutter gère
+  // son propre historique (champ serialCount) via MultiEntriesBrowserHistory.
+  // Ajouter une entrée avec un état non-Flutter (sans serialCount) corromprait
+  // cet historique et provoquerait l'erreur "history state is missing field
+  // 'serialCount'". Le guard contre la sortie sauvage est assuré par
+  // PopScope.canPop = false dans app.dart (RootGate et _withPopScope).
   html.window.onPopState.listen(_onPopState);
 }
 
@@ -35,15 +40,14 @@ void systemBackAttachContext(BuildContext? context) {
 
 void systemBackNoteShellIndex(int index) {
   if (!_inited || _restoring) return;
-  if (index > 0) {
-    html.window.history.pushState({'pmg': true, 'tab': index}, '', '');
-  } else {
-    _pushGuard();
-  }
+  // Ne pas pousser d'entrée d'historique pour l'onglet : le changement
+  // d'onglet est géré par ShellNav et l'historique Flutter.
+  // Le retour navigateur est détecté via _onPopState ci-dessus.
 }
 
 void _pushGuard() {
-  html.window.history.pushState({'pmg': true, 'tab': 0}, '', '');
+  // Ne plus pousser d'entrée d'historique : voir systemBackInit.
+  // Le guard contre la sortie sauvage est assuré par PopScope.canPop = false.
 }
 
 bool _isOurs(Object? state) => state is Map && state['pmg'] == true;

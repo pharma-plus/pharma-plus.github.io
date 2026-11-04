@@ -6,6 +6,7 @@ import '../../core/services/auth_store.dart';
 import '../../core/services/sync_engine.dart';
 import '../../core/services/system_back_guard.dart';
 import '../../core/theme/colors.dart';
+import '../../core/widgets/connection_status_indicator.dart';
 import '../../core/utils/responsive.dart';
 import '../../core/widgets/pharma_background.dart';
 import '../shell/shell_nav.dart';
@@ -32,6 +33,12 @@ import 'app_side_menu.dart';
 
 /// Global key for the HomeShell scaffold, accessible from DashboardPage to open the drawer.
 import 'package:pharma_maroc_gold/core/services/scaffold_key.dart';
+
+/// Force tree-shaking prevention by referencing SuperAdminCRMPage at top level
+@pragma('vm:entry-point')
+final _superAdminPages = <Widget>[
+  SuperAdminCRMPage(),
+];
 
 /// Coquille principale : sidebar 3D + navigation.
 /// La navigation est filtrée par `AuthStore.canSeeModule(key)` :
@@ -134,7 +141,7 @@ class _HomeShellState extends State<HomeShell> {
     const ReorderPage(),
     const AIPageV2(),
     const WhatsAppCenterPage(),
-    const SuperAdminCRMPage(),
+    SuperAdminCRMPage(),
   ];
 
   void _onAuthLockChanged() {
@@ -290,6 +297,16 @@ class _HomeShellState extends State<HomeShell> {
               children: [for (var i = 0; i < _pages.length; i++) _page(i)],
             ),
             if (_syncing) _SyncBanner(label: S.t('syncing', locale)),
+            // Indicateur permanent de connexion (coin supérieur droit).
+            Positioned(
+              top: 8,
+              right: 8,
+              child: ConnectionStatusIndicator(
+                position: ConnectionStatusIndicatorPosition.topBar,
+                showDetails: true,
+                iconSize: 13,
+              ),
+            ),
           ],
         );
         // Desktop ≥1150 px : menu latéral FIXE à gauche (contenu de la page

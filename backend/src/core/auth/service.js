@@ -88,7 +88,24 @@ export const authService = {
       throw new ForbiddenError('Compte verrouillé. Réessayez plus tard.');
     }
 
-    const passwordOk = await argon2.verify(user.password_hash, password);
+    const storedHash = user.password_hash;
+    if (!storedHash || typeof storedHash !== 'string' || !storedHash.startsWith('$')) {
+      // Hash absent ou mal formé (pas un hash argon2 valide) : on ne peut pas
+      // vérifier le mot de passe. On retourne une erreur contrôlée sans
+      // exposer de détails internes ni divulguer le hash.
+      throw new UnauthorizedError('Identifiants incorrects');
+    }
+
+    let passwordOk;
+    try {
+      passwordOk = await argon2.verify(storedHash, password);
+    } catch {
+      // Le hash existe et commence par $ mais n'est pas un format argon2
+      // valide (ex. bcrypt $2a$... historique). On ne peut pas vérifier le
+      // mot de passe. On retourne une erreur contrôlée sans divulguer le
+      // hash ni le type d'erreur interne.
+      throw new UnauthorizedError('Identifiants incorrects');
+    }
     if (!passwordOk) {
       await this.recordFailedAttempt(user.id);
       throw new UnauthorizedError('Identifiants incorrects');
@@ -221,7 +238,19 @@ export const authService = {
     const user = rows[0];
     if (!user) throw new UnauthorizedError();
 
-    const ok = await argon2.verify(user.password_hash, currentPassword);
+    const storedHash = user.password_hash;
+    if (!storedHash || typeof storedHash !== 'string' || !storedHash.startsWith('$')) {
+      throw new UnauthorizedError('Mot de passe actuel incorrect');
+    }
+
+    let ok;
+    try {
+      ok = await argon2.verify(storedHash, currentPassword);
+    } catch {
+      // Le hash existe et commence par $ mais n'est pas un format argon2
+      // valide (ex. bcrypt $2a$... historique).
+      throw new UnauthorizedError('Mot de passe actuel incorrect');
+    }
     if (!ok) throw new AppError('Mot de passe actuel incorrect', 400, 'BAD_PASSWORD');
 
     const hash = await argon2.hash(newPassword, { type: argon2.argon2id });

@@ -2,6 +2,7 @@ import { query, withTransaction } from '../../db/pool.js';
 import { auditLog } from '../../middleware/audit.js';
 import { AppError, NotFoundError } from '../../utils/errors.js';
 import { uuid } from '../../utils/crypto.js';
+import { sha256 } from '../../utils/crypto.js';
 import { insertMovement } from '../stock/service.js';
 import { paginate } from '../../utils/response.js';
 
@@ -54,10 +55,53 @@ export const salesService = {
    * Caisse (POS) : validation, décrément de stock par lots FEFO,
    * paiement, ticket et facture éventuelle.
    */
-  async createSale(pharmacyId, { branchId, customerId = null, items, payments, saleType = 'pos', notes, prescriptionId = null, discount_percent: discountPercent = 0, discount_amount: discountAmount = 0 }, user) {
+  async createSale(pharmacyId, { branchId, customerId = null, items, payments, saleType = 'pos', notes, prescriptionId = null, discount_percent: discountPercent = 0, discount_amount: discountAmount = 0, clientSaleId = null }, user) {
     if (!items?.length) throw new AppError('Panier vide', 422, 'EMPTY_CART');
 
+    // Canonical content hash (items order-insensitive): duplicate retries with same
+    // clientSaleId + same content return original sale; different content -> 409.
+    const canonicalItems = [...(items || [])].map((it) => ({
+      medication_id: it.medication_id ?? null,
+      quantity: it.quantity,
+      unit_price: it.unit_price ?? null,
+      discount: it.discount ?? 0,
+      tva_rate: it.tva_rate ?? null,
+      lot_id: it.lot_id ?? null,
+    })).sort((a, b) => String(a.medication_id).localeCompare(String(b.medication_id)));
+    const canonicalPayments = [...(payments || [])].map((p) => ({
+      method: p.method,
+      amount: Number(p.amount),
+      reference: p.reference ?? null,
+      generateInvoice: !!p.generateInvoice,
+    }));
+    const contentHash = clientSaleId
+      ? sha256(JSON.stringify({ items: canonicalItems, payments: canonicalPayments }))
+      : null;
+
     return withTransaction(pharmacyId, async (client) => {
+      if (clientSaleId) {
+        await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [`${pharmacyId}:${clientSaleId}`]);
+      }
+      if (clientSaleId) {
+        const existingByKey = await client.query(
+          `SELECT id, content_hash FROM sales WHERE pharmacy_id = $1 AND client_sale_id = $2`,
+          [pharmacyId, clientSaleId],
+        );
+        if (existingByKey.rows.length > 0) {
+          const existingHash = existingByKey.rows[0].content_hash;
+          if (existingHash === contentHash || existingHash == null) {
+            const replay = await client.query(
+              `SELECT s.id, s.number, s.total, s.subtotal, s.tax_total, s.paid_amount, s.change_amount,
+                        s.items, s.ticket, s.invoice
+                 FROM sales s
+                 WHERE s.id = $1`, [existingByKey.rows[0].id],
+            );
+            return replay.rows[0];
+          }
+          throw new AppError('Vente en double avec contenu différent (conflit idempotence)', 409, 'IDEMPOTENCY_CONFLICT');
+        }
+      }
+
       const number = (await client.query(
         "SELECT fn_next_number($1::uuid, 'VTE') AS n", [pharmacyId],
       )).rows[0].n;
@@ -139,13 +183,15 @@ export const salesService = {
         `INSERT INTO sales (id, pharmacy_id, branch_id, user_id, customer_id, number,
                             sale_type, status, subtotal, discount_total, tax_total,
                             total, cost_total, paid_amount, change_amount,
-                            payment_method, notes, prescription_id, sale_date, payments)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,'completed',$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,CURRENT_DATE,$18)`,
+                            payment_method, notes, prescription_id, sale_date, payments,
+                            client_sale_id, content_hash)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,'completed',$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,CURRENT_DATE,$19,$20)`,
         [saleId, pharmacyId, branchId, user?.id, customerId, number,
          saleType, subtotal, discountTotal, taxTotal, total, costTotal,
          paidAmount, changeAmount,
          (payments || []).map((p) => p.method).join('+') || 'credit',
-         notes ?? null, prescriptionId ?? null, JSON.stringify(payments || [])],
+         notes ?? null, prescriptionId ?? null, JSON.stringify(payments || []),
+         clientSaleId || null, contentHash],
       );
 
       // Passe 2 : décrément du stock (FEFO) + insertion des lignes de vente.

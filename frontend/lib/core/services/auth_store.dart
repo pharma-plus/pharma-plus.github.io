@@ -77,6 +77,20 @@ class AuthStore extends ChangeNotifier {
   static const _kTheme = 'pmg_theme_mode';
   static const _kLocale = 'pmg_locale';
   static const _kBaseUrl = 'pmg_base_url';
+  static const _kLocalMode = 'pmg_local_mode';
+
+  /// URL par défaut de l'application (API distante).
+  static String get _defaultBaseUrl =>
+      'https://lwepnnecnrqdzadesyqo.supabase.co/functions/v1/pharma-api/api/v1';
+
+  /// URL du backend local (mode local PHARMA+).
+  static const _localBaseUrl = 'http://127.0.0.1:4001/api/v1';
+
+  /// Mode local optionnel revendiqué par le client (persisté en SharedPreferences).
+  bool _localMode = false;
+
+  /// Indique si l'application fonctionne en mode local (backend 127.0.0.1:4001).
+  bool get isLocalMode => _localMode;
 
   /// Temps avant verrouillage automatique (en minutes).
   static const int _defaultInactivityMinutes = 15;
@@ -144,19 +158,14 @@ class AuthStore extends ChangeNotifier {
     return modules.contains(key);
   }
 
-  /// URL par défaut : si l'app web est servie depuis localhost / 127.0.0.1
-  /// (développement local), on cible le backend local (port 4000) ;
-  /// sinon on utilise l'API distante (Supabase / Bonto).
-  static String get _defaultBaseUrl {
-    if (kIsWeb) {
-      final host = Uri.base.host.toLowerCase();
-      final isLocal = host.isEmpty ||
-          host == 'localhost' ||
-          host == '127.0.0.1' ||
-          host == '::1';
-      if (isLocal) return 'http://127.0.0.1:4000/api/v1';
-    }
-    return 'https://lwepnnecnrqdzadesyqo.supabase.co/functions/v1/pharma-api/api/v1';
+  /// Bascule entre mode local et mode distant.
+  /// En mode local, l'URL du backend est http://127.0.0.1:4001/api/v1.
+  Future<void> setLocalMode(bool enabled) async {
+    _localMode = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kLocalMode, enabled);
+    _baseUrl = enabled ? _localBaseUrl : _defaultBaseUrl;
+    notifyListeners();
   }
 
   String _baseUrl = _defaultBaseUrl;
@@ -176,7 +185,24 @@ class AuthStore extends ChangeNotifier {
 
   /// Restaure la session persistée au démarrage.
   /// Garde-fou : toute l'initialisation est bornée à 12 s maximum.
+  /// Un verrou interne empêche les appels concurrents à `init()`.
+  static Future<void>? _initializing;
+
   Future<void> init() async {
+    if (_initialized) return;
+    if (_initializing != null) {
+      // Un appel à init() est déjà en cours : on attend sa fin.
+      return _initializing!;
+    }
+    _initializing = _runInit();
+    try {
+      await _initializing!;
+    } finally {
+      _initializing = null;
+    }
+  }
+
+  Future<void> _runInit() async {
     try {
       debugPrint('[PHARMA+] AuthStore.init() debute');
       await _doInit().timeout(const Duration(seconds: 12));
@@ -189,15 +215,10 @@ class AuthStore extends ChangeNotifier {
     } finally {
       debugPrint(
           '[PHARMA+] AuthStore.init() finally, _initialized=$_initialized, _forcedLogin=$_forcedLogin');
-      if (!_forcedLogin) {
-        _initialized = true;
-        notifyListeners();
-      } else if (_accessToken != null && _user != null) {
-        // Course 8 s / 12 s : le splash a forcé l'affichage du Login pendant
-        // que _doInit restaurait la session. Sans ce notify, l'utilisateur
-        // restait bloqué sur Login avec un jeton valide. On bascule maintenant.
-        notifyListeners();
-      }
+      // Toujours marquer l'initialisation comme terminée pour débloquer
+      // RootGate (sortie du splash vers la page de connexion ou d'erreur).
+      _initialized = true;
+      notifyListeners();
     }
   }
 
@@ -208,8 +229,11 @@ class AuthStore extends ChangeNotifier {
       orElse: () => ThemeMode.system,
     );
     _locale = prefs.getString(_kLocale) ?? 'fr';
+    _localMode = prefs.getBool(_kLocalMode) ?? false;
     final storedUrl = prefs.getString(_kBaseUrl);
-    if (storedUrl != null && storedUrl.isNotEmpty) {
+    if (_localMode) {
+      _baseUrl = _localBaseUrl;
+    } else if (storedUrl != null && storedUrl.isNotEmpty) {
       // L'URL choisie dans les paramètres (⚙) est respectée, y compris
       // une URL locale (http://127.0.0.1:4000/api/v1) en développement.
       _baseUrl = storedUrl;
