@@ -32,6 +32,7 @@ class _WhatsAppCenterPageState extends State<WhatsAppCenterPage> {
 
   static const _tabs = [
     ('conversations', Icons.chat_bubble_outline, 'conversations'),
+    ('chatbot', Icons.smart_toy, 'chatbot'),
     ('templates', Icons.description_outlined, 'templates'),
     ('campaigns', Icons.campaign_outlined, 'campaigns'),
     ('settings', Icons.settings_outlined, 'whatsappSettings'),
@@ -167,8 +168,10 @@ class _WhatsAppCenterPageState extends State<WhatsAppCenterPage> {
         ),
         // Contenu
         Expanded(
-          child: _loading
-              ? const Center(child: CircularProgressIndicator())
+          child: _activeTab == 'chatbot'
+              ? _ChatbotWidget(locale: locale)
+              : _loading
+                  ? const Center(child: CircularProgressIndicator())
               : _error != null
                   ? Center(child: Text(_error!))
                   : _conversations.isEmpty
@@ -332,5 +335,109 @@ class _ConversationTile extends StatelessWidget {
     if (diff.inHours > 0) return '${diff.inHours}h';
     if (diff.inMinutes > 0) return '${diff.inMinutes}min';
     return 'maintenant';
+  }
+}
+
+/// Widget de chatbot : envoie un message et reçoit une réponse automatique.
+class _ChatbotWidget extends StatefulWidget {
+  final String locale;
+  const _ChatbotWidget({required this.locale});
+
+  @override
+  State<_ChatbotWidget> createState() => _ChatbotWidgetState();
+}
+
+class _ChatbotWidgetState extends State<_ChatbotWidget> {
+  final _controller = TextEditingController();
+  final _messages = <Map<String, String>>[]; // {role, text}
+  bool _sending = false;
+
+  Future<void> _send() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty || _sending) return;
+    setState(() {
+      _messages.add({'role': 'user', 'text': text});
+      _sending = true;
+      _controller.clear();
+    });
+    try {
+      final r = await ApiClient.instance.post(
+        '/chatbot/message',
+        body: {'conversationId': 'chatbot', 'message': text},
+      );
+      if (!mounted) return;
+      setState(() {
+        _sending = false;
+        if (r.success && r.data != null) {
+          final d = r.data as Map;
+          _messages.add({'role': 'bot', 'text': d['response']?.toString() ?? 'Réponse'});
+          if (d['transferToHuman'] == true) {
+            _messages.add({'role': 'bot', 'text': 'Transfert vers un opérateur humain en cours...'});
+          }
+        } else {
+          _messages.add({'role': 'bot', 'text': r.error?.readableMessage ?? 'Erreur'});
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _sending = false;
+        _messages.add({'role': 'bot', 'text': e.toString()});
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(children: [
+      Expanded(
+        child: ListView.builder(
+          padding: const EdgeInsets.all(12),
+          itemCount: _messages.length,
+          itemBuilder: (_, i) {
+            final m = _messages[i];
+            final isUser = m['role'] == 'user';
+            return Align(
+              alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isUser ? AppColors.pharmaGold : Colors.grey.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  m['text'] ?? '',
+                  style: TextStyle(color: isUser ? Colors.black : Colors.black87),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.all(8),
+        child: Row(children: [
+          Expanded(
+            child: TextField(
+              controller: _controller,
+              decoration: InputDecoration(
+                hintText: widget.locale == 'ar' ? 'أكتب رسالتك...' : 'Écrivez votre message...',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              onSubmitted: (_) => _send(),
+            ),
+          ),
+          const SizedBox(width: 8),
+          GradientButton(
+            label: 'Envoyer',
+            icon: Icons.send,
+            onPressed: _sending ? null : _send,
+            loading: _sending,
+          ),
+        ]),
+      ),
+    ]);
   }
 }
