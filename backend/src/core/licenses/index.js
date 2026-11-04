@@ -61,7 +61,7 @@ router.get('/', requireSuperAdmin, validate({
 router.post('/', requireSuperAdmin, validate({
   body: Joi.object({
     pharmacyId: Joi.string().uuid().required(),
-    type: Joi.string().valid('trial', 'standard', 'professional', 'enterprise').required(),
+    type: Joi.string().valid('trial', 'basic', 'gold', 'standard', 'professional', 'enterprise').required(),
     billing_cycle: Joi.string().valid('monthly', 'annual').default('monthly'),
     duration_days: Joi.number().integer().min(1).max(3650).required(),
     max_users: Joi.number().integer().min(1).default(1),

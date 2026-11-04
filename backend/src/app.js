@@ -37,6 +37,7 @@ import { websiteRouter, websitePublicRouter } from './modules/website/index.js';
 import { aiRouter } from './modules/ai/index.js';
 import { referenceRouter } from './modules/reference/index.js';
 import { camerasRouter } from './modules/cameras/index.js';
+import { chatbotRouter } from './modules/chatbot/index.js';
 import { whatsappRouter } from './modules/whatsapp/index.js';
 
 export function createApp() {
@@ -87,6 +88,7 @@ export function createApp() {
   api.use('/maintenance', maintenanceRouter);
   api.use('/website', websiteRouter);
   api.use('/whatsapp', whatsappRouter);
+  api.use('/chatbot', chatbotRouter);
   api.use('/ai', aiRouter);
   api.use('/reference', referenceRouter);
   api.use('/cameras', camerasRouter);
