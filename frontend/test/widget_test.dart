@@ -20,9 +20,11 @@ void main() {
         expect(find.byType(MaterialApp), findsOneWidget);
     // Partie L — UN SEUL Splash visuel (celui du HTML #pmg-loading) :
     // l'état Flutter pendant l'initialisation est un état technique
-    // DISCRET — un indicateur centré, SANS deuxième splash (pas de logo
-    // réaffiché, pas de barre 0→100 %, pas de texte de bienvenue).
-    expect(find.byType(CircularProgressIndicator), findsWidgets);
+    // DISCRET — SANS indicateur de chargement Flutter (pas de deuxième
+    // splash visuel : pas de logo réaffiché, pas de barre 0→100 %, pas
+    // de texte de bienvenue, pas de CircularProgressIndicator). Le fond
+    // est identique au splash HTML pour une transition sans saut visuel.
+    expect(find.byType(CircularProgressIndicator), findsNothing);
     expect(find.byType(PharmaFullLogo), findsNothing);
     expect(find.text('Bienvenue dans votre pharmacie'), findsNothing);
 

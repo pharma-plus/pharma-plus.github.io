@@ -268,8 +268,9 @@ class _HomeShellState extends State<HomeShell> {
     }).toList();
 
     final mobileDestinations = [
-      for (final (ic, icS, key, _) in mobileItems)
+      for (final (ic, icS, key, pageIndex) in mobileItems)
         NavigationDestination(
+          key: ValueKey<int>(pageIndex),
           icon: Icon(ic),
           selectedIcon: Icon(icS),
           label: S.t(key, locale),

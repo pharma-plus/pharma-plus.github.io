@@ -171,34 +171,17 @@ class _SplashScreenState extends State<_SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Un seul splash visuel : celui du HTML (#pmg-loading dans web/index.html),
+    // retiré à l'événement flutter-first-frame. Aucun deuxième splash Flutter
+    // n'est affiché ici : pas de logo, pas de barre de progression, pas
+    // d'indicateur. Juste le fond identique au splash HTML pour une transition
+    // sans saut visuel. Dès qu'AuthStore est initialisé, RootGate bascule
+    // vers la page de connexion ou le dashboard.
     return Scaffold(
       backgroundColor: AppColors.pharmaBg,
-      // ÉTAT TECHNIQUE DISCRET (Partie L — un seul Splash visuel) :
-      // le premier Splash est celui du HTML (#pmg-loading, retiré à
-      // l'événement flutter-first-frame). Aucun deuxième Splash Flutter
-      // ici : pas de logo réaffiché, pas de barre 0→100 %, pas de texte
-      // de bienvenue, aucun AnimationController. Fond identique au
-      // Splash HTML pour une transition sans saut visuel ; un seul
-      // indicateur discret centré, visible uniquement le temps de
-      // l'initialisation AuthStore (bornée à 12 s).
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          PharmaBackground(
-            overlayOpacity: 0.66,
-            child: SizedBox.expand(),
-          ),
-          Center(
-            child: SizedBox(
-              width: 34,
-              height: 34,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                color: AppColors.pharmaGold,
-              ),
-            ),
-          ),
-        ],
+      body: PharmaBackground(
+        overlayOpacity: 0.66,
+        child: SizedBox.expand(),
       ),
     );
   }
