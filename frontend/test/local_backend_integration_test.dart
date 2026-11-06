@@ -3,7 +3,27 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../lib/core/services/api_client.dart';
 import '../lib/core/services/auth_store.dart';
 
+/// Indique si le backend local SQLite est accessible (127.0.0.1:4001).
+/// Sur les runners GitHub Actions, ce backend n'est pas disponible :
+/// les tests sont alors skip automatiquement.
+bool _localBackendAvailable = false;
+
+Future<bool> _checkBackendAvailable() async {
+  try {
+    await AuthStore.instance.setBaseUrl('http://127.0.0.1:4001/api/v1');
+    final result = await ApiClient.instance.get('/health');
+    return result.success;
+  } catch (_) {
+    return false;
+  }
+}
+
 void main() {
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
+    _localBackendAvailable = await _checkBackendAvailable();
+  });
+
   group('Intégration Flutter + Backend Local SQLite (127.0.0.1:4001)', () {
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
@@ -16,7 +36,7 @@ void main() {
       final result = await ApiClient.instance.get('/health');
       expect(result.success, isTrue, reason: result.error?.readableMessage ?? '');
       // Réponse directe non enveloppée : pas de clé 'data'
-    });
+    }, skip: !_localBackendAvailable);
 
     test('Login admin@pharma.local depuis Flutter', () async {
       final result = await ApiClient.instance.post(
@@ -34,7 +54,7 @@ void main() {
       final user = data['user'] as Map<String, dynamic>;
       expect(user['email'], 'admin@pharma.local');
       expect(user['is_super_admin'], true);
-    });
+    }, skip: !_localBackendAvailable);
 
     test('Récupération du profil /auth/me depuis Flutter', () async {
       final login = await ApiClient.instance.post(
@@ -50,7 +70,7 @@ void main() {
       expect(result.success, isTrue, reason: result.error?.readableMessage ?? '');
       final user = result.data as Map<String, dynamic>;
       expect(user['email'], 'admin@pharma.local');
-    });
+    }, skip: !_localBackendAvailable);
 
     test('Liste des branches depuis Flutter', () async {
       final login = await ApiClient.instance.post(
@@ -64,7 +84,7 @@ void main() {
       );
       expect(result.success, isTrue, reason: result.error?.readableMessage ?? '');
       expect(result.data, isA<List>());
-    });
+    }, skip: !_localBackendAvailable);
 
     test('Catalogue médicaments depuis Flutter', () async {
       final login = await ApiClient.instance.post(
@@ -78,7 +98,7 @@ void main() {
       );
       expect(result.success, isTrue, reason: result.error?.readableMessage ?? '');
       expect(result.data, isA<List>());
-    });
+    }, skip: !_localBackendAvailable);
 
     test('Stock des médicaments depuis Flutter', () async {
       final login = await ApiClient.instance.post(
@@ -92,7 +112,7 @@ void main() {
       );
       expect(result.success, isTrue, reason: result.error?.readableMessage ?? '');
       expect(result.data, isA<List>());
-    });
+    }, skip: !_localBackendAvailable);
 
     test('Création de vente avec idempotence depuis Flutter', () async {
       final login = await ApiClient.instance.post(
@@ -146,7 +166,7 @@ void main() {
       final replay = replayResult.data as Map<String, dynamic>;
       expect(replay['id'], sale['id']);
       expect(replay['number'], sale['number']);
-    });
+    }, skip: !_localBackendAvailable);
 
     test('Conflit idempotence : même clé, contenu différent -> 409', () async {
       final login = await ApiClient.instance.post(
@@ -193,7 +213,7 @@ void main() {
       );
       expect(conflictResult.statusCode, 409);
       expect(conflictResult.error?.code, 'IDEMPOTENCY_CONFLICT');
-    });
+    }, skip: !_localBackendAvailable);
 
     test('Clients depuis Flutter', () async {
       final login = await ApiClient.instance.post(
@@ -207,6 +227,6 @@ void main() {
       );
       expect(result.success, isTrue, reason: result.error?.readableMessage ?? '');
       expect(result.data, isA<List>());
-    });
+    }, skip: !_localBackendAvailable);
   });
 }
