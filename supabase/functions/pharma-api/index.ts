@@ -7862,6 +7862,12 @@ Deno.serve(async (req) => {
     "superadmin/invoices",
     "superadmin/tickets",
     "superadmin/roles",
+    "superadmin/activity",
+    "superadmin/alerts",
+    "superadmin/subscription-trend",
+    "superadmin/revenue-trend",
+    "superadmin/top-pharmacies",
+    "superadmin/recent-payments",
   ];
   // Also accept dashboard- prefixed paths (frontend compatibility)
   const isSuperadminPath = superadminPaths.some(
@@ -7929,6 +7935,209 @@ Deno.serve(async (req) => {
           tickets: tickets.count ?? 0,
         },
       });
+    } catch (e) {
+      return json({ error: { code: "QUERY_FAILED", message: String(e) } }, 500);
+    }
+  }
+
+  // Superadmin dashboard-activity
+  if (path === "superadmin/dashboard-activity" && req.method === "GET") {
+    try {
+      const [activeUsers, totalSales, recentSales] = await Promise.all([
+        sb.from("users").select("id", { count: "exact" }).eq("status", "active"),
+        sb.from("sales").select("id", { count: "exact" }),
+        sb
+          .from("sales")
+          .select("total, created_at")
+          .order("created_at", { ascending: false })
+          .limit(30),
+      ]);
+      const salesList = (recentSales.data ?? []).map((s: any) => ({
+        id: s.id,
+        total: s.total ?? 0,
+        created_at: s.created_at,
+      }));
+      return json({
+        data: {
+          activeUsers: activeUsers.count ?? 0,
+          totalSales: totalSales.count ?? 0,
+          recentSales: salesList,
+        },
+      });
+    } catch (e) {
+      return json({ error: { code: "QUERY_FAILED", message: String(e) } }, 500);
+    }
+  }
+
+  // Superadmin dashboard-alerts
+  if (path === "superadmin/dashboard-alerts" && req.method === "GET") {
+    try {
+      const [expiredLicenses, suspendedPharmacies, lowStock] = await Promise.all([
+        sb
+          .from("pharmacies")
+          .select("id, name, status, license_type")
+          .eq("status", "active")
+          .not("license_type", "is", null),
+        sb.from("pharmacies").select("id, name, status").eq("status", "suspended"),
+        sb.from("stock_balances").select("quantity, medication_id").lte("quantity", 0),
+      ]);
+      const expiredCount =
+        expiredLicenses.data?.filter(
+          (p: any) => p.license_type !== "active" && p.license_type !== null,
+        ).length ?? 0;
+      const suspendedCount = suspendedPharmacies.data?.length ?? 0;
+      const lowStockCount = lowStock.data?.length ?? 0;
+      return json({
+        data: {
+          expiredLicenses: expiredCount,
+          suspendedPharmacies: suspendedCount,
+          lowStockItems: lowStockCount,
+        },
+      });
+    } catch (e) {
+      return json({ error: { code: "QUERY_FAILED", message: String(e) } }, 500);
+    }
+  }
+
+  // Superadmin dashboard-subscription-trend
+  if (path === "superadmin/dashboard-subscription-trend" && req.method === "GET") {
+    try {
+      const months = 6;
+      const licenses = await sb
+        .from("licenses")
+        .select("type, activation_date, status, pharmacy_id");
+      const data = licenses.data ?? [];
+      const trend = [];
+      const now = new Date();
+      for (let i = months - 1; i >= 0; i--) {
+        const start = new Date(
+          now.getFullYear(),
+          now.getMonth() - i,
+          1,
+        );
+        const end = new Date(
+          now.getFullYear(),
+          now.getMonth() - i + 1,
+          0,
+        );
+        const count = data.filter((l: any) => {
+          const d = new Date(l.activation_date);
+          return d >= start && d <= end;
+        }).length;
+        trend.push({
+          month: start.toISOString().slice(0, 7),
+          new_subscriptions: count,
+        });
+      }
+      return json({ data: { trend } });
+    } catch (e) {
+      return json({ error: { code: "QUERY_FAILED", message: String(e) } }, 500);
+    }
+  }
+
+  // Superadmin dashboard-revenue-trend
+  if (path === "superadmin/dashboard-revenue-trend" && req.method === "GET") {
+    try {
+      const months = 6;
+      const sales = await sb
+        .from("sales")
+        .select("total, created_at")
+        .eq("status", "completed");
+      const data = sales.data ?? [];
+      const trend = [];
+      const now = new Date();
+      for (let i = months - 1; i >= 0; i--) {
+        const start = new Date(
+          now.getFullYear(),
+          now.getMonth() - i,
+          1,
+        );
+        const end = new Date(
+          now.getFullYear(),
+          now.getMonth() - i + 1,
+          0,
+        );
+        const monthSales = data.filter((s: any) => {
+          const d = new Date(s.created_at);
+          return d >= start && d <= end;
+        });
+        const total = monthSales.reduce(
+          (sum: number, s: any) => sum + (s.total ?? 0),
+          0,
+        );
+        trend.push({
+          month: start.toISOString().slice(0, 7),
+          revenue: total,
+        });
+      }
+      return json({ data: { trend } });
+    } catch (e) {
+      return json({ error: { code: "QUERY_FAILED", message: String(e) } }, 500);
+    }
+  }
+
+  // Superadmin dashboard-top-pharmacies
+  if (path === "superadmin/dashboard-top-pharmacies" && req.method === "GET") {
+    try {
+      const limit = 8;
+      const sales = await sb
+        .from("sales")
+        .select("total, pharmacy_id, created_at")
+        .eq("status", "completed");
+      const data = sales.data ?? [];
+      const pharmacyRevenue = new Map<string, { name: string; total: number }>();
+      for (const s of data) {
+        const pid = s.pharmacy_id;
+        if (!pid) continue;
+        if (!pharmacyRevenue.has(pid)) {
+          pharmacyRevenue.set(pid, { name: pid, total: 0 });
+        }
+        pharmacyRevenue.get(pid)!.total += s.total ?? 0;
+      }
+      // Enrich with pharmacy names
+      const pharmacyIds = Array.from(pharmacyRevenue.keys());
+      let pharmacyNames = new Map<string, string>();
+      if (pharmacyIds.length > 0) {
+        const phRes = await sb
+          .from("pharmacies")
+          .select("id, name")
+          .in("id", pharmacyIds);
+        pharmacyNames = new Map(
+          (phRes.data ?? []).map((p: any) => [p.id, p.name]),
+        );
+      }
+      const top = Array.from(pharmacyRevenue.entries())
+        .map(([id, info]) => ({
+          pharmacy_id: id,
+          pharmacy_name: pharmacyNames.get(id) ?? id,
+          revenue: info.total,
+        }))
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, limit);
+      return json({ data: { top_pharmacies: top } });
+    } catch (e) {
+      return json({ error: { code: "QUERY_FAILED", message: String(e) } }, 500);
+    }
+  }
+
+  // Superadmin dashboard-recent-payments
+  if (path === "superadmin/dashboard-recent-payments" && req.method === "GET") {
+    try {
+      const limit = 10;
+      const sales = await sb
+        .from("sales")
+        .select("id, total, payment_method, created_at, pharmacy_id")
+        .eq("status", "completed")
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      const payments = (sales.data ?? []).map((s: any) => ({
+        id: s.id,
+        amount: s.total ?? 0,
+        method: s.payment_method ?? 'cash',
+        created_at: s.created_at,
+        pharmacy_id: s.pharmacy_id,
+      }));
+      return json({ data: { recent_payments: payments } });
     } catch (e) {
       return json({ error: { code: "QUERY_FAILED", message: String(e) } }, 500);
     }

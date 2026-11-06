@@ -422,7 +422,7 @@ class _PharmacyFormState extends State<PharmacyForm> {
       'phone': _phone.text.trim().isEmpty ? null : _phone.text.trim(),
       'admin_email': _email.text.trim(),
       'admin_password':
-          _password.text.isNotEmpty ? _password.text : 'Admin123!',
+          _password.text.isNotEmpty ? _password.text : null,
       'license_type': _license,
     });
     if (!mounted) return;

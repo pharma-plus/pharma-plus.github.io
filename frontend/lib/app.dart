@@ -13,6 +13,7 @@ import 'features/auth/login_page.dart';
 import 'core/services/app_guards.dart';
 import 'core/services/system_back_guard.dart';
 import 'features/audit/employee_space_page.dart';
+import 'features/security/lock_screen.dart';
 import 'features/shell/home_shell.dart';
 import 'features/shell/shell_nav.dart';
 import 'features/super_admin/super_admin_crm_page.dart';
@@ -73,6 +74,14 @@ class RootGate extends StatelessWidget {
           ));
         }
         if (!auth.isAuthenticated) return _withPopScope(const LoginPage());
+
+        // PROTECTION PIN : si la session est verrouillée (inactivité ou
+        // manuelle), l'écran PIN s'affiche AVANT tout accès au dashboard,
+        // quelle que soit le rôle (client, admin pharmacie, Super Admin).
+        if (auth.isLocked) {
+          return _withPopScope(const LockScreen());
+        }
+
         if (_shouldShowSuperAdmin(auth)) {
       // Force retention of SuperAdminCRMPage by using it in a way tree-shaker can't eliminate
       return _withPopScope(_createSuperAdminPage());

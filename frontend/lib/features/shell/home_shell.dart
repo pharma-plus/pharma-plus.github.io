@@ -16,6 +16,7 @@ import '../pos/pos_page.dart';
 import '../catalog/catalog_page.dart';
 import '../stock/stock_page.dart';
 import '../suppliers/suppliers_page.dart';
+import '../profit/profit_page.dart';
 import '../suppliers/supplier_connectivity_page.dart';
 import '../customers/customers_page_v2.dart';
 import '../employees/employees_page.dart';
@@ -71,6 +72,7 @@ const _pageModuleKeys = <int, String?>{
   15: 'ai', // Assistant IA
   16: 'whatsapp', // Centre WhatsApp
   17: 'superadmin_crm', // Super Admin CRM
+  18: null, // profit — toujours visible
 };
 
 class _HomeShellState extends State<HomeShell> {
@@ -142,6 +144,7 @@ class _HomeShellState extends State<HomeShell> {
     const AIPageV2(),
     const WhatsAppCenterPage(),
     SuperAdminCRMPage(),
+    const ProfitPage(),
   ];
 
   void _onAuthLockChanged() {
@@ -243,6 +246,7 @@ class _HomeShellState extends State<HomeShell> {
       (Icons.business_outlined, Icons.business, 'superAdminCRM', 17),
       (Icons.description_outlined, Icons.description, 'reports', 9),
       (Icons.person_outlined, Icons.person, 'employees', 8),
+      (Icons.trending_up, Icons.trending_up, 'profit', 18),
     ];
 
     // Clé de module pour les items de la bottom bar mobile.
@@ -265,6 +269,7 @@ class _HomeShellState extends State<HomeShell> {
       15: 'ai',
       16: 'whatsapp',
       17: 'superadmin_crm',
+      18: 'profit',
     };
 
     final mobileItems = allMobileItems.where((m) {
@@ -272,12 +277,11 @@ class _HomeShellState extends State<HomeShell> {
       return key == null || auth.canSeeModule(key);
     }).toList();
 
-    // Barre inférieure COMPACTE (règle UX mobile) : uniquement les raccourcis
-    // essentiels — Tableau de bord (0), Modules (1), Point de vente (2).
-    // Les autres fonctions restent accessibles via le drawer latéral et la
-    // page Modules : aucune destination n'est supprimée, seule la barre est
-    // épurée (14 icônes empilées = illisibles et dupliquées sur 320-430 px).
-    const bottomBarIndexes = <int>{0, 1, 2};
+    // Barre inférieure COMPACTE (règle UX mobile) : exactement 4 raccourcis
+    // essentiels — Point de vente (2), Stock (4), Fournisseur (5), Bénéfice
+    // (18). Aucune destination Dashboard ou Modules dans cette barre ; elles
+    // restent accessibles via le drawer latéral et la page Modules.
+    const bottomBarIndexes = <int>{2, 4, 5, 18};
     final bottomItems =
         mobileItems.where((m) => bottomBarIndexes.contains(m.$4)).toList();
 
@@ -472,95 +476,4 @@ class _SyncBanner extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Contrôle clavier PC : Tab/Shift+Tab, flèches, Entrée, Échap.
-/// Ne pas intercepter quand un champ TextField/TextFormField est focalisé
-/// (saisie code-barres, entrée utilisateur).
-final _keyboardFocus = FocusNode();
-final _keyboardFocusNode = _keyboardFocus;
-
-@override
-  void dispose() {
-    _keyboardFocus.dispose();
-    super.dispose();
-  }
-
-  // Gestionnaire de raccourcis clavier
-  final _keyboardShortcuts = Shortcuts<KeyboardShortcuts>({
-    // Tab et Shift+Tab : navigation de focus
-    KeyboardShortcuts.pressedTab: _handleTab,
-    KeyboardShortcuts.shiftPressedTab: _handleShiftTab,
-    // Flèches : navigation dans les tableaux et formulaires
-    KeyboardShortcuts.arrowUp: _handleArrowUp,
-    KeyboardShortcuts.arrowDown: _handleArrowDown,
-    KeyboardShortcuts.arrowLeft: _handleArrowLeft,
-    KeyboardShortcuts.arrowRight: _handleArrowRight,
-    // Entrée : validation/activation
-    KeyboardShortcuts.enter: _handleEnter,
-    // Échap : fermeture de dialogs/menus
-    KeyboardShortcuts.escape: _handleEscape,
-  });
-
-  bool _hasTextFieldFocus(BuildContext context) {
-    // Vérifie si un Focus descendant est un champ de saisie
-    try {
-      final scope = MaterialFocusScope.of(context);
-      if (scope == null) return false;
-      final ancestor = scope.ancestorInheritedElementForDirection(-1);
-      return ancestor != null && ancestor.widget is TextField;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  void _handleTab() {
-    // Ne pas intercepter si un champ texte est focalisé
-    // (permet la saisie code-barres et texte normal)
-    // La navigation Tab gérée par FocusScope.genericDirection
-  }
-
-  void _handleShiftTab() {
-    // Shift+Tab : focus précédent
-    // Laisser FocusScope gérer le previousFocus
-  }
-
-  void _handleArrowUp() {
-    // Flèche haut : navigation dans les tableaux/filtres
-    // Géré par chaque page selon son contexte
-  }
-
-  void _handleArrowDown() {
-    // Flèche bas : navigation dans les tableaux/filtres
-  }
-
-  void _handleArrowLeft() {
-    // Flèche gauche : navigation précédente
-  }
-
-  void _handleArrowRight() {
-    // Flèche droite : navigation suivante
-  }
-
-  void _handleEnter() {
-    // Entrée : activation du widget focalisé
-    // Si focus sur bouton ou élément interactif, activer
-    // Si focus sur champ texte, laisser faire la saisie
-  }
-
-  void _handleEscape() {
-    // Échap : fermer menus, dialogs, revenir en arrière
-    // Nécessite l'accès au contexte current
-  }
-}
-
-enum KeyboardShortcuts {
-  pressedTab,
-  shiftPressedTab,
-  arrowUp,
-  arrowDown,
-  arrowLeft,
-  arrowRight,
-  enter,
-  escape,
 }

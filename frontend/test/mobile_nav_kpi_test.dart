@@ -20,8 +20,8 @@ import 'package:pharma_maroc_gold/features/shell/shell_nav.dart';
 ///     suspendues et gelait le dashboard smartphone) ;
 ///  2. SalesOfDayPage affiche les montants RÉELS : total encaissé = somme
 ///     des ventes `completed`, ventes annulées/retours comptées à part ;
-///  3. la barre inférieure mobile est COMPACTE : 3 destinations
-///     (Tableau de bord, Modules, Point de vente), pas les 14 modules.
+///  3. la barre inférieure mobile est COMPACTE : 4 destinations
+///     (Point de vente, Stock, Fournisseur, Bénéfice), pas les 14 modules.
 ///
 /// Toutes les réponses HTTP sont simulées (aucun réseau, aucune donnée
 /// fictive persistée) — les montants viennent du faux serveur et le rendu
@@ -418,20 +418,23 @@ void main() {
         reason: 'barre inférieure mobile présente');
 
     final bar = tester.widget<NavigationBar>(navBar);
-    // Compacte : exactement Tableau de bord + Modules + Point de vente.
-    expect(bar.destinations.length, 3,
-        reason: 'la barre mobile ne doit plus empiler 14 destinations');
+    // Compacte : exactement Point de vente + Stock + Fournisseur + Bénéfice.
+    expect(bar.destinations.length, 4,
+        reason: 'la barre mobile doit avoir exactement 4 destinations');
     final labels = bar.destinations
         .whereType<NavigationDestination>()
         .map((d) => d.label)
         .toList();
     expect(
       labels,
-      everyElement(anyOf('Tableau de bord', 'Modules', 'Point de vente')),
-      reason: 'seulement les raccourcis essentiels',
+      everyElement(anyOf('Point de vente', 'Stock', 'Fournisseurs', 'Marge')),
+      reason: 'seulement les raccourcis essentiels : POS, Stock, Fournisseur, Bénéfice',
     );
-    // Pas de libellé dupliqué (l'ancienne liste doublait l'icône people).
+    // Pas de libellé dupliqué.
     expect(labels.toSet().length, labels.length,
         reason: 'aucune destination dupliquée');
+    // Aucun Dashboard ni Modules dans la barre inférieure.
+    expect(labels, isNot(contains('Tableau de bord')));
+    expect(labels, isNot(contains('Modules')));
   });
 }
