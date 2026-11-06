@@ -5548,6 +5548,37 @@ Deno.serve(async (req) => {
      POS — POST /sales : vente transactionnelle complète
      (sale + sale_items + décrément stock + stock_movements + payments)
      =========================================================== */
+  // GET /sales — ventes du jour (filtre par date from/to, pagination)
+  if (path === "sales" && req.method === "GET") {
+    try {
+      const auth = await requireAuth(sb, req);
+      if (!auth.allowed)
+        return json({ error: { code: "FORBIDDEN", message: "Accès refusé" } }, 403);
+      const { searchParams } = new URL(req.url);
+      const from = searchParams.get("from");
+      const to = searchParams.get("to");
+      const limit = Number(searchParams.get("limit") ?? "100");
+      const page = Number(searchParams.get("page") ?? "1");
+      const offset = (page - 1) * limit;
+      const pharmacyId = auth.user?.pharmacy_id;
+      if (!pharmacyId)
+        return json({ error: { code: "FORBIDDEN", message: "Pharmacie requise" } }, 403);
+      let query = sb
+        .from("sales")
+        .select("id, total, created_at, status, branch_id", { count: "exact" })
+        .eq("pharmacy_id", pharmacyId)
+        .eq("status", "completed");
+      if (from) query = query.gte("created_at", from);
+      if (to) query = query.lt("created_at", to);
+      query = query.order("created_at", { ascending: false }).range(offset, offset + limit - 1);
+      const { data, error, count } = await query;
+      if (error) return json({ error: { code: "QUERY_FAILED", message: error.message } }, 500);
+      return json({ data, meta: { total: count ?? 0, page, limit } });
+    } catch (e) {
+      return json({ error: { code: "QUERY_FAILED", message: String(e) } }, 500);
+    }
+  }
+
   if (path === "sales" && req.method === "POST") {
     try {
       const body = await req.json().catch(() => ({}));
