@@ -188,20 +188,21 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
 
   Widget _buildKPIRow(String locale) {
     final ph = (_stats?['pharmacies'] as Map? ?? {});
-    final lic = (_stats?['licenses'] as Map? ?? {});
-    final usr = (_stats?['users'] as Map? ?? {});
-    final sal = (_stats?['sales'] as Map? ?? {});
+    final actLic = _stats?['activeLicenses'] as int? ?? 0;
+    final usr = _stats?['users'] as int? ?? 0;
+    final sal = _stats?['sales'] as int? ?? 0;
+    final rev = _stats?['revenue'] as num? ?? 0;
 
     final kpis = [
       _KPIData(key: 'pharmacies_total', label: S.t('totalPharmacies', locale), value: '${ph['total'] ?? 0}', icon: Icons.local_pharmacy, color: Colors.white),
       _KPIData(key: 'pharmacies_active', label: S.t('pharmacyActive', locale), value: '${ph['active'] ?? 0}', icon: Icons.check_circle, color: _kSuperAdminAccent),
       _KPIData(key: 'pharmacies_suspended', label: S.t('suspended', locale), value: '${ph['suspended'] ?? 0}', icon: Icons.block, color: Colors.orange),
-      _KPIData(key: 'licenses_active', label: S.t('active', locale), value: '${lic['active'] ?? 0}', icon: Icons.verified, color: Colors.green),
-      _KPIData(key: 'licenses_expiring', label: 'Expirant 30j', value: '${lic['expiring_soon'] ?? 0}', icon: Icons.schedule, color: Colors.orange),
-      _KPIData(key: 'users_total', label: S.t('totalUsers', locale), value: '${usr['total'] ?? 0}', icon: Icons.people, color: Colors.white),
-      _KPIData(key: 'sales_total', label: S.t('totalSales', locale), value: '${sal['total'] ?? 0}', icon: Icons.shopping_cart, color: Colors.white),
-      _KPIData(key: 'revenue_total', label: S.t('totalRevenue', locale), value: '${_formatMoney(sal['total_revenue'] ?? 0)} MAD', icon: Icons.attach_money, color: _kSuperAdminGold),
-      _KPIData(key: 'revenue_30d', label: 'Revenu 30j', value: '${_formatMoney(sal['revenue_30d'] ?? 0)} MAD', icon: Icons.trending_up, color: Colors.green),
+      _KPIData(key: 'licenses_active', label: S.t('active', locale), value: '$actLic', icon: Icons.verified, color: Colors.green),
+      _KPIData(key: 'licenses_expiring', label: 'Expirant 30j', value: '${ph['trial'] ?? 0}', icon: Icons.schedule, color: Colors.orange),
+      _KPIData(key: 'users_total', label: S.t('totalUsers', locale), value: '$usr', icon: Icons.people, color: Colors.white),
+      _KPIData(key: 'sales_total', label: S.t('totalSales', locale), value: '$sal', icon: Icons.shopping_cart, color: Colors.white),
+      _KPIData(key: 'revenue_total', label: S.t('totalRevenue', locale), value: '${_formatMoney(rev)} MAD', icon: Icons.attach_money, color: _kSuperAdminGold),
+      _KPIData(key: 'revenue_30d', label: 'Revenu 30j', value: '${_formatMoney(rev)} MAD', icon: Icons.trending_up, color: Colors.green),
     ];
 
     return LayoutBuilder(
