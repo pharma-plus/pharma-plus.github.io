@@ -20,6 +20,7 @@ import '../pos/payment_models.dart';
 import '../pos/pos_models.dart';
 import '../pos/pos_page.dart';
 import '../scanner/scanner_page.dart';
+import '../sales/sales_of_day_page.dart';
 import '../shell/app_side_menu.dart';
 import '../shell/shell_nav.dart';
 import '../stock/stock_page.dart';
@@ -203,7 +204,11 @@ class _DashboardPageState extends State<DashboardPage> {
   VoidCallback? _kpiTap(String label) {
     switch (label) {
       case 'VENTES DU JOUR':
-        return () => ShellNav.index.value = 2; // ventes du jour → POS
+        // Vue de détail des ventes du jour (1 appel API léger, borné au jour
+        // local). JAMAIS le POS complet : son ouverture charge catalogue,
+        // clients, branches, facets, ventes suspendues et sessions de caisse
+        // — c'était la cause du gel du dashboard sur smartphone.
+        return () => _push(const SalesOfDayPage());
       case 'MÉDICAMENTS':
         return () => ShellNav.index.value = 3; // catalogue
       case 'PRODUITS EN STOCK':
@@ -861,6 +866,8 @@ class _TopBar extends StatelessWidget {
                           size: 18, color: AppColors.textSecondary),
                     ]),
                     Text('$userName · $roleLabel',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                             color: AppColors.emeraldLight,
                             fontSize: 11.5,

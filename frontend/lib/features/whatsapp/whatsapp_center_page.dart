@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/auth_store.dart';
-import '../../core/services/whatsapp_service.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_button.dart';
@@ -27,7 +26,6 @@ class _WhatsAppCenterPageState extends State<WhatsAppCenterPage> {
   List<WhatsAppConversation> _conversations = [];
   bool _loading = true;
   String? _error;
-  WhatsAppService? _whatsappService;
   String _activeTab = 'conversations';
 
   static const _tabs = [
@@ -41,27 +39,11 @@ class _WhatsAppCenterPageState extends State<WhatsAppCenterPage> {
   @override
   void initState() {
     super.initState();
-    _initWhatsApp();
     _loadConversations();
   }
 
-  Future<void> _initWhatsApp() async {
-    // Initialiser le service WhatsApp avec la config depuis l'API
-    try {
-      final configResult = await ApiClient.instance.get('/whatsapp/config');
-      if (configResult.success && configResult.data != null) {
-        final config = configResult.data;
-        _whatsappService = WhatsAppService(WhatsAppConfig(
-          phoneNumberId: config['phone_number_id']?.toString() ?? '',
-          accessToken: config['access_token']?.toString() ?? '',
-          businessAccountId: config['business_account_id']?.toString() ?? '',
-          webhookVerifyToken: config['webhook_verify_token']?.toString() ?? '',
-        ));
-      }
-    } catch (e) {
-      debugPrint('WhatsApp init error: $e');
-    }
-  }
+  // SÉCURITÉ : plus aucun WhatsAppService côté client — l'API /whatsapp/config
+  // n'expose plus de jeton Meta, les envois passent par POST /whatsapp/send.
 
   Future<void> _loadConversations() async {
     setState(() {
@@ -112,7 +94,7 @@ class _WhatsAppCenterPageState extends State<WhatsAppCenterPage> {
 
   void _openChat(WhatsAppConversation conv) {
     Navigator.push(context, MaterialPageRoute(
-      builder: (_) => WhatsAppChatPage(conversation: conv, whatsappService: _whatsappService),
+      builder: (_) => WhatsAppChatPage(conversation: conv),
     ));
   }
 

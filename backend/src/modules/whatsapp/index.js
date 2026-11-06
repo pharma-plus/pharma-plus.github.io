@@ -5,6 +5,7 @@ import { validate } from '../../middleware/validate.js';
 import { query, withTransaction } from '../../db/pool.js';
 import { auditLog } from '../../middleware/audit.js';
 import { uuid } from '../../utils/crypto.js';
+import crypto from 'node:crypto';
 
 const router = Router();
 
@@ -21,9 +22,19 @@ router.get(
   '/config',
   requirePerm('whatsapp:view'),
   async (_req, res) => {
+    // SÉCURITÉ : aucun jeton Meta (access_token, webhook_verify_token) ne
+    // quitte JAMAIS le serveur. Le frontend ne reçoit que des indicateurs de
+    // configuration (présence + masque) pour l'affichage.
+    const mask = (v) => (v ? `${v.slice(0, 4)}••••${v.slice(-4)}` : '');
     res.json({
       success: true,
-      data: WHATSAPP_CONFIG,
+      data: {
+        phone_number_id: WHATSAPP_CONFIG.phone_number_id,
+        business_account_id: WHATSAPP_CONFIG.business_account_id,
+        access_token_set: Boolean(WHATSAPP_CONFIG.access_token),
+        access_token_masked: mask(WHATSAPP_CONFIG.access_token),
+        webhook_verify_token_set: Boolean(WHATSAPP_CONFIG.webhook_verify_token),
+      },
     });
   }
 );
@@ -156,10 +167,36 @@ export const whatsappService = {};
 router.post(
   '/webhook',
   async (req, res) => {
+    // SÉCURITÉ : validation de la signature Meta (X-Hub-Signature-256) dès
+    // que WHATSAPP_APP_SECRET est configuré. Sans secret configuré, le
+    // webhook reste ouvert (mode démonstration) mais c'est signalé dans les
+    // logs — la mise en production DOIT définir WHATSAPP_APP_SECRET.
+    const appSecret = process.env.WHATSAPP_APP_SECRET || '';
+    if (appSecret) {
+      const raw = typeof req.rawBody === 'string' || Buffer.isBuffer(req.rawBody)
+        ? req.rawBody
+        : JSON.stringify(req.body ?? {});
+      const expected =
+        'sha256=' +
+        crypto.createHmac('sha256', appSecret).update(raw).digest('hex');
+      const provided = String(req.headers['x-hub-signature-256'] ?? '');
+      const a = Buffer.from(expected);
+      const b = Buffer.from(provided);
+      const okSig = a.length === b.length && crypto.timingSafeEqual(a, b);
+      if (!okSig) {
+        return res.status(401).json({ success: false, error: 'Invalid signature' });
+      }
+    }
+
     const { entry } = req.body;
     if (!entry) {
       return res.status(400).json({ success: false, error: 'Invalid webhook payload' });
     }
+
+    // Multi-tenant : les conversations entrantes sont rattachées à la
+    // pharmacie propriétaire du numéro WhatsApp (WHATSAPP_DEFAULT_PHARMACY_ID).
+    // Sans cette variable, comportement historique (pharmacy_id NULL) conservé.
+    const defaultPharmacyId = process.env.WHATSAPP_DEFAULT_PHARMACY_ID || null;
 
     for (const e of entry) {
       const changes = e.changes || [];
@@ -175,20 +212,31 @@ router.post(
           const messageType = msg.type || 'text';
           const waMessageId = msg.id;
 
-          // Trouver ou créer la conversation
+          // Trouver ou créer la conversation — TOUJOURS rattachée à la
+          // pharmacie configurée (jamais de collision inter-pharmacies).
           let convId;
+          const convSql = defaultPharmacyId
+            ? `SELECT id FROM whatsapp_conversations WHERE contact_phone = $1 AND pharmacy_id = $2 LIMIT 1`
+            : `SELECT id FROM whatsapp_conversations WHERE contact_phone = $1 AND pharmacy_id IS NULL LIMIT 1`;
           const { rows: convRows } = await query(
-            `SELECT id FROM whatsapp_conversations WHERE contact_phone = $1 AND pharmacy_id IS NULL LIMIT 1`,
-            [conversationId]
+            convSql,
+            defaultPharmacyId ? [conversationId, defaultPharmacyId] : [conversationId]
           );
           if (convRows.length > 0) {
             convId = convRows[0].id;
           } else {
+            const insertSql = defaultPharmacyId
+              ? `INSERT INTO whatsapp_conversations (id, pharmacy_id, contact_phone, contact_name, status, unread_count, created_at, updated_at)
+                 VALUES ($1, $2, $3, $4, 'active', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                 RETURNING id`
+              : `INSERT INTO whatsapp_conversations (id, contact_phone, contact_name, status, unread_count, created_at, updated_at)
+                 VALUES ($1, $2, $3, 'active', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                 RETURNING id`;
             const { rows: newConv } = await query(
-              `INSERT INTO whatsapp_conversations (id, contact_phone, contact_name, status, unread_count, created_at, updated_at)
-               VALUES ($1, $2, $3, 'active', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-               RETURNING id`,
-              [uuid(), conversationId, 'Contact WhatsApp', 'active']
+              insertSql,
+              defaultPharmacyId
+                ? [uuid(), defaultPharmacyId, conversationId, 'Contact WhatsApp']
+                : [uuid(), conversationId, 'Contact WhatsApp']
             );
             convId = newConv[0].id;
           }
@@ -229,9 +277,12 @@ router.get(
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
 
-    const verifyToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || 'pharma-webhook-verify';
+    // SÉCURITÉ : pas de jeton de repli codé en dur — si WHATSAPP_WEBHOOK_VERIFY_TOKEN
+    // n'est pas configuré, la vérification échoue toujours (403) au lieu
+    // d'accepter n'importe quel appel.
+    const verifyToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || '';
 
-    if (mode === 'subscribe' && token === verifyToken) {
+    if (verifyToken && mode === 'subscribe' && token === verifyToken) {
       res.status(200).send(challenge);
     } else {
       res.status(403).send('Forbidden');
@@ -267,12 +318,51 @@ router.post(
       convId = newConv[0].id;
     }
 
-    // Insérer le message sortant
+    // Appel RÉEL à l'API Meta Cloud (le jeton reste côté serveur).
+    // Sans WHATSAPP_ACCESS_TOKEN/WHATSAPP_PHONE_NUMBER_ID configurés, le
+    // message est enregistré avec status 'pending' et la réponse indique
+    // honnêtement la non-livraison (aucun faux succès).
+    const token = process.env.WHATSAPP_ACCESS_TOKEN || '';
+    const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
+    let waMessageId = null;
+    let delivered = false;
+    let providerError = null;
+
+    if (type === 'text' && token && phoneId) {
+      try {
+        const resp = await fetch(`https://graph.facebook.com/v18.0/${phoneId}/messages`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            to: String(to).replace(/[^\d]/g, ''),
+            type: 'text',
+            text: { body: content },
+          }),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (resp.ok) {
+          delivered = true;
+          waMessageId = data?.messages?.[0]?.id ?? null;
+        } else {
+          providerError = data?.error?.message ?? `HTTP ${resp.status}`;
+        }
+      } catch (e) {
+        providerError = e.message;
+      }
+    } else if (!token || !phoneId) {
+      providerError = 'WhatsApp non configuré côté serveur (WHATSAPP_ACCESS_TOKEN / WHATSAPP_PHONE_NUMBER_ID)';
+    }
+
+    // Insérer le message sortant avec le statut RÉEL.
     const { rows: msgRows } = await query(
       `INSERT INTO whatsapp_messages (id, conversation_id, wa_message_id, from_me, content, message_type, status, timestamp, created_at)
-       VALUES ($1, $2, $3, 1, $4, $5, 'sent', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+       VALUES ($1, $2, $3, 1, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
        RETURNING id`,
-      [uuid(), convId, null, content, type]
+      [uuid(), convId, waMessageId, content, type, delivered ? 'sent' : 'pending']
     );
 
     // Mettre à jour la conversation
@@ -295,7 +385,9 @@ router.post(
         to,
         type,
         content,
-        status: 'sent',
+        status: delivered ? 'sent' : 'pending',
+        delivered,
+        providerError,
       },
     });
   }

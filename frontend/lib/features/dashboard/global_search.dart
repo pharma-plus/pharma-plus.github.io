@@ -236,86 +236,103 @@ class _GlobalSearchFieldState extends State<GlobalSearchField> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            constraints: const BoxConstraints(maxWidth: 380),
-            height: 42,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0A201A),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.goldBorder),
-            ),
-            child: Row(children: [
-              const Icon(Icons.search,
-                  size: 20, color: AppColors.textSecondary),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TextField(
-                  controller: _ctrl,
-                  focusNode: _focus,
-                  onChanged: _onChanged,
-                  onSubmitted: (_) {
-                    final q = _ctrl.text.trim();
-                    if (q.isEmpty) return;
-                    setState(() => _open = false);
-                    _focus.unfocus();
-                    Navigator.of(context, rootNavigator: true).push(
-                      MaterialPageRoute(
-                          builder: (_) => CatalogPage(initialQuery: q)),
-                    );
-                  },
-                  style: const TextStyle(color: Colors.white, fontSize: 13.5),
-                  cursorColor: AppColors.goldBorder,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    border: InputBorder.none,
-                    hintText:
-                        'Médicament, client, fournisseur, n° commande, BL, référence…',
-                    hintStyle: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.35),
-                        fontSize: 13.5),
-                  ),
-                ),
+          // LayoutBuilder : sur smartphone (largeur disponible < 250 px),
+          // le bouton scanner dédié est masqué et le raccourci raccourci —
+          // sans quoi le champ de recherche force un débordement du header.
+          // Le scanner reste accessible depuis le POS et le menu.
+          LayoutBuilder(builder: (context, constraints) {
+            final compactSearch = constraints.maxWidth < 250;
+            return Container(
+              constraints: const BoxConstraints(maxWidth: 380),
+              height: 42,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0A201A),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.goldBorder),
               ),
-              if (_loading)
-                const Padding(
-                  padding: EdgeInsets.only(right: 8),
-                  child: SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 1.6, color: AppColors.goldBorder),
+              child: Row(children: [
+                const Icon(Icons.search,
+                    size: 20, color: AppColors.textSecondary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _ctrl,
+                    focusNode: _focus,
+                    onChanged: _onChanged,
+                    onSubmitted: (_) {
+                      final q = _ctrl.text.trim();
+                      if (q.isEmpty) return;
+                      setState(() => _open = false);
+                      _focus.unfocus();
+                      Navigator.of(context, rootNavigator: true).push(
+                        MaterialPageRoute(
+                            builder: (_) => CatalogPage(initialQuery: q)),
+                      );
+                    },
+                    style: const TextStyle(
+                        color: Colors.white, fontSize: 13.5),
+                    cursorColor: AppColors.goldBorder,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      border: InputBorder.none,
+                      hintText: compactSearch
+                          ? 'Rechercher…'
+                          : 'Médicament, client, fournisseur, n° commande, BL, référence…',
+                      hintStyle: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.35),
+                          fontSize: 13.5),
+                    ),
                   ),
                 ),
-              const SizedBox(width: 10),
-              GestureDetector(
-                onTap: widget.onScan,
-                child: Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: const Color(0xFFC9A24B).withValues(alpha: 0.6)),
+                if (_loading)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 8),
+                    child: SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 1.6, color: AppColors.goldBorder),
+                    ),
                   ),
-                  child: const Icon(Icons.qr_code_scanner,
-                      size: 17, color: Color(0xFFD9B45C)),
-                ),
-              ),
-            ]),
-          ),
+                if (!compactSearch) ...[
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: widget.onScan,
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color:
+                                const Color(0xFFC9A24B).withValues(alpha: 0.6)),
+                      ),
+                      child: const Icon(Icons.qr_code_scanner,
+                          size: 17, color: Color(0xFFD9B45C)),
+                    ),
+                  ),
+                ],
+              ]),
+            );
+          }),
           if (_open && (_hits.isNotEmpty || _loading))
             CompositedTransformFollower(
               link: _layer,
               showWhenUnlinked: false,
               offset: const Offset(0, 48),
-              child: Material(
-                elevation: 12,
-                borderRadius: BorderRadius.circular(12),
-                color: const Color(0xFF0C1F19),
-                child: Container(
-                  width: 380,
-                  constraints: const BoxConstraints(maxHeight: 340),
+              child: Builder(builder: (context) {
+                // Largeur adaptative : jamais plus large que l'écran
+                // (380 px max, marges de 16 px de chaque côté sur mobile).
+                final screenW = MediaQuery.sizeOf(context).width;
+                final w = screenW - 32 < 380 ? screenW - 32 : 380.0;
+                return Material(
+                  elevation: 12,
+                  borderRadius: BorderRadius.circular(12),
+                  color: const Color(0xFF0C1F19),
+                  child: Container(
+                    width: w,
+                    constraints: const BoxConstraints(maxHeight: 340),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.goldBorder),
@@ -386,10 +403,11 @@ class _GlobalSearchFieldState extends State<GlobalSearchField> {
                             );
                           },
                         ),
-                ),
-              ),
+                      ),
+                    );
+                  }),
             ),
-        ],
+          ],
       ),
     );
   }

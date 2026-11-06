@@ -598,6 +598,37 @@ class S {
       'deleteRole': 'Supprimer le rôle',
       'roleDeleted': 'Rôle supprimé',
       'noRoles': 'Aucun rôle',
+      // Nouveaux abonnements BASIC / GOLD
+      'basic': 'BASIC',
+      'gold': 'GOLD',
+      'subscriptionTrendTitle': 'Évolution des abonnements',
+      'licenseUpdated': 'Licence mise à jour',
+      'licenseRenewed': 'Licence renouvelée',
+      // Nouveaux modules Super Admin
+      'whatsAppBusiness': 'WhatsApp Business',
+      'chatbotIA': 'Chatbot IA',
+      'crmSupport': 'CRM & Support',
+      'rapportsMonitoring': 'Rapports & Monitoring',
+      'parametresSecurite': 'Paramètres & Sécurité',
+      'abonnementBasic': 'Abonnement BASIC',
+      'abonnementGold': 'Abonnement GOLD',
+      'nouvelleLicence': 'Nouvelle licence',
+      'renouvelerLicence': 'Renouveler licence',
+      'suspendreLicence': 'Suspendre licence',
+      'reactiverLicence': 'Réactiver licence',
+      // Rapports
+      'exportPDF': 'Exporter PDF',
+      'exportExcel': 'Exporter Excel (CSV)',
+      'exportWord': 'Exporter Word (.doc)',
+      // Monitoring
+      'etatServices': 'État des services',
+      'uptime': 'Uptime',
+      // WhatsApp
+      'envoyerMessage': 'Envoyer message',
+      'repondre': 'Répondre',
+      // Chatbot
+      'transfertHumain': 'Transfert humain',
+      'ecrireMessage': 'Écrivez votre message...',
     },
     'ar': {
       'appName': 'PHARMA+',

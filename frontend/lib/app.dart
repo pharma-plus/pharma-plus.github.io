@@ -16,6 +16,7 @@ import 'features/audit/employee_space_page.dart';
 import 'features/shell/home_shell.dart';
 import 'features/shell/shell_nav.dart';
 import 'features/super_admin/super_admin_crm_page.dart';
+import 'features/super_admin/super_admin_shell.dart';
 import 'features/super_admin/super_admin_functions.dart' as super_admin_functions;
 
 /// Force tree-shaking retention by making the super admin check dynamic
@@ -28,11 +29,11 @@ bool _shouldShowSuperAdmin(AuthStore auth) {
   return auth.user?.isSuperAdmin == true;
 }
 
-/// Force tree-shaking retention by creating SuperAdminCRMPage in a function
+/// Force tree-shaking retention by creating SuperAdminShell in a function
 /// This prevents the tree-shaker from proving this branch is unreachable
 @pragma('vm:entry-point')
 @pragma('dart2js:noInline')
-Widget _createSuperAdminPage() => SuperAdminCRMPage();
+Widget _createSuperAdminPage() => const SuperAdminShell();
 
 /// Force tree-shaking retention by referencing the functions directly
 /// This ensures the functions are kept in the compiled output
@@ -156,10 +157,23 @@ class _SplashScreenState extends State<_SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer(const Duration(seconds: 8), () {
-      if (!mounted) return;
+    // Sonde du splash (plus aucun Timer artificiel qui masque l'init) :
+    // toutes les secondes, AuthStore.splashProbe() décide s'il faut
+    // débloquer la page de connexion. S'il y a une session à restaurer,
+    // le splash reste affiché jusqu'à la fin de _doInit (bornée 12 s) —
+    // eliminates le "double splash" ET la bascule erronée entre les
+    // espaces Client / Super Admin pendant l'initialisation.
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) {
+        _timer?.cancel();
+        return;
+      }
       final auth = context.read<AuthStore>();
-      if (!auth.isInitialized) auth.forceProceedToLogin();
+      if (auth.isInitialized) {
+        _timer?.cancel();
+        return;
+      }
+      auth.splashProbe();
     });
   }
 

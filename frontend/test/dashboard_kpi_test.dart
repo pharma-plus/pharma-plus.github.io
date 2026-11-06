@@ -333,11 +333,13 @@ void main() {
         reason: 'les 8 illustrations KPI doivent remplir leur carte');
   });
 
-  testWidgets('Dashboard : responsive — fenêtre réduite et smartphone (SKIP: overflow préexistant)',
+  testWidgets('Dashboard : responsive — fenêtre réduite et smartphone',
       (tester) async {
-    // TODO: corriger l'overflow Dashboard sur smartphone (390x844)
-    // skip: https://github.com/pharma-plus/pharma-plus/issues/XXX
-    return;
+    // Réactivé : les débordements identité/recherche du header ont été
+    // corrigés (identité maxLines+ellipsis, recherche adaptative < 250 px).
+    // 390x844 est simulé via tester.view (MediaQuery réellement piloté).
+    HttpOverrides.global = _FakeHttpOverrides();
+    _setWindowSizeForKpi(tester, const Size(1024, 768));
     await _pumpDashboard(tester, const Size(1024, 768));
     expect(tester.takeException(), isNull,
         reason: 'aucun débordement en 1024x768');
@@ -346,6 +348,7 @@ void main() {
           reason: 'KPI ${_kpiLabels[i]} en 1024x768');
     }
 
+    _setWindowSizeForKpi(tester, const Size(390, 844));
     await _pumpDashboard(tester, const Size(390, 844));
     expect(tester.takeException(), isNull,
         reason: 'aucun débordement en 390x844 (smartphone portrait)');
@@ -354,4 +357,12 @@ void main() {
           reason: 'KPI ${_kpiLabels[i]} en 390x844');
     }
   });
+}
+
+/// Voir mobile_nav_kpi_test : setSurfaceSize ne pilote pas MediaQuery dans
+/// le binding de test — view.physicalSize + dpr=1.0 oui.
+void _setWindowSizeForKpi(WidgetTester tester, Size logicalSize) {
+  tester.view.physicalSize = logicalSize;
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.reset);
 }

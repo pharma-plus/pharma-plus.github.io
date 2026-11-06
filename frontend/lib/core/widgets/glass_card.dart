@@ -14,6 +14,10 @@ class GlassCard extends StatelessWidget {
   final VoidCallback? onTap;
   final EdgeInsetsGeometry? margin;
 
+  /// Couleur de liseré optionnelle : remplace la bordure or par défaut
+  /// (utilisé par les cartes GOLD du portail Super Admin).
+  final Color? borderColor;
+
   const GlassCard({
     super.key,
     required this.child,
@@ -22,6 +26,7 @@ class GlassCard extends StatelessWidget {
     this.radius,
     this.onTap,
     this.margin,
+    this.borderColor,
   });
 
   @override
@@ -37,7 +42,7 @@ class GlassCard extends StatelessWidget {
         gradient: gradient,
         borderRadius: radius ?? BorderRadius.circular(18),
         border: Border.all(
-          color: AppColors.goldBorder,
+          color: borderColor ?? AppColors.goldBorder,
           width: 1,
         ),
         boxShadow: [

@@ -128,6 +128,14 @@ class AuthStore extends ChangeNotifier {
   bool _initError = false;
   bool _forcedLogin = false;
 
+  /// Vrai dès que la lecture des jetons persistés a eu lieu dans `_doInit`.
+  /// Le splash sonde ce drapeau pour ne JAMAIS forcer un passage à la
+  /// connexion pendant la restauration d'une session stockée : forcer
+  /// maintenant rendrait un espace (Client ou Super Admin) à partir d'un
+  /// profil à moitié initialisé — cause du "double dashboard" (flash
+  /// Super Admin puis retour Client) au rafraîchissement de page.
+  bool _restoreTokensLoaded = false;
+
   /// Permissions utilisateur (déjà présentes via enrichProfile)
   Set<String> get permissions => _user?.permissions ?? {};
   bool get isSuperAdmin => _user?.isSuperAdmin ?? false;
@@ -152,6 +160,12 @@ class AuthStore extends ChangeNotifier {
   /// `visibleModules == []` → aucun module visible.
   /// Sinon → seul les modules listés sont visibles.
   bool canSeeModule(String key) {
+    // SÉCURITÉ : le module 'superadmin_crm' est réservé au Super Admin.
+    // Un `visibleModules == null` (non renseigné côté serveur) ne doit
+    // JAMAIS ouvrir les fonctions d'administration d'envergure — sinon
+    // un simple client voit le portail Super Admin apparaître dans son
+    // menu puis est renvoyé au Dashboard Client (page qui disparaît).
+    if (key == 'superadmin_crm') return isSuperAdmin;
     if (isSuperAdmin) return true;
     final modules = _user?.visibleModules;
     if (modules == null) return true;
@@ -242,6 +256,9 @@ class AuthStore extends ChangeNotifier {
     _accessToken = await _tokenRead(_kAccess);
     _refreshToken = await _tokenRead(_kRefresh);
     final userRaw = await _tokenRead(_kUser);
+    // Les jetons sont connus : le splash peut désormais décider s'il y a
+    // quelque chose à restaurer (cf. splashProbe).
+    _restoreTokensLoaded = true;
     if (userRaw != null) {
       // Restauration : toute valeur admin stockée localement est
       // rétrogradée en « inconnu ». Seule une réponse serveur authentifiée
@@ -312,6 +329,20 @@ class AuthStore extends ChangeNotifier {
     _initError = false;
     _initialized = true;
     notifyListeners();
+  }
+
+  /// Sondé périodiquement par l'écran de démarrage (`_SplashScreen`) :
+  /// débloque la page de connexion UNIQUEMENT quand il n'y a strictement
+  /// rien à restaurer. Si une session stockée existe, RootGate restera
+  /// sur le splash jusqu'à ce que `_doInit` se termine (bornée à 12 s) :
+  /// l'espace (Client ou Super Admin) n'est rendu qu'avec un profil
+  /// complet et confirmé par le serveur — plus aucune bascule erronée
+  /// entre les deux dashboards pendant l'initialisation.
+  void splashProbe() {
+    if (_initialized) return;
+    if (!_restoreTokensLoaded) return; // restauration en cours : attendre
+    if (_accessToken != null || _user != null) return; // session présente
+    forceProceedToLogin();
   }
 
   Future<void> setBaseUrl(String url) async {

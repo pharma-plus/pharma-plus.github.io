@@ -19,15 +19,18 @@ export const dashboardService = {
 
     const [revRes, alerts, stock, cash] = await Promise.all([
       query(
+        // Bornes « jour » en heure LOCALE de la pharmacie (Africa/Casablanca) :
+        // « Ventes du jour » = depuis minuit local, pas 24 h glissantes.
+        // Les statuts non-complétés sont exclus par le WHERE global.
         `SELECT
-           COALESCE(sum(total) FILTER (WHERE created_at >= now() - interval '1 day'), 0)::numeric(14,2) AS revenue_today,
-           COALESCE(sum(total) FILTER (WHERE created_at >= now() - interval '7 days'), 0)::numeric(14,2) AS revenue_week,
-           COALESCE(sum(total) FILTER (WHERE created_at >= now() - interval '1 month'), 0)::numeric(14,2) AS revenue_month,
-           COALESCE(sum(total) FILTER (WHERE created_at >= now() - interval '1 year'), 0)::numeric(14,2) AS revenue_year,
-           count(*) FILTER (WHERE created_at >= now() - interval '1 day')::int AS sales_today,
-           count(*) FILTER (WHERE created_at >= now() - interval '1 month')::int AS sales_month,
-           COALESCE(sum(total - cost_total) FILTER (WHERE created_at >= now() - interval '1 month'), 0)::numeric(14,2) AS profit_month,
-           COALESCE(sum(cost_total) FILTER (WHERE created_at >= now() - interval '1 month'), 0)::numeric(14,2) AS cost_month
+           COALESCE(sum(total) FILTER (WHERE created_at >= (date_trunc('day', now() AT TIME ZONE 'Africa/Casablanca') AT TIME ZONE 'Africa/Casablanca')), 0)::numeric(14,2) AS revenue_today,
+           COALESCE(sum(total) FILTER (WHERE created_at >= (date_trunc('week', now() AT TIME ZONE 'Africa/Casablanca') AT TIME ZONE 'Africa/Casablanca')), 0)::numeric(14,2) AS revenue_week,
+           COALESCE(sum(total) FILTER (WHERE created_at >= (date_trunc('month', now() AT TIME ZONE 'Africa/Casablanca') AT TIME ZONE 'Africa/Casablanca')), 0)::numeric(14,2) AS revenue_month,
+           COALESCE(sum(total) FILTER (WHERE created_at >= (date_trunc('year', now() AT TIME ZONE 'Africa/Casablanca') AT TIME ZONE 'Africa/Casablanca')), 0)::numeric(14,2) AS revenue_year,
+           count(*) FILTER (WHERE created_at >= (date_trunc('day', now() AT TIME ZONE 'Africa/Casablanca') AT TIME ZONE 'Africa/Casablanca'))::int AS sales_today,
+           count(*) FILTER (WHERE created_at >= (date_trunc('month', now() AT TIME ZONE 'Africa/Casablanca') AT TIME ZONE 'Africa/Casablanca'))::int AS sales_month,
+           COALESCE(sum(total - cost_total) FILTER (WHERE created_at >= (date_trunc('month', now() AT TIME ZONE 'Africa/Casablanca') AT TIME ZONE 'Africa/Casablanca')), 0)::numeric(14,2) AS profit_month,
+           COALESCE(sum(cost_total) FILTER (WHERE created_at >= (date_trunc('month', now() AT TIME ZONE 'Africa/Casablanca') AT TIME ZONE 'Africa/Casablanca')), 0)::numeric(14,2) AS cost_month
          FROM sales
         WHERE pharmacy_id = $1 AND status = 'completed' ${branchFilter}`,
         params,

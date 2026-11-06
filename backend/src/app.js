@@ -39,6 +39,7 @@ import { referenceRouter } from './modules/reference/index.js';
 import { camerasRouter } from './modules/cameras/index.js';
 import { chatbotRouter } from './modules/chatbot/index.js';
 import { whatsappRouter } from './modules/whatsapp/index.js';
+import { superadminRouter } from './modules/superadmin/index.js';
 
 export function createApp() {
   const app = express();
@@ -52,7 +53,15 @@ export function createApp() {
     origin: config.corsOrigins.length ? config.corsOrigins : '*',
     credentials: true,
   }));
-  app.use(express.json({ limit: '2mb' }));
+  // Capture du corps brut pour la vérification HMAC des webhooks
+  // (X-Hub-Signature-256 de Meta) : la signature porte sur les octets EXACTS
+  // du payload, pas sur sa ré-serialisation.
+  app.use(express.json({
+    limit: '2mb',
+    verify: (req, _res, buf) => {
+      req.rawBody = buf.toString('utf8');
+    },
+  }));
   app.use(express.urlencoded({ extended: true }));
   app.use(morgan(config.isProd ? 'combined' : 'dev'));
 
@@ -89,6 +98,7 @@ export function createApp() {
   api.use('/website', websiteRouter);
   api.use('/whatsapp', whatsappRouter);
   api.use('/chatbot', chatbotRouter);
+  api.use('/superadmin', superadminRouter);
   api.use('/ai', aiRouter);
   api.use('/reference', referenceRouter);
   api.use('/cameras', camerasRouter);

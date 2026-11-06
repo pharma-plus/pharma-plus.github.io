@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/services/api_client.dart';
-import '../../core/services/whatsapp_service.dart' hide WhatsAppMessageType;
 import '../../core/theme/colors.dart';
 import '../shell/shell_nav.dart';
 import 'models.dart';
@@ -10,12 +9,10 @@ import 'models.dart';
 /// Page de chat WhatsApp individuelle
 class WhatsAppChatPage extends StatefulWidget {
   final WhatsAppConversation conversation;
-  final WhatsAppService? whatsappService;
 
   const WhatsAppChatPage({
     super.key,
     required this.conversation,
-    this.whatsappService,
   });
 
   @override
@@ -96,25 +93,38 @@ class _WhatsAppChatPageState extends State<WhatsAppChatPage> {
     });
 
     try {
-      final result = widget.whatsappService?.sendTextMessage(
-        to: widget.conversation.contactPhone,
-        body: text,
-      ) ?? await ApiClient.instance.post(
-        '/whatsapp/conversations/${widget.conversation.id}/messages',
-        body: {'text': text},
+      // SÉCURITÉ : l'envoi passe TOUJOURS par le backend
+      // (POST /whatsapp/send) — le jeton Meta ne quitte jamais le serveur.
+      // L'ancien envoi direct via WhatsAppService (jeton exposé au client)
+      // est supprimé.
+      final result = await ApiClient.instance.post(
+        '/whatsapp/send',
+        body: {
+          'to': widget.conversation.contactPhone,
+          'type': 'text',
+          'content': text,
+        },
       );
 
       if (mounted) {
-        if (result is WhatsAppSendResult && result.success) {
+        final delivered = (result.data is Map)
+            ? ((result.data as Map)['delivered'] == true)
+            : false;
+        final providerError = (result.data is Map)
+            ? ((result.data as Map)['providerError']?.toString())
+            : null;
+        if (result.success && delivered) {
           _loadMessages();
         } else {
-          final errMsg = result is WhatsAppSendResult
-              ? (result.error ?? 'Erreur envoi')
-              : 'Erreur envoi';
+          final errMsg = result.success
+              // Message enregistré mais NON livré : raison réelle affichée.
+              ? (providerError ?? 'Message enregistré mais non livré (WhatsApp non configuré)')
+              : (result.error?.readableMessage ?? 'Erreur envoi');
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(errMsg),
             backgroundColor: AppColors.danger,
           ));
+          if (result.success) _loadMessages(); // afficher le statut 'pending'
         }
       }
     } catch (e) {

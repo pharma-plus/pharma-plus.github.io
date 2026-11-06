@@ -233,15 +233,16 @@ class _HomeShellState extends State<HomeShell> {
       (Icons.point_of_sale_outlined, Icons.point_of_sale, 'pos', 2),
       (Icons.medication_outlined, Icons.medication, 'medications', 3),
       (Icons.inventory_2_outlined, Icons.inventory_2, 'stock', 4),
+      (Icons.people_outlined, Icons.people, 'suppliers', 5),
+      (Icons.shopping_cart_outlined, Icons.shopping_cart, 'purchases', 6),
       (Icons.people_outlined, Icons.people, 'customers', 7),
-      (Icons.smart_toy_outlined, Icons.smart_toy, 'ai', 15),
-      (Icons.local_shipping_outlined, Icons.local_shipping, 'reorder', 14),
-      (Icons.link_outlined, Icons.link, 'supplierConnectivity', 13),
       (Icons.menu_book_outlined, Icons.menu_book, 'reference', 12),
       (Icons.storefront_outlined, Icons.storefront, 'pharmacyPlan', 10),
       (Icons.settings_outlined, Icons.settings, 'settings', 11),
       (Icons.chat_outlined, Icons.chat, 'whatsapp', 16),
       (Icons.business_outlined, Icons.business, 'superAdminCRM', 17),
+      (Icons.description_outlined, Icons.description, 'reports', 9),
+      (Icons.person_outlined, Icons.person, 'employees', 8),
     ];
 
     // Clé de module pour les items de la bottom bar mobile.
@@ -251,7 +252,11 @@ class _HomeShellState extends State<HomeShell> {
       2: 'pos',
       3: 'catalog',
       4: 'stock',
+      5: 'suppliers',
+      6: 'purchases',
       7: 'customers',
+      8: 'employees',
+      9: 'reports',
       10: 'plan',
       11: 'settings',
       12: 'reference',
@@ -267,15 +272,14 @@ class _HomeShellState extends State<HomeShell> {
       return key == null || auth.canSeeModule(key);
     }).toList();
 
-    final mobileDestinations = [
-      for (final (ic, icS, key, pageIndex) in mobileItems)
-        NavigationDestination(
-          key: ValueKey<int>(pageIndex),
-          icon: Icon(ic),
-          selectedIcon: Icon(icS),
-          label: S.t(key, locale),
-        ),
-    ];
+    // Barre inférieure COMPACTE (règle UX mobile) : uniquement les raccourcis
+    // essentiels — Tableau de bord (0), Modules (1), Point de vente (2).
+    // Les autres fonctions restent accessibles via le drawer latéral et la
+    // page Modules : aucune destination n'est supprimée, seule la barre est
+    // épurée (14 icônes empilées = illisibles et dupliquées sur 320-430 px).
+    const bottomBarIndexes = <int>{0, 1, 2};
+    final bottomItems =
+        mobileItems.where((m) => bottomBarIndexes.contains(m.$4)).toList();
 
     return ValueListenableBuilder<int>(
       valueListenable: ShellNav.index,
@@ -387,20 +391,28 @@ class _HomeShellState extends State<HomeShell> {
           bottomNavigationBar: showBottomNav
               ? NavigationBar(
                   selectedIndex: () {
-                    final idx = mobileItems
+                    final idx = bottomItems
                         .map((m) => m.$4)
                         .toList()
                         .indexOf(effectiveIndex);
-                    // Pages hors barre mobile (ex : fournisseurs, achats,
-                    // clients, employés, rapports) : repli non-destructif sur
-                    // l'onglet Modules au lieu de -1 (crash/assert).
+                    // Page courante hors barre compacte (ex : fournisseurs,
+                    // achats, clients…) : repli non-destructif sur l'onglet
+                    // Modules au lieu de -1 (crash/assert).
                     // Si Modules n'est pas visible non plus → dashboard (0).
                     if (idx >= 0) return idx;
-                    return mobileItems.any((m) => m.$4 == 1) ? 1 : 0;
+                    return bottomItems.any((m) => m.$4 == 1) ? 1 : 0;
                   }(),
                   onDestinationSelected: (i) =>
-                      ShellNav.index.value = mobileItems[i].$4,
-                  destinations: mobileDestinations,
+                      ShellNav.index.value = bottomItems[i].$4,
+                  destinations: [
+                    for (final (ic, icS, key, pageIndex) in bottomItems)
+                      NavigationDestination(
+                        key: ValueKey<int>(pageIndex),
+                        icon: Icon(ic),
+                        selectedIcon: Icon(icS),
+                        label: S.t(key, locale),
+                      ),
+                  ],
                   // Optimisation tactile : hauteur augmentée pour doigts
                   height: 80,
                   labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
