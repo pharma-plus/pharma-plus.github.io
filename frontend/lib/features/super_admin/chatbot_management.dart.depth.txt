@@ -1,0 +1,247 @@
+﻿1|0|0|/// ========================================================================
+2|0|0|/// PHARMA+ â€” SUPER ADMIN : CHATBOT IA
+3|0|0|/// ========================================================================
+4|0|0|/// Chatbot intelligent avec rÃ©ponses automatiques et transfert humain.
+5|0|0|/// ========================================================================
+6|0|0|
+7|0|0|import 'dart:async';
+8|0|0|import 'package:flutter/material.dart';
+9|0|0|import 'package:provider/provider.dart';
+10|0|0|import '../../../core/l10n/strings.dart';
+11|0|0|import '../../../core/services/api_client.dart';
+12|0|0|import '../../../core/services/auth_store.dart';
+13|0|0|import '../../../core/theme/colors.dart';
+14|0|0|import '../../../core/widgets/glass_card.dart';
+15|0|0|import '../../../core/widgets/gradient_button.dart';
+16|0|0|import '../../../core/widgets/shared/app_search_field.dart';
+17|0|0|
+18|0|0|class ChatbotManagementPage extends StatefulWidget {
+19|0|0|const ChatbotManagementPage({super.key});
+20|0|0|
+21|0|0|@override
+22|0|0|State<ChatbotManagementPage> createState() => _ChatbotManagementPageState();
+23|0|0|}
+24|0|0|
+25|0|0|class _ChatbotManagementPageState extends State<ChatbotManagementPage> {
+26|0|0|final _controller = TextEditingController();
+27|0|0|final _messages = <Map<String, String>>[];
+28|0|0|bool _sending = false;
+29|0|0|List<Map<String, dynamic>> _conversations = [];
+30|0|0|bool _loading = true;
+31|0|0|String? _selectedConversationId;
+32|0|0|
+33|0|0|@override
+34|0|0|void initState() {
+35|0|0|super.initState();
+36|0|0|_loadConversations();
+37|0|0|}
+38|0|0|
+39|0|0|@override
+40|0|0|void dispose() {
+41|0|0|_controller.dispose();
+42|0|0|super.dispose();
+43|0|0|}
+44|0|0|
+45|0|0|Future<void> _loadConversations() async {
+46|0|0|setState(() => _loading = true);
+47|0|0|try {
+48|0|0|final r = await ApiClient.instance.get('/whatsapp/conversations', query: {'limit': 20});
+49|0|0|if (!mounted) return;
+50|1|1|setState(() {
+51|0|1|_conversations = (r.success ? r.data : [])
+52|0|1|.map((e) => Map<String, dynamic>.from(e as Map))
+53|0|1|.toList() as List<Map<String, dynamic>>;
+54|0|1|if (_conversations.isNotEmpty) _selectedConversationId = _conversations.first['id'] as String?;
+55|0|1|_loading = false;
+56|-1|0|});
+57|0|0|} catch (e) {
+58|0|0|if (!mounted) return;
+59|0|0|setState(() => _loading = false);
+60|0|0|}
+61|0|0|}
+62|0|0|
+63|0|0|Future<void> _send() async {
+64|0|0|final text = _controller.text.trim();
+65|0|0|if (text.isEmpty || _sending || _selectedConversationId == null) return;
+66|1|1|setState(() {
+67|0|1|_messages.add({'role': 'user', 'text': text});
+68|0|1|_sending = true;
+69|0|1|_controller.clear();
+70|-1|0|});
+71|0|0|try {
+72|1|1|final r = await ApiClient.instance.post('/chatbot/message', body: {
+73|0|1|'conversationId': _selectedConversationId,
+74|0|1|'message': text,
+75|-1|0|});
+76|0|0|if (!mounted) return;
+77|0|0|setState(() => _sending = false);
+78|0|0|if (r.success && r.data != null) {
+79|0|0|final d = r.data as Map;
+80|0|0|_messages.add({'role': 'bot', 'text': d['response']?.toString() ?? 'RÃ©ponse'});
+81|0|0|if (d['transferToHuman'] == true) {
+82|0|0|_messages.add({'role': 'bot', 'text': 'Transfert vers un opÃ©rateur humain en cours...'});
+83|0|0|}
+84|0|0|} else {
+85|0|0|_messages.add({'role': 'bot', 'text': r.error?.readableMessage ?? 'Erreur'});
+86|0|0|}
+87|0|0|} catch (e) {
+88|0|0|if (!mounted) return;
+89|1|1|setState(() {
+90|0|1|_sending = false;
+91|0|1|_messages.add({'role': 'bot', 'text': e.toString()});
+92|-1|0|});
+93|0|0|}
+94|0|0|}
+95|0|0|
+96|0|0|Future<void> _transferToHuman() async {
+97|0|0|if (_selectedConversationId == null) return;
+98|1|1|final r = await ApiClient.instance.post('/chatbot/transfer', body: {
+99|0|1|'conversationId': _selectedConversationId,
+100|-1|0|});
+101|0|0|if (!mounted) return;
+102|0|0|if (r.success) {
+103|1|1|ScaffoldMessenger.of(context).showSnackBar(
+104|0|1|const SnackBar(content: Text('TransfÃ©rÃ© vers un opÃ©rateur humain')),
+105|-1|0|);
+106|0|0|} else {
+107|1|1|ScaffoldMessenger.of(context).showSnackBar(
+108|0|1|SnackBar(content: Text(r.error?.readableMessage ?? 'Erreur')),
+109|-1|0|);
+110|0|0|}
+111|0|0|}
+112|0|0|
+113|0|0|@override
+114|0|0|Widget build(BuildContext context) {
+115|0|0|final locale = context.read<AuthStore>().locale;
+116|1|1|return Scaffold(
+117|0|1|backgroundColor: _kSuperAdminDark,
+118|1|2|appBar: AppBar(
+119|0|2|backgroundColor: _kSuperAdminDark.withValues(alpha: 0.95),
+120|0|2|elevation: 0,
+121|0|2|leading: const ShellBackButton(),
+122|0|2|title: const Text('Chatbot IA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+123|1|3|actions: [
+124|0|3|if (_selectedConversationId != null)
+125|1|4|GradientButton(
+126|0|4|label: 'Transfert humain',
+127|0|4|icon: Icons.person,
+128|0|4|onPressed: _transferToHuman,
+129|-1|3|),
+130|0|3|const SizedBox(width: 8),
+131|-1|2|],
+132|-1|1|),
+133|0|1|body: _loading
+134|0|1|? const Center(child: CircularProgressIndicator(color: _kSuperAdminGold))
+135|1|2|: Column(
+136|1|3|children: [
+137|0|3|// SÃ©lecteur de conversation
+138|1|4|Padding(
+139|0|4|padding: const EdgeInsets.all(16),
+140|1|5|child: Row(
+141|1|6|children: [
+142|1|7|Expanded(
+143|1|8|child: DropdownButtonFormField<String>(
+144|0|8|value: _selectedConversationId,
+145|1|9|decoration: InputDecoration(
+146|0|9|labelText: 'Conversation',
+147|0|9|border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+148|0|9|contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+149|-1|8|),
+150|2|10|items: _conversations.map((c) => DropdownMenuItem(
+151|0|10|value: c['id'] as String?,
+152|0|10|child: Text('${c['contactName'] ?? 'Contact'} (${c['contactPhone'] ?? ''})'),
+153|-2|8|)).toList(),
+154|0|8|onChanged: (v) => setState(() => _selectedConversationId = v),
+155|-1|7|),
+156|-1|6|),
+157|-1|5|],
+158|-1|4|),
+159|-1|3|),
+160|0|3|// Zone de chat
+161|1|4|Expanded(
+162|0|4|child: _messages.isEmpty
+163|1|5|? Center(
+164|1|6|child: Column(
+165|0|6|mainAxisSize: MainAxisSize.min,
+166|1|7|children: [
+167|0|7|Icon(Icons.smart_toy, color: _kSuperAdminGold.withValues(alpha: 0.3), size: 64),
+168|0|7|const SizedBox(height: 16),
+169|1|8|Text('SÃ©lectionnez une conversation pour discuter avec le chatbot',
+170|-1|7|style: TextStyle(color: Colors.white60)),
+171|-1|6|],
+172|-1|5|),
+173|-1|4|)
+174|1|5|: ListView.builder(
+175|0|5|padding: const EdgeInsets.all(12),
+176|0|5|itemCount: _messages.length,
+177|0|5|itemBuilder: (_, i) {
+178|0|5|final m = _messages[i];
+179|0|5|final isUser = m['role'] == 'user';
+180|1|6|return Align(
+181|0|6|alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+182|1|7|child: Container(
+183|0|7|margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+184|0|7|padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+185|1|8|decoration: BoxDecoration(
+186|0|8|color: isUser ? _kSuperAdminGold : Colors.white.withValues(alpha: 0.1),
+187|0|8|borderRadius: BorderRadius.circular(16),
+188|-1|7|),
+189|1|8|child: Text(
+190|0|8|m['text'] ?? '',
+191|0|8|style: TextStyle(color: isUser ? Color(0xFF03100D) : Colors.white),
+192|-1|7|),
+193|-1|6|),
+194|-1|5|);
+195|0|5|},
+196|-1|4|),
+197|-1|3|),
+198|0|3|// Saisie
+199|1|4|Padding(
+200|0|4|padding: const EdgeInsets.all(12),
+201|1|5|child: Row(
+202|1|6|children: [
+203|1|7|Expanded(
+204|1|8|child: TextField(
+205|0|8|controller: _controller,
+206|1|9|decoration: InputDecoration(
+207|0|9|hintText: 'Ã‰crivez votre message...',
+208|0|9|border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
+209|0|9|contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+210|-1|8|),
+211|0|8|onSubmitted: (_) => _send(),
+212|-1|7|),
+213|-1|6|),
+214|0|6|const SizedBox(width: 8),
+215|1|7|GradientButton(
+216|0|7|label: 'Envoyer',
+217|0|7|icon: Icons.send,
+218|0|7|onPressed: _sending ? null : _send,
+219|0|7|loading: _sending,
+220|-1|6|),
+221|-1|5|],
+222|-1|4|),
+223|-1|3|),
+224|-1|2|],
+225|-1|1|),
+226|-1|0|),
+227|-1|-1|);
+228|0|-1|}
+229|0|-1|}
+230|0|-1|
+231|0|-1|/// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+232|0|-1|// THÃˆME
+233|0|-1|// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+234|0|-1|const Color _kSuperAdminDark = Color(0xFF03100D);
+235|0|-1|const Color _kSuperAdminSurface = Color(0xFF0A1E15);
+236|0|-1|const Color _kSuperAdminGold = Color(0xFFD9B45C);
+237|0|-1|const Color _kSuperAdminAccent = Color(0xFF2FB563);
+238|0|-1|
+239|0|-1|class ShellBackButton extends StatelessWidget {
+240|0|-1|const ShellBackButton({super.key});
+241|0|-1|@override
+242|0|-1|Widget build(BuildContext context) {
+243|0|-1|return IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white70), onPressed: () => Navigator.of(context).pop());
+244|0|-1|}
+245|0|-1|}
+FINAL_DEPTH=-1
+

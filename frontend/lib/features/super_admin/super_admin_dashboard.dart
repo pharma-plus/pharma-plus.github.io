@@ -82,7 +82,10 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
     }
   }
 

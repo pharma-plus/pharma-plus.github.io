@@ -1,0 +1,364 @@
+﻿1|0|0|/// ========================================================================
+2|0|0|/// PHARMA+ â€” SUPER ADMIN : RAPPORTS ET MONITORING
+3|0|0|/// ========================================================================
+4|0|0|/// Rapports, exports PDF/Excel/Word, monitoring technique, alertes techniques.
+5|0|0|/// ========================================================================
+6|0|0|
+7|0|0|import 'dart:async';
+8|0|0|import 'package:flutter/material.dart';
+9|0|0|import 'package:provider/provider.dart';
+10|0|0|import '../../../core/l10n/strings.dart';
+11|0|0|import '../../../core/services/api_client.dart';
+12|0|0|import '../../../core/services/auth_store.dart';
+13|0|0|import '../../../core/theme/colors.dart';
+14|0|0|import '../../../core/widgets/glass_card.dart';
+15|0|0|import '../../../core/widgets/gradient_button.dart';
+16|0|0|
+17|0|0|class ReportsMonitoringPage extends StatefulWidget {
+18|0|0|const ReportsMonitoringPage({super.key});
+19|0|0|
+20|0|0|@override
+21|0|0|State<ReportsMonitoringPage> createState() => _ReportsMonitoringPageState();
+22|0|0|}
+23|0|0|
+24|0|0|class _ReportsMonitoringPageState extends State<ReportsMonitoringPage> {
+25|0|0|Map<String, dynamic>? _monitoring;
+26|0|0|bool _loading = true;
+27|0|0|String? _error;
+28|0|0|String _activeTab = 'reports';
+29|0|0|
+30|1|1|static const _tabs = [
+31|0|1|('reports', Icons.assignment_outlined, 'Rapports'),
+32|0|1|('monitoring', Icons.computer_outlined, 'Monitoring'),
+33|-1|0|];
+34|0|0|
+35|0|0|@override
+36|0|0|void initState() {
+37|0|0|super.initState();
+38|0|0|_loadMonitoring();
+39|0|0|}
+40|0|0|
+41|0|0|Future<void> _loadMonitoring() async {
+42|0|0|try {
+43|0|0|final r = await ApiClient.instance.get('/superadmin/monitoring');
+44|0|0|if (!mounted) return;
+45|1|1|setState(() {
+46|0|1|_monitoring = r.success ? (r.data as Map<String, dynamic>?) : null;
+47|0|1|_loading = false;
+48|-1|0|});
+49|0|0|} catch (e) {
+50|0|0|if (!mounted) return;
+51|0|0|setState(() => _error = e.toString());
+52|0|0|}
+53|0|0|}
+54|0|0|
+55|0|0|Future<void> _exportReport(String type) async {
+56|0|0|final from = '2026-01-01';
+57|0|0|final to = '2026-12-31';
+58|0|0|try {
+59|1|1|final r = await ApiClient.instance.get('/reports/$type/export', query: {
+60|0|1|'from': from,
+61|0|1|'to': to,
+62|-1|0|});
+63|0|0|if (!mounted) return;
+64|0|0|if (r.success) {
+65|1|1|ScaffoldMessenger.of(context).showSnackBar(
+66|0|1|const SnackBar(content: Text('Export $type tÃ©lÃ©chargÃ©')),
+67|-1|0|);
+68|0|0|} else {
+69|1|1|ScaffoldMessenger.of(context).showSnackBar(
+70|0|1|SnackBar(content: Text(r.error?.readableMessage ?? 'Erreur export')),
+71|-1|0|);
+72|0|0|}
+73|0|0|} catch (e) {
+74|0|0|if (!mounted) return;
+75|1|1|ScaffoldMessenger.of(context).showSnackBar(
+76|0|1|SnackBar(content: Text('Erreur : $e')),
+77|-1|0|);
+78|0|0|}
+79|0|0|}
+80|0|0|
+81|0|0|@override
+82|0|0|Widget build(BuildContext context) {
+83|0|0|final locale = context.read<AuthStore>().locale;
+84|1|1|return Scaffold(
+85|0|1|backgroundColor: _kSuperAdminDark,
+86|1|2|appBar: AppBar(
+87|0|2|backgroundColor: _kSuperAdminDark.withValues(alpha: 0.95),
+88|0|2|elevation: 0,
+89|0|2|leading: const ShellBackButton(),
+90|0|2|title: const Text('Rapports & Monitoring', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+91|-1|1|),
+92|1|2|body: Column(
+93|1|3|children: [
+94|1|4|Padding(
+95|0|4|padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+96|1|5|child: Row(
+97|2|7|children: _tabs.map((e) => _TabChip(
+98|0|7|keyId: e.$1,
+99|0|7|icon: e.$2,
+100|0|7|label: e.$3,
+101|0|7|active: _activeTab == e.$1,
+102|0|7|onTap: () => setState(() => _activeTab = e.$1),
+103|-2|5|)).toList(),
+104|-1|4|),
+105|-1|3|),
+106|1|4|Expanded(
+107|0|4|child: _loading
+108|0|4|? const Center(child: CircularProgressIndicator(color: _kSuperAdminGold))
+109|0|4|: _activeTab == 'reports'
+110|0|4|? _buildReports(locale)
+111|0|4|: _buildMonitoring(locale),
+112|-1|3|),
+113|-1|2|],
+114|-1|1|),
+115|-1|0|);
+116|0|0|}
+117|0|0|
+118|0|0|Widget _buildReports(String locale) {
+119|1|1|return GlassCard(
+120|0|1|radius: BorderRadius.circular(16),
+121|0|1|padding: const EdgeInsets.all(20),
+122|0|1|margin: const EdgeInsets.all(20),
+123|1|2|child: Column(
+124|0|2|crossAxisAlignment: CrossAxisAlignment.start,
+125|1|3|children: [
+126|0|3|Text('Exports de rapports', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+127|0|3|const SizedBox(height: 8),
+128|0|3|Text('GÃ©nÃ©rez des rapports au format CSV, PDF ou Word.', style: TextStyle(color: Colors.white60)),
+129|0|3|const SizedBox(height: 24),
+130|1|4|Row(
+131|1|5|children: [
+132|1|6|Expanded(
+133|1|7|child: GradientButton(
+134|0|7|label: 'Ventes (CSV)',
+135|0|7|icon: Icons.attach_money,
+136|0|7|onPressed: () => _exportReport('sales'),
+137|-1|6|),
+138|-1|5|),
+139|0|5|const SizedBox(width: 12),
+140|1|6|Expanded(
+141|1|7|child: GradientButton(
+142|0|7|label: 'Produits (CSV)',
+143|0|7|icon: Icons.shopping_basket,
+144|0|7|onPressed: () => _exportReport('products'),
+145|-1|6|),
+146|-1|5|),
+147|0|5|const SizedBox(width: 12),
+148|1|6|Expanded(
+149|1|7|child: GradientButton(
+150|0|7|label: 'Stock (CSV)',
+151|0|7|icon: Icons.inventory_2,
+152|0|7|onPressed: () => _exportReport('stock'),
+153|-1|6|),
+154|-1|5|),
+155|0|5|const SizedBox(width: 12),
+156|1|6|Expanded(
+157|1|7|child: GradientButton(
+158|0|7|label: 'Financier (CSV)',
+159|0|7|icon: Icons.attach_money,
+160|0|7|onPressed: () => _exportReport('financial'),
+161|-1|6|),
+162|-1|5|),
+163|0|5|const SizedBox(width: 12),
+164|1|6|Expanded(
+165|1|7|child: GradientButton(
+166|0|7|label: 'EmployÃ©s (CSV)',
+167|0|7|icon: Icons.people,
+168|0|7|onPressed: () => _exportReport('employees'),
+169|-1|6|),
+170|-1|5|),
+171|-1|4|],
+172|-1|3|),
+173|0|3|const SizedBox(height: 32),
+174|1|4|_ReportCard(
+175|0|4|icon: Icons.picture_as_pdf,
+176|0|4|color: Colors.red,
+177|0|4|title: 'Rapport PDF complet',
+178|0|4|subtitle: 'Tableau de bord complet avec KPI, graphiques et statistiques',
+179|1|5|onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+180|0|5|const SnackBar(content: Text('Export PDF en cours...')),
+181|-1|4|),
+182|-1|3|),
+183|0|3|const SizedBox(height: 12),
+184|1|4|_ReportCard(
+185|0|4|icon: Icons.description,
+186|0|4|color: Colors.green,
+187|0|4|title: 'Rapport Word (.doc)',
+188|0|4|subtitle: 'Document Ã©ditable avec toutes les donnÃ©es',
+189|1|5|onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+190|0|5|const SnackBar(content: Text('Export Word en cours...')),
+191|-1|4|),
+192|-1|3|),
+193|-1|2|],
+194|-1|1|),
+195|-1|0|);
+196|0|0|}
+197|0|0|
+198|0|0|Widget _buildMonitoring(String locale) {
+199|0|0|final services = (_monitoring?['services'] as List? ?? []);
+200|0|0|final uptime = (_monitoring?['uptime'] as num? ?? 0);
+201|0|0|final uptimeDays = (uptime / 86400).toStringAsFixed(1);
+202|0|0|
+203|1|1|return GlassCard(
+204|0|1|radius: BorderRadius.circular(16),
+205|0|1|padding: const EdgeInsets.all(20),
+206|0|1|margin: const EdgeInsets.all(20),
+207|1|2|child: Column(
+208|0|2|crossAxisAlignment: CrossAxisAlignment.start,
+209|1|3|children: [
+210|1|4|Row(
+211|0|4|mainAxisAlignment: MainAxisAlignment.spaceBetween,
+212|1|5|children: [
+213|0|5|Text('Ã‰tat des services', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+214|1|6|Container(
+215|0|6|padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+216|0|6|decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(20)),
+217|1|7|child: Row(
+218|0|7|mainAxisSize: MainAxisSize.min,
+219|1|8|children: [
+220|0|8|Icon(Icons.check_circle, color: Colors.green, size: 16),
+221|0|8|const SizedBox(width: 6),
+222|0|8|Text('Tous les services en ligne', style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.w700)),
+223|-1|7|],
+224|-1|6|),
+225|-1|5|),
+226|-1|4|],
+227|-1|3|),
+228|0|3|const SizedBox(height: 16),
+229|1|4|Row(
+230|1|5|children: [
+231|1|6|Expanded(
+232|0|6|child: _MonitoringItem('Uptime', '$uptimeDays jours', Icons.timer, Colors.green),
+233|-1|5|),
+234|1|6|Expanded(
+235|0|6|child: _MonitoringItem('Services', '${services.length}', Icons.settings, Colors.blue),
+236|-1|5|),
+237|1|6|Expanded(
+238|0|6|child: _MonitoringItem('RequÃªtes', '--', Icons.flash_on, Colors.orange),
+239|-1|5|),
+240|1|6|Expanded(
+241|0|6|child: _MonitoringItem('Erreurs', '0', Icons.error_outline, Colors.red),
+242|-1|5|),
+243|-1|4|],
+244|-1|3|),
+245|0|3|const SizedBox(height: 24),
+246|0|3|Text('Services dÃ©taillÃ©s', style: TextStyle(color: Colors.white70, fontSize: 14)),
+247|0|3|const SizedBox(height: 12),
+248|2|5|...services.map((s) => _ServiceItem(
+249|0|5|name: s['name'] ?? 'Service',
+250|0|5|status: s['status'] ?? 'unknown',
+251|0|5|responseTime: s['response_time'] ?? '--',
+252|-2|3|)).toList(),
+253|-1|2|],
+254|-1|1|),
+255|-1|0|);
+256|0|0|}
+257|0|0|
+258|0|0|Widget _ReportCard({required IconData icon, required Color color, required String title, required String subtitle, required VoidCallback onTap}) {
+259|1|1|return GlassCard(
+260|0|1|radius: BorderRadius.circular(12),
+261|0|1|padding: const EdgeInsets.all(16),
+262|1|2|child: Row(
+263|1|3|children: [
+264|0|3|Container(width: 48, height: 48, decoration: BoxDecoration(color: color.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: color, size: 24)),
+265|0|3|const SizedBox(width: 14),
+266|1|4|Expanded(
+267|1|5|child: Column(
+268|0|5|crossAxisAlignment: CrossAxisAlignment.start,
+269|1|6|children: [
+270|0|6|Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+271|0|6|Text(subtitle, style: TextStyle(color: Colors.white60, fontSize: 11)),
+272|-1|5|],
+273|-1|4|),
+274|-1|3|),
+275|0|3|Icon(Icons.chevron_right, color: Colors.white60),
+276|-1|2|],
+277|-1|1|),
+278|-1|0|);
+279|0|0|}
+280|0|0|
+281|0|0|Widget _MonitoringItem(String label, String value, IconData icon, Color color) {
+282|1|1|return Column(
+283|0|1|crossAxisAlignment: CrossAxisAlignment.start,
+284|1|2|children: [
+285|1|3|Row(
+286|1|4|children: [
+287|0|4|Icon(icon, color: color, size: 18),
+288|0|4|const SizedBox(width: 8),
+289|0|4|Text(label, style: TextStyle(color: Colors.white70, fontSize: 11)),
+290|-1|3|],
+291|-1|2|),
+292|0|2|const SizedBox(height: 4),
+293|0|2|Text(value, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+294|-1|1|],
+295|-1|0|);
+296|0|0|}
+297|0|0|
+298|0|0|Widget _ServiceItem({required String name, required String status, required String responseTime}) {
+299|0|0|final isOnline = status == 'online';
+300|1|1|return Padding(
+301|0|1|padding: const EdgeInsets.only(bottom: 10),
+302|1|2|child: Row(
+303|1|3|children: [
+304|0|3|Container(width: 10, height: 10, decoration: BoxDecoration(color: isOnline ? Colors.green : Colors.red, borderRadius: BorderRadius.circular(5))),
+305|0|3|const SizedBox(width: 10),
+306|0|3|Expanded(child: Text(name, style: const TextStyle(color: Colors.white, fontSize: 14))),
+307|0|3|Text(responseTime, style: TextStyle(color: Colors.white60, fontSize: 12)),
+308|0|3|const SizedBox(width: 12),
+309|1|4|Container(
+310|0|4|padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+311|0|4|decoration: BoxDecoration(color: (isOnline ? Colors.green : Colors.red).withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
+312|0|4|child: Text(isOnline ? 'En ligne' : 'Hors ligne', style: TextStyle(color: isOnline ? Colors.green : Colors.red, fontSize: 10, fontWeight: FontWeight.w700)),
+313|-1|3|),
+314|-1|2|],
+315|-1|1|),
+316|-1|0|);
+317|0|0|}
+318|0|0|}
+319|0|0|
+320|0|0|class _TabChip extends StatelessWidget {
+321|0|0|final String keyId;
+322|0|0|final IconData icon;
+323|0|0|final String label;
+324|0|0|final bool active;
+325|0|0|final VoidCallback onTap;
+326|0|0|const _TabChip({required this.keyId, required this.icon, required this.label, required this.active, required this.onTap});
+327|0|0|
+328|0|0|@override
+329|0|0|Widget build(BuildContext context) {
+330|1|1|return Padding(
+331|0|1|padding: const EdgeInsets.only(right: 10),
+332|1|2|child: ChoiceChip(
+333|1|3|label: Row(
+334|0|3|mainAxisSize: MainAxisSize.min,
+335|1|4|children: [
+336|0|4|Icon(icon, size: 16, color: active ? Colors.white : Colors.white70),
+337|0|4|const SizedBox(width: 6),
+338|0|4|Text(label, style: TextStyle(color: active ? Colors.white : Colors.white70, fontWeight: FontWeight.w600, fontSize: 12)),
+339|-1|3|],
+340|-1|2|),
+341|0|2|selected: active,
+342|0|2|onSelected: (_) => onTap(),
+343|0|2|selectedColor: _kSuperAdminGold,
+344|0|2|backgroundColor: Colors.white.withValues(alpha: 0.1),
+345|0|2|shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+346|-1|1|),
+347|-1|0|);
+348|0|0|}
+349|0|0|}
+350|0|0|
+351|0|0|const Color _kSuperAdminDark = Color(0xFF03100D);
+352|0|0|const Color _kSuperAdminSurface = Color(0xFF0A1E15);
+353|0|0|const Color _kSuperAdminGold = Color(0xFFD9B45C);
+354|0|0|const Color _kSuperAdminAccent = Color(0xFF2FB563);
+355|0|0|
+356|0|0|class ShellBackButton extends StatelessWidget {
+357|0|0|const ShellBackButton({super.key});
+358|0|0|@override
+359|0|0|Widget build(BuildContext context) {
+360|0|0|return IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white70), onPressed: () => Navigator.of(context).pop());
+361|0|0|}
+362|0|0|}
+FINAL_DEPTH=0
+

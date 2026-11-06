@@ -7863,10 +7863,14 @@ Deno.serve(async (req) => {
     "superadmin/tickets",
     "superadmin/roles",
   ];
+  // Also accept dashboard- prefixed paths (frontend compatibility)
   const isSuperadminPath = superadminPaths.some(
     (p) => path === p || path.startsWith(p + "/"),
   );
-  if (isSuperadminPath) {
+  const isSuperadminPathDashboard = superadminPaths.some(
+    (p) => path === `superadmin/dashboard-${p.split("/").pop()}` || path.startsWith(`superadmin/dashboard-${p.split("/").pop()}/`),
+  );
+  if (isSuperadminPath || isSuperadminPathDashboard) {
     const sa = await requireSuperAdmin(sb, req);
     if (!sa.allowed)
       return json(
@@ -7880,8 +7884,9 @@ Deno.serve(async (req) => {
       );
   }
 
-  // Superadmin stats
-  if (path === "superadmin/stats" && req.method === "GET") {
+  // Superadmin stats (accepte superadmin/stats ET superadmin/dashboard-stats)
+  const statsPath = path === "superadmin/stats" || path === "superadmin/dashboard-stats";
+  if (statsPath && req.method === "GET") {
     try {
       const [
         pharmacies,

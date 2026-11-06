@@ -1,0 +1,372 @@
+﻿1|0|0|/// ========================================================================
+2|0|0|/// PHARMA+ â€” SUPER ADMIN : CRM, SUPPORT ET TICKETS
+3|0|0|/// ========================================================================
+4|0|0|/// Gestion des prospects, tickets support, contacts commerciaux et communication.
+5|0|0|/// ========================================================================
+6|0|0|
+7|0|0|import 'dart:async';
+8|0|0|import 'package:flutter/material.dart';
+9|0|0|import 'package:provider/provider.dart';
+10|0|0|import '../../../core/l10n/strings.dart';
+11|0|0|import '../../../core/services/api_client.dart';
+12|0|0|import '../../../core/services/auth_store.dart';
+13|0|0|import '../../../core/theme/colors.dart';
+14|0|0|import '../../../core/widgets/glass_card.dart';
+15|0|0|import '../../../core/widgets/gradient_button.dart';
+16|0|0|import '../../../core/widgets/shared/app_search_field.dart';
+17|0|0|import '../../../core/widgets/status_chip.dart';
+18|0|0|
+19|0|0|class CRMSupportPage extends StatefulWidget {
+20|0|0|const CRMSupportPage({super.key});
+21|0|0|
+22|0|0|@override
+23|0|0|State<CRMSupportPage> createState() => _CRMSupportPageState();
+24|0|0|}
+25|0|0|
+26|0|0|class _CRMSupportPageState extends State<CRMSupportPage> {
+27|0|0|List<Map<String, dynamic>> _prospects = [];
+28|0|0|List<Map<String, dynamic>> _tickets = [];
+29|0|0|Map<String, dynamic>? _stats;
+30|0|0|bool _loading = true;
+31|0|0|String? _error;
+32|0|0|String _activeTab = 'prospects';
+33|0|0|String _searchQuery = '';
+34|0|0|Timer? _debounce;
+35|0|0|
+36|1|1|static const _tabs = [
+37|0|1|('prospects', Icons.people_outline, 'Prospects'),
+38|0|1|('tickets', Icons.support_agent_outlined, 'Tickets'),
+39|-1|0|];
+40|0|0|
+41|0|0|@override
+42|0|0|void initState() {
+43|0|0|super.initState();
+44|0|0|_loadAll();
+45|0|0|}
+46|0|0|
+47|0|0|@override
+48|0|0|void dispose() {
+49|0|0|_debounce?.cancel();
+50|0|0|super.dispose();
+51|0|0|}
+52|0|0|
+53|0|0|Future<void> _loadAll() async {
+54|0|0|setState(() => _loading = true);
+55|0|0|try {
+56|2|2|final results = await Future.wait([
+57|0|2|ApiClient.instance.get('/superadmin/dashboard-stats'),
+58|0|2|ApiClient.instance.get('/support/tickets', query: {'limit': 50}),
+59|-2|0|]);
+60|0|0|if (!mounted) return;
+61|1|1|setState(() {
+62|0|1|_stats = (results[0].success ? results[0].data : null) as Map<String, dynamic>?;
+63|0|1|_tickets = (results[1].success ? results[1].data : [])
+64|0|1|.map((e) => Map<String, dynamic>.from(e as Map))
+65|0|1|.toList();
+66|0|1|_loading = false;
+67|-1|0|});
+68|0|0|} catch (e) {
+69|0|0|if (!mounted) return;
+70|0|0|setState(() => _error = e.toString());
+71|0|0|}
+72|0|0|}
+73|0|0|
+74|0|0|Future<void> _createTicket() async {
+75|1|1|final result = await showDialog<bool>(
+76|0|1|context: context,
+77|0|1|builder: (_) => TicketFormDialog(),
+78|-1|0|);
+79|0|0|if (result == true && mounted) _loadAll();
+80|0|0|}
+81|0|0|
+82|0|0|@override
+83|0|0|Widget build(BuildContext context) {
+84|0|0|final locale = context.read<AuthStore>().locale;
+85|1|1|final filteredTickets = _tickets.where((t) =>
+86|0|1|_searchQuery.isEmpty ||
+87|0|1|(t['subject']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
+88|0|1|(t['pharmacy_name']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false)
+89|-1|0|).toList();
+90|0|0|
+91|1|1|return Scaffold(
+92|0|1|backgroundColor: _kSuperAdminDark,
+93|1|2|appBar: AppBar(
+94|0|2|backgroundColor: _kSuperAdminDark.withValues(alpha: 0.95),
+95|0|2|elevation: 0,
+96|0|2|leading: const ShellBackButton(),
+97|0|2|title: const Text('CRM & Support', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+98|1|3|actions: [
+99|1|4|GradientButton(
+100|0|4|label: 'Nouveau ticket',
+101|0|4|icon: Icons.add_circle_outline,
+102|0|4|onPressed: _createTicket,
+103|-1|3|),
+104|0|3|const SizedBox(width: 8),
+105|-1|2|],
+106|-1|1|),
+107|1|2|body: Column(
+108|1|3|children: [
+109|1|4|Padding(
+110|0|4|padding: const EdgeInsets.all(20),
+111|0|4|child: _CRMKPI(stats: _stats, locale: locale),
+112|-1|3|),
+113|1|4|Padding(
+114|0|4|padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+115|1|5|child: Row(
+116|2|7|children: _tabs.map((e) => _TabChip(
+117|0|7|keyId: e.$1,
+118|0|7|icon: e.$2,
+119|0|7|label: e.$3,
+120|0|7|active: _activeTab == e.$1,
+121|0|7|onTap: () => setState(() => _activeTab = e.$1),
+122|-2|5|)).toList(),
+123|-1|4|),
+124|-1|3|),
+125|1|4|Padding(
+126|0|4|padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+127|1|5|child: AppSearchField(
+128|0|5|hint: 'Rechercher tickets',
+129|0|5|onChanged: (v) {
+130|0|5|_debounce?.cancel();
+131|1|6|_debounce = Timer(const Duration(milliseconds: 300), () {
+132|0|6|if (mounted) setState(() => _searchQuery = v.trim());
+133|-1|5|});
+134|0|5|},
+135|-1|4|),
+136|-1|3|),
+137|1|4|Expanded(
+138|0|4|child: _loading
+139|0|4|? const Center(child: CircularProgressIndicator(color: _kSuperAdminGold))
+140|0|4|: _activeTab == 'tickets'
+141|0|4|? _buildTicketsList(filteredTickets, locale)
+142|0|4|: _buildProspectsList(locale),
+143|-1|3|),
+144|-1|2|],
+145|-1|1|),
+146|-1|0|);
+147|0|0|}
+148|0|0|
+149|0|0|Widget _buildTicketsList(List<Map<String, dynamic>> tickets, String locale) {
+150|1|1|return GlassCard(
+151|0|1|radius: BorderRadius.circular(16),
+152|0|1|padding: const EdgeInsets.all(16),
+153|0|1|margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+154|1|2|child: Column(
+155|0|2|crossAxisAlignment: CrossAxisAlignment.start,
+156|1|3|children: [
+157|2|5|...tickets.take(15).map((t) => Padding(
+158|0|5|padding: const EdgeInsets.only(bottom: 12),
+159|1|6|child: Row(
+160|1|7|children: [
+161|0|7|Container(width: 36, height: 36, decoration: BoxDecoration(color: _kSuperAdminAccent.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(10)), child: Icon(Icons.support_agent, color: _kSuperAdminAccent, size: 16)),
+162|0|7|const SizedBox(width: 12),
+163|1|8|Expanded(
+164|1|9|child: Column(
+165|0|9|crossAxisAlignment: CrossAxisAlignment.start,
+166|1|10|children: [
+167|0|10|Text(t['subject'] ?? 'Ticket', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+168|0|10|Text('${t['pharmacy_name'] ?? ''} Â· ${t['status'] ?? 'â€”'}', style: TextStyle(color: Colors.white60, fontSize: 11)),
+169|-1|9|],
+170|-1|8|),
+171|-1|7|),
+172|1|8|Column(
+173|0|8|crossAxisAlignment: CrossAxisAlignment.end,
+174|1|9|children: [
+175|0|9|Text(t['created_at']?.toString().substring(0, 16) ?? '', style: TextStyle(color: Colors.white60, fontSize: 11)),
+176|1|10|StatusChip(
+177|0|10|label: t['status'] == 'open' ? 'Ouvert' : t['status'] == 'closed' ? 'FermÃ©' : 'En cours',
+178|0|10|color: t['status'] == 'open' ? Colors.orange : Colors.green,
+179|-1|9|),
+180|-1|8|],
+181|-1|7|),
+182|-1|6|],
+183|-1|5|),
+184|-2|3|)).toList(),
+185|0|3|if (tickets.isEmpty) Center(child: Text('Aucun ticket', style: TextStyle(color: Colors.white70))),
+186|-1|2|],
+187|-1|1|),
+188|-1|0|);
+189|0|0|}
+190|0|0|
+191|0|0|Widget _buildProspectsList(String locale) {
+192|1|1|return GlassCard(
+193|0|1|radius: BorderRadius.circular(16),
+194|0|1|padding: const EdgeInsets.all(16),
+195|0|1|margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+196|1|2|child: Column(
+197|0|2|crossAxisAlignment: CrossAxisAlignment.start,
+198|1|3|children: [
+199|0|3|Text('Prospects commerciaux', style: const TextStyle(color: Colors.white70, fontSize: 14)),
+200|0|3|const SizedBox(height: 12),
+201|0|3|Text('Aucun prospect enregistrÃ©', style: TextStyle(color: Colors.white60)),
+202|0|3|const SizedBox(height: 16),
+203|1|4|GradientButton(
+204|0|4|label: 'Ajouter un prospect',
+205|0|4|icon: Icons.person_add,
+206|0|4|onPressed: () {},
+207|-1|3|),
+208|-1|2|],
+209|-1|1|),
+210|-1|0|);
+211|0|0|}
+212|0|0|}
+213|0|0|
+214|0|0|class _CRMKPI extends StatelessWidget {
+215|0|0|final Map<String, dynamic>? stats;
+216|0|0|final String locale;
+217|0|0|const _CRMKPI({required this.stats, required this.locale});
+218|0|0|
+219|0|0|@override
+220|0|0|Widget build(BuildContext context) {
+221|0|0|final ph = stats?['pharmacies'] as Map? ?? {};
+222|0|0|final lic = stats?['licenses'] as Map? ?? {};
+223|1|1|final items = [
+224|0|1|_Item('Pharmacies totales', '${ph['total'] ?? 0}', Icons.local_pharmacy, Colors.white),
+225|0|1|_Item('Actives', '${ph['active'] ?? 0}', Icons.check_circle, Colors.green),
+226|0|1|_Item('Suspendues', '${ph['suspended'] ?? 0}', Icons.block, Colors.orange),
+227|0|1|_Item('Licences actives', '${lic['active'] ?? 0}', Icons.verified, Colors.green),
+228|0|1|_Item('Expirant bientÃ´t', '${lic['expiring_soon'] ?? 0}', Icons.schedule, Colors.orange),
+229|0|1|_Item('Utilisateurs', '${stats?['users']?['total'] ?? 0}', Icons.people, Colors.white),
+230|-1|0|];
+231|1|1|return Row(
+232|2|3|children: items.map((e) => Expanded(
+233|0|3|child: _KPIItem(e.label, e.value, e.icon, e.color),
+234|-2|1|)).toList(),
+235|-1|0|);
+236|0|0|}
+237|0|0|
+238|0|0|Widget _KPIItem(String label, String value, IconData icon, Color color) {
+239|1|1|return Expanded(
+240|1|2|child: Container(
+241|0|2|padding: const EdgeInsets.all(12),
+242|1|3|decoration: BoxDecoration(
+243|0|3|color: _kSuperAdminSurface,
+244|0|3|borderRadius: BorderRadius.circular(12),
+245|0|3|border: Border.all(color: color.withValues(alpha: 0.3)),
+246|-1|2|),
+247|1|3|child: Column(
+248|0|3|crossAxisAlignment: CrossAxisAlignment.start,
+249|1|4|children: [
+250|1|5|Row(
+251|0|5|mainAxisAlignment: MainAxisAlignment.spaceBetween,
+252|1|6|children: [
+253|0|6|Text(label, style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600)),
+254|0|6|Icon(icon, color: color, size: 18),
+255|-1|5|],
+256|-1|4|),
+257|0|4|const SizedBox(height: 6),
+258|0|4|Text(value, style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+259|-1|3|],
+260|-1|2|),
+261|-1|1|),
+262|-1|0|);
+263|0|0|}
+264|0|0|}
+265|0|0|
+266|0|0|class _TabChip extends StatelessWidget {
+267|0|0|final String keyId;
+268|0|0|final IconData icon;
+269|0|0|final String label;
+270|0|0|final bool active;
+271|0|0|final VoidCallback onTap;
+272|0|0|const _TabChip({required this.keyId, required this.icon, required this.label, required this.active, required this.onTap});
+273|0|0|
+274|0|0|@override
+275|0|0|Widget build(BuildContext context) {
+276|1|1|return Padding(
+277|0|1|padding: const EdgeInsets.only(right: 10),
+278|1|2|child: ChoiceChip(
+279|1|3|label: Row(
+280|0|3|mainAxisSize: MainAxisSize.min,
+281|1|4|children: [
+282|0|4|Icon(icon, size: 16, color: active ? Colors.white : Colors.white70),
+283|0|4|const SizedBox(width: 6),
+284|0|4|Text(label, style: TextStyle(color: active ? Colors.white : Colors.white70, fontWeight: FontWeight.w600, fontSize: 12)),
+285|-1|3|],
+286|-1|2|),
+287|0|2|selected: active,
+288|0|2|onSelected: (_) => onTap(),
+289|0|2|selectedColor: _kSuperAdminGold,
+290|0|2|backgroundColor: Colors.white.withValues(alpha: 0.1),
+291|0|2|shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+292|-1|1|),
+293|-1|0|);
+294|0|0|}
+295|0|0|}
+296|0|0|
+297|0|0|class TicketFormDialog extends StatefulWidget {
+298|0|0|const TicketFormDialog();
+299|0|0|
+300|0|0|@override
+301|0|0|State<TicketFormDialog> createState() => _TicketFormDialogState();
+302|0|0|}
+303|0|0|
+304|0|0|class _TicketFormDialogState extends State<TicketFormDialog> {
+305|0|0|final _subject = TextEditingController();
+306|0|0|final _description = TextEditingController();
+307|0|0|final _pharmacyId = TextEditingController();
+308|0|0|bool _saving = false;
+309|0|0|final _formKey = GlobalKey<FormState>();
+310|0|0|
+311|0|0|@override
+312|0|0|Widget build(BuildContext context) {
+313|1|1|return AlertDialog(
+314|0|1|backgroundColor: _kSuperAdminSurface,
+315|0|1|title: const Text('Nouveau ticket'),
+316|1|2|content: ConstrainedBox(
+317|0|2|constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
+318|1|3|child: SingleChildScrollView(
+319|1|4|child: Form(
+320|0|4|key: _formKey,
+321|1|5|child: Column(
+322|0|5|mainAxisSize: MainAxisSize.min,
+323|1|6|children: [
+324|1|7|TextFormField(
+325|0|7|controller: _subject,
+326|0|7|decoration: const InputDecoration(labelText: 'Sujet'),
+327|0|7|validator: (v) => v == null || v.isEmpty ? 'Requis' : null,
+328|-1|6|),
+329|0|6|const SizedBox(height: 12),
+330|1|7|TextFormField(
+331|0|7|controller: _description,
+332|0|7|decoration: const InputDecoration(labelText: 'Description'),
+333|0|7|maxLines: 3,
+334|-1|6|),
+335|0|6|const SizedBox(height: 12),
+336|1|7|TextFormField(
+337|0|7|controller: _pharmacyId,
+338|0|7|decoration: const InputDecoration(labelText: 'ID Pharmacie'),
+339|0|7|keyboardType: TextInputType.number,
+340|-1|6|),
+341|-1|5|],
+342|-1|4|),
+343|-1|3|),
+344|-1|2|),
+345|-1|1|),
+346|1|2|actions: [
+347|0|2|TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuler')),
+348|1|3|GradientButton(
+349|0|3|label: 'CrÃ©er',
+350|0|3|icon: Icons.add,
+351|0|3|onPressed: _saving ? null : () => Navigator.pop(context, true),
+352|0|3|loading: _saving,
+353|-1|2|),
+354|-1|1|],
+355|-1|0|);
+356|0|0|}
+357|0|0|}
+358|0|0|
+359|0|0|const Color _kSuperAdminDark = Color(0xFF03100D);
+360|0|0|const Color _kSuperAdminSurface = Color(0xFF0A1E15);
+361|0|0|const Color _kSuperAdminGold = Color(0xFFD9B45C);
+362|0|0|const Color _kSuperAdminAccent = Color(0xFF2FB563);
+363|0|0|
+364|0|0|class ShellBackButton extends StatelessWidget {
+365|0|0|const ShellBackButton({super.key});
+366|0|0|@override
+367|0|0|Widget build(BuildContext context) {
+368|0|0|return IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white70), onPressed: () => Navigator.of(context).pop());
+369|0|0|}
+370|0|0|}
+FINAL_DEPTH=0
+

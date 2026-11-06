@@ -1,0 +1,652 @@
+﻿1|0|0|/// ========================================================================
+2|0|0|/// PHARMA+ â€” SUPER ADMIN : GESTION ABONNEMENTS BASIC / GOLD
+3|0|0|/// ========================================================================
+4|0|0|/// Gestion complÃ¨te des plans d'abonnement, licences, activation,
+5|0|0|/// suspension, renouvellement, et contrÃ´le des permissions par formule.
+6|0|0|/// ========================================================================
+7|0|0|
+8|0|0|import 'dart:async';
+9|0|0|import 'package:flutter/material.dart';
+10|0|0|import 'package:intl/intl.dart';
+11|0|0|import 'package:provider/provider.dart';
+12|0|0|import '../../../core/l10n/strings.dart';
+13|0|0|import '../../../core/services/api_client.dart';
+14|0|0|import '../../../core/services/auth_store.dart';
+15|0|0|import '../../../core/theme/colors.dart';
+16|0|0|import '../../../core/widgets/glass_card.dart';
+17|0|0|import '../../../core/widgets/gradient_button.dart';
+18|0|0|import '../../../core/widgets/shared/app_search_field.dart';
+19|0|0|import '../../../core/widgets/status_chip.dart';
+20|0|0|
+21|0|0|class SubscriptionManagementPage extends StatefulWidget {
+22|0|0|const SubscriptionManagementPage({super.key});
+23|0|0|
+24|0|0|@override
+25|0|0|State<SubscriptionManagementPage> createState() => _SubscriptionManagementPageState();
+26|0|0|}
+27|0|0|
+28|0|0|class _SubscriptionManagementPageState extends State<SubscriptionManagementPage> {
+29|0|0|List<Map<String, dynamic>> _licenses = [];
+30|0|0|List<Map<String, dynamic>> _pharmacies = [];
+31|0|0|bool _loading = true;
+32|0|0|String? _error;
+33|0|0|String _filterStatus = 'all';
+34|0|0|String _filterType = 'all';
+35|0|0|String _searchQuery = '';
+36|0|0|Timer? _debounce;
+37|0|0|
+38|0|0|@override
+39|0|0|void initState() {
+40|0|0|super.initState();
+41|0|0|_loadAll();
+42|0|0|}
+43|0|0|
+44|0|0|@override
+45|0|0|void dispose() {
+46|0|0|_debounce?.cancel();
+47|0|0|super.dispose();
+48|0|0|}
+49|0|0|
+50|0|0|Future<void> _loadAll() async {
+51|0|0|setState(() => _loading = true);
+52|0|0|try {
+53|2|2|final results = await Future.wait([
+54|1|3|ApiClient.instance.get('/licenses', query: {
+55|0|3|'limit': 100,
+56|0|3|if (_filterStatus != 'all') 'status': _filterStatus,
+57|0|3|if (_filterType != 'all') 'type': _filterType,
+58|-1|2|}),
+59|0|2|ApiClient.instance.get('/pharmacies', query: {'limit': 200}),
+60|-2|0|]);
+61|0|0|if (!mounted) return;
+62|1|1|setState(() {
+63|0|1|_licenses = (results[0].success ? results[0].data : [])
+64|0|1|.map((e) => Map<String, dynamic>.from(e as Map))
+65|0|1|.toList() as List<Map<String, dynamic>>;
+66|0|1|_pharmacies = (results[1].success ? results[1].data : [])
+67|0|1|.map((e) => Map<String, dynamic>.from(e as Map))
+68|0|1|.toList() as List<Map<String, dynamic>>;
+69|0|1|_loading = false;
+70|-1|0|});
+71|0|0|} catch (e) {
+72|0|0|if (!mounted) return;
+73|0|0|setState(() => _error = e.toString());
+74|0|0|}
+75|0|0|}
+76|0|0|
+77|0|0|Future<void> _createLicense() async {
+78|1|1|final result = await showDialog<bool>(
+79|0|1|context: context,
+80|0|1|builder: (_) => LicenseFormDialog(pharmacies: _pharmacies),
+81|-1|0|);
+82|0|0|if (result == true && mounted) _loadAll();
+83|0|0|}
+84|0|0|
+85|0|0|Future<void> _toggleLicenseStatus(String licenseId, String status) async {
+86|0|0|final locale = context.read<AuthStore>().locale;
+87|1|1|final result = await ApiClient.instance.post(
+88|0|1|'/licenses/$licenseId/status',
+89|0|1|body: {'status': status},
+90|-1|0|);
+91|0|0|if (!mounted) return;
+92|0|0|if (result.success) {
+93|0|0|_loadAll();
+94|1|1|ScaffoldMessenger.of(context).showSnackBar(
+95|0|1|SnackBar(content: Text(S.t('licenseUpdated', locale))),
+96|-1|0|);
+97|0|0|} else {
+98|1|1|ScaffoldMessenger.of(context).showSnackBar(
+99|0|1|SnackBar(content: Text(result.error?.readableMessage ?? S.t('loadError', locale))),
+100|-1|0|);
+101|0|0|}
+102|0|0|}
+103|0|0|
+104|0|0|Future<void> _renewLicense(String licenseId) async {
+105|0|0|final locale = context.read<AuthStore>().locale;
+106|1|1|final days = await showDialog<int>(
+107|0|1|context: context,
+108|0|1|builder: (_) => RenewDialog(),
+109|-1|0|);
+110|0|0|if (days == null || !mounted) return;
+111|1|1|final result = await ApiClient.instance.post(
+112|0|1|'/licenses/$licenseId/renew',
+113|0|1|body: {'days': days},
+114|-1|0|);
+115|0|0|if (result.success) {
+116|0|0|_loadAll();
+117|1|1|ScaffoldMessenger.of(context).showSnackBar(
+118|0|1|SnackBar(content: Text(S.t('licenseRenewed', locale))),
+119|-1|0|);
+120|0|0|} else {
+121|1|1|ScaffoldMessenger.of(context).showSnackBar(
+122|0|1|SnackBar(content: Text(result.error?.readableMessage ?? S.t('loadError', locale))),
+123|-1|0|);
+124|0|0|}
+125|0|0|}
+126|0|0|
+127|0|0|String _planLabel(String? type, String locale) {
+128|0|0|switch (type) {
+129|0|0|case 'basic': return 'BASIC';
+130|0|0|case 'gold': return 'GOLD';
+131|0|0|case 'standard': return S.t('standard', locale);
+132|0|0|case 'professional': return S.t('professional', locale);
+133|0|0|case 'enterprise': return S.t('enterprise', locale);
+134|0|0|case 'trial': return S.t('trial', locale);
+135|0|0|default: return type ?? 'â€”';
+136|0|0|}
+137|0|0|}
+138|0|0|
+139|0|0|Color _statusColor(String? s) {
+140|0|0|switch (s) {
+141|0|0|case 'active': return Colors.green;
+142|0|0|case 'suspended': return Colors.orange;
+143|0|0|case 'expired': return Colors.red;
+144|0|0|case 'cancelled': return Colors.grey;
+145|0|0|default: return Colors.white70;
+146|0|0|}
+147|0|0|}
+148|0|0|
+149|0|0|@override
+150|0|0|Widget build(BuildContext context) {
+151|0|0|final locale = context.read<AuthStore>().locale;
+152|1|1|final filtered = _licenses.where((l) {
+153|0|1|final matchesStatus = _filterStatus == 'all' || l['status'] == _filterStatus;
+154|0|1|final matchesType = _filterType == 'all' || l['type'] == _filterType;
+155|0|1|final matchesSearch = _searchQuery.isEmpty ||
+156|0|1|(l['pharmacy_name']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
+157|0|1|(l['type']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
+158|0|1|return matchesStatus && matchesType && matchesSearch;
+159|-1|0|}).toList();
+160|0|0|
+161|1|1|return Scaffold(
+162|0|1|backgroundColor: _kSuperAdminDark,
+163|1|2|appBar: AppBar(
+164|0|2|backgroundColor: _kSuperAdminDark.withValues(alpha: 0.95),
+165|0|2|elevation: 0,
+166|0|2|leading: const ShellBackButton(),
+167|0|2|title: const Text('Abonnements BASIC / GOLD', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+168|1|3|actions: [
+169|1|4|GradientButton(
+170|0|4|label: 'Nouvelle licence',
+171|0|4|icon: Icons.add_circle_outline,
+172|0|4|onPressed: _createLicense,
+173|-1|3|),
+174|0|3|const SizedBox(width: 8),
+175|-1|2|],
+176|-1|1|),
+177|0|1|body: _loading
+178|0|1|? const Center(child: CircularProgressIndicator(color: _kSuperAdminGold))
+179|1|2|: Column(
+180|1|3|children: [
+181|1|4|Padding(
+182|0|4|padding: const EdgeInsets.all(20),
+183|1|5|child: Column(
+184|0|5|crossAxisAlignment: CrossAxisAlignment.start,
+185|1|6|children: [
+186|1|7|Row(
+187|1|8|children: [
+188|1|9|Expanded(
+189|1|10|child: AppSearchField(
+190|0|10|hint: 'Rechercher licence ou pharmacie',
+191|0|10|onChanged: (v) {
+192|0|10|_debounce?.cancel();
+193|1|11|_debounce = Timer(const Duration(milliseconds: 300), () {
+194|0|11|if (mounted) setState(() => _searchQuery = v.trim());
+195|-1|10|});
+196|0|10|},
+197|-1|9|),
+198|-1|8|),
+199|0|8|const SizedBox(width: 12),
+200|1|9|_FilterChip(
+201|0|9|label: 'Statut',
+202|0|9|value: _filterStatus,
+203|0|9|items: const ['all', 'active', 'suspended', 'expired'],
+204|0|9|onChanged: (v) => setState(() => _filterStatus = v),
+205|-1|8|),
+206|0|8|const SizedBox(width: 8),
+207|1|9|_FilterChip(
+208|0|9|label: 'Formule',
+209|0|9|value: _filterType,
+210|0|9|items: const ['all', 'basic', 'gold', 'trial', 'standard', 'professional', 'enterprise'],
+211|0|9|onChanged: (v) => setState(() => _filterType = v),
+212|-1|8|),
+213|-1|7|],
+214|-1|6|),
+215|-1|5|],
+216|-1|4|),
+217|-1|3|),
+218|0|3|if (_licenses.isNotEmpty)
+219|1|4|Padding(
+220|0|4|padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+221|0|4|child: _KPISummary(licenses: _licenses, locale: locale),
+222|-1|3|),
+223|1|4|Expanded(
+224|0|4|child: _loading
+225|0|4|? const Center(child: CircularProgressIndicator(color: _kSuperAdminGold))
+226|0|4|: filtered.isEmpty
+227|0|4|? Center(child: Text('Aucune licence', style: TextStyle(color: Colors.white70)))
+228|1|5|: ListView.builder(
+229|0|5|padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+230|0|5|itemCount: filtered.length,
+231|1|6|itemBuilder: (_, i) => _LicenseCard(
+232|0|6|license: filtered[i],
+233|0|6|locale: locale,
+234|0|6|onToggle: _toggleLicenseStatus,
+235|0|6|onRenew: _renewLicense,
+236|-1|5|),
+237|-1|4|),
+238|-1|3|),
+239|-1|2|],
+240|-1|1|),
+241|-1|0|),
+242|-1|-1|);
+243|0|-1|}
+244|0|-1|}
+245|0|-1|
+246|0|-1|/// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+247|0|-1|// KPI SUMMARY
+248|0|-1|// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+249|0|-1|class _KPISummary extends StatelessWidget {
+250|0|-1|final List<Map<String, dynamic>> licenses;
+251|0|-1|final String locale;
+252|0|-1|const _KPISummary({required this.licenses, required this.locale});
+253|0|-1|
+254|0|-1|@override
+255|0|-1|Widget build(BuildContext context) {
+256|0|-1|final active = licenses.where((l) => l['status'] == 'active').length;
+257|0|-1|final suspended = licenses.where((l) => l['status'] == 'suspended').length;
+258|0|-1|final expired = licenses.where((l) => l['status'] == 'expired').length;
+259|0|-1|final basic = licenses.where((l) => l['type'] == 'basic').length;
+260|0|-1|final gold = licenses.where((l) => l['type'] == 'gold').length;
+261|0|-1|
+262|1|0|return Row(
+263|1|1|children: [
+264|0|1|_KPIItem('Total', licenses.length.toString(), Colors.white),
+265|0|1|_KPIItem('Actives', active.toString(), Colors.green),
+266|0|1|_KPIItem('Suspendues', suspended.toString(), Colors.orange),
+267|0|1|_KPIItem('ExpirÃ©es', expired.toString(), Colors.red),
+268|0|1|_KPIItem('BASIC', basic.toString(), _kSuperAdminGold),
+269|0|1|_KPIItem('GOLD', gold.toString(), _kSuperAdminGoldLight),
+270|-1|0|],
+271|-1|-1|);
+272|0|-1|}
+273|0|-1|
+274|0|-1|Widget _KPIItem(String label, String value, Color color) {
+275|1|0|return Expanded(
+276|1|1|child: Container(
+277|0|1|padding: const EdgeInsets.all(12),
+278|1|2|decoration: BoxDecoration(
+279|0|2|color: _kSuperAdminSurface,
+280|0|2|borderRadius: BorderRadius.circular(12),
+281|0|2|border: Border.all(color: color.withValues(alpha: 0.3)),
+282|-1|1|),
+283|1|2|child: Column(
+284|0|2|crossAxisAlignment: CrossAxisAlignment.start,
+285|1|3|children: [
+286|0|3|Text(label, style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600)),
+287|0|3|const SizedBox(height: 4),
+288|0|3|Text(value, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.w900)),
+289|-1|2|],
+290|-1|1|),
+291|-1|0|),
+292|-1|-1|);
+293|0|-1|}
+294|0|-1|}
+295|0|-1|
+296|0|-1|/// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+297|0|-1|// LICENSE CARD
+298|0|-1|// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+299|0|-1|class _LicenseCard extends StatelessWidget {
+300|0|-1|final Map<String, dynamic> license;
+301|0|-1|final String locale;
+302|0|-1|final Function(String, String) onToggle;
+303|0|-1|final Function(String) onRenew;
+304|0|-1|const _LicenseCard({required this.license, required this.locale, required this.onToggle, required this.onRenew});
+305|0|-1|
+306|0|-1|@override
+307|0|-1|Widget build(BuildContext context) {
+308|0|-1|final status = license['status'] as String? ?? 'active';
+309|0|-1|final type = license['type'] as String? ?? 'trial';
+310|0|-1|final isGold = type == 'gold';
+311|0|-1|final isExpired = status == 'expired';
+312|0|-1|final isSuspended = status == 'suspended';
+313|0|-1|
+314|1|0|return GlassCard(
+315|0|0|radius: BorderRadius.circular(16),
+316|0|0|padding: const EdgeInsets.all(16),
+317|0|0|gradient: isGold
+318|1|1|? LinearGradient(
+319|0|1|colors: [Color(0xFF1A1E12), Color(0xFF0A1E15)],
+320|0|1|begin: Alignment.topLeft,
+321|0|1|end: Alignment.bottomRight,
+322|-1|0|)
+323|0|0|: null,
+324|0|0|border: Border.all(color: (isGold ? _kSuperAdminGoldLight : Colors.white).withValues(alpha: 0.2)),
+325|1|1|child: Row(
+326|1|2|children: [
+327|1|3|Container(
+328|0|3|width: 48, height: 48,
+329|1|4|decoration: BoxDecoration(
+330|0|4|gradient: isGold ? AppColors.goldGradient : null,
+331|0|4|color: !isGold ? Colors.white.withValues(alpha: 0.1) : null,
+332|0|4|borderRadius: BorderRadius.circular(12),
+333|-1|3|),
+334|1|4|child: Center(
+335|0|4|child: Text(type.toUpperCase(), style: TextStyle(color: isGold ? Color(0xFF03100D) : Colors.white70, fontWeight: FontWeight.w900, fontSize: 12)),
+336|-1|3|),
+337|-1|2|),
+338|0|2|const SizedBox(width: 14),
+339|1|3|Expanded(
+340|1|4|child: Column(
+341|0|4|crossAxisAlignment: CrossAxisAlignment.start,
+342|1|5|children: [
+343|1|6|Row(
+344|1|7|children: [
+345|0|7|Text('${license['pharmacy_name'] ?? 'Pharmacie'}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
+346|0|7|if (isGold)
+347|1|8|Container(
+348|0|8|margin: const EdgeInsets.only(left: 8),
+349|0|8|padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+350|0|8|decoration: BoxDecoration(color: _kSuperAdminGoldLight.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
+351|0|8|child: const Text('GOLD', style: TextStyle(color: Color(0xFF03100D), fontSize: 9, fontWeight: FontWeight.w900)),
+352|-1|7|),
+353|-1|6|],
+354|-1|5|),
+355|0|5|const SizedBox(height: 4),
+356|0|5|Text('${license['expiry_date']?.toString().substring(0, 10) ?? 'â€”'} Â· ${license['type'] ?? 'â€”'}', style: TextStyle(color: Colors.white60, fontSize: 11)),
+357|-1|4|],
+358|-1|3|),
+359|-1|2|),
+360|0|2|const SizedBox(width: 12),
+361|1|3|Column(
+362|0|3|crossAxisAlignment: CrossAxisAlignment.end,
+363|1|4|children: [
+364|1|5|StatusChip(
+365|0|5|label: status == 'active' ? S.t('pharmacyActive', locale) : status == 'suspended' ? S.t('suspended', locale) : S.t('expired', locale),
+366|0|5|color: _statusColor(status),
+367|-1|4|),
+368|0|4|const SizedBox(height: 8),
+369|0|4|if (status == 'active')
+370|1|5|GradientButton(
+371|0|5|label: 'Suspendre',
+372|0|5|icon: Icons.block,
+373|0|5|onPressed: () => onToggle(license['id'], 'suspended'),
+374|0|5|fullWidth: false,
+375|-1|4|)
+376|0|4|else if (status == 'suspended')
+377|1|5|GradientButton(
+378|0|5|label: 'RÃ©activer',
+379|0|5|icon: Icons.check_circle,
+380|0|5|onPressed: () => onToggle(license['id'], 'active'),
+381|0|5|fullWidth: false,
+382|-1|4|)
+383|0|4|else
+384|1|5|GradientButton(
+385|0|5|label: 'Renouveler',
+386|0|5|icon: Icons.refresh,
+387|0|5|onPressed: () => onRenew(license['id']),
+388|0|5|fullWidth: false,
+389|-1|4|),
+390|-1|3|],
+391|-1|2|),
+392|-1|1|],
+393|-1|0|),
+394|-1|-1|);
+395|0|-1|}
+396|0|-1|}
+397|0|-1|
+398|0|-1|/// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+399|0|-1|// FILTER CHIP
+400|0|-1|// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+401|0|-1|class _FilterChip extends StatefulWidget {
+402|0|-1|final String label;
+403|0|-1|final String value;
+404|0|-1|final List<String> items;
+405|0|-1|final Function(String) onChanged;
+406|0|-1|const _FilterChip({required this.label, required this.value, required this.items, required this.onChanged});
+407|0|-1|
+408|0|-1|@override
+409|0|-1|State<_FilterChip> createState() => _FilterChipState();
+410|0|-1|}
+411|0|-1|
+412|0|-1|class _FilterChipState extends State<_FilterChip> {
+413|0|-1|String _selected = '';
+414|0|-1|@override
+415|0|-1|void initState() {
+416|0|-1|super.initState();
+417|0|-1|_selected = widget.value;
+418|0|-1|}
+419|0|-1|@override
+420|0|-1|Widget build(BuildContext context) {
+421|1|0|return Column(
+422|0|0|crossAxisAlignment: CrossAxisAlignment.start,
+423|1|1|children: [
+424|0|1|Text(widget.label, style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600)),
+425|0|1|const SizedBox(height: 6),
+426|1|2|Container(
+427|0|2|padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+428|0|2|decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+429|1|3|child: DropdownButtonHideUnderline(
+430|1|4|child: DropdownButton<String>(
+431|0|4|value: _selected,
+432|2|6|items: widget.items.map((i) => DropdownMenuItem(
+433|0|6|value: i,
+434|0|6|child: Text(i.toUpperCase(), style: TextStyle(color: Colors.white, fontSize: 11)),
+435|-2|4|)).toList(),
+436|0|4|onChanged: (v) {
+437|0|4|if (v != null) {
+438|0|4|setState(() => _selected = v);
+439|0|4|widget.onChanged(v);
+440|0|4|}
+441|0|4|},
+442|0|4|dropdownColor: _kSuperAdminSurface,
+443|-1|3|),
+444|-1|2|),
+445|-1|1|),
+446|-1|0|],
+447|-1|-1|);
+448|0|-1|}
+449|0|-1|}
+450|0|-1|
+451|0|-1|/// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+452|0|-1|// LICENSE FORM DIALOG
+453|0|-1|// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+454|0|-1|class LicenseFormDialog extends StatefulWidget {
+455|0|-1|final List<Map<String, dynamic>> pharmacies;
+456|0|-1|const LicenseFormDialog({required this.pharmacies});
+457|0|-1|
+458|0|-1|@override
+459|0|-1|State<LicenseFormDialog> createState() => _LicenseFormDialogState();
+460|0|-1|}
+461|0|-1|
+462|0|-1|class _LicenseFormDialogState extends State<LicenseFormDialog> {
+463|0|-1|final _formKey = GlobalKey<FormState>();
+464|0|-1|final _pharmacyId = TextEditingController();
+465|0|-1|String _type = 'basic';
+466|0|-1|String _billingCycle = 'monthly';
+467|0|-1|int _durationDays = 30;
+468|0|-1|int _maxUsers = 1;
+469|0|-1|int _maxBranches = 1;
+470|0|-1|bool _saving = false;
+471|0|-1|
+472|0|-1|@override
+473|0|-1|Widget build(BuildContext context) {
+474|1|0|return AlertDialog(
+475|0|0|backgroundColor: _kSuperAdminSurface,
+476|0|0|title: const Text('Nouvelle licence', style: TextStyle(color: Colors.white)),
+477|1|1|content: ConstrainedBox(
+478|0|1|constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
+479|1|2|child: SingleChildScrollView(
+480|1|3|child: Form(
+481|0|3|key: _formKey,
+482|1|4|child: Column(
+483|0|4|mainAxisSize: MainAxisSize.min,
+484|1|5|children: [
+485|1|6|DropdownButtonFormField<String>(
+486|0|6|value: _pharmacyId.isNotEmpty ? _pharmacyId.text : null,
+487|0|6|decoration: InputDecoration(labelText: 'Pharmacie'),
+488|2|8|items: widget.pharmacies.map((p) => DropdownMenuItem(
+489|0|8|value: p['id'],
+490|0|8|child: Text('${p['name']} (${p['slug']})'),
+491|-2|6|)).toList(),
+492|0|6|onChanged: (v) => _pharmacyId.text = v ?? '',
+493|0|6|validator: (v) => v == null || v.isEmpty ? 'Requis' : null,
+494|-1|5|),
+495|0|5|const SizedBox(height: 12),
+496|1|6|DropdownButtonFormField<String>(
+497|0|6|value: _type,
+498|0|6|decoration: InputDecoration(labelText: 'Type d\'abonnement'),
+499|2|8|items: ['basic', 'gold', 'trial', 'standard', 'professional', 'enterprise'].map((t) => DropdownMenuItem(
+500|0|8|value: t,
+501|0|8|child: Text(t.toUpperCase(), style: TextStyle(color: t == 'gold' ? _kSuperAdminGoldLight : Colors.white)),
+502|-2|6|)).toList(),
+503|0|6|onChanged: (v) => setState(() => _type = v!),
+504|-1|5|),
+505|0|5|const SizedBox(height: 12),
+506|1|6|DropdownButtonFormField<String>(
+507|0|6|value: _billingCycle,
+508|0|6|decoration: InputDecoration(labelText: 'Cycle de facturation'),
+509|2|8|items: ['monthly', 'annual'].map((c) => DropdownMenuItem(
+510|0|8|value: c,
+511|0|8|child: Text(c == 'monthly' ? 'Mensuel' : 'Annuel'),
+512|-2|6|)).toList(),
+513|0|6|onChanged: (v) => setState(() => _billingCycle = v!),
+514|-1|5|),
+515|0|5|const SizedBox(height: 12),
+516|1|6|TextFormField(
+517|0|6|initialValue: _durationDays.toString(),
+518|0|6|decoration: InputDecoration(labelText: 'DurÃ©e (jours)'),
+519|0|6|keyboardType: TextInputType.number,
+520|0|6|onChanged: (v) => _durationDays = int.tryParse(v) ?? 30,
+521|-1|5|),
+522|0|5|const SizedBox(height: 12),
+523|1|6|TextFormField(
+524|0|6|initialValue: _maxUsers.toString(),
+525|0|6|decoration: InputDecoration(labelText: 'Utilisateurs max'),
+526|0|6|keyboardType: TextInputType.number,
+527|0|6|onChanged: (v) => _maxUsers = int.tryParse(v) ?? 1,
+528|-1|5|),
+529|0|5|const SizedBox(height: 12),
+530|1|6|TextFormField(
+531|0|6|initialValue: _maxBranches.toString(),
+532|0|6|decoration: InputDecoration(labelText: 'Succursales max'),
+533|0|6|keyboardType: TextInputType.number,
+534|0|6|onChanged: (v) => _maxBranches = int.tryParse(v) ?? 1,
+535|-1|5|),
+536|-1|4|],
+537|-1|3|),
+538|-1|2|),
+539|-1|1|),
+540|-1|0|),
+541|1|1|actions: [
+542|0|1|TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuler')),
+543|1|2|GradientButton(
+544|0|2|label: 'CrÃ©er',
+545|0|2|icon: Icons.add,
+546|0|2|onPressed: _saving ? null : _save,
+547|0|2|loading: _saving,
+548|-1|1|),
+549|-1|0|],
+550|-1|-1|);
+551|0|-1|}
+552|0|-1|
+553|0|-1|Future<void> _save() async {
+554|0|-1|if (!_formKey.currentState!.validate()) return;
+555|0|-1|setState(() => _saving = true);
+556|1|0|final result = await ApiClient.instance.post('/licenses', body: {
+557|0|0|'pharmacyId': _pharmacyId.text,
+558|0|0|'type': _type,
+559|0|0|'billing_cycle': _billingCycle,
+560|0|0|'duration_days': _durationDays,
+561|0|0|'max_users': _maxUsers,
+562|0|0|'max_branches': _maxBranches,
+563|0|0|'modules': {},
+564|-1|-1|});
+565|0|-1|if (!mounted) return;
+566|0|-1|setState(() => _saving = false);
+567|0|-1|if (result.success) {
+568|0|-1|Navigator.pop(context, true);
+569|0|-1|} else {
+570|1|0|ScaffoldMessenger.of(context).showSnackBar(
+571|0|0|SnackBar(content: Text(result.error?.readableMessage ?? 'Erreur')),
+572|-1|-1|);
+573|0|-1|}
+574|0|-1|}
+575|0|-1|}
+576|0|-1|
+577|0|-1|/// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+578|0|-1|// RENEW DIALOG
+579|0|-1|// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+580|0|-1|class RenewDialog extends StatefulWidget {
+581|0|-1|const RenewDialog();
+582|0|-1|
+583|0|-1|@override
+584|0|-1|State<RenewDialog> createState() => _RenewDialogState();
+585|0|-1|}
+586|0|-1|
+587|0|-1|class _RenewDialogState extends State<RenewDialog> {
+588|0|-1|int _days = 30;
+589|0|-1|@override
+590|0|-1|Widget build(BuildContext context) {
+591|1|0|return AlertDialog(
+592|0|0|backgroundColor: _kSuperAdminSurface,
+593|0|0|title: const Text('Renouveler la licence'),
+594|1|1|content: Column(
+595|0|1|mainAxisSize: MainAxisSize.min,
+596|1|2|children: [
+597|0|2|const Text('Nombre de jours de prolongation :'),
+598|0|2|const SizedBox(height: 12),
+599|1|3|TextFormField(
+600|0|3|initialValue: _days.toString(),
+601|0|3|keyboardType: TextInputType.number,
+602|0|3|onChanged: (v) => _days = int.tryParse(v) ?? 30,
+603|-1|2|),
+604|-1|1|],
+605|-1|0|),
+606|1|1|actions: [
+607|0|1|TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
+608|1|2|GradientButton(
+609|0|2|label: 'Renouveler',
+610|0|2|icon: Icons.refresh,
+611|0|2|onPressed: () => Navigator.pop(context, _days),
+612|-1|1|),
+613|-1|0|],
+614|-1|-1|);
+615|0|-1|}
+616|0|-1|}
+617|0|-1|
+618|0|-1|/// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+619|0|-1|// THÃˆME
+620|0|-1|// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+621|0|-1|const Color _kSuperAdminDark = Color(0xFF03100D);
+622|0|-1|const Color _kSuperAdminSurface = Color(0xFF0A1E15);
+623|0|-1|const Color _kSuperAdminGold = Color(0xFFD9B45C);
+624|0|-1|const Color _kSuperAdminGoldLight = Color(0xFFE9C873);
+625|0|-1|const Color _kSuperAdminAccent = Color(0xFF2FB563);
+626|0|-1|
+627|0|-1|class ShellBackButton extends StatelessWidget {
+628|0|-1|const ShellBackButton({super.key});
+629|0|-1|@override
+630|0|-1|Widget build(BuildContext context) {
+631|0|-1|return IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white70), onPressed: () => Navigator.of(context).pop());
+632|0|-1|}
+633|0|-1|}
+634|0|-1|
+635|0|-1|class AppColors {
+636|0|-1|static const Color dark = Color(0xFF03100D);
+637|0|-1|static const Color surface = Color(0xFF0A1E15);
+638|0|-1|static const Color gold = Color(0xFFD9B45C);
+639|0|-1|static const Color goldLight = Color(0xFFE9C873);
+640|0|-1|static const Color accent = Color(0xFF2FB563);
+641|1|0|static const LinearGradient goldGradient = LinearGradient(
+642|0|0|colors: [Color(0xFFD9B45C), Color(0xFFE9C873)],
+643|0|0|begin: Alignment.topLeft,
+644|0|0|end: Alignment.bottomRight,
+645|-1|-1|);
+646|0|-1|static const Color success = Color(0xFF2FB563);
+647|0|-1|static const Color danger = Color(0xFFE53E3E);
+648|0|-1|static const Color warning = Color(0xFFF6AD55);
+649|0|-1|static const Color info = Color(0xFF4299E1);
+650|0|-1|}
+FINAL_DEPTH=-1
+

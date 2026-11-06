@@ -1,0 +1,637 @@
+﻿1|0|0|/// ========================================================================
+2|0|0|/// PHARMA+ â€” SUPER ADMIN DASHBOARD
+3|0|0|/// ========================================================================
+4|0|0|
+5|0|0|import 'dart:async';
+6|0|0|import 'package:flutter/material.dart';
+7|0|0|import 'package:intl/intl.dart';
+8|0|0|import 'package:provider/provider.dart';
+9|0|0|import '../../../core/l10n/strings.dart';
+10|0|0|import '../../../core/services/api_client.dart';
+11|0|0|import '../../../core/services/auth_store.dart';
+12|0|0|import '../../../core/theme/colors.dart';
+13|0|0|import '../../../core/widgets/glass_card.dart';
+14|0|0|import '../../../core/widgets/gradient_button.dart';
+15|0|0|import '../../../core/widgets/shared/app_search_field.dart';
+16|0|0|import '../../../core/widgets/status_chip.dart';
+17|0|0|
+18|0|0|const Color _kSuperAdminDark = Color(0xFF03100D);
+19|0|0|const Color _kSuperAdminSurface = Color(0xFF0A1E15);
+20|0|0|const Color _kSuperAdminGold = Color(0xFFD9B45C);
+21|0|0|const Color _kSuperAdminGoldLight = Color(0xFFE9C873);
+22|0|0|const Color _kSuperAdminAccent = Color(0xFF2FB563);
+23|0|0|
+24|0|0|class SuperAdminDashboardPage extends StatefulWidget {
+25|0|0|const SuperAdminDashboardPage({super.key});
+26|0|0|
+27|0|0|@override
+28|0|0|State<SuperAdminDashboardPage> createState() => _SuperAdminDashboardPageState();
+29|0|0|}
+30|0|0|
+31|0|0|class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
+32|0|0|Map<String, dynamic>? _stats;
+33|0|0|List<Map<String, dynamic>> _recentActivity = [];
+34|0|0|Map<String, dynamic>? _alerts;
+35|0|0|List<Map<String, dynamic>> _topPharmacies = [];
+36|0|0|List<Map<String, dynamic>> _subscriptionTrend = [];
+37|0|0|List<Map<String, dynamic>> _revenueTrend = [];
+38|0|0|List<Map<String, dynamic>> _recentPayments = [];
+39|0|0|bool _loading = true;
+40|0|0|String? _error;
+41|0|0|String _selectedPeriod = '30j';
+42|0|0|
+43|0|0|@override
+44|0|0|void initState() {
+45|0|0|super.initState();
+46|0|0|_loadAll();
+47|0|0|}
+48|0|0|
+49|0|0|Future<void> _loadAll() async {
+50|0|0|setState(() => _loading = true);
+51|0|0|try {
+52|2|2|final results = await Future.wait([
+53|0|2|ApiClient.instance.get('/superadmin/dashboard-stats'),
+54|0|2|ApiClient.instance.get('/superadmin/dashboard-activity', query: {'limit': 10}),
+55|0|2|ApiClient.instance.get('/superadmin/dashboard-alerts'),
+56|0|2|ApiClient.instance.get('/superadmin/dashboard-subscription-trend', query: {'months': 6}),
+57|0|2|ApiClient.instance.get('/superadmin/dashboard-revenue-trend', query: {'months': 6}),
+58|0|2|ApiClient.instance.get('/superadmin/dashboard-top-pharmacies', query: {'limit': 8}),
+59|0|2|ApiClient.instance.get('/superadmin/dashboard-recent-payments', query: {'limit': 10}),
+60|-2|0|]);
+61|0|0|if (!mounted) return;
+62|1|1|setState(() {
+63|0|1|_stats = (results[0].success ? results[0].data : null) as Map<String, dynamic>?;
+64|0|1|_recentActivity = (results[1].success ? results[1].data : [])
+65|0|1|.map((e) => Map<String, dynamic>.from(e as Map))
+66|0|1|.toList() as List<Map<String, dynamic>>;
+67|0|1|_alerts = (results[2].success ? results[2].data : null) as Map<String, dynamic>?;
+68|0|1|_subscriptionTrend = (results[3].success ? results[3].data : [])
+69|0|1|.map((e) => Map<String, dynamic>.from(e as Map))
+70|0|1|.toList() as List<Map<String, dynamic>>;
+71|0|1|_revenueTrend = (results[4].success ? results[4].data : [])
+72|0|1|.map((e) => Map<String, dynamic>.from(e as Map))
+73|0|1|.toList() as List<Map<String, dynamic>>;
+74|0|1|_topPharmacies = (results[5].success ? results[5].data : [])
+75|0|1|.map((e) => Map<String, dynamic>.from(e as Map))
+76|0|1|.toList() as List<Map<String, dynamic>>;
+77|0|1|_recentPayments = (results[6].success ? results[6].data : [])
+78|0|1|.map((e) => Map<String, dynamic>.from(e as Map))
+79|0|1|.toList() as List<Map<String, dynamic>>;
+80|0|1|_loading = false;
+81|-1|0|});
+82|0|0|} catch (e) {
+83|0|0|if (!mounted) return;
+84|0|0|setState(() => _error = e.toString());
+85|0|0|}
+86|0|0|}
+87|0|0|
+88|0|0|@override
+89|0|0|Widget build(BuildContext context) {
+90|0|0|final locale = context.watch<AuthStore>().locale;
+91|1|1|return Scaffold(
+92|0|1|backgroundColor: _kSuperAdminDark,
+93|1|2|appBar: AppBar(
+94|0|2|backgroundColor: _kSuperAdminDark.withValues(alpha: 0.95),
+95|0|2|elevation: 0,
+96|0|2|leading: const ShellBackButton(),
+97|0|2|title: const Text('PHARMA+ Super Admin', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
+98|1|3|actions: [
+99|0|3|IconButton(icon: const Icon(Icons.refresh), onPressed: _loadAll),
+100|0|3|IconButton(icon: const Icon(Icons.logout), onPressed: () => context.read<AuthStore>().signOut()),
+101|-1|2|],
+102|-1|1|),
+103|0|1|body: _loading
+104|0|1|? const Center(child: CircularProgressIndicator(color: _kSuperAdminGold))
+105|0|1|: _error != null
+106|0|1|? Center(child: Text(_error!, style: const TextStyle(color: Colors.white70)))
+107|1|2|: RefreshIndicator(
+108|0|2|color: _kSuperAdminGold,
+109|0|2|onRefresh: _loadAll,
+110|1|3|child: SingleChildScrollView(
+111|0|3|physics: const AlwaysScrollableScrollPhysics(),
+112|0|3|padding: const EdgeInsets.all(20),
+113|1|4|child: Column(
+114|0|4|crossAxisAlignment: CrossAxisAlignment.start,
+115|1|5|children: [
+116|0|5|_buildHeader(locale),
+117|0|5|const SizedBox(height: 24),
+118|0|5|_buildKPIRow(locale),
+119|0|5|const SizedBox(height: 24),
+120|0|5|_buildChartsRow(locale),
+121|0|5|const SizedBox(height: 24),
+122|0|5|_buildSectionHeader('Pharmacies les plus actives', locale),
+123|0|5|const SizedBox(height: 12),
+124|0|5|_buildTopPharmaciesTable(locale),
+125|0|5|const SizedBox(height: 24),
+126|0|5|_buildSectionHeader('Alertes importantes', locale),
+127|0|5|const SizedBox(height: 12),
+128|0|5|_buildAlertsCard(locale),
+129|0|5|const SizedBox(height: 24),
+130|0|5|_buildSectionHeader('ActivitÃ© rÃ©cente', locale),
+131|0|5|const SizedBox(height: 12),
+132|0|5|_buildRecentActivityList(locale),
+133|0|5|const SizedBox(height: 24),
+134|0|5|_buildSectionHeader('Paiements rÃ©cents', locale),
+135|0|5|const SizedBox(height: 12),
+136|0|5|_buildRecentPaymentsTable(locale),
+137|-1|4|],
+138|-1|3|),
+139|-1|2|),
+140|-1|1|),
+141|-1|0|);
+142|0|0|}
+143|0|0|
+144|0|0|Widget _periodChip(String p) {
+145|0|0|final selected = _selectedPeriod == p;
+146|1|1|return Padding(
+147|0|1|padding: const EdgeInsets.only(right: 6),
+148|1|2|child: ChoiceChip(
+149|0|2|label: Text(p, style: TextStyle(color: selected ? Colors.black : Colors.white70, fontWeight: FontWeight.w600, fontSize: 11)),
+150|0|2|selected: selected,
+151|0|2|onSelected: (_) => setState(() => _selectedPeriod = p),
+152|0|2|selectedColor: _kSuperAdminGold,
+153|0|2|backgroundColor: Colors.white.withValues(alpha: 0.1),
+154|0|2|shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+155|-1|1|),
+156|-1|0|);
+157|0|0|}
+158|0|0|
+159|0|0|Widget _buildHeader(String locale) {
+160|1|1|return Row(
+161|0|1|mainAxisAlignment: MainAxisAlignment.spaceBetween,
+162|1|2|children: [
+163|0|2|Text('Tableau de bord Super Admin', style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
+164|1|3|Row(
+165|0|3|children: ['7j', '30j', '90j', '1a'].map((p) => _periodChip(p)).toList(),
+166|-1|2|),
+167|-1|1|],
+168|-1|0|);
+169|0|0|}
+170|0|0|
+171|0|0|Widget _buildChartsRow(String locale) {
+172|1|1|return Row(
+173|1|2|children: [
+174|1|3|Expanded(
+175|0|3|child: _buildSubscriptionChart(locale),
+176|-1|2|),
+177|0|2|const SizedBox(width: 24),
+178|1|3|Expanded(
+179|0|3|child: _buildRevenueChart(locale),
+180|-1|2|),
+181|-1|1|],
+182|-1|0|);
+183|0|0|}
+184|0|0|
+185|0|0|Widget _buildKPIRow(String locale) {
+186|0|0|final ph = (_stats?['pharmacies'] as Map? ?? {});
+187|0|0|final lic = (_stats?['licenses'] as Map? ?? {});
+188|0|0|final usr = (_stats?['users'] as Map? ?? {});
+189|0|0|final sal = (_stats?['sales'] as Map? ?? {});
+190|0|0|
+191|1|1|final kpis = [
+192|0|1|_KPIData(key: 'pharmacies_total', label: S.t('totalPharmacies', locale), value: '${ph['total'] ?? 0}', icon: Icons.local_pharmacy, color: Colors.white),
+193|0|1|_KPIData(key: 'pharmacies_active', label: S.t('pharmacyActive', locale), value: '${ph['active'] ?? 0}', icon: Icons.check_circle, color: _kSuperAdminAccent),
+194|0|1|_KPIData(key: 'pharmacies_suspended', label: S.t('suspended', locale), value: '${ph['suspended'] ?? 0}', icon: Icons.block, color: Colors.orange),
+195|0|1|_KPIData(key: 'licenses_active', label: S.t('active', locale), value: '${lic['active'] ?? 0}', icon: Icons.verified, color: Colors.green),
+196|0|1|_KPIData(key: 'licenses_expiring', label: 'Expirant 30j', value: '${lic['expiring_soon'] ?? 0}', icon: Icons.schedule, color: Colors.orange),
+197|0|1|_KPIData(key: 'users_total', label: S.t('totalUsers', locale), value: '${usr['total'] ?? 0}', icon: Icons.people, color: Colors.white),
+198|0|1|_KPIData(key: 'sales_total', label: S.t('totalSales', locale), value: '${sal['total'] ?? 0}', icon: Icons.shopping_cart, color: Colors.white),
+199|0|1|_KPIData(key: 'revenue_total', label: S.t('totalRevenue', locale), value: '${_formatMoney(sal['total_revenue'] ?? 0)} MAD', icon: Icons.attach_money, color: _kSuperAdminGold),
+200|0|1|_KPIData(key: 'revenue_30d', label: 'Revenu 30j', value: '${_formatMoney(sal['revenue_30d'] ?? 0)} MAD', icon: Icons.trending_up, color: Colors.green),
+201|-1|0|];
+202|0|0|
+203|1|1|return LayoutBuilder(
+204|0|1|builder: (context, constraints) {
+205|0|1|final cols = constraints.maxWidth > 1200 ? 4 : (constraints.maxWidth > 768 ? 3 : 2);
+206|1|2|return GridView.builder(
+207|0|2|shrinkWrap: true,
+208|0|2|physics: const NeverScrollableScrollPhysics(),
+209|1|3|gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+210|0|3|crossAxisCount: cols,
+211|0|3|childAspectRatio: 1.55,
+212|0|3|crossAxisSpacing: 14,
+213|0|3|mainAxisSpacing: 14,
+214|-1|2|),
+215|0|2|itemCount: kpis.length,
+216|0|2|itemBuilder: (_, i) => _KPICard(kpi: kpis[i]),
+217|-1|1|);
+218|0|1|},
+219|-1|0|);
+220|0|0|}
+221|0|0|
+222|0|0|String _formatMoney(dynamic v) {
+223|0|0|if (v == null) return '0';
+224|0|0|final n = (v is num) ? v.toDouble() : double.tryParse(v.toString()) ?? 0;
+225|0|0|return n.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]} ');
+226|0|0|}
+227|0|0|
+228|0|0|Widget _KPICard({required _KPIData kpi}) {
+229|1|1|return GlassCard(
+230|0|1|radius: BorderRadius.circular(16),
+231|0|1|padding: const EdgeInsets.all(16),
+232|1|2|gradient: LinearGradient(
+233|0|2|colors: [_kSuperAdminDark, _kSuperAdminSurface.withValues(alpha: 0.8)],
+234|0|2|begin: Alignment.topLeft,
+235|0|2|end: Alignment.bottomRight,
+236|-1|1|),
+237|1|2|child: Column(
+238|0|2|crossAxisAlignment: CrossAxisAlignment.start,
+239|0|2|mainAxisAlignment: MainAxisAlignment.spaceBetween,
+240|1|3|children: [
+241|1|4|Row(
+242|0|4|mainAxisAlignment: MainAxisAlignment.spaceBetween,
+243|1|5|children: [
+244|0|5|Text(kpi.label, style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600)),
+245|0|5|Container(width: 32, height: 32, decoration: BoxDecoration(color: kpi.color.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)), child: Icon(kpi.icon, color: kpi.color, size: 18)),
+246|-1|4|],
+247|-1|3|),
+248|0|3|const SizedBox(height: 10),
+249|0|3|Text(kpi.value, style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+250|-1|2|],
+251|-1|1|),
+252|-1|0|);
+253|0|0|}
+254|0|0|
+255|0|0|Widget _buildSectionHeader(String title, String locale) {
+256|1|1|return Row(
+257|0|1|mainAxisAlignment: MainAxisAlignment.spaceBetween,
+258|1|2|children: [
+259|0|2|Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+260|0|2|Container(width: 4, height: 20, decoration: BoxDecoration(gradient: AppColors.goldGradient, borderRadius: BorderRadius.circular(2))),
+261|-1|1|],
+262|-1|0|);
+263|0|0|}
+264|0|0|
+265|0|0|Widget _buildSubscriptionChart(String locale) {
+266|1|1|return GlassCard(
+267|0|1|radius: BorderRadius.circular(20),
+268|0|1|padding: const EdgeInsets.all(20),
+269|1|2|child: Column(
+270|0|2|crossAxisAlignment: CrossAxisAlignment.start,
+271|1|3|children: [
+272|0|3|Text(S.t('subscriptionTrendTitle', locale), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+273|0|3|const SizedBox(height: 16),
+274|1|4|Expanded(
+275|0|4|child: _subscriptionTrend.isEmpty
+276|0|4|? Center(child: Text('Aucune donnÃ©e', style: TextStyle(color: Colors.white70)))
+277|0|4|: _SubscriptionChart(data: _subscriptionTrend),
+278|-1|3|),
+279|-1|2|],
+280|-1|1|),
+281|-1|0|);
+282|0|0|}
+283|0|0|
+284|0|0|Widget _buildRevenueChart(String locale) {
+285|1|1|return GlassCard(
+286|0|1|radius: BorderRadius.circular(20),
+287|0|1|padding: const EdgeInsets.all(20),
+288|1|2|child: Column(
+289|0|2|crossAxisAlignment: CrossAxisAlignment.start,
+290|1|3|children: [
+291|0|3|Text('Ã‰volution des revenus', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+292|0|3|const SizedBox(height: 16),
+293|1|4|Expanded(
+294|0|4|child: _revenueTrend.isEmpty
+295|0|4|? Center(child: Text('Aucune donnÃ©e', style: TextStyle(color: Colors.white70)))
+296|0|4|: _RevenueChart(data: _revenueTrend),
+297|-1|3|),
+298|-1|2|],
+299|-1|1|),
+300|-1|0|);
+301|0|0|}
+302|0|0|
+303|0|0|Widget _buildTopPharmaciesTable(String locale) {
+304|1|1|return GlassCard(
+305|0|1|radius: BorderRadius.circular(16),
+306|0|1|padding: const EdgeInsets.all(16),
+307|1|2|child: Column(
+308|0|2|crossAxisAlignment: CrossAxisAlignment.start,
+309|1|3|children: [
+310|1|4|Row(
+311|0|4|mainAxisAlignment: MainAxisAlignment.spaceBetween,
+312|1|5|children: [
+313|0|5|Text('Top 8', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+314|0|5|TextButton(onPressed: () {}, child: Text('Voir tout', style: TextStyle(color: _kSuperAdminGold, fontSize: 12))),
+315|-1|4|],
+316|-1|3|),
+317|0|3|const SizedBox(height: 12),
+318|1|4|..._topPharmacies.asMap().entries.map((entry) {
+319|0|4|final p = entry.value;
+320|0|4|final rank = entry.key + 1;
+321|1|5|return Padding(
+322|0|5|padding: const EdgeInsets.only(bottom: 10),
+323|1|6|child: Row(
+324|1|7|children: [
+325|1|8|Container(
+326|0|8|width: 28, height: 28,
+327|1|9|decoration: BoxDecoration(
+328|0|9|gradient: rank == 1 ? AppColors.goldGradient : null,
+329|0|9|color: rank > 1 ? Colors.white.withValues(alpha: 0.1) : null,
+330|0|9|borderRadius: BorderRadius.circular(8),
+331|-1|8|),
+332|0|8|child: Center(child: Text('$rank', style: TextStyle(color: rank == 1 ? Color(0xFF03100D) : Colors.white70, fontWeight: FontWeight.w900, fontSize: 12))),
+333|-1|7|),
+334|0|7|const SizedBox(width: 12),
+335|1|8|Expanded(
+336|1|9|child: Column(
+337|0|9|crossAxisAlignment: CrossAxisAlignment.start,
+338|1|10|children: [
+339|0|10|Text('${p['name'] ?? 'â€”'}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+340|0|10|Text('${p['city'] ?? ''} Â· ${p['license_type'] ?? 'â€”'}', style: TextStyle(color: Colors.white60, fontSize: 11)),
+341|-1|9|],
+342|-1|8|),
+343|-1|7|),
+344|1|8|Column(
+345|0|8|crossAxisAlignment: CrossAxisAlignment.end,
+346|1|9|children: [
+347|0|9|Text(_formatMoney(p['total_revenue'] ?? 0), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13)),
+348|0|9|Text('${p['nb_sales'] ?? 0} ventes', style: TextStyle(color: Colors.white60, fontSize: 11)),
+349|-1|8|],
+350|-1|7|),
+351|-1|6|],
+352|-1|5|),
+353|-1|4|);
+354|-1|3|}).toList(),
+355|-1|2|],
+356|-1|1|),
+357|-1|0|);
+358|0|0|}
+359|0|0|
+360|0|0|Widget _buildAlertsCard(String locale) {
+361|0|0|final expiredVal = _alerts?['expired_licenses'];
+362|0|0|final expired = (expiredVal is List ? expiredVal as List : []);
+363|0|0|final suspendedVal = _alerts?['suspended_pharmacies'] ?? [];
+364|0|0|final suspended = (suspendedVal is List ? suspendedVal as List : []);
+365|0|0|
+366|1|1|return GlassCard(
+367|0|1|radius: BorderRadius.circular(16),
+368|0|1|padding: const EdgeInsets.all(16),
+369|1|2|child: Column(
+370|0|2|crossAxisAlignment: CrossAxisAlignment.start,
+371|1|3|children: [
+372|1|4|Row(
+373|0|4|mainAxisAlignment: MainAxisAlignment.spaceBetween,
+374|1|5|children: [
+375|1|6|Row(
+376|1|7|children: [
+377|0|7|Container(width: 10, height: 10, decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(5))),
+378|0|7|const SizedBox(width: 8),
+379|0|7|Text('Alertes actives', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+380|-1|6|],
+381|-1|5|),
+382|0|5|Text('${expired.length + suspended.length}', style: const TextStyle(color: _kSuperAdminGold, fontSize: 16, fontWeight: FontWeight.w900)),
+383|-1|4|],
+384|-1|3|),
+385|0|3|const SizedBox(height: 16),
+386|1|4|if (expired.isNotEmpty) ...[
+387|0|4|_AlertItem(icon: Icons.warning, color: Colors.orange, title: 'Licence expirÃ©e', subtitle: '${expired[0]['pharmacy_name'] ?? ''} â€” ${expired[0]['type']}'),
+388|0|4|const SizedBox(height: 8),
+389|-1|3|],
+390|1|4|if (suspended.isNotEmpty) ...[
+391|0|4|_AlertItem(icon: Icons.block, color: Colors.red, title: 'Pharmacie suspendue', subtitle: '${suspended[0]['name'] ?? ''}'),
+392|0|4|const SizedBox(height: 8),
+393|-1|3|],
+394|0|3|if (expired.isEmpty && suspended.isEmpty)
+395|0|3|Center(child: Text('Aucune alerte', style: TextStyle(color: Colors.white70))),
+396|-1|2|],
+397|-1|1|),
+398|-1|0|);
+399|0|0|}
+400|0|0|
+401|0|0|Widget _buildRecentActivityList(String locale) {
+402|1|1|return GlassCard(
+403|0|1|radius: BorderRadius.circular(16),
+404|0|1|padding: const EdgeInsets.all(16),
+405|1|2|child: Column(
+406|0|2|crossAxisAlignment: CrossAxisAlignment.start,
+407|1|3|children: [
+408|2|5|..._recentActivity.take(8).map((a) => Padding(
+409|0|5|padding: const EdgeInsets.only(bottom: 10),
+410|1|6|child: Row(
+411|1|7|children: [
+412|0|7|Container(width: 32, height: 32, decoration: BoxDecoration(color: _kSuperAdminAccent.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)), child: Icon(_activityIcon(a['type']), color: _kSuperAdminAccent, size: 16)),
+413|0|7|const SizedBox(width: 10),
+414|1|8|Expanded(
+415|1|9|child: Column(
+416|0|9|crossAxisAlignment: CrossAxisAlignment.start,
+417|1|10|children: [
+418|0|10|Text('${a['name'] ?? a['subject'] ?? a['id']}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+419|0|10|Text('${a['pharmacy_name'] ?? ''} Â· ${_formatDate(a['created_at'])}', style: TextStyle(color: Colors.white60, fontSize: 11)),
+420|-1|9|],
+421|-1|8|),
+422|-1|7|),
+423|1|8|Container(
+424|0|8|padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+425|0|8|decoration: BoxDecoration(color: _kSuperAdminGold.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
+426|0|8|child: Text(_typeLabel(a['type'], locale), style: TextStyle(color: _kSuperAdminGold, fontSize: 9, fontWeight: FontWeight.w800)),
+427|-1|7|),
+428|-1|6|],
+429|-1|5|),
+430|-2|3|)).toList(),
+431|0|3|if (_recentActivity.isEmpty) Center(child: Text('Aucune activitÃ©', style: TextStyle(color: Colors.white70))),
+432|-1|2|],
+433|-1|1|),
+434|-1|0|);
+435|0|0|}
+436|0|0|
+437|0|0|Widget _buildRecentPaymentsTable(String locale) {
+438|1|1|return GlassCard(
+439|0|1|radius: BorderRadius.circular(16),
+440|0|1|padding: const EdgeInsets.all(16),
+441|1|2|child: Column(
+442|0|2|crossAxisAlignment: CrossAxisAlignment.start,
+443|1|3|children: [
+444|2|5|..._recentPayments.take(8).map((p) => Padding(
+445|0|5|padding: const EdgeInsets.only(bottom: 10),
+446|1|6|child: Row(
+447|1|7|children: [
+448|1|8|Expanded(
+449|1|9|child: Column(
+450|0|9|crossAxisAlignment: CrossAxisAlignment.start,
+451|1|10|children: [
+452|0|10|Text('${p['type'] == 'sale' ? 'Vente #' : 'Achats #'}${p['id']?.toString().substring(0, 8) ?? ''}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+453|0|10|Text('${p['pharmacy_name'] ?? ''} Â· ${_formatDate(p['created_at'])}', style: TextStyle(color: Colors.white60, fontSize: 11)),
+454|-1|9|],
+455|-1|8|),
+456|-1|7|),
+457|1|8|Column(
+458|0|8|crossAxisAlignment: CrossAxisAlignment.end,
+459|1|9|children: [
+460|0|9|Text(_formatMoney(p['total'] ?? 0), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13)),
+461|0|9|Text(p['type'] == 'sale' ? 'Vente' : 'Achat', style: TextStyle(color: p['type'] == 'sale' ? _kSuperAdminAccent : Colors.orange, fontSize: 11, fontWeight: FontWeight.w600)),
+462|-1|8|],
+463|-1|7|),
+464|-1|6|],
+465|-1|5|),
+466|-2|3|)).toList(),
+467|0|3|if (_recentPayments.isEmpty) Center(child: Text('Aucun paiement rÃ©cent', style: TextStyle(color: Colors.white70))),
+468|-1|2|],
+469|-1|1|),
+470|-1|0|);
+471|0|0|}
+472|0|0|
+473|0|0|IconData _activityIcon(String? type) {
+474|0|0|switch (type) {
+475|0|0|case 'pharmacy': return Icons.local_pharmacy;
+476|0|0|case 'user': return Icons.person_add;
+477|0|0|case 'sale': return Icons.attach_money;
+478|0|0|case 'ticket': return Icons.support_agent;
+479|0|0|default: return Icons.info;
+480|0|0|}
+481|0|0|}
+482|0|0|
+483|0|0|String _typeLabel(String? type, String locale) {
+484|0|0|switch (type) {
+485|0|0|case 'pharmacy': return 'Nouvelle';
+486|0|0|case 'sale': return 'Vente';
+487|0|0|case 'user': return 'Utilisateur';
+488|0|0|case 'ticket': return 'Ticket';
+489|0|0|default: return type ?? '';
+490|0|0|}
+491|0|0|}
+492|0|0|
+493|0|0|String _formatDate(dynamic d) {
+494|0|0|if (d == null) return '';
+495|0|0|try {
+496|0|0|return DateFormat('dd/MM/yyyy HH:mm', 'fr').format(DateTime.parse(d.toString()));
+497|0|0|} catch (_) {
+498|0|0|return d.toString();
+499|0|0|}
+500|0|0|}
+501|0|0|}
+502|0|0|
+503|0|0|class _KPIData {
+504|0|0|final String key;
+505|0|0|final String label;
+506|0|0|final String value;
+507|0|0|final IconData icon;
+508|0|0|final Color color;
+509|0|0|const _KPIData({required this.key, required this.label, required this.value, required this.icon, required this.color});
+510|0|0|}
+511|0|0|
+512|0|0|class _SubscriptionChart extends StatelessWidget {
+513|0|0|final List<Map<String, dynamic>> data;
+514|0|0|const _SubscriptionChart({required this.data});
+515|0|0|
+516|0|0|@override
+517|0|0|Widget build(BuildContext context) {
+518|0|0|final max = data.isNotEmpty ? data.map((e) => (e['count'] as num? ?? 0).toInt()).reduce((a, b) => a > b ? a : b) : 1;
+519|1|1|return LayoutBuilder(
+520|0|1|builder: (context, constraints) {
+521|0|1|final barWidth = constraints.maxWidth / (data.length * 2);
+522|1|2|return Column(
+523|0|2|crossAxisAlignment: CrossAxisAlignment.start,
+524|1|3|children: [
+525|1|4|...data.asMap().entries.map((entry) {
+526|0|4|final d = entry.value;
+527|0|4|final count = (d['count'] as num? ?? 0).toInt();
+528|0|4|final h = (count / max) * (constraints.maxHeight - 40);
+529|1|5|return Column(
+530|0|5|crossAxisAlignment: CrossAxisAlignment.center,
+531|1|6|children: [
+532|2|8|Expanded(child: Container(
+533|0|8|width: barWidth * 0.6,
+534|1|9|decoration: BoxDecoration(
+535|0|9|gradient: LinearGradient(colors: [_kSuperAdminAccent, _kSuperAdminGold]),
+536|0|9|borderRadius: BorderRadius.circular(4),
+537|-1|8|),
+538|0|8|child: count > 0 ? const Center() : null,
+539|-2|6|)),
+540|0|6|const SizedBox(height: 6),
+541|0|6|Text(count.toString(), style: const TextStyle(color: Colors.white70, fontSize: 10)),
+542|0|6|const SizedBox(height: 4),
+543|0|6|Text(d['month']?.toString().substring(5, 7) ?? '', style: TextStyle(color: Colors.white54, fontSize: 9)),
+544|-1|5|],
+545|-1|4|);
+546|-1|3|}).toList(),
+547|-1|2|],
+548|-1|1|);
+549|0|1|},
+550|-1|0|);
+551|0|0|}
+552|0|0|}
+553|0|0|
+554|0|0|class _RevenueChart extends StatelessWidget {
+555|0|0|final List<Map<String, dynamic>> data;
+556|0|0|const _RevenueChart({required this.data});
+557|0|0|
+558|0|0|@override
+559|0|0|Widget build(BuildContext context) {
+560|0|0|final values = data.map((e) => (e['revenue'] as num? ?? 0).toDouble()).toList();
+561|0|0|final max = values.isNotEmpty ? values.reduce((a, b) => a > b ? a : b) : 1.0;
+562|1|1|return LayoutBuilder(
+563|0|1|builder: (context, constraints) {
+564|1|2|return CustomPaint(
+565|0|2|size: Size(constraints.maxWidth, constraints.maxHeight),
+566|0|2|painter: _RevenueCurvePainter(values: values, max: max, width: constraints.maxWidth.toDouble(), height: constraints.maxHeight.toDouble()),
+567|-1|1|);
+568|0|1|},
+569|-1|0|);
+570|0|0|}
+571|0|0|}
+572|0|0|
+573|0|0|class _AlertItem extends StatelessWidget {
+574|0|0|final IconData icon;
+575|0|0|final Color color;
+576|0|0|final String title;
+577|0|0|final String subtitle;
+578|0|0|const _AlertItem({required this.icon, required this.color, required this.title, required this.subtitle});
+579|0|0|
+580|0|0|@override
+581|0|0|Widget build(BuildContext context) {
+582|1|1|return Row(
+583|1|2|children: [
+584|0|2|Container(width: 28, height: 28, decoration: BoxDecoration(color: color.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: color, size: 14)),
+585|0|2|const SizedBox(width: 10),
+586|1|3|Expanded(
+587|1|4|child: Column(
+588|0|4|crossAxisAlignment: CrossAxisAlignment.start,
+589|1|5|children: [
+590|0|5|Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+591|0|5|Text(subtitle, style: TextStyle(color: Colors.white60, fontSize: 11)),
+592|-1|4|],
+593|-1|3|),
+594|-1|2|),
+595|-1|1|],
+596|-1|0|);
+597|0|0|}
+598|0|0|}
+599|0|0|
+600|0|0|class _RevenueCurvePainter extends CustomPainter {
+601|0|0|final List<double> values;
+602|0|0|final double max;
+603|0|0|final double width;
+604|0|0|final double height;
+605|0|0|_RevenueCurvePainter({required this.values, required this.max, required this.width, required this.height});
+606|0|0|
+607|0|0|@override
+608|0|0|void paint(Canvas canvas, Size size) {
+609|0|0|if (values.isEmpty) return;
+610|0|0|final paint = Paint()
+611|0|0|..color = _kSuperAdminGold
+612|0|0|..style = PaintingStyle.stroke
+613|0|0|..strokeWidth = 3
+614|0|0|..strokeCap = StrokeCap.round;
+615|0|0|
+616|0|0|final path = Path();
+617|0|0|final stepX = width / (values.length - 1 > 0 ? values.length - 1 : 1);
+618|0|0|for (int i = 0; i < values.length; i++) {
+619|0|0|final x = i * stepX;
+620|0|0|final y = height - (values[i] / max) * (height - 20) - 10;
+621|0|0|if (i == 0) path.moveTo(x, y);
+622|0|0|else path.lineTo(x, y);
+623|0|0|}
+624|0|0|canvas.drawPath(path, paint);
+625|0|0|
+626|0|0|for (int i = 0; i < values.length; i++) {
+627|0|0|final x = i * stepX;
+628|0|0|final y = height - (values[i] / max) * (height - 20) - 10;
+629|0|0|canvas.drawCircle(Offset(x, y), 4, Paint()..color = _kSuperAdminGold);
+630|0|0|}
+631|0|0|}
+632|0|0|
+633|0|0|@override
+634|0|0|bool shouldRepaint(covariant _RevenueCurvePainter old) => true;
+635|0|0|}
+FINAL_DEPTH=0
+

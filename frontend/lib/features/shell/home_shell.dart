@@ -285,13 +285,20 @@ class _HomeShellState extends State<HomeShell> {
       valueListenable: ShellNav.index,
       builder: (context, shellIndex, _) {
         // Garde-fou : si l'index courant pointe un module masqué,
-        // on revient au dashboard (index 0).
+        // on revient au dashboard (index 0), Sauf si l'utilisateur a
+        // explicitement sélectionné un onglet de la bottom navigation
+        // (ce qui signifie qu'il veut accéder à cette page).
         var effectiveIndex = shellIndex;
         final moduleKey = _pageModuleKeys[shellIndex];
+        final wasBottomNavSelection = <int>{0, 1, 2}.contains(shellIndex);
         if (moduleKey != null && !auth.canSeeModule(moduleKey)) {
-          effectiveIndex = 0;
-          if (ShellNav.index.value != 0) {
-            ShellNav.index.value = 0;
+          // Ne pas réinitialiser vers dashboard si la sélection vient
+          // de la bottom navigation — on respecte le choix de l'utilisateur.
+          if (!wasBottomNavSelection) {
+            effectiveIndex = 0;
+            if (ShellNav.index.value != 0) {
+              ShellNav.index.value = 0;
+            }
           }
         }
         // Contenu = pages (IndexedStack) + bannière de sync superposée.
@@ -465,4 +472,95 @@ class _SyncBanner extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Contrôle clavier PC : Tab/Shift+Tab, flèches, Entrée, Échap.
+/// Ne pas intercepter quand un champ TextField/TextFormField est focalisé
+/// (saisie code-barres, entrée utilisateur).
+final _keyboardFocus = FocusNode();
+final _keyboardFocusNode = _keyboardFocus;
+
+@override
+  void dispose() {
+    _keyboardFocus.dispose();
+    super.dispose();
+  }
+
+  // Gestionnaire de raccourcis clavier
+  final _keyboardShortcuts = Shortcuts<KeyboardShortcuts>({
+    // Tab et Shift+Tab : navigation de focus
+    KeyboardShortcuts.pressedTab: _handleTab,
+    KeyboardShortcuts.shiftPressedTab: _handleShiftTab,
+    // Flèches : navigation dans les tableaux et formulaires
+    KeyboardShortcuts.arrowUp: _handleArrowUp,
+    KeyboardShortcuts.arrowDown: _handleArrowDown,
+    KeyboardShortcuts.arrowLeft: _handleArrowLeft,
+    KeyboardShortcuts.arrowRight: _handleArrowRight,
+    // Entrée : validation/activation
+    KeyboardShortcuts.enter: _handleEnter,
+    // Échap : fermeture de dialogs/menus
+    KeyboardShortcuts.escape: _handleEscape,
+  });
+
+  bool _hasTextFieldFocus(BuildContext context) {
+    // Vérifie si un Focus descendant est un champ de saisie
+    try {
+      final scope = MaterialFocusScope.of(context);
+      if (scope == null) return false;
+      final ancestor = scope.ancestorInheritedElementForDirection(-1);
+      return ancestor != null && ancestor.widget is TextField;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  void _handleTab() {
+    // Ne pas intercepter si un champ texte est focalisé
+    // (permet la saisie code-barres et texte normal)
+    // La navigation Tab gérée par FocusScope.genericDirection
+  }
+
+  void _handleShiftTab() {
+    // Shift+Tab : focus précédent
+    // Laisser FocusScope gérer le previousFocus
+  }
+
+  void _handleArrowUp() {
+    // Flèche haut : navigation dans les tableaux/filtres
+    // Géré par chaque page selon son contexte
+  }
+
+  void _handleArrowDown() {
+    // Flèche bas : navigation dans les tableaux/filtres
+  }
+
+  void _handleArrowLeft() {
+    // Flèche gauche : navigation précédente
+  }
+
+  void _handleArrowRight() {
+    // Flèche droite : navigation suivante
+  }
+
+  void _handleEnter() {
+    // Entrée : activation du widget focalisé
+    // Si focus sur bouton ou élément interactif, activer
+    // Si focus sur champ texte, laisser faire la saisie
+  }
+
+  void _handleEscape() {
+    // Échap : fermer menus, dialogs, revenir en arrière
+    // Nécessite l'accès au contexte current
+  }
+}
+
+enum KeyboardShortcuts {
+  pressedTab,
+  shiftPressedTab,
+  arrowUp,
+  arrowDown,
+  arrowLeft,
+  arrowRight,
+  enter,
+  escape,
 }

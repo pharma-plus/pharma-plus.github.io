@@ -1,0 +1,301 @@
+﻿1|0|0|/// ========================================================================
+2|0|0|/// PHARMA+ â€” SUPER ADMIN : PARAMÃˆTRES ET SÃ‰CURITÃ‰
+3|0|0|/// ========================================================================
+4|0|0|/// ParamÃ¨tres systÃ¨me, sÃ©curitÃ©, permissions, configuration globale.
+5|0|0|/// ========================================================================
+6|0|0|
+7|0|0|import 'dart:async';
+8|0|0|import 'package:flutter/material.dart';
+9|0|0|import 'package:provider/provider.dart';
+10|0|0|import '../../../core/l10n/strings.dart';
+11|0|0|import '../../../core/services/api_client.dart';
+12|0|0|import '../../../core/services/auth_store.dart';
+13|0|0|import '../../../core/theme/colors.dart';
+14|0|0|import '../../../core/widgets/glass_card.dart';
+15|0|0|import '../../../core/widgets/gradient_button.dart';
+16|0|0|
+17|0|0|class SettingsSecurityPage extends StatefulWidget {
+18|0|0|const SettingsSecurityPage({super.key});
+19|0|0|
+20|0|0|@override
+21|0|0|State<SettingsSecurityPage> createState() => _SettingsSecurityPageState();
+22|0|0|}
+23|0|0|
+24|0|0|class _SettingsSecurityPageState extends State<SettingsSecurityPage> {
+25|0|0|Map<String, dynamic>? _systemInfo;
+26|0|0|bool _loading = true;
+27|0|0|String? _error;
+28|0|0|
+29|0|0|@override
+30|0|0|void initState() {
+31|0|0|super.initState();
+32|0|0|_loadMonitoring();
+33|0|0|}
+34|0|0|
+35|0|0|Future<void> _loadMonitoring() async {
+36|0|0|try {
+37|0|0|final r = await ApiClient.instance.get('/superadmin/monitoring');
+38|0|0|if (!mounted) return;
+39|1|1|setState(() {
+40|0|1|_systemInfo = r.success ? (r.data as Map<String, dynamic>?) : null;
+41|0|1|_loading = false;
+42|-1|0|});
+43|0|0|} catch (e) {
+44|0|0|if (!mounted) return;
+45|0|0|setState(() => _error = e.toString());
+46|0|0|}
+47|0|0|}
+48|0|0|
+49|0|0|Future<void> _confirmAction(String title, String message) async {
+50|1|1|final confirmed = await showDialog<bool>(
+51|0|1|context: context,
+52|1|2|builder: (_) => AlertDialog(
+53|0|2|backgroundColor: _kSuperAdminSurface,
+54|0|2|title: Text(title),
+55|0|2|content: Text(message),
+56|1|3|actions: [
+57|0|3|TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuler')),
+58|1|4|GradientButton(
+59|0|4|label: 'Confirmer',
+60|0|4|icon: Icons.check,
+61|0|4|onPressed: () => Navigator.pop(context, true),
+62|-1|3|),
+63|-1|2|],
+64|-1|1|),
+65|-1|0|);
+66|0|0|if (confirmed == true && mounted) {
+67|1|1|ScaffoldMessenger.of(context).showSnackBar(
+68|0|1|SnackBar(content: Text('$title execute avec succes')),
+69|-1|0|);
+70|0|0|}
+71|0|0|}
+72|0|0|
+73|0|0|@override
+74|0|0|Widget build(BuildContext context) {
+75|0|0|final locale = context.read<AuthStore>().locale;
+76|1|1|return Scaffold(
+77|0|1|backgroundColor: _kSuperAdminDark,
+78|1|2|appBar: AppBar(
+79|0|2|backgroundColor: _kSuperAdminDark.withValues(alpha: 0.95),
+80|0|2|elevation: 0,
+81|0|2|leading: const ShellBackButton(),
+82|0|2|title: const Text('Parametres & Securite', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+83|-1|1|),
+84|0|1|body: _loading
+85|0|1|? const Center(child: CircularProgressIndicator(color: _kSuperAdminGold))
+86|1|2|: SingleChildScrollView(
+87|0|2|padding: const EdgeInsets.all(20),
+88|1|3|child: Column(
+89|0|3|crossAxisAlignment: CrossAxisAlignment.start,
+90|1|4|children: [
+91|0|4|// Securite
+92|1|5|_SectionCard(
+93|0|5|title: 'Securite du systeme',
+94|0|5|icon: Icons.security,
+95|0|5|color: Colors.red,
+96|1|6|children: [
+97|1|7|_SettingRow(
+98|0|7|icon: Icons.lock,
+99|0|7|title: 'Authentification',
+100|0|7|subtitle: 'JWT avec expiration 24h, refresh token 7j',
+101|0|7|onTap: () {},
+102|-1|6|),
+103|1|7|_SettingRow(
+104|0|7|icon: Icons.password,
+105|0|7|title: 'Politique de mot de passe',
+106|0|7|subtitle: '8 caracteres minimum, argon2id hash',
+107|0|7|onTap: () {},
+108|-1|6|),
+109|1|7|_SettingRow(
+110|0|7|icon: Icons.admin_panel_settings,
+111|0|7|title: 'RBAC - Roles et permissions',
+112|0|7|subtitle: 'Controle dacces granulaire par pharmacie',
+113|0|7|onTap: () {},
+114|-1|6|),
+115|1|7|_SettingRow(
+116|0|7|icon: Icons.vpn_lock,
+117|0|7|title: 'RLS - Row Level Security',
+118|0|7|subtitle: 'Isolation des donnees par pharmacie',
+119|0|7|onTap: () {},
+120|-1|6|),
+121|-1|5|],
+122|-1|4|),
+123|0|4|const SizedBox(height: 20),
+124|0|4|
+125|0|4|// Configuration systeme
+126|1|5|_SectionCard(
+127|0|5|title: 'Configuration systeme',
+128|0|5|icon: Icons.settings,
+129|0|5|color: Colors.blue,
+130|1|6|children: [
+131|1|7|_SettingRow(
+132|0|7|icon: Icons.api,
+133|0|7|title: 'API Version',
+134|0|7|subtitle: 'v1 - REST JSON',
+135|0|7|onTap: () {},
+136|-1|6|),
+137|1|7|_SettingRow(
+138|0|7|icon: Icons.info,
+139|0|7|title: 'Version application',
+140|0|7|subtitle: '2.0.0',
+141|0|7|onTap: () {},
+142|-1|6|),
+143|1|7|_SettingRow(
+144|0|7|icon: Icons.refresh,
+145|0|7|title: 'Uptime systeme',
+146|0|7|subtitle: '${_systemInfo?['uptime']?.toStringAsFixed(0) ?? '--'} secondes',
+147|0|7|onTap: () {},
+148|-1|6|),
+149|-1|5|],
+150|-1|4|),
+151|0|4|const SizedBox(height: 20),
+152|0|4|
+153|0|4|// Actions de maintenance
+154|1|5|_SectionCard(
+155|0|5|title: 'Maintenance',
+156|0|5|icon: Icons.build,
+157|0|5|color: Colors.orange,
+158|1|6|children: [
+159|1|7|_SettingRow(
+160|0|7|icon: Icons.backup,
+161|0|7|title: 'Sauvegarde systeme',
+162|0|7|subtitle: 'Sauvegarde complete de la base de donnees',
+163|0|7|onTap: () => _confirmAction('Sauvegarde', 'Lancer une sauvegarde complete ?'),
+164|-1|6|),
+165|1|7|_SettingRow(
+166|0|7|icon: Icons.restore,
+167|0|7|title: 'Restauration',
+168|0|7|subtitle: 'Restaurer depuis une sauvegarde existante',
+169|0|7|onTap: () => _confirmAction('Restauration', 'Lancer une restauration ?'),
+170|-1|6|),
+171|1|7|_SettingRow(
+172|0|7|icon: Icons.clean_hands,
+173|0|7|title: 'Nettoyage des logs',
+174|0|7|subtitle: 'Archiver les logs de plus de 90 jours',
+175|0|7|onTap: () => _confirmAction('Nettoyage', 'Nettoyer les anciens logs ?'),
+176|-1|6|),
+177|-1|5|],
+178|-1|4|),
+179|0|4|const SizedBox(height: 20),
+180|0|4|
+181|0|4|// Permissions
+182|1|5|_SectionCard(
+183|0|5|title: 'Permissions globales',
+184|0|5|icon: Icons.admin_panel_settings,
+185|0|5|color: Colors.purple,
+186|1|6|children: [
+187|1|7|_SettingRow(
+188|0|7|icon: Icons.supervised_user_circle,
+189|0|7|title: 'Super Admin',
+190|0|7|subtitle: 'Acces complet a toutes les fonctionnalites',
+191|0|7|onTap: () {},
+192|-1|6|),
+193|1|7|_SettingRow(
+194|0|7|icon: Icons.business,
+195|0|7|title: 'Pharmacie Admin',
+196|0|7|subtitle: 'Gestion de sa propre pharmacie',
+197|0|7|onTap: () {},
+198|-1|6|),
+199|1|7|_SettingRow(
+200|0|7|icon: Icons.person,
+201|0|7|title: 'Employe',
+202|0|7|subtitle: 'Acces limite selon permissions',
+203|0|7|onTap: () {},
+204|-1|6|),
+205|-1|5|],
+206|-1|4|),
+207|-1|3|],
+208|-1|2|),
+209|-1|1|),
+210|-1|0|),
+211|-1|-1|);
+212|0|-1|}
+213|0|-1|}
+214|0|-1|
+215|0|-1|/// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+216|0|-1|// SECTION CARD
+217|0|-1|// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+218|0|-1|class _SectionCard extends StatelessWidget {
+219|0|-1|final String title;
+220|0|-1|final IconData icon;
+221|0|-1|final Color color;
+222|0|-1|final List<Widget> children;
+223|0|-1|
+224|0|-1|const _SectionCard({required this.title, required this.icon, required this.color, required this.children});
+225|0|-1|
+226|0|-1|@override
+227|0|-1|Widget build(BuildContext context) {
+228|1|0|return GlassCard(
+229|0|0|radius: BorderRadius.circular(16),
+230|0|0|padding: const EdgeInsets.all(16),
+231|0|0|margin: const EdgeInsets.only(bottom: 20),
+232|1|1|child: Column(
+233|0|1|crossAxisAlignment: CrossAxisAlignment.start,
+234|1|2|children: [
+235|1|3|Row(
+236|1|4|children: [
+237|0|4|Container(width: 32, height: 32, decoration: BoxDecoration(color: color.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: color, size: 18)),
+238|0|4|const SizedBox(width: 10),
+239|0|4|Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+240|-1|3|],
+241|-1|2|),
+242|0|2|const SizedBox(height: 16),
+243|0|2|...children,
+244|-1|1|],
+245|-1|0|),
+246|-1|-1|);
+247|0|-1|}
+248|0|-1|}
+249|0|-1|
+250|0|-1|/// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+251|0|-1|// SETTING ROW
+252|0|-1|// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+253|0|-1|class _SettingRow extends StatelessWidget {
+254|0|-1|final IconData icon;
+255|0|-1|final String title;
+256|0|-1|final String subtitle;
+257|0|-1|final VoidCallback onTap;
+258|0|-1|
+259|0|-1|const _SettingRow({required this.icon, required this.title, required this.subtitle, required this.onTap});
+260|0|-1|
+261|0|-1|@override
+262|0|-1|Widget build(BuildContext context) {
+263|1|0|return Padding(
+264|0|0|padding: const EdgeInsets.symmetric(vertical: 8),
+265|1|1|child: Row(
+266|1|2|children: [
+267|0|2|Container(width: 36, height: 36, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: Colors.white70, size: 18)),
+268|0|2|const SizedBox(width: 12),
+269|1|3|Expanded(
+270|1|4|child: Column(
+271|0|4|crossAxisAlignment: CrossAxisAlignment.start,
+272|1|5|children: [
+273|0|5|Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
+274|0|5|Text(subtitle, style: TextStyle(color: Colors.white60, fontSize: 11)),
+275|-1|4|],
+276|-1|3|),
+277|-1|2|),
+278|0|2|Icon(Icons.chevron_right, color: Colors.white38),
+279|-1|1|],
+280|-1|0|),
+281|-1|-1|);
+282|0|-1|}
+283|0|-1|}
+284|0|-1|
+285|0|-1|/// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+286|0|-1|// THEME
+287|0|-1|// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+288|0|-1|const Color _kSuperAdminDark = Color(0xFF03100D);
+289|0|-1|const Color _kSuperAdminSurface = Color(0xFF0A1E15);
+290|0|-1|const Color _kSuperAdminGold = Color(0xFFD9B45C);
+291|0|-1|const Color _kSuperAdminAccent = Color(0xFF2FB563);
+292|0|-1|
+293|0|-1|class ShellBackButton extends StatelessWidget {
+294|0|-1|const ShellBackButton({super.key});
+295|0|-1|@override
+296|0|-1|Widget build(BuildContext context) {
+297|0|-1|return IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white70), onPressed: () => Navigator.of(context).pop());
+298|0|-1|}
+299|0|-1|}
+FINAL_DEPTH=-1
+
