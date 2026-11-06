@@ -387,7 +387,8 @@ class _PosPageState extends State<PosPage> {
   // ──────────────── DATA ────────────────
 
   Future<void> _loadBranches() async {
-    final r = await ApiClient.instance.get('/branches');
+    final r = await ApiClient.instance.get('/branches',
+        timeout: const Duration(seconds: 10));
     if (!mounted) return;
     if (r.success) {
       final list = (r.data as List? ?? const [])
