@@ -36,7 +36,13 @@ jobs:
       - name: Build Flutter Web (release)
         # Le numéro de build GitHub (unique et croissant) est injecté dans
         # l'URL bootstrap pour forcer le rechargement des assets sur mobile.
-        run: flutter build web --release --no-wasm-dry-run --web-define=PMG_BUILD_NUMBER=${{ github.run_number }}
+        # NOTE (07/11) : --build-number génère un /version.json unique par
+        # run. Sans lui, version.json restait identique → le service worker
+        # Flutter ne détectait jamais de changement → les utilisateurs
+        # restaient bloqués sur un ancien bundle (correctifs "invisibles"
+        # en app malgré des deploys success). C'est le correctif racine du
+        # "pas de changement" signalé.
+        run: flutter build web --release --no-wasm-dry-run --build-number ${{ github.run_number }} --web-define=PMG_BUILD_NUMBER=${{ github.run_number }}
 
       - name: Deploy to GitHub Pages (gh-pages branch)
         uses: peaceiris/actions-gh-pages@v4
