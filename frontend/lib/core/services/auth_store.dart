@@ -128,6 +128,16 @@ class AuthStore extends ChangeNotifier {
   bool _initError = false;
   bool _forcedLogin = false;
 
+  /// Single-flight : un seul renouvellement de jeton a la fois. Les
+  /// requetes concurrentes qui arrivent avec un token expire partagent
+  /// le meme resultat, evitant la rotation multiple du refresh token
+  /// (cause racine des boucles 401 / "JWT invalide ou expire").
+  static Future<bool>? _refreshing;
+
+  /// Empêche plusieurs signOut concurrents (plusieurs POST /auth/logout
+  /// en parallel sur des requêtes 401 simultanées).
+  bool _signingOut = false;
+
   /// Vrai dès que la lecture des jetons persistés a eu lieu dans `_doInit`.
   /// Le splash sonde ce drapeau pour ne JAMAIS forcer un passage à la
   /// connexion pendant la restauration d'une session stockée : forcer
@@ -476,9 +486,23 @@ class AuthStore extends ChangeNotifier {
   /// assaini, aligné sur /auth/login, /auth/me et la fonction Edge).
   /// Une réponse SANS profil n'est JAMAIS considérée comme une
   /// authentification réussie : la session est refusée.
+  ///
+  /// Single-flight : si un renouvellement est déjà en cours, tous les
+  /// appelants partagent le même résultat (évite la rotation concurrente
+  /// du refresh token et les boucles 401).
   Future<bool> tryRefresh() async {
     final refresh = _refreshToken;
     if (refresh == null) return false;
+
+    // Un renouvellement est déjà en cours : tous les appelants
+    // partagent le même résultat.
+    if (_refreshing != null) {
+      return await _refreshing!;
+    }
+
+    final completer = Completer<bool>();
+    _refreshing = completer.future;
+
     try {
       final uri = Uri.parse('$_baseUrl/auth/refresh');
       final res = await http
@@ -486,57 +510,80 @@ class AuthStore extends ChangeNotifier {
               headers: {'Content-Type': 'application/json'},
               body: jsonEncode({'refreshToken': refresh}))
           .timeout(const Duration(seconds: 20));
-      if (res.statusCode != 200) return false;
+      if (res.statusCode != 200) {
+        completer.complete(false);
+        return false;
+      }
       final decoded = jsonDecode(res.body);
       final data = decoded is Map<String, dynamic>
           ? decoded['data']
           : null;
-      if (data is! Map<String, dynamic>) return false;
+      if (data is! Map<String, dynamic>) {
+        completer.complete(false);
+        return false;
+      }
       final userJson = data['user'];
-      if (userJson is! Map<String, dynamic>) return false;
+      if (userJson is! Map<String, dynamic>) {
+        completer.complete(false);
+        return false;
+      }
       final accessToken = data['accessToken'];
       final refreshToken = data['refreshToken'];
-      if (accessToken is! String || refreshToken is! String) return false;
+      if (accessToken is! String || refreshToken is! String) {
+        completer.complete(false);
+        return false;
+      }
       await saveSession(
         accessToken: accessToken,
         refreshToken: refreshToken,
         user: User.fromJson(userJson),
       );
+      completer.complete(true);
       return true;
     } catch (e) {
       debugPrint('[AuthStore] refresh error: $e');
+      completer.complete(false);
       return false;
+    } finally {
+      _refreshing = null;
     }
   }
 
   Future<void> signOut() async {
-    // Meilleur effort : révoquer la session côté serveur AVANT de purger le
-    // local. Les erreurs réseau ne doivent pas empêcher le logout local.
-    final token = _accessToken;
-    if (token != null && token.isNotEmpty) {
-      try {
-        await http.post(
-          Uri.parse('$_baseUrl/auth/logout'),
-          headers: {'Authorization': 'Bearer $token'},
-        ).timeout(const Duration(seconds: 5));
-      } catch (_) {}
-    }
-    _accessToken = null;
-    _refreshToken = null;
-    _user = null;
-    _locked = false;
-    _manualLock = false;
-    // Arrêter le minuteur d'inactivité
-    _inactivityTimer?.cancel();
-    ShellNav.index.value = 0;
-    // Purge le cache catalogue local : aucune donnée produit ne doit survivre
-    // au logout sur un poste partagé (prévention de fuite hors-ligne).
+    // Empêche plusieurs signOut concurrents (requêtes 401 simultanées).
+    if (_signingOut) return;
+    _signingOut = true;
     try {
-      await OfflineStore.instance.clearCatalog();
-    } catch (_) {}
-    await _tokenDelete(_kAccess);
-    await _tokenDelete(_kRefresh);
-    await _tokenDelete(_kUser);
-    notifyListeners();
+      // Meilleur effort : révoquer la session côté serveur AVANT de purger le
+      // local. Les erreurs réseau ne doivent pas empêcher le logout local.
+      final token = _accessToken;
+      if (token != null && token.isNotEmpty) {
+        try {
+          await http.post(
+            Uri.parse('$_baseUrl/auth/logout'),
+            headers: {'Authorization': 'Bearer $token'},
+          ).timeout(const Duration(seconds: 5));
+        } catch (_) {}
+      }
+      _accessToken = null;
+      _refreshToken = null;
+      _user = null;
+      _locked = false;
+      _manualLock = false;
+      // Arrêter le minuteur d'inactivité
+      _inactivityTimer?.cancel();
+      ShellNav.index.value = 0;
+      // Purge le cache catalogue local : aucune donnée produit ne doit survivre
+      // au logout sur un poste partagé (prévention de fuite hors-ligne).
+      try {
+        await OfflineStore.instance.clearCatalog();
+      } catch (_) {}
+      await _tokenDelete(_kAccess);
+      await _tokenDelete(_kRefresh);
+      await _tokenDelete(_kUser);
+      notifyListeners();
+    } finally {
+      _signingOut = false;
+    }
   }
 }
