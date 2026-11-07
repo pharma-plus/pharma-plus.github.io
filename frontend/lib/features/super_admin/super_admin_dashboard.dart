@@ -60,24 +60,40 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
         ApiClient.instance.get('/superadmin/dashboard-recent-payments', query: {'limit': 10}),
       ]);
       if (!mounted) return;
+      // NOTE (P0-2, 07/11) : les routes superadmin/dashboard-* renvoient un
+      // objet enveloppé ({trend: [...]}, {top_pharmacies: [...]}, …) alors
+      // que le frontend attendait une liste directe. Appeler .map() sur un
+      // Map lançait « NoSuchMethodError … Arguments: ['activeUsers', 5] »
+      // (Map.map passe (clé, valeur) à la closure). On normalise ici.
       setState(() {
         _stats = (results[0].success ? results[0].data : null) as Map<String, dynamic>?;
-        _recentActivity = (results[1].success ? results[1].data : [])
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList() as List<Map<String, dynamic>>;
+        _recentActivity = _extractList(results[1], 'recentSales',
+            transform: (e) => {
+              ...e,
+              'type': e['type'] ?? 'sale',
+              'subject': e['subject'] ?? 'Vente #${e['id']}',
+            });
         _alerts = (results[2].success ? results[2].data : null) as Map<String, dynamic>?;
-        _subscriptionTrend = (results[3].success ? results[3].data : [])
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList() as List<Map<String, dynamic>>;
-        _revenueTrend = (results[4].success ? results[4].data : [])
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList() as List<Map<String, dynamic>>;
-        _topPharmacies = (results[5].success ? results[5].data : [])
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList() as List<Map<String, dynamic>>;
-        _recentPayments = (results[6].success ? results[6].data : [])
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList() as List<Map<String, dynamic>>;
+        _subscriptionTrend = _extractList(results[3], 'trend',
+            transform: (e) => {
+              'month': e['month'],
+              'count': e['count'] ?? e['new_subscriptions'] ?? 0,
+            });
+        _revenueTrend = _extractList(results[4], 'trend');
+        _topPharmacies = _extractList(results[5], 'top_pharmacies',
+            transform: (e) => {
+              ...e,
+              'name': e['name'] ?? e['pharmacy_name'],
+              'city': e['city'] ?? '',
+              'license_type': e['license_type'] ?? '',
+            });
+        _recentPayments = _extractList(results[6], 'recent_payments',
+            transform: (e) => {
+              ...e,
+              'type': e['type'] ?? 'sale',
+              'total': e['total'] ?? e['amount'] ?? 0,
+              'pharmacy_name': e['pharmacy_name'] ?? e['pharmacy_id'] ?? '',
+            });
         _loading = false;
       });
     } catch (e) {
@@ -87,6 +103,24 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
         _loading = false;
       });
     }
+  }
+
+  /// Extrait la liste attendue d'une réponse API : accepte une liste directe
+  /// ou un objet enveloppé dont un champ [key] contient la liste.
+  List<Map<String, dynamic>> _extractList(
+    ApiResult<dynamic> r,
+    String key, {
+    Map<String, dynamic> Function(Map<String, dynamic>)? transform,
+  }) {
+    if (!r.success) return <Map<String, dynamic>>[];
+    dynamic d = r.data;
+    if (d is! List && d is Map && d[key] is List) d = d[key];
+    if (d is! List) return <Map<String, dynamic>>[];
+    return d
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .map((e) => transform != null ? transform(e) : e)
+        .toList();
   }
 
   @override
