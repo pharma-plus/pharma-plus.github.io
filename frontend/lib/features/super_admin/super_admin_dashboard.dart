@@ -226,28 +226,35 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
     final usr = _stats?['users'] as int? ?? 0;
     final sal = _stats?['sales'] as int? ?? 0;
     final rev = _stats?['revenue'] as num? ?? 0;
+    // Revenu sur 30 jours si le backend l'expose, sinon repli total.
+    final rev30d = (_stats?['revenue30d'] as num?) ?? rev;
 
     final kpis = [
-      _KPIData(key: 'pharmacies_total', label: S.t('totalPharmacies', locale), value: '${ph['total'] ?? 0}', icon: Icons.local_pharmacy, color: Colors.white),
-      _KPIData(key: 'pharmacies_active', label: S.t('pharmacyActive', locale), value: '${ph['active'] ?? 0}', icon: Icons.check_circle, color: _kSuperAdminAccent),
-      _KPIData(key: 'pharmacies_suspended', label: S.t('suspended', locale), value: '${ph['suspended'] ?? 0}', icon: Icons.block, color: Colors.orange),
-      _KPIData(key: 'licenses_active', label: S.t('active', locale), value: '$actLic', icon: Icons.verified, color: Colors.green),
-      _KPIData(key: 'licenses_expiring', label: 'Expirant 30j', value: '${ph['trial'] ?? 0}', icon: Icons.schedule, color: Colors.orange),
-      _KPIData(key: 'users_total', label: S.t('totalUsers', locale), value: '$usr', icon: Icons.people, color: Colors.white),
-      _KPIData(key: 'sales_total', label: S.t('totalSales', locale), value: '$sal', icon: Icons.shopping_cart, color: Colors.white),
-      _KPIData(key: 'revenue_total', label: S.t('totalRevenue', locale), value: '${_formatMoney(rev)} MAD', icon: Icons.attach_money, color: _kSuperAdminGold),
-      _KPIData(key: 'revenue_30d', label: 'Revenu 30j', value: '${_formatMoney(rev)} MAD', icon: Icons.trending_up, color: Colors.green),
+      _KPIData(key: 'pharmacies_total', label: S.t('totalPharmacies', locale), value: '${ph['total'] ?? 0}', icon: Icons.local_pharmacy, color: Colors.white, image: 'assets/images/kpi_bg_1.webp'),
+      _KPIData(key: 'pharmacies_active', label: S.t('pharmacyActive', locale), value: '${ph['active'] ?? 0}', icon: Icons.check_circle, color: _kSuperAdminAccent, image: 'assets/images/kpi_bg_2.webp'),
+      _KPIData(key: 'pharmacies_suspended', label: S.t('suspended', locale), value: '${ph['suspended'] ?? 0}', icon: Icons.block, color: Colors.orange, image: 'assets/images/kpi_bg_3.webp'),
+      _KPIData(key: 'licenses_active', label: S.t('active', locale), value: '$actLic', icon: Icons.verified, color: Colors.green, image: 'assets/images/kpi_bg_4.webp'),
+      _KPIData(key: 'licenses_expiring', label: 'Expirant 30j', value: '${ph['trial'] ?? 0}', icon: Icons.schedule, color: Colors.orange, image: 'assets/images/kpi_bg_5.webp'),
+      _KPIData(key: 'users_total', label: S.t('totalUsers', locale), value: '$usr', icon: Icons.people, color: Colors.white, image: 'assets/images/kpi_bg_6.webp'),
+      _KPIData(key: 'sales_total', label: S.t('totalSales', locale), value: '$sal', icon: Icons.shopping_cart, color: Colors.white, image: 'assets/images/kpi_bg_7.webp'),
+      _KPIData(key: 'revenue_total', label: S.t('totalRevenue', locale), value: '${_formatMoney(rev)} MAD', icon: Icons.attach_money, color: _kSuperAdminGold, image: 'assets/images/kpi_bg_8.webp'),
+      _KPIData(key: 'revenue_30d', label: 'Revenu 30j', value: '${_formatMoney(rev30d)} MAD', icon: Icons.trending_up, color: Colors.green, image: 'assets/images/kpi_bg_8.webp'),
     ];
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final cols = constraints.maxWidth > 1200 ? 4 : (constraints.maxWidth > 768 ? 3 : 2);
+        // NOTE (P0-2 UI fin, 07/11) : childAspectRatio 1.55 donnait une
+        // hauteur insuffisante (label 11px + icône 32px + valeur 26px +
+        // paddings > hauteur) → cartes coupées en bas. mainAxisExtent fixe
+        // une hauteur réelle par carte, adaptée au nombre de colonnes.
+        final double cardHeight = cols == 2 ? 150 : (cols == 3 ? 140 : 132);
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: cols,
-            childAspectRatio: 1.55,
+            mainAxisExtent: cardHeight,
             crossAxisSpacing: 14,
             mainAxisSpacing: 14,
           ),
@@ -266,27 +273,68 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
 
   Widget _KPICard({required _KPIData kpi}) {
     return GlassCard(
-      radius: BorderRadius.circular(16),
-      padding: const EdgeInsets.all(16),
+      radius: BorderRadius.circular(14),
+      // Le contenu gère son propre padding (Stack plein → illustration de fond).
+      padding: EdgeInsets.zero,
       gradient: LinearGradient(
         colors: [_kSuperAdminDark, _kSuperAdminSurface.withValues(alpha: 0.8)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(kpi.label, style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600)),
-              Container(width: 32, height: 32, decoration: BoxDecoration(color: kpi.color.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)), child: Icon(kpi.icon, color: kpi.color, size: 18)),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(kpi.value, style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
-        ],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Illustration 3D d'arrière-plan (même famille d'assets que le
+            // dashboard pharmacie — ~10 KB chacun, léger pour Lenovo i3).
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.55,
+                child: Image.asset(
+                  kpi.image,
+                  fit: BoxFit.cover,
+                  alignment: Alignment.bottomCenter,
+                  filterQuality: FilterQuality.low,
+                ),
+              ),
+            ),
+            // Voilier de lisibilité : dégradé plus dense en haut à gauche
+            // (zone du libellé et de la valeur).
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      _kSuperAdminDark.withValues(alpha: 0.85),
+                      _kSuperAdminDark.withValues(alpha: 0.30),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(child: Text(kpi.label, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                      Container(width: 32, height: 32, decoration: BoxDecoration(color: kpi.color.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)), child: Icon(kpi.icon, color: kpi.color, size: 18)),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(kpi.value, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -545,7 +593,10 @@ class _KPIData {
   final String value;
   final IconData icon;
   final Color color;
-  const _KPIData({required this.key, required this.label, required this.value, required this.icon, required this.color});
+
+  /// Illustration 3D d'arrière-plan (mêmes assets que le dashboard pharmacie).
+  final String image;
+  const _KPIData({required this.key, required this.label, required this.value, required this.icon, required this.color, required this.image});
 }
 
 class _SubscriptionChart extends StatelessWidget {
