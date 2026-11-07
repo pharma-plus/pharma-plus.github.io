@@ -313,13 +313,13 @@ class _HomeShellState extends State<HomeShell> {
               children: [for (var i = 0; i < _pages.length; i++) _page(i)],
             ),
             if (_syncing) _SyncBanner(label: S.t('syncing', locale)),
-            // Indicateur permanent de connexion (coin supérieur droit).
+            // Indicateur permanent de connexion (coin supérieur droit, position stable, ne déborde pas).
             Positioned(
-              top: 8,
-              right: 8,
+              top: 12,
+              right: 12,
               child: ConnectionStatusIndicator(
                 position: ConnectionStatusIndicatorPosition.topBar,
-                showDetails: true,
+                showDetails: false,
                 iconSize: 13,
               ),
             ),

@@ -276,7 +276,8 @@ class _PosPageState extends State<PosPage> {
       final problems = <String>[];
       try {
         final r = await ApiClient.instance.get('/catalog/medications/stock',
-            query: {'ids': items.map((e) => '${e['id']}').join(',')});
+            query: {'ids': items.map((e) => '${e['id']}').join(',')},
+            timeout: const Duration(seconds: 10));
         if (r.success && r.data is List) {
           final avail = <String, double>{};
           for (final e in r.data as List) {
@@ -419,7 +420,8 @@ class _PosPageState extends State<PosPage> {
   }
 
   Future<void> _loadCustomers() async {
-    final r = await ApiClient.instance.get('/customers', query: {'limit': 200});
+    final r = await ApiClient.instance.get('/customers',
+        query: {'limit': 200}, timeout: const Duration(seconds: 10));
     if (!mounted) return;
     if (r.success) {
       setState(() {
@@ -441,7 +443,8 @@ class _PosPageState extends State<PosPage> {
   /// Facettes réelles : formes les plus fréquentes + disponibilité des
   /// données d'indication (carte Pathologie).
   Future<void> _loadFacets() async {
-    final r = await ApiClient.instance.get('/catalog/medications/facets');
+    final r = await ApiClient.instance.get('/catalog/medications/facets',
+        timeout: const Duration(seconds: 10));
     if (!mounted || !r.success || r.data is! Map) return;
     final d = Map<String, dynamic>.from(r.data as Map);
     setState(() {
@@ -454,8 +457,9 @@ class _PosPageState extends State<PosPage> {
     // Liste des pathologies tracees (reellement filtree cote Edge) —
     // chargee uniquement si des indications existent.
     if (_indicationsAvailable) {
-      final pr =
-          await ApiClient.instance.get('/catalog/medications/pathologies');
+      final pr = await ApiClient.instance
+          .get('/catalog/medications/pathologies',
+              timeout: const Duration(seconds: 10));
       if (!mounted || !pr.success) return;
       setState(() => _pathologies = ApiList.of(pr.data));
     }
@@ -470,8 +474,8 @@ class _PosPageState extends State<PosPage> {
     if (form != null && form.isNotEmpty) params['form'] = 'eq.$form';
     final patho = _activePathologie;
     if (patho != null && patho.isNotEmpty) params['pathologie'] = patho;
-    final result =
-        await ApiClient.instance.get('/catalog/medications', query: params);
+    final result = await ApiClient.instance.get('/catalog/medications',
+        query: params, timeout: const Duration(seconds: 15));
     if (!mounted) return;
     List<Map<String, dynamic>> rows;
     if (result.success) {
@@ -561,7 +565,8 @@ class _PosPageState extends State<PosPage> {
         .toList();
     if (ids.isEmpty) return;
     final r = await ApiClient.instance.get('/catalog/medications/stock',
-        query: {'ids': ids.take(100).join(',')});
+        query: {'ids': ids.take(100).join(',')},
+        timeout: const Duration(seconds: 10));
     if (!mounted || !r.success || r.data is! List) return;
     setState(() {
       // Filtrer les produits avec stock <= 0 (rupture)
@@ -655,8 +660,8 @@ class _PosPageState extends State<PosPage> {
   /// provenance + référence liée), fallback sur les données locales.
   Future<void> _showQuickInfo(Medication m) async {
     Map<String, dynamic>? details;
-    final r =
-        await ApiClient.instance.get('/catalog/medications/${m.id}/details');
+    final r = await ApiClient.instance.get('/catalog/medications/${m.id}/details',
+        timeout: const Duration(seconds: 10));
     if (r.success && r.data is Map) {
       details = Map<String, dynamic>.from(r.data as Map);
     }
@@ -767,6 +772,7 @@ class _PosPageState extends State<PosPage> {
     if (lookup.isEmpty || !mounted) return;
     final result = await ApiClient.instance.get(
       '/catalog/medications/barcode/${Uri.encodeComponent(lookup)}',
+      timeout: const Duration(seconds: 10),
     );
     if (!mounted) return;
     final medication = result.data;
