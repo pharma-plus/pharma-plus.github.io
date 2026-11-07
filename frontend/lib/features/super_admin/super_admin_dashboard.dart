@@ -286,33 +286,16 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Illustration 3D d'arrière-plan (même famille d'assets que le
-            // dashboard pharmacie — ~10 KB chacun, léger pour Lenovo i3).
+            // Illustration 3D d'arrière-plan : réglages identiques au
+            // dashboard pharmacie validé (cover + socle 3D calé en bas via
+            // Alignment(0, 0.92)). Ni opacité ni voile : les assets sont
+            // conçus sombres, le texte reste lisible (motif P0-2 UI fin).
             Positioned.fill(
-              child: Opacity(
-                opacity: 0.55,
-                child: Image.asset(
-                  kpi.image,
-                  fit: BoxFit.cover,
-                  alignment: Alignment.bottomCenter,
-                  filterQuality: FilterQuality.low,
-                ),
-              ),
-            ),
-            // Voilier de lisibilité : dégradé plus dense en haut à gauche
-            // (zone du libellé et de la valeur).
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      _kSuperAdminDark.withValues(alpha: 0.85),
-                      _kSuperAdminDark.withValues(alpha: 0.30),
-                    ],
-                  ),
-                ),
+              child: Image.asset(
+                kpi.image,
+                fit: BoxFit.cover,
+                alignment: const Alignment(0, 0.92),
+                filterQuality: FilterQuality.low,
               ),
             ),
             Padding(
