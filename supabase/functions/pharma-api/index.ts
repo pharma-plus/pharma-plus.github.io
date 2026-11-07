@@ -5551,7 +5551,7 @@ Deno.serve(async (req) => {
   // GET /sales — ventes du jour (filtre par date from/to, pagination)
   if (path === "sales" && req.method === "GET") {
     try {
-      const userId = await currentUserId(sb, req);
+      const userId = await currentUserId(req);
       if (!userId)
         return json({ error: { code: "FORBIDDEN", message: "Non authentifié" } }, 403);
       const { data: u } = await sb
