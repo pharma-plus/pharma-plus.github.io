@@ -130,6 +130,17 @@ class ApiClient {
 
   http.Client get _http => _client ??= http.Client();
 
+  /// Injection d'un client HTTP pour les tests (mock). Ne pas utiliser en
+  /// production.
+  static void setClientForTesting(http.Client client) {
+    instance._client = client;
+  }
+
+  /// Restaure le client HTTP par défaut (défait setClientForTesting).
+  static void resetClientForTesting() {
+    instance._client = null;
+  }
+
   Uri _uri(String path, [Map<String, dynamic>? query]) {
     final base = baseUrl ?? 'http://localhost:4000/api/v1';
     final uri = Uri.parse('$base$path');
