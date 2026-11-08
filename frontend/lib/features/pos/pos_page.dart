@@ -390,47 +390,67 @@ class _PosPageState extends State<PosPage> {
   // ──────────────── DATA ────────────────
 
   Future<void> _loadBranches() async {
-    final r = await ApiClient.instance.get('/branches',
-        timeout: const Duration(seconds: 10));
-    if (!mounted) return;
-    if (r.success) {
-      final list = (r.data as List? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
-      final auth = context.read<AuthStore>();
-      setState(() {
-        _branches = list;
-        _branchId = auth.user?.branchId ??
-            (list.isNotEmpty ? '${list[0]['id']}' : null);
-      });
-      if ((widget.initialPayment != null || widget.initialReceived != null) &&
-          _cart.lines.isNotEmpty &&
-          _branchId != null &&
-          !_checkout) {
-        final payment = widget.initialPayment ??
-            PaymentResult.cash(
-              amount: _cart.total,
-              received: widget.initialReceived!,
-              change: calculateChange(
-                  received: widget.initialReceived!, total: _cart.total),
-            );
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && !_checkout) _checkoutFlow(payment);
+    try {
+      final r = await ApiClient.instance.get('/branches',
+          timeout: const Duration(seconds: 10));
+      if (!mounted) return;
+      if (r.success) {
+        final list = (r.data as List? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .toList();
+        final auth = context.read<AuthStore>();
+        setState(() {
+          _branches = list;
+          _branchId = auth.user?.branchId ??
+              (list.isNotEmpty ? '${list[0]['id']}' : null);
         });
+        if ((widget.initialPayment != null || widget.initialReceived != null) &&
+            _cart.lines.isNotEmpty &&
+            _branchId != null &&
+            !_checkout) {
+          final payment = widget.initialPayment ??
+              PaymentResult.cash(
+                amount: _cart.total,
+                received: widget.initialReceived!,
+                change: calculateChange(
+                    received: widget.initialReceived!, total: _cart.total),
+              );
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && !_checkout) _checkoutFlow(payment);
+          });
+        }
+      }
+    } catch (e, stack) {
+      debugPrint('[POS] _loadBranches exception: $e\n$stack');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Erreur chargement branches : $e'),
+          backgroundColor: AppColors.danger,
+        ));
       }
     }
   }
 
   Future<void> _loadCustomers() async {
-    final r = await ApiClient.instance.get('/customers',
-        query: {'limit': 200}, timeout: const Duration(seconds: 10));
-    if (!mounted) return;
-    if (r.success) {
-      setState(() {
-        _customers = (r.data as List? ?? const [])
-            .whereType<Map<String, dynamic>>()
-            .toList();
-      });
+    try {
+      final r = await ApiClient.instance.get('/customers',
+          query: {'limit': 200}, timeout: const Duration(seconds: 10));
+      if (!mounted) return;
+      if (r.success) {
+        setState(() {
+          _customers = (r.data as List? ?? const [])
+              .whereType<Map<String, dynamic>>()
+              .toList();
+        });
+      }
+    } catch (e, stack) {
+      debugPrint('[POS] _loadCustomers exception: $e\n$stack');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Erreur chargement clients : $e'),
+          backgroundColor: AppColors.danger,
+        ));
+      }
     }
   }
 
@@ -445,75 +465,99 @@ class _PosPageState extends State<PosPage> {
   /// Facettes réelles : formes les plus fréquentes + disponibilité des
   /// données d'indication (carte Pathologie).
   Future<void> _loadFacets() async {
-    final r = await ApiClient.instance.get('/catalog/medications/facets',
-        timeout: const Duration(seconds: 10));
-    if (!mounted || !r.success || r.data is! Map) return;
-    final d = Map<String, dynamic>.from(r.data as Map);
-    setState(() {
-      _facetForms = (d['forms'] as List? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .take(11)
-          .toList();
-      _indicationsAvailable = ((d['indications_total'] as num?) ?? 0) > 0;
-    });
-    // Liste des pathologies tracees (reellement filtree cote Edge) —
-    // chargee uniquement si des indications existent.
-    if (_indicationsAvailable) {
-      final pr = await ApiClient.instance
-          .get('/catalog/medications/pathologies',
-              timeout: const Duration(seconds: 10));
-      if (!mounted || !pr.success) return;
-      setState(() => _pathologies = ApiList.of(pr.data));
+    try {
+      final r = await ApiClient.instance.get('/catalog/medications/facets',
+          timeout: const Duration(seconds: 10));
+      if (!mounted || !r.success || r.data is! Map) return;
+      final d = Map<String, dynamic>.from(r.data as Map);
+      setState(() {
+        _facetForms = (d['forms'] as List? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .take(11)
+            .toList();
+        _indicationsAvailable = ((d['indications_total'] as num?) ?? 0) > 0;
+      });
+      // Liste des pathologies tracees (reellement filtree cote Edge) —
+      // chargee uniquement si des indications existent.
+      if (_indicationsAvailable) {
+        final pr = await ApiClient.instance
+            .get('/catalog/medications/pathologies',
+                timeout: const Duration(seconds: 10));
+        if (!mounted || !pr.success) return;
+        setState(() => _pathologies = ApiList.of(pr.data));
+      }
+    } catch (e, stack) {
+      debugPrint('[POS] _loadFacets exception: $e\n$stack');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Erreur chargement facettes : $e'),
+          backgroundColor: AppColors.danger,
+        ));
+      }
     }
   }
 
   Future<void> _searchMedications(String query) async {
     setState(() => _searching = true);
-    final q = query.trim();
-    final Map<String, dynamic> params = {'limit': 60};
-    if (q.isNotEmpty) params['q'] = q;
-    final form = _activeForm;
-    if (form != null && form.isNotEmpty) params['form'] = 'eq.$form';
-    final patho = _activePathologie;
-    if (patho != null && patho.isNotEmpty) params['pathologie'] = patho;
-    final result = await ApiClient.instance.get('/catalog/medications',
-        query: params, timeout: const Duration(seconds: 15));
-    if (!mounted) return;
-    List<Map<String, dynamic>> rows;
-    if (result.success) {
-      _offlineMode = false;
-      rows = ApiList.of(result.data);
-      // Alimente le cache local pour que la recherche fonctionne hors-ligne.
-      try {
-        await OfflineStore.instance.saveCatalogRows(rows);
-        _catalogSyncedAt = await OfflineStore.instance.catalogSyncedAt();
-      } catch (_) {}
-    } else if (result.error?.code == 'NETWORK_ERROR' ||
-        result.error?.code == 'TIMEOUT') {
-      // Hors-ligne : repli sur le catalogue mis en cache (recherche locale).
-      _offlineMode = true;
-      try {
-        _catalogSyncedAt = await OfflineStore.instance.catalogSyncedAt();
-      } catch (_) {}
-      rows = await _offlineSearch(q, form);
-    } else {
-      rows = <Map<String, dynamic>>[];
-    }
-    _catalog = rows.map(Medication.fromJson).toList();
-    _applyFilter();
-    _loadStockForPage();
-    if (mounted) setState(() => _searching = false);
-    // Rechargement « cata vide » borné : max 3 tentatives, sinon boucle
-    // infinie (1 req/1,2 s à vie si le catalogue est réellement vide).
-    // Non déclenché hors-ligne (result non success => pas de reload).
-    if (query.trim().isEmpty && _catalog.isEmpty && result.success) {
-      if (_emptyReloads >= 3) return;
-      _emptyReloads++;
-      await Future.delayed(const Duration(milliseconds: 1200));
+    try {
+      final q = query.trim();
+      final Map<String, dynamic> params = {'limit': 60};
+      if (q.isNotEmpty) params['q'] = q;
+      final form = _activeForm;
+      if (form != null && form.isNotEmpty) params['form'] = 'eq.$form';
+      final patho = _activePathologie;
+      if (patho != null && patho.isNotEmpty) params['pathologie'] = patho;
+      final result = await ApiClient.instance.get('/catalog/medications',
+          query: params, timeout: const Duration(seconds: 15));
       if (!mounted) return;
-      if (_catalog.isEmpty && !_searching) _searchMedications('');
-    } else if (_catalog.isNotEmpty) {
-      _emptyReloads = 0;
+      List<Map<String, dynamic>> rows;
+      if (result.success) {
+        _offlineMode = false;
+        rows = ApiList.of(result.data);
+        // Alimente le cache local pour que la recherche fonctionne hors-ligne.
+        try {
+          await OfflineStore.instance.saveCatalogRows(rows);
+          _catalogSyncedAt = await OfflineStore.instance.catalogSyncedAt();
+        } catch (_) {}
+      } else if (result.error?.code == 'NETWORK_ERROR' ||
+          result.error?.code == 'TIMEOUT') {
+        // Hors-ligne : repli sur le catalogue mis en cache (recherche locale).
+        _offlineMode = true;
+        try {
+          _catalogSyncedAt = await OfflineStore.instance.catalogSyncedAt();
+        } catch (_) {}
+        rows = await _offlineSearch(q, form);
+      } else {
+        rows = <Map<String, dynamic>>[];
+      }
+      _catalog = rows.map(Medication.fromJson).toList();
+      _applyFilter();
+      _loadStockForPage();
+      if (mounted) setState(() => _searching = false);
+      // Rechargement « cata vide » borné : max 3 tentatives, sinon boucle
+      // infinie (1 req/1,2 s à vie si le catalogue est réellement vide).
+      // Non déclenché hors-ligne (result non success => pas de reload).
+      if (query.trim().isEmpty && _catalog.isEmpty && result.success) {
+        if (_emptyReloads >= 3) return;
+        _emptyReloads++;
+        await Future.delayed(const Duration(milliseconds: 1200));
+        if (!mounted) return;
+        if (_catalog.isEmpty && !_searching) _searchMedications('');
+      } else if (_catalog.isNotEmpty) {
+        _emptyReloads = 0;
+      }
+    } catch (e, stack) {
+      // Une exception Dart (pas une erreur HTTP) laisse _searching = true
+      // pour toujours → gel de l'interface. On l'attrape, on réinitialise
+      // l'état de chargement et on signale l'erreur sans masquer la cause.
+      debugPrint('[POS] _searchMedications exception: $e\n$stack');
+      if (mounted) setState(() => _searching = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Erreur de chargement du catalogue : $e'),
+          backgroundColor: AppColors.danger,
+        ));
+      }
     }
   }
 
