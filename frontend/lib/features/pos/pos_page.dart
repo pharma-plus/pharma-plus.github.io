@@ -6,6 +6,8 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+// PHASE 4 : BarcodeFormat (enum) pour le scanner HID via ScanResult.
+import 'package:mobile_scanner/mobile_scanner.dart' show BarcodeFormat;
 import '../../core/l10n/strings.dart';
 import '../../core/models/medication.dart';
 import '../../core/services/api_client.dart';
@@ -853,6 +855,174 @@ class _PosPageState extends State<PosPage> {
     await _checkoutFlow(pay);
   }
 
+  // ── PHASE 4 : navigation clavier professionnelle (F2/F4/F9/Échap/Ctrl+F) ──
+
+  /// F2 / Ctrl+F : focus sur la recherche produit, avec sélection du texte
+  /// existant pour une frappe directe (clavier ou scanner HID).
+  void _focusSearch() {
+    _searchFocus.requestFocus();
+    final text = _search.text;
+    if (text.isNotEmpty) {
+      _search.selection =
+          TextSelection(baseOffset: 0, extentOffset: text.length);
+    }
+  }
+
+  /// Échap : « annuler l'action en cours » — vide la recherche et rend le
+  /// focus à la page. Dans une modale, Échap ferme D'ABORD la modale
+  /// (comportement Flutter standard, prioritaire sur ce handler) : aucun
+  /// risque d'effacement accidentel pendant une opération.
+  void _onEscapePos() {
+    if (_search.text.isNotEmpty) {
+      _search.clear();
+      _onSearchChanged('');
+    }
+    if (_searchFocus.hasFocus) _searchFocus.unfocus();
+  }
+
+  /// F4 : sélection rapide du client. Le menu déroulant intégré reste
+  /// utilisable au tactile ; cette feuille apporte un parcours clavier natif
+  /// (Tab + flèches + Entrée) et un balayage rapide de la liste.
+  Future<void> _showCustomerPicker() async {
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.menu,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetCtx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+              child: Row(children: const [
+                Icon(Icons.person_outline_rounded,
+                    size: 18, color: AppColors.pharmaGold),
+                SizedBox(width: 8),
+                Text('Sélection du client',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700)),
+              ]),
+            ),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.storefront_rounded,
+                        size: 20, color: AppColors.pharmaMuted),
+                    title: const Text('Client comptoir',
+                        style: TextStyle(color: Colors.white, fontSize: 13)),
+                    selected: _customerId == null,
+                    onTap: () => Navigator.pop(sheetCtx, ''),
+                  ),
+                  ..._customers.map((c) {
+                    final id = '${c['id']}';
+                    return ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.person_rounded,
+                          size: 20, color: AppColors.pharmaMuted),
+                      title: Text(
+                        '${c['first_name'] ?? ''} ${c['last_name'] ?? ''}'
+                            .trim(),
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 13),
+                      ),
+                      selected: _customerId == id,
+                      onTap: () => Navigator.pop(sheetCtx, id),
+                    );
+                  }),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || picked == null) return; // null = fermeture sans choix
+    setState(() => _customerId = picked.isEmpty ? null : picked);
+  }
+
+  /// Aide raccourcis (bouton clavier de la barre du POS) — les raccourcis
+  /// sont documentés DANS l'interface comme exigé par la mission.
+  void _showKeyboardHelp() {
+    showDialog<void>(
+      context: context,
+      builder: (dlgCtx) => AlertDialog(
+        backgroundColor: AppColors.menu,
+        title: Row(children: const [
+          Icon(Icons.keyboard_alt_outlined, color: AppColors.pharmaGold),
+          SizedBox(width: 10),
+          Text('Raccourcis clavier',
+              style: TextStyle(color: Colors.white, fontSize: 16)),
+        ]),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _shortcutRow('F2 / Ctrl+F', 'Recherche produit (focus + sélection)'),
+            _shortcutRow('F4', 'Sélection du client'),
+            _shortcutRow('F9', 'Encaisser la vente'),
+            _shortcutRow('Échap', 'Vider la recherche / annuler'),
+            _shortcutRow('Tab / Maj+Tab', 'Champ suivant / précédent'),
+            _shortcutRow('↓', 'Aller aux résultats depuis la recherche'),
+            _shortcutRow(
+                'Scanner USB (HID)', 'Code EAN + Entrée → ajout au panier'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dlgCtx),
+            child: const Text('Fermer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _shortcutRow(String keys, String action) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 150,
+              child: Text(keys,
+                  style: const TextStyle(
+                      color: AppColors.pharmaGold,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700)),
+            ),
+            Expanded(
+              child: Text(action,
+                  style: const TextStyle(color: Colors.white70, fontSize: 12)),
+            ),
+          ],
+        ),
+      );
+
+  /// PHASE 4 : scanner HID / USB (wedge clavier) — le lecteur saisit le code
+  /// dans le champ de recherche puis envoie « Entrée ». Un code
+  /// exclusivement numérique (≥ 8 caractères : EAN-13, GTIN, code nu) suit le
+  /// MÊME flux que le scan caméra (recherche par code-barres + contrôle de
+  /// stock → un seul ajout par Entrée, pas de doublon), puis le champ est
+  /// vidé en conservant le focus pour le scan suivant. La saisie libre
+  /// (texte) reste une recherche classique inchangée.
+  Future<void> _onSearchSubmitted(String value) async {
+    final code = value.trim();
+    if (code.length < 8 || !RegExp(r'^\d+$').hasMatch(code)) return;
+    await _addScannedToCart(ScanResult(code, BarcodeFormat.ean13));
+    if (mounted && _search.text == code) {
+      _search.clear();
+      _onSearchChanged('');
+    }
+  }
+
   Future<void> _checkoutFlow([PaymentResult? payment]) async {
     if (_cart.isEmpty || _checkout) return;
     final auth = context.read<AuthStore>();
@@ -1244,12 +1414,44 @@ class _PosPageState extends State<PosPage> {
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
+    // PHASE 4 (mission 08/11) : navigation clavier professionnelle du POS.
+    // Tab / Shift+Tab restent gérés nativement par Flutter (parcours de
+    // champs) — ils ne sont volontairement PAS détournés ici. F2/F4/F9,
+    // Ctrl+F (⌘F sur Mac) et Échap sont câblés sur la page entière ; les
+    // feuilles modales (route poussée au-dessus) conservent le comportement
+    // Flutter standard (Échap ferme d'abord la modale).
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.f2): _focusSearch,
+        const SingleActivator(LogicalKeyboardKey.keyF, control: true):
+            _focusSearch,
+        const SingleActivator(LogicalKeyboardKey.keyF, meta: true):
+            _focusSearch,
+        const SingleActivator(LogicalKeyboardKey.f4): _showCustomerPicker,
+        const SingleActivator(LogicalKeyboardKey.f9): _confirmPayment,
+        const SingleActivator(LogicalKeyboardKey.escape): _onEscapePos,
+      },
+      child: Focus(
+        autofocus: true,
+        child: _buildPosScaffold(locale),
+      ),
+    );
+  }
+
+  Widget _buildPosScaffold(String locale) {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: const ShellBackButton(),
         title: Text(S.t('pos', locale)),
         actions: [
+          IconButton(
+            tooltip:
+                'Raccourcis clavier (F2 recherche · F4 client · F9 encaisser · Échap annuler)',
+            icon: const Icon(Icons.keyboard_alt_outlined,
+                color: Colors.white70, size: 20),
+            onPressed: _showKeyboardHelp,
+          ),
           IconButton(
             tooltip: 'Caisse',
             icon: const Icon(Icons.point_of_sale_rounded,
@@ -1525,6 +1727,10 @@ class _PosPageState extends State<PosPage> {
                 controller: _search,
                 focusNode: _searchFocus,
                 onChanged: _onSearchChanged,
+                // PHASE 4 : le scanner HID (wedge clavier) saisit l'EAN puis
+                // envoie « Entrée » — onSubmitted route le code vers le même
+                // flux que le scan caméra (voir _onSearchSubmitted).
+                onSubmitted: _onSearchSubmitted,
                 style: const TextStyle(color: Colors.white, fontSize: 13),
                 decoration: InputDecoration(
                   hintText: S.t('search', locale),

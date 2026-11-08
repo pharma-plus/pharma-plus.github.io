@@ -307,7 +307,12 @@ void main() {
     final overrides = _FakeHttpOverrides(true);
     HttpOverrides.global = overrides;
 
-    _setWindowSize(tester, const Size(390, 844)); // smartphone
+    // PHASE 5 (08/11) : hauteur 1400 — la page d'analyse inclut désormais
+    // filtres de période + panier moyen + graphe (~440 px de plus). Le
+    // ListView est paresseux : à 844 les dernières lignes (VTE-003) n'étaient
+    // plus construites. La largeur reste 390 (seuls les seuils de LARGEUR
+    // déterminent narrow<700 / bottom nav).
+    _setWindowSize(tester, const Size(390, 1400)); // smartphone (écran long)
     
 
     await tester.pumpWidget(
@@ -355,7 +360,7 @@ void main() {
       'annulées à part', (tester) async {
     HttpOverrides.global = _FakeHttpOverrides(true);
 
-    _setWindowSize(tester, const Size(390, 844));
+    _setWindowSize(tester, const Size(390, 1400)); // PHASE 5 : voir note test 1
     
 
     await tester.pumpWidget(

@@ -1,7 +1,10 @@
 ﻿import 'package:flutter/material.dart';
 
+import 'dart:math' as math;
+
 import '../../core/services/api_client.dart';
 import '../../core/services/api_list.dart';
+import '../../core/services/report_export.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
@@ -32,13 +35,54 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
   bool _loadingMore = false;
   String? _error;
   int _total = 0; // total serveur (meta.total) pour la pagination
-  late final DateTime _day; // minuit local du jour consulté
+
+  // ── PHASE 5 : filtres de période (le backend GET /sales accepte from/to) ──
+  static const List<String> _periodLabels = [
+    "Aujourd'hui",
+    'Hier',
+    '7 derniers jours',
+    '30 derniers jours',
+  ];
+  int _periodIndex = 0;
+
+  /// Début de la période sélectionnée (minuit local).
+  DateTime get _periodStart {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    switch (_periodIndex) {
+      case 1:
+        return today.subtract(const Duration(days: 1)); // Hier
+      case 2:
+        return today.subtract(const Duration(days: 6)); // 7 jours glissants
+      case 3:
+        return today.subtract(const Duration(days: 29)); // 30 jours glissants
+      default:
+        return today; // Aujourd'hui
+    }
+  }
+
+  /// Fin EXCLUSIVE de la période (borné supérieur de la requête from/to).
+  DateTime get _periodEnd {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    if (_periodIndex == 1) {
+      return today; // Hier : [hier 00:00 ; aujourd'hui 00:00[
+    }
+    return today.add(const Duration(days: 1));
+  }
+
+  /// Libellé lisible de la plage (borne inclusive pour l'affichage).
+  String get _periodDateLabel {
+    String two(int v) => v.toString().padLeft(2, '0');
+    final s = _periodStart;
+    final e = _periodEnd.subtract(const Duration(days: 1));
+    if (_periodIndex <= 1) return '${two(s.day)}/${two(s.month)}/${s.year}';
+    return '${two(s.day)}/${two(s.month)}/${s.year} → ${two(e.day)}/${two(e.month)}/${e.year}';
+  }
 
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    _day = DateTime(now.year, now.month, now.day);
     _loadFirst();
   }
 
@@ -56,8 +100,8 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
   }
 
   Map<String, String> get _dayQuery => {
-        'from': _isoLocal(_day),
-        'to': _isoLocal(_day.add(const Duration(days: 1))),
+        'from': _isoLocal(_periodStart),
+        'to': _isoLocal(_periodEnd),
       };
 
   Future<void> _loadFirst() async {
@@ -167,9 +211,14 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text('Ventes du jour',
+        title: Text('Analyse des ventes',
             style: const TextStyle(color: AppColors.textPrimary)),
         actions: [
+          IconButton(
+            tooltip: 'Exporter en CSV (données chargées)',
+            icon: const Icon(Icons.file_download_outlined),
+            onPressed: _loading ? null : _exportCsv,
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loading ? null : _loadFirst,
@@ -209,7 +258,11 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.all(16),
                     children: [
+                      _buildPeriodChips(),
+                      const SizedBox(height: 12),
                       _buildHeader(locale),
+                      const SizedBox(height: 12),
+                      _buildHourlyChart(),
                       const SizedBox(height: 16),
                       ..._completed.map(_buildSaleRow),
                       ..._cancelled.map(_buildSaleRow),
@@ -222,7 +275,7 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
                                   size: 56, color: Colors.white24),
                               const SizedBox(height: 12),
                               Text(
-                                'Aucune vente enregistrée aujourd\'hui',
+                                'Aucune vente sur la période sélectionnée',
                                 style: TextStyle(color: Colors.white60),
                               ),
                             ],
@@ -247,14 +300,15 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
   }
 
   Widget _buildHeader(String locale) {
-    String two(int v) => v.toString().padLeft(2, '0');
-    final dateLabel =
-        '${two(_day.day)}/${two(_day.month)}/${_day.year}';
+    // Panier moyen : CA des ventes terminées ÷ nombre de ventes terminées
+    // (données réelles chargées — aucune extrapolation).
+    final panierMoyen =
+        _completed.isEmpty ? 0.0 : _totalEncaisse / _completed.length;
     return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Résumé — $dateLabel',
+          Text('${_periodLabels[_periodIndex]} — $_periodDateLabel',
               style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 12,
@@ -290,9 +344,153 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _KpiMini(
+                  label: 'Panier moyen',
+                  value: Fmt.money(panierMoyen),
+                  icon: Icons.shopping_bag_rounded,
+                  color: AppColors.gold,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _KpiMini(
+                  label: 'Dernière vente',
+                  value: _completed.isEmpty
+                      ? '—'
+                      : _hour(_completed.first['created_at']),
+                  icon: Icons.schedule_rounded,
+                  color: AppColors.cardPurple,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
+  }
+
+  /// PHASE 5 : filtres de période — chips horizontales, requête relancée à
+  /// chaque changement (from/to recalculés en heure locale).
+  Widget _buildPeriodChips() {
+    return SizedBox(
+      height: 40,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _periodLabels.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (ctx, i) {
+          final selected = i == _periodIndex;
+          return ChoiceChip(
+            label: Text(_periodLabels[i]),
+            selected: selected,
+            onSelected: (_) {
+              if (_periodIndex == i) return;
+              setState(() => _periodIndex = i);
+              _loadFirst();
+            },
+            selectedColor: AppColors.gold,
+            labelStyle: TextStyle(
+                color: selected ? Colors.black : Colors.white70,
+                fontSize: 12,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w400),
+            backgroundColor: AppColors.pharmaSurface.withValues(alpha: 0.7),
+            side: BorderSide(
+                color: selected
+                    ? AppColors.gold
+                    : AppColors.goldBorder.withValues(alpha: 0.4)),
+          );
+        },
+      ),
+    );
+  }
+
+  /// PHASE 5 : évolution horaire (jour) ou quotidienne (périodes longues),
+  /// dessinée en CustomPainter léger (pas de fl_chart — règle performance
+  /// Lenovo i3 / 4 Go). Uniquement les tickets RÉELLEMENT chargés : le
+  /// libellé l'indique explicitement, aucune donnée extrapolée.
+  Widget _buildHourlyChart() {
+    if (_completed.isEmpty) return const SizedBox.shrink();
+    final bool byHour = _periodIndex <= 1;
+    final buckets = <String, double>{};
+    for (final s in _completed) {
+      final ts = s['created_at']?.toString() ?? '';
+      if (ts.length < 13) continue;
+      final key = byHour ? ts.substring(11, 13) : ts.substring(5, 10);
+      buckets[key] = (buckets[key] ?? 0) + _amount(s['total']);
+    }
+    if (buckets.isEmpty) return const SizedBox.shrink();
+    final keys = buckets.keys.toList()..sort();
+    final values = keys.map((k) => buckets[k]!).toList();
+    final maxV = values.reduce(math.max);
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Évolution ${byHour ? 'horaire' : 'quotidienne'} (MAD) — sur ${_completed.length} ticket(s) chargé(s)',
+            style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
+                fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 110,
+            width: double.infinity,
+            child: CustomPaint(
+              painter: _BarsPainter(values, maxV),
+              child: const SizedBox.shrink(),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Pic : ${byHour ? keys[values.indexOf(maxV)] + ' h' : keys[values.indexOf(maxV)]} — ${Fmt.money(maxV)}',
+            style: const TextStyle(color: Colors.white60, fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// PHASE 5 : export CSV des données chargées (outil ReportExport existant,
+  /// téléchargement navigateur sur le Web).
+  void _exportCsv() {
+    final rows = <List<Object?>>[
+      for (final s in _sales)
+        [
+          _hour(s['created_at']),
+          _saleLabel(s['status'], 'fr'),
+          _amount(s['total']),
+        ],
+    ];
+    final completedCount = _completed.length;
+    ReportExport.exportCsv('Analyse_ventes', [
+      {
+        'title':
+            'Analyse des ventes — ${_periodLabels[_periodIndex]} ($_periodDateLabel)',
+        'headers': const ['Heure', 'Statut', 'Total (MAD)'],
+        'rows': rows,
+      },
+      {
+        'title': 'Résumé',
+        'headers': const ['Indicateur', 'Valeur'],
+        'rows': [
+          ['Total encaissé (MAD)', _totalEncaisse.toStringAsFixed(2)],
+          ['Ventes terminées', '$completedCount'],
+          [
+            'Panier moyen (MAD)',
+            completedCount == 0
+                ? '0.00'
+                : (_totalEncaisse / completedCount).toStringAsFixed(2)
+          ],
+          ['Annulees / retours (charges)', '${_cancelled.length}'],
+        ],
+      },
+    ]);
   }
 
   Widget _buildSaleRow(Map<String, dynamic> s) {
@@ -404,4 +602,49 @@ class _KpiMini extends StatelessWidget {
       ),
     );
   }
+}
+
+/// PHASE 5 : peintre de barres ultra-léger (évolution horaire/quotidienne des
+/// ventes chargées). Choix volontaire : pas de fl_chart (jamais importé dans
+/// le projet, +1 Mo de bundle) — un CustomPainter suffit pour des barres
+/// lisibles, cohérent avec les graphes dessinés à la main du dashboard Super
+/// Admin (règle performance Lenovo i3 / 4 Go RAM).
+class _BarsPainter extends CustomPainter {
+  final List<double> values;
+  final double maxV;
+
+  _BarsPainter(this.values, this.maxV);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.isEmpty || maxV <= 0) return;
+    final n = values.length;
+    final gap = n > 40 ? 1.0 : 3.0;
+    final barW = ((size.width - gap * (n - 1)) / n).clamp(1.0, 40.0);
+    final paint = Paint()
+      ..color = AppColors.gold.withValues(alpha: 0.85)
+      ..style = PaintingStyle.fill;
+    final basePaint = Paint()
+      ..color = AppColors.goldBorder.withValues(alpha: 0.8)
+      ..strokeWidth = 1;
+    // Ligne de base
+    canvas.drawLine(Offset(0, size.height - 0.5),
+        Offset(size.width, size.height - 0.5), basePaint);
+    final startX = (size.width - (n * barW + (n - 1) * gap)) / 2;
+    for (var i = 0; i < n; i++) {
+      final h = (values[i] / maxV) * (size.height - 10);
+      final x = startX + i * (barW + gap);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(x, size.height - h, barW, h),
+          const Radius.circular(2),
+        ),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BarsPainter oldDelegate) =>
+      oldDelegate.values.length != values.length || oldDelegate.maxV != maxV;
 }
