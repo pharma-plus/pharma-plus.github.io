@@ -8715,6 +8715,121 @@ Deno.serve(async (req) => {
   }
 
   /* ===========================================================
+     WHATSAPP / CHATBOT — routes non configurées
+     Aucun fournisseur WhatsApp n'est configuré. Ces routes retournent
+     une erreur honnête "Non configuré" sans simuler d'envoi.
+     =========================================================== */
+  const whatsappPaths = [
+    "whatsapp/conversations",
+    "whatsapp/send",
+    "chatbot/message",
+    "chatbot/transfer",
+  ];
+  const isWhatsappPath = whatsappPaths.some(
+    (p) => path === p || path.startsWith(p + "/"),
+  );
+  if (isWhatsappPath) {
+    return json(
+      {
+        error: {
+          code: "NOT_CONFIGURED",
+          message:
+            "WhatsApp n'est pas configuré. Aucun fournisseur ni route backend n'est déployé.",
+        },
+      },
+      503,
+    );
+  }
+
+  /* ===========================================================
+     LICENCES — gestion des abonnements BASIC/GOLD
+     Table 'licenses' : lecture/écriture avec gestion d'erreur si
+     la table n'existe pas encore.
+     =========================================================== */
+  if (path === "licenses" || path === "/licenses") {
+    if (req.method === "GET") {
+      try {
+        const { data, error } = await sb
+          .from("licenses")
+          .select("*")
+          .order("created_at", { ascending: false });
+        if (error) throw error;
+        return json({ data });
+      } catch (e) {
+        return json(
+          { error: { code: "QUERY_FAILED", message: String(e) } },
+          500,
+        );
+      }
+    }
+    if (req.method === "POST") {
+      try {
+        const body = await req.json().catch(() => ({}));
+        const { data, error } = await sb
+          .from("licenses")
+          .insert(body)
+          .select()
+          .single();
+        if (error) throw error;
+        return json({ data });
+      } catch (e) {
+        return json(
+          { error: { code: "INSERT_FAILED", message: String(e) } },
+          500,
+        );
+      }
+    }
+    return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+  }
+
+  if (path.startsWith("licenses/") && path.endsWith("/status")) {
+    // POST /licenses/{id}/status — changement de statut d'une licence
+    if (req.method !== "POST")
+      return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+    const parts = path.split("/");
+    const licenseId = parts[parts.length - 2];
+    try {
+      const body = await req.json().catch(() => ({}));
+      const { data, error } = await sb
+        .from("licenses")
+        .update({ status: body.status })
+        .eq("id", licenseId)
+        .select()
+        .single();
+      if (error) throw error;
+      return json({ data });
+    } catch (e) {
+      return json(
+        { error: { code: "UPDATE_FAILED", message: String(e) } },
+        500,
+      );
+    }
+  }
+
+  if (path.startsWith("licenses/") && path.endsWith("/renew")) {
+    // POST /licenses/{id}/renew — renouvellement d'une licence
+    if (req.method !== "POST")
+      return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
+    const parts = path.split("/");
+    const licenseId = parts[parts.length - 2];
+    try {
+      const { data, error } = await sb
+        .from("licenses")
+        .update({ status: "active", renewed_at: new Date().toISOString() })
+        .eq("id", licenseId)
+        .select()
+        .single();
+      if (error) throw error;
+      return json({ data });
+    } catch (e) {
+      return json(
+        { error: { code: "UPDATE_FAILED", message: String(e) } },
+        500,
+      );
+    }
+  }
+
+  /* ===========================================================
      ROOT
      =========================================================== */
   if (path === "/" || path === "") {
