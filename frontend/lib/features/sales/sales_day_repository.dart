@@ -118,7 +118,7 @@ class SalesDayRepository {
 
   /// Charge une page de ventes pour [from] (inclus) → [to] (exclu).
   /// [fromIso]/[toIso] doivent déjà être en ISO avec décalage local.
-  Future<SalesDayResult> loadPage({
+  Future<SalesDayResult> _loadPageOnce({
     required String fromIso,
     required String toIso,
     required int page,
@@ -145,6 +145,22 @@ class SalesDayRepository {
       isComplete: rows.length >= total,
       error: null,
     );
+  }
+
+  Future<SalesDayResult> loadPage({
+    required String fromIso,
+    required String toIso,
+    required int page,
+    required int limit,
+  }) async {
+    var res = await _loadPageOnce(fromIso: fromIso, toIso: toIso, page: page, limit: limit);
+    // Sur NETWORK_ERROR seulement : on retente UNE fois après un court délai.
+    // Aucun retry sur 401/403/500 pour éviter les boucles de session/RBAC.
+    if (res.error != null && res.error!.kind == SalesDayErrorKind.network) {
+      await Future.delayed(const Duration(milliseconds: 800));
+      res = await _loadPageOnce(fromIso: fromIso, toIso: toIso, page: page, limit: limit);
+    }
+    return res;
   }
 
   SalesDayError _mapError(ApiResult<dynamic> result) {

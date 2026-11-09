@@ -144,9 +144,36 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
       });
       return;
     }
+    // KPI sur TOUTE la période : si le serveur annonce plus de tickets que
+    // la première page (limit 100), on charge les pages suivantes
+    // automatiquement (jusqu'à 10 pages = 1000 tickets, borne de sécurité).
+    // Une erreur sur une page suivante n'écrase pas la première page : la
+    // note de couverture reste affichée, jamais de total faux présenté
+    // comme complet.
+    var loadedRows = List<Map<String, dynamic>>.from(res.rows);
+    var total = res.totalServer;
+    var page = 1;
+    while (loadedRows.length < total && page < 10) {
+      page += 1;
+      final next = await _repo.loadPage(
+        fromIso: _query['from']!,
+        toIso: _query['to']!,
+        page: page,
+        limit: 100,
+      );
+      if (!mounted || next.error != null || next.rows.isEmpty) break;
+      final seen = loadedRows.map((s) => s['id']).toSet();
+      for (final r in next.rows) {
+        if (seen.add(r['id'])) loadedRows.add(r);
+      }
+      total = next.totalServer;
+    }
+    if (!mounted) return;
     setState(() {
-      _sales.addAll(res.rows);
-      _total = res.totalServer;
+      _sales
+        ..clear()
+        ..addAll(loadedRows);
+      _total = total;
       _loading = false;
     });
     // Comparaison période précédente (même durée) — best-effort, jamais bloquant.

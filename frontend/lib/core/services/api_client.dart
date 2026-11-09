@@ -216,11 +216,13 @@ class ApiClient {
     return uri.replace(queryParameters: query.map((k, v) => MapEntry(k, '$v')));
   }
 
-  Map<String, String> _headers({bool auth = true, Map<String, String>? customHeaders}) {
+  Map<String, String> _headers({bool auth = true, Map<String, String>? customHeaders, bool includeContentType = true}) {
     final headers = <String, String>{
       'Accept': 'application/json',
-      'Content-Type': 'application/json',
     };
+    // Content-Type sur un GET sans corps déclenche un préflight CORS inutile
+    // (cause classique de « Failed to fetch »). On ne l'envoie qu'avec un corps.
+    if (includeContentType) headers['Content-Type'] = 'application/json';
     if (auth) {
       final token = _auth.accessToken;
       if (token != null) headers['Authorization'] = 'Bearer $token';
@@ -235,7 +237,7 @@ class ApiClient {
       {Map<String, dynamic>? query, Map<String, String>? customHeaders, Duration? timeout}) async {
     return _send(
       () => _http.get(_uri(path, query),
-          headers: _headers(auth: true, customHeaders: customHeaders)),
+          headers: _headers(auth: true, customHeaders: customHeaders, includeContentType: false)),
       timeoutOverride: timeout,
       debugTag: _requestTag('GET', path, query),
     );

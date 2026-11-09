@@ -601,3 +601,11 @@ Aucune preuve authentifiée n'est encore disponible depuis ce poste. Après dép
 | Pages deployment | pages build #385 success |
 | Edge Functions | **non redéployées** (route `/sales` inchangée, v2.5.9 déjà live) |
 
+
+### 14.9 Capture decisive build 127/128 (09/11) + correctifs transport (a publier build 129)
+- Capture proprietaire (11-12h) : Code technique : NETWORK_ERROR | base=lwepnnecnrqdzadesyqo.supabase.co/functions/v1/pharma-api/api/v1 hasToken=true | req=GET /sales | ms=4521 cause=ClientException: Failed to fetch (URL complete, un seul /api/v1).
+- Exclusions prouvees : ni double /api/v1, ni localhost, ni token absent. Erreurs Edge 401/403/500 sont JSON avec CORS * (verifie en brut OPTIONS 200 + GET 401), donc Failed to fetch = exception avant reponse HTTP (transport/cold-start/timeout passerelle), pas une 401/403/500 lue par le navigateur.
+- Correctifs front (sans toucher POS) : suppression de Content-Type sur les GET sans corps (preflight inutile), retry unique sur NETWORK_ERROR seulement (jamais 401/403/500), auto-pagination KPI sur toute la periode (jusqua 10 pages = 1000 tickets, note de couverture sinon), tests repository ajoutes.
+- Tests : 174 PASS, 0 FAIL, 9 SKIP (dont 7 nouveaux sales_day_repository). Build local 129 SUCCESS. Deploiement : push puis CI/Deploy + version.json a reconfirmer. Test authentifie proprietaire reste obligatoire pour valider les ventes reelles.
+- Test navigateur sans session (sans JWT) : OPTIONS 200, GET /health 200 v2.5.9, GET /sales anonyme et Bearer factice sans Content-Type 401 JSON normal (transport sain depuis l'environnement de test).
+
