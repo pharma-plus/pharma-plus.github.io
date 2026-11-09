@@ -579,3 +579,9 @@ Fichiers modifiés (uniquement Ventes du jour ; **AUCUN fichier POS**) :
 ### 14.5 Action requise du propriétaire (test vraie session)
 Aucune preuve authentifiée n'est encore disponible depuis ce poste. Après déploiement du build 126, ouvrir Ventes du jour avec la session pharmacien et copier la ligne `[Diag ApiClient]` de la console (DevTools → Console, ou écran Erreur → « Code technique ») : statut HTTP + durée + exception + `tryRefresh`. **Ne pas partager le jeton.** Sans ce retour, la cause reste non prouvée entre session/`sales:view` et transport réel.
 
+### 14.6 Capture écran propriétaire (09/11/2026, build 125)
+- Écran : « Ventes du jour — Pharmacie Centrale · 09/11/2026 », pastille rouge, « Connexion impossible — vérifiez votre connexion puis réessayez. », **Code technique : NETWORK_ERROR** (statut 0).
+- Confirmation : le libellé vient du `catch` `ApiClient` (exception de transport), pas d'une réponse serveur 401/403/500.
+- Correctif diagnostic appliqué après capture (build 127 local) : exposition à l'écran et en console de `base=host hasToken=… req=GET /sales ms=…`, type exact d'exception (`runtimeType`), message masqué, résultat `tryRefresh`, et normalisation anti-`//sales` côté `ApiClient` + `AuthStore._doInit`.
+- Statut déploiement : push `a02b0b4` effectué ; build **127** compilé localement (`version.json` = 127) ; workflows CI/Deploy à confirmer puis `version.json` publié à reconfirmer avant tout verdict authentifié.
+

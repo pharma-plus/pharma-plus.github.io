@@ -151,7 +151,17 @@ class SalesDayRepository {
     final e = result.error;
     final code = e?.code ?? 'UNKNOWN';
     final status = result.statusCode;
-    final tech = status > 0 ? '$code HTTP $status' : code;
+    String detail = '';
+    if (e != null && e.details.isNotEmpty) {
+      final d = e.details.first['diagnostic'];
+      if (d is String) detail = ' | $d';
+    }
+    String rawMsg = e?.message ?? '';
+    if (rawMsg.length > 220) rawMsg = rawMsg.substring(0, 220);
+    final cleanMsg = rawMsg.replaceAll('\n', ' | ').replaceAll('\r', ' ');
+    final tech = status > 0
+        ? '$code HTTP $status$detail'
+        : '$code$detail | cause=$cleanMsg';
     if (status == 401 || code == 'SESSION_EXPIRED' || code == 'UNAUTHORIZED') {
       return SalesDayError(
         kind: SalesDayErrorKind.sessionExpired,

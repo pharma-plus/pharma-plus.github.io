@@ -403,6 +403,8 @@ class ApiClient {
           _logDiag(
               '✕ $debugTag | exception=${e.runtimeType} | cause=${_sanitizeForDiag(e.toString())} | ${sw.elapsed.inMilliseconds}ms');
         }
+        final diag =
+            'base=${_hostOf(baseUrl)}; hasToken=${_auth.accessToken != null}; req=${debugTag ?? 'GET ?'}; ms=${sw.elapsed.inMilliseconds}';
         return ApiResult._(
           false,
           null,
@@ -410,7 +412,9 @@ class ApiClient {
           ApiError(
             code,
             '$label\nCause technique : ${_sanitizeForDiag(e.toString())}',
-            const [],
+            [
+              {'diagnostic': diag}
+            ],
             0,
           ),
           0,

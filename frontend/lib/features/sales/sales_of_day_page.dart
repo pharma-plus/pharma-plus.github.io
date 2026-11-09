@@ -389,7 +389,7 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
-            Text('Code technique : ${error.technical}',
+            SelectableText('Code technique : ${error.technical}',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: AppColors.textTertiary, fontSize: 11)),
             const SizedBox(height: 16),
