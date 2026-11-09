@@ -138,6 +138,38 @@ void main() {
     });
   });
 
+  group('SalesDayRepository.isTokenExpiringSoon', () {
+    String jwtWithExp(int expSeconds) {
+      final header = base64Url.encode(utf8.encode(jsonEncode({'alg': 'ES256'})));
+      final payload = base64Url.encode(utf8.encode(jsonEncode({'exp': expSeconds})));
+      return '$header.$payload.fake';
+    }
+
+    test('jeton expiré → true', () {
+      final now = DateTime.utc(2026, 11, 9, 12, 0, 0);
+      final token = jwtWithExp(now.millisecondsSinceEpoch ~/ 1000 - 10);
+      expect(
+        SalesDayRepository.isTokenExpiringSoon(token, now: now),
+        isTrue,
+      );
+    });
+
+    test('jeton valable 1 h → false', () {
+      final now = DateTime.utc(2026, 11, 9, 12, 0, 0);
+      final token = jwtWithExp(now.millisecondsSinceEpoch ~/ 1000 + 3600);
+      expect(
+        SalesDayRepository.isTokenExpiringSoon(token, now: now),
+        isFalse,
+      );
+    });
+
+    test('token absent ou malformé → false (jamais d exception)', () {
+      expect(SalesDayRepository.isTokenExpiringSoon(null), isFalse);
+      expect(SalesDayRepository.isTokenExpiringSoon(''), isFalse);
+      expect(SalesDayRepository.isTokenExpiringSoon('pas-un-jwt'), isFalse);
+    });
+  });
+
   group('SalesDayRepository.aggregate', () {
     test('calcule CA, nombre et panier moyen sur les completed uniquement', () {
       final agg = SalesDayRepository.instance.aggregate(

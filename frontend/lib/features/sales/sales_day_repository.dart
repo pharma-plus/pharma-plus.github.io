@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import '../../core/services/api_client.dart';
 import '../../core/services/api_list.dart';
+import '../../core/services/auth_store.dart';
 
 /// ---------------------------------------------------------------------------
 /// SALES DAY — Repository indépendant (PHASE Ventes du jour)
@@ -147,12 +150,48 @@ class SalesDayRepository {
     );
   }
 
+  /// Vrai si le jeton d'accès JWT est absent de forme valide, expiré ou
+  /// recommandé dans moins de [within] (défaut 60 s). Ne vérifie PAS la
+  /// signature : il sert uniquement à décider d'un renouvellement proactif
+  /// avant le premier appel, pour ne pas dépendre d'un 401 que la
+  /// passerelle peut renvoyer sans CORS (bloqué par le navigateur).
+  static bool isTokenExpiringSoon(String? token, {Duration within = const Duration(seconds: 60), DateTime? now}) {
+    if (token == null || token.isEmpty) return false;
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return false;
+      final payload = base64Url.decode(base64Url.normalize(parts[1]));
+      final decoded = jsonDecode(utf8.decode(payload)) as Map<String, dynamic>;
+      final exp = decoded['exp'];
+      if (exp is! num) return false;
+      final expiry = DateTime.fromMillisecondsSinceEpoch((exp * 1000).toInt(), isUtc: true);
+      final reference = now ?? DateTime.now().toUtc();
+      return expiry.isBefore(reference.add(within));
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<SalesDayResult> loadPage({
     required String fromIso,
     required String toIso,
     required int page,
     required int limit,
   }) async {
+    // Renouvellement proactif UNIQUEMENT pour ce module : si le JWT est
+    // expiré ou sur le point d'expirer, on le renouvelle avant le premier
+    // appel (tryRefresh est single-flight). Sans cela, une passerelle qui
+    // rejette le JWT expiré sans CORS bloque la lecture du 401 et le
+    // client ne peut jamais renouveler (NETWORK_ERROR persistant).
+    // Best-effort : un échec ici ne bloque pas l'appel (erreur affichée).
+    try {
+      final token = AuthStore.instance.accessToken;
+      if (token != null && AuthStore.instance.refreshToken != null && isTokenExpiringSoon(token)) {
+        await AuthStore.instance.tryRefresh();
+      }
+    } catch (_) {
+      // Ignore : l'appel ci-dessous affichera l'erreur éventuelle.
+    }
     var res = await _loadPageOnce(fromIso: fromIso, toIso: toIso, page: page, limit: limit);
     // Sur NETWORK_ERROR seulement : on retente UNE fois après un court délai.
     // Aucun retry sur 401/403/500 pour éviter les boucles de session/RBAC.
