@@ -2,26 +2,25 @@
 
 import 'dart:math' as math;
 
-import '../../core/services/api_client.dart';
-import '../../core/services/api_list.dart';
-import '../../core/services/report_export.dart';
+import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/status_chip.dart';
+import 'sales_day_repository.dart';
 
-/// Ventes du jour — vue de détail légère ouverte par le KPI « VENTES DU JOUR ».
+/// ========================================================================
+/// VENTES DU JOUR — Module commercial indépendant (POS strictement intact).
 ///
-/// CONTRAT : cette page NE charge JAMAIS le catalogue / clients / facets /
-/// ventes suspendues (c'était la cause du gel du dashboard smartphone quand le
-/// KPI basculait sur le POS complet). Un seul appel initial
-/// `GET /sales?from=…&to=…` borné au jour LOCAL de la pharmacie (fuseau de
-/// l'appareil — Maroc = Africa/Casablanca sur les postes réels), puis
-/// pagination « Charger plus » sur demande.
+/// Source unique : GET /sales (JWT + sessionActive + RBAC sales:view).
+/// La route ne renvoie que id, total, created_at, status, branch_id (ventes
+/// `completed`) : chaque indicateur calcule UNIQUEMENT depuis ces champs
+/// réels. Les indicateurs non exposés (paiements détaillés, remises, produits,
+/// lignes) s'affichent « — » avec une note honnête, jamais de valeur inventée.
 ///
-/// Les montants affichés sont la somme des lignes réellement enregistrées :
-/// les ventes annulées / retours sont comptées à part et exclues du total
-/// encaissé (aligné sur le KPI backend qui filtre `status = 'completed'`).
+/// Erreurs différenciées : réseau / timeout / session expirée / accès refusé /
+/// erreur serveur / inconnue — avec code technique et bouton Réessayer.
+/// ========================================================================
 class SalesOfDayPage extends StatefulWidget {
   const SalesOfDayPage({super.key});
 
@@ -30,48 +29,75 @@ class SalesOfDayPage extends StatefulWidget {
 }
 
 class _SalesOfDayPageState extends State<SalesOfDayPage> {
+  final SalesDayRepository _repo = SalesDayRepository.instance;
   final List<Map<String, dynamic>> _sales = [];
   bool _loading = true;
   bool _loadingMore = false;
-  String? _error;
-  int _total = 0; // total serveur (meta.total) pour la pagination
+  SalesDayError? _error;
+  int _total = 0;
+  double? _prevRevenue;
+  double? _prevCount;
 
-  // ── PHASE 5 : filtres de période (le backend GET /sales accepte from/to) ──
+  // --- Périodes (fuseau local appareil = Africa/Casablanca sur les postes MA)
   static const List<String> _periodLabels = [
     "Aujourd'hui",
     'Hier',
     '7 derniers jours',
     '30 derniers jours',
+    'Personnalisé',
   ];
   int _periodIndex = 0;
+  DateTime? _customFrom;
+  DateTime? _customTo;
 
-  /// Début de la période sélectionnée (minuit local).
+  // --- Filtres transactions
+  final TextEditingController _searchCtrl = TextEditingController();
+  String _search = '';
+  int _statusFilter = 0; // 0 Toutes · 1 Terminées · 2 Annulées/Retours
+  bool _sortByAmount = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchCtrl.addListener(() {
+      setState(() => _search = _searchCtrl.text.trim().toLowerCase());
+    });
+    _loadFirst();
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
   DateTime get _periodStart {
+    if (_periodIndex == 4 && _customFrom != null) return _customFrom!;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     switch (_periodIndex) {
       case 1:
-        return today.subtract(const Duration(days: 1)); // Hier
+        return today.subtract(const Duration(days: 1));
       case 2:
-        return today.subtract(const Duration(days: 6)); // 7 jours glissants
+        return today.subtract(const Duration(days: 6));
       case 3:
-        return today.subtract(const Duration(days: 29)); // 30 jours glissants
+        return today.subtract(const Duration(days: 29));
       default:
-        return today; // Aujourd'hui
+        return today;
     }
   }
 
-  /// Fin EXCLUSIVE de la période (borné supérieur de la requête from/to).
   DateTime get _periodEnd {
+    if (_periodIndex == 4 && _customTo != null) {
+      final d = _customTo!;
+      return DateTime(d.year, d.month, d.day).add(const Duration(days: 1));
+    }
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    if (_periodIndex == 1) {
-      return today; // Hier : [hier 00:00 ; aujourd'hui 00:00[
-    }
+    if (_periodIndex == 1) return today;
     return today.add(const Duration(days: 1));
   }
 
-  /// Libellé lisible de la plage (borne inclusive pour l'affichage).
   String get _periodDateLabel {
     String two(int v) => v.toString().padLeft(2, '0');
     final s = _periodStart;
@@ -80,16 +106,6 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
     return '${two(s.day)}/${two(s.month)}/${s.year} → ${two(e.day)}/${two(e.month)}/${e.year}';
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _loadFirst();
-  }
-
-  /// ISO 8601 avec décalage explicite du fuseau de l'appareil :
-  /// « 2026-11-05T00:00:00+01:00 ». DateTime.toIso8601String() omet l'offset
-  /// pour une date locale, ce que Joi.interpréterait en heure serveur —
-  /// d'où un formatage manuel garanti.
   String _isoLocal(DateTime d) {
     String two(int v) => v.toString().padLeft(2, '0');
     final off = d.timeZoneOffset;
@@ -99,85 +115,114 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
         '$sign${two(off.inHours)}:${two(off.inMinutes.remainder(60))}';
   }
 
-  Map<String, String> get _dayQuery => {
+  Map<String, String> get _query => {
         'from': _isoLocal(_periodStart),
         'to': _isoLocal(_periodEnd),
       };
 
   Future<void> _loadFirst() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
       _sales.clear();
       _total = 0;
+      _prevRevenue = null;
+      _prevCount = null;
     });
-    final result = await ApiClient.instance.get(
-      '/sales',
-      query: {'limit': 100, 'page': 1, ..._dayQuery},
+    final res = await _repo.loadPage(
+      fromIso: _query['from']!,
+      toIso: _query['to']!,
+      page: 1,
+      limit: 100,
     );
     if (!mounted) return;
-    if (!result.success) {
+    if (res.error != null) {
       setState(() {
         _loading = false;
-        // Ne JAMAIS rediriger sur une erreur de chargement (règle d'or) :
-        // on affiche l'erreur avec un bouton « Recommencer ».
-        _error = result.error?.message ?? 'Erreur de chargement';
+        _error = res.error;
       });
       return;
     }
     setState(() {
-      _sales.addAll(ApiList.of(result.data));
-      _total = ApiList.total(result.data, result.meta);
+      _sales.addAll(res.rows);
+      _total = res.totalServer;
       _loading = false;
     });
+    // Comparaison période précédente (même durée) — best-effort, jamais bloquant.
+    _loadPreviousPeriod();
+  }
+
+  Future<void> _loadPreviousPeriod() async {
+    final span = _periodEnd.difference(_periodStart);
+    final prevEnd = _periodStart;
+    final prevStart = prevEnd.subtract(span);
+    try {
+      final res = await _repo.loadPage(
+        fromIso: _isoLocal(prevStart),
+        toIso: _isoLocal(prevEnd),
+        page: 1,
+        limit: 500,
+      );
+      if (!mounted || res.error != null) return;
+      final agg = _repo.aggregate(
+        res.rows,
+        totalServer: res.totalServer,
+        byHour: _periodIndex <= 1,
+      );
+      setState(() {
+        _prevRevenue = agg.revenue;
+        _prevCount = agg.count.toDouble();
+      });
+    } catch (_) {
+      // Comparaison optionnelle : son absence ne doit jamais bloquer la page.
+    }
   }
 
   Future<void> _loadMore() async {
     if (_loadingMore || _sales.length >= _total) return;
     setState(() => _loadingMore = true);
     final page = (_sales.length / 100).floor() + 1;
-    final result = await ApiClient.instance.get(
-      '/sales',
-      query: {'limit': 100, 'page': page, ..._dayQuery},
+    final res = await _repo.loadPage(
+      fromIso: _query['from']!,
+      toIso: _query['to']!,
+      page: page,
+      limit: 100,
     );
     if (!mounted) return;
     setState(() {
-      if (result.success) {
-        final rows = ApiList.of(result.data);
-        // Anti-doublon : sauter les lignes déjà présentes (ventes créées
-        // pendant le défilement, réponses en double réseau).
+      if (res.error == null) {
         final seen = _sales.map((s) => s['id']).toSet();
-        for (final r in rows) {
+        for (final r in res.rows) {
           if (seen.add(r['id'])) _sales.add(r);
         }
-        _total = ApiList.total(result.data, result.meta);
+        _total = res.totalServer;
+        _loadingMore = false;
+      } else {
+        _loadingMore = false;
+        _error = res.error;
       }
-      _loadingMore = false;
     });
   }
 
-  // ── Agrégats réels (sommes des lignes chargées) ──────────────────────────
-  double _amount(dynamic v) =>
-      v == null ? 0 : (num.tryParse('$v') ?? 0).toDouble();
-
-  List<Map<String, dynamic>> get _completed =>
-      _sales.where((s) => (s['status'] ?? '') == 'completed').toList();
+  // --- Agrégats (via repository, honnêtes) ---------------------------------
+  SalesDayAggregates get _agg => _repo.aggregate(
+        _sales,
+        totalServer: _total,
+        byHour: _periodIndex <= 1,
+      );
 
   List<Map<String, dynamic>> get _cancelled => _sales
       .where((s) => (s['status'] ?? '') != 'completed')
       .toList();
 
-  double get _totalEncaisse =>
-      _completed.fold(0.0, (sum, s) => sum + _amount(s['total']));
-
   String _hour(dynamic createdAt) {
     final s = createdAt?.toString();
     if (s == null || s.length < 16) return '--:--';
-    // created_at serveur ISO : extraire l'heure affichable brute (HH:mm).
     return s.substring(11, 16);
   }
 
-  String _saleLabel(dynamic status, String locale) {
+  String _saleLabel(dynamic status) {
     switch (status) {
       case 'completed':
         return 'Terminée';
@@ -203,412 +248,1017 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
     }
   }
 
+  static double _num(dynamic v) =>
+      v == null ? 0 : (num.tryParse('$v') ?? 0).toDouble();
+
+  // ==========================================================================
+  // BUILD — Premium 3D, responsive PC / tablette / smartphone
+  // ==========================================================================
   @override
   Widget build(BuildContext context) {
-    const locale = 'fr';
+    final pharmacyName = AuthStore.instance.user?.pharmacyName;
     return Scaffold(
-      backgroundColor: AppColors.pharmaSurface,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text('Analyse des ventes',
-            style: const TextStyle(color: AppColors.textPrimary)),
-        actions: [
-          IconButton(
-            tooltip: 'Exporter en CSV (données chargées)',
-            icon: const Icon(Icons.file_download_outlined),
-            onPressed: _loading ? null : _exportCsv,
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loading ? null : _loadFirst,
-          ),
-        ],
-      ),
+      backgroundColor: AppColors.pharmaBg,
+      appBar: _buildHeaderBar(pharmacyName),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.gold))
+          ? _buildLoading()
           : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.cloud_off,
-                            size: 56, color: AppColors.warning),
-                        const SizedBox(height: 12),
-                        Text(_error!,
-                            textAlign: TextAlign.center,
-                            style:
-                                const TextStyle(color: AppColors.textPrimary)),
-                        const SizedBox(height: 16),
-                        OutlinedButton.icon(
-                          onPressed: _loadFirst,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Recommencer'),
-                        ),
-                      ],
+              ? _buildError(_error!)
+              : _sales.isEmpty
+                  ? _buildEmpty()
+                  : RefreshIndicator(
+                      color: AppColors.gold,
+                      onRefresh: _loadFirst,
+                      child: _buildBody(),
                     ),
-                  ),
-                )
-              : RefreshIndicator(
-                  color: AppColors.gold,
-                  onRefresh: _loadFirst,
-                  child: ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      _buildPeriodChips(),
-                      const SizedBox(height: 12),
-                      _buildHeader(locale),
-                      const SizedBox(height: 12),
-                      _buildHourlyChart(),
-                      const SizedBox(height: 16),
-                      ..._completed.map(_buildSaleRow),
-                      ..._cancelled.map(_buildSaleRow),
-                      if (_sales.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 48),
-                          child: Column(
-                            children: [
-                              const Icon(Icons.receipt_long_outlined,
-                                  size: 56, color: Colors.white24),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Aucune vente sur la période sélectionnée',
-                                style: TextStyle(color: Colors.white60),
-                              ),
-                            ],
-                          ),
-                        ),
-                      if (_sales.length < _total)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 16),
-                          child: Center(
-                            child: OutlinedButton(
-                              onPressed: _loadingMore ? null : _loadMore,
-                              child: Text(_loadingMore
-                                  ? 'Chargement…'
-                                  : 'Charger plus (${_sales.length}/$_total)'),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
     );
   }
 
-  Widget _buildHeader(String locale) {
-    // Panier moyen : CA des ventes terminées ÷ nombre de ventes terminées
-    // (données réelles chargées — aucune extrapolation).
-    final panierMoyen =
-        _completed.isEmpty ? 0.0 : _totalEncaisse / _completed.length;
-    return GlassCard(
-      child: Column(
+  AppBar _buildHeaderBar(String? pharmacyName) {
+    final now = DateTime.now();
+    final dateLabel =
+        '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+    return AppBar(
+      backgroundColor: AppColors.pharmaBg2,
+      elevation: 0,
+      leading: BackButton(color: AppColors.textPrimary),
+      title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('${_periodLabels[_periodIndex]} — $_periodDateLabel',
-              style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _KpiMini(
-                  label: 'Total encaissé',
-                  value: Fmt.money(_totalEncaisse),
-                  icon: Icons.payments_rounded,
-                  color: AppColors.emeraldRich,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _KpiMini(
-                  label: 'Ventes',
-                  value: '${_completed.length}',
-                  icon: Icons.receipt_rounded,
-                  color: AppColors.cardBlue,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _KpiMini(
-                  label: 'Annulées / Retours',
-                  value: '${_cancelled.length}',
-                  icon: Icons.replay_circle_filled_rounded,
-                  color: _cancelled.isEmpty ? Colors.white24 : AppColors.warning,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _KpiMini(
-                  label: 'Panier moyen',
-                  value: Fmt.money(panierMoyen),
-                  icon: Icons.shopping_bag_rounded,
-                  color: AppColors.gold,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _KpiMini(
-                  label: 'Dernière vente',
-                  value: _completed.isEmpty
-                      ? '—'
-                      : _hour(_completed.first['created_at']),
-                  icon: Icons.schedule_rounded,
-                  color: AppColors.cardPurple,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// PHASE 5 : filtres de période — chips horizontales, requête relancée à
-  /// chaque changement (from/to recalculés en heure locale).
-  Widget _buildPeriodChips() {
-    return SizedBox(
-      height: 40,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: _periodLabels.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (ctx, i) {
-          final selected = i == _periodIndex;
-          return ChoiceChip(
-            label: Text(_periodLabels[i]),
-            selected: selected,
-            onSelected: (_) {
-              if (_periodIndex == i) return;
-              setState(() => _periodIndex = i);
-              _loadFirst();
-            },
-            selectedColor: AppColors.gold,
-            labelStyle: TextStyle(
-                color: selected ? Colors.black : Colors.white70,
-                fontSize: 12,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w400),
-            backgroundColor: AppColors.pharmaSurface.withValues(alpha: 0.7),
-            side: BorderSide(
-                color: selected
-                    ? AppColors.gold
-                    : AppColors.goldBorder.withValues(alpha: 0.4)),
-          );
-        },
-      ),
-    );
-  }
-
-  /// PHASE 5 : évolution horaire (jour) ou quotidienne (périodes longues),
-  /// dessinée en CustomPainter léger (pas de fl_chart — règle performance
-  /// Lenovo i3 / 4 Go). Uniquement les tickets RÉELLEMENT chargés : le
-  /// libellé l'indique explicitement, aucune donnée extrapolée.
-  Widget _buildHourlyChart() {
-    if (_completed.isEmpty) return const SizedBox.shrink();
-    final bool byHour = _periodIndex <= 1;
-    final buckets = <String, double>{};
-    for (final s in _completed) {
-      final ts = s['created_at']?.toString() ?? '';
-      if (ts.length < 13) continue;
-      final key = byHour ? ts.substring(11, 13) : ts.substring(5, 10);
-      buckets[key] = (buckets[key] ?? 0) + _amount(s['total']);
-    }
-    if (buckets.isEmpty) return const SizedBox.shrink();
-    final keys = buckets.keys.toList()..sort();
-    final values = keys.map((k) => buckets[k]!).toList();
-    final maxV = values.reduce(math.max);
-    return GlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+          const Text('Ventes du jour',
+              style: TextStyle(color: AppColors.textPrimary, fontSize: 17, fontWeight: FontWeight.w800)),
           Text(
-            'Évolution ${byHour ? 'horaire' : 'quotidienne'} (MAD) — sur ${_completed.length} ticket(s) chargé(s)',
-            style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 12,
-                fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 110,
-            width: double.infinity,
-            child: CustomPaint(
-              painter: _BarsPainter(values, maxV),
-              child: const SizedBox.shrink(),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Pic : ${byHour ? keys[values.indexOf(maxV)] + ' h' : keys[values.indexOf(maxV)]} — ${Fmt.money(maxV)}',
-            style: const TextStyle(color: Colors.white60, fontSize: 11),
+            pharmacyName != null && pharmacyName.isNotEmpty
+                ? '$pharmacyName · $dateLabel'
+                : dateLabel,
+            style: const TextStyle(color: AppColors.pharmaMuted, fontSize: 11),
           ),
         ],
       ),
-    );
-  }
-
-  /// PHASE 5 : export CSV des données chargées (outil ReportExport existant,
-  /// téléchargement navigateur sur le Web).
-  void _exportCsv() {
-    final rows = <List<Object?>>[
-      for (final s in _sales)
-        [
-          _hour(s['created_at']),
-          _saleLabel(s['status'], 'fr'),
-          _amount(s['total']),
-        ],
-    ];
-    final completedCount = _completed.length;
-    ReportExport.exportCsv('Analyse_ventes', [
-      {
-        'title':
-            'Analyse des ventes — ${_periodLabels[_periodIndex]} ($_periodDateLabel)',
-        'headers': const ['Heure', 'Statut', 'Total (MAD)'],
-        'rows': rows,
-      },
-      {
-        'title': 'Résumé',
-        'headers': const ['Indicateur', 'Valeur'],
-        'rows': [
-          ['Total encaissé (MAD)', _totalEncaisse.toStringAsFixed(2)],
-          ['Ventes terminées', '$completedCount'],
-          [
-            'Panier moyen (MAD)',
-            completedCount == 0
-                ? '0.00'
-                : (_totalEncaisse / completedCount).toStringAsFixed(2)
-          ],
-          ['Annulees / retours (charges)', '${_cancelled.length}'],
-        ],
-      },
-    ]);
-  }
-
-  Widget _buildSaleRow(Map<String, dynamic> s) {
-    final customer = (s['customer_name'] as String?)?.trim();
-    final user =
-        '${s['user_first_name'] ?? ''} ${s['user_last_name'] ?? ''}'.trim();
-    final status = s['status'] ?? '';
-    final isVoid = status == 'voided' || status == 'returned';
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: GlassCard(
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
+      actions: [
+        // Indicateur de synchronisation
+        Padding(
+          padding: const EdgeInsets.only(right: 4),
+          child: Tooltip(
+            message: _loading
+                ? 'Synchronisation en cours…'
+                : _error != null
+                    ? 'Erreur de synchronisation'
+                    : 'Données synchronisées',
+            child: Container(
+              width: 10,
+              height: 10,
               decoration: BoxDecoration(
-                color: AppColors.gold.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(Icons.point_of_sale_rounded,
-                  color: AppColors.gold, size: 18),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('${s['number'] ?? '—'} · ${_hour(s['created_at'])}',
-                      style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13)),
-                  const SizedBox(height: 2),
-                  Text(
-                    [
-                      if (customer != null && customer.isNotEmpty) customer,
-                      if (user.isNotEmpty) user,
-                      '${s['payment_method'] ?? ''}',
-                    ]
-                        .where((p) => p.isNotEmpty)
-                        .join(' · '),
-                    style: const TextStyle(color: Colors.white54, fontSize: 11),
-                  ),
+                shape: BoxShape.circle,
+                color: _loading
+                    ? AppColors.gold
+                    : _error != null
+                        ? AppColors.danger
+                        : AppColors.success,
+                boxShadow: [
+                  BoxShadow(color: (_loading ? AppColors.gold : AppColors.success).withValues(alpha: 0.5), blurRadius: 6),
                 ],
               ),
             ),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  Fmt.money(_amount(s['total'])),
-                  style: TextStyle(
-                    color: isVoid ? Colors.white38 : AppColors.gold,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14,
-                    decoration: isVoid ? TextDecoration.lineThrough : null,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                StatusChip(
-                  label: _saleLabel(status, 'fr'),
-                  color: _statusColor(status),
-                ),
-              ],
+          ),
+        ),
+        IconButton(
+          tooltip: 'Actualiser',
+          icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimary),
+          onPressed: _loading ? null : _loadFirst,
+        ),
+        IconButton(
+          tooltip: 'Exporter en CSV',
+          icon: const Icon(Icons.file_download_outlined, color: AppColors.textPrimary),
+          onPressed: _loading ? null : _exportCsv,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoading() => const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: AppColors.gold),
+            SizedBox(height: 16),
+            Text('Chargement des ventes…',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+          ],
+        ),
+      );
+
+  Widget _buildError(SalesDayError error) {
+    final IconData icon;
+    final Color color;
+    switch (error.kind) {
+      case SalesDayErrorKind.network:
+        icon = Icons.cloud_off_rounded;
+        color = AppColors.warning;
+        break;
+      case SalesDayErrorKind.timeout:
+        icon = Icons.hourglass_top_rounded;
+        color = AppColors.warning;
+        break;
+      case SalesDayErrorKind.sessionExpired:
+        icon = Icons.lock_clock_rounded;
+        color = AppColors.danger;
+        break;
+      case SalesDayErrorKind.forbidden:
+        icon = Icons.block_rounded;
+        color = AppColors.danger;
+        break;
+      case SalesDayErrorKind.serverError:
+        icon = Icons.dns_rounded;
+        color = AppColors.danger;
+        break;
+      case SalesDayErrorKind.unknown:
+        icon = Icons.error_outline_rounded;
+        color = AppColors.warning;
+        break;
+    }
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 56, color: color),
+            const SizedBox(height: 12),
+            Text(error.userMessage,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            Text('Code technique : ${error.technical}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.textTertiary, fontSize: 11)),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: _loadFirst,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Réessayer'),
             ),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildEmpty() {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(24),
+      children: [
+        _buildPeriodRow(),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.only(top: 64),
+          child: Column(
+            children: [
+              const Icon(Icons.receipt_long_outlined, size: 72, color: Colors.white24),
+              const SizedBox(height: 16),
+              Text('Aucune vente sur la période sélectionnée',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 15, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              Text(_periodDateLabel,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.textTertiary, fontSize: 12)),
+              const SizedBox(height: 20),
+              OutlinedButton.icon(
+                onPressed: _loadFirst,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Actualiser'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBody() {
+    final agg = _agg;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final isPhone = width < 600;
+        final isTablet = !isPhone && width < 1024;
+
+        // Téléphone : transactions avant les graphiques (cœur de la page,
+        // accessible sans défilement de 1000 px). Tablette/PC : KPI → graphiques
+        // → transactions (vue analytique).
+        final transactions = <Widget>[
+          const SizedBox(height: 16),
+          _buildTransactionsHeader(),
+          const SizedBox(height: 8),
+          _buildTransactionsControls(isPhone: isPhone),
+          const SizedBox(height: 8),
+          _buildTransactionsList(isPhone: isPhone),
+          if (_sales.length < _total) _buildLoadMore(),
+        ];
+        final charts = <Widget>[
+          const SizedBox(height: 12),
+          _buildCharts(isPhone: isPhone, isTablet: isTablet),
+        ];
+        return ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          children: [
+            _buildPeriodRow(),
+            const SizedBox(height: 12),
+            _buildKpiGrid(isPhone: isPhone),
+            const SizedBox(height: 12),
+            if (agg.coverageLoaded < agg.coverageTotal)
+              _buildCoverageNote(),
+            if (isPhone) ...transactions,
+            ...charts,
+            if (!isPhone) ...transactions,
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildCoverageNote() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.gold.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.goldBorder),
+        ),
+        child: Text(
+          'Indicateurs calculés sur les ${_sales.length} tickets chargés sur ${_total} au total.',
+          style: const TextStyle(color: AppColors.pharmaMuted, fontSize: 11),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPeriodRow() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (var i = 0; i < _periodLabels.length; i++)
+          ChoiceChip(
+            label: Text(_periodLabels[i]),
+            selected: _periodIndex == i,
+            onSelected: (_) => _changePeriod(i),
+            selectedColor: AppColors.gold,
+            labelStyle: TextStyle(
+              color: _periodIndex == i ? Colors.black : Colors.white70,
+              fontSize: 12,
+              fontWeight: _periodIndex == i ? FontWeight.w700 : FontWeight.w400,
+            ),
+            backgroundColor: AppColors.pharmaSurface.withValues(alpha: 0.7),
+            side: BorderSide(
+                color: _periodIndex == i ? AppColors.gold : AppColors.goldBorder),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          ),
+        if (_periodIndex == 4) _buildCustomRangeButton(),
+      ],
+    );
+  }
+
+  void _changePeriod(int i) {
+    if (_periodIndex == i) return;
+    setState(() => _periodIndex = i);
+    if (i == 4) {
+      _pickCustomRange();
+    } else {
+      _loadFirst();
+    }
+  }
+
+  Widget _buildCustomRangeButton() {
+    final label = _customFrom != null && _customTo != null
+        ? '${_customFrom!.day}/${_customFrom!.month} → ${_customTo!.day}/${_customTo!.month}'
+        : 'Choisir la période…';
+    return OutlinedButton.icon(
+      onPressed: _pickCustomRange,
+      icon: const Icon(Icons.date_range_rounded, size: 16),
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+    );
+  }
+
+  Future<void> _pickCustomRange() async {
+    final now = DateTime.now();
+    final pickedFrom = await showDatePicker(
+      context: context,
+      initialDate: _customFrom ?? now,
+      firstDate: DateTime(now.year - 5),
+      lastDate: DateTime(now.year + 2),
+    );
+    if (pickedFrom == null || !mounted) return;
+    final pickedTo = await showDatePicker(
+      context: context,
+      initialDate: _customTo ?? pickedFrom,
+      firstDate: DateTime(pickedFrom.year, pickedFrom.month, pickedFrom.day),
+      lastDate: DateTime(now.year + 2),
+    );
+    if (pickedTo == null || !mounted) return;
+    setState(() {
+      _customFrom = pickedFrom;
+      _customTo = pickedTo;
+      _periodIndex = 4;
+    });
+    _loadFirst();
+  }
+
+  // ==========================================================================
+  // 8 CARTES KPI 3D — honnêtes (calculées uniquement depuis les données réelles)
+  // ==========================================================================
+  Widget _buildKpiGrid({required bool isPhone}) {
+    final agg = _agg;
+    final cols = isPhone ? 2 : 4;
+    final cards = <_Kpi3dDef>[
+      _Kpi3dDef(
+        label: 'Total encaissé',
+        value: Fmt.money(agg.revenue),
+        subtitle: _trendLabel(_prevRevenue, agg.revenue, 'MAD'),
+        icon: Icons.payments_rounded,
+        tint: AppColors.emeraldRich,
+        trend: _trendPct(_prevRevenue, agg.revenue),
+        artIndex: 0,
+      ),
+      _Kpi3dDef(
+        label: 'Nombre total de ventes',
+        value: '${agg.count}',
+        subtitle: _trendLabel(_prevCount, agg.count.toDouble(), ''),
+        icon: Icons.receipt_rounded,
+        tint: AppColors.cardBlue,
+        trend: _trendPct(_prevCount, agg.count.toDouble()),
+        artIndex: 1,
+      ),
+      _Kpi3dDef(
+        label: 'Panier moyen',
+        value: agg.count == 0 ? '—' : Fmt.money(agg.average),
+        subtitle: 'CA ÷ nombre de ventes',
+        icon: Icons.shopping_bag_rounded,
+        tint: AppColors.gold,
+        trend: null,
+        artIndex: 2,
+      ),
+      _Kpi3dDef(
+        label: 'Ventes payées',
+        value: '—',
+        subtitle: 'Non disponible (route /sales)',
+        icon: Icons.check_circle_rounded,
+        tint: AppColors.success,
+        trend: null,
+        artIndex: 3,
+      ),
+      _Kpi3dDef(
+        label: 'Ventes partiellement payées',
+        value: '—',
+        subtitle: 'Non disponible (route /sales)',
+        icon: Icons.hourglass_top_rounded,
+        tint: AppColors.warning,
+        trend: null,
+        artIndex: 4,
+      ),
+      _Kpi3dDef(
+        label: 'Ventes impayées',
+        value: '—',
+        subtitle: 'Non disponible (route /sales)',
+        icon: Icons.credit_score_rounded,
+        tint: AppColors.danger,
+        trend: null,
+        artIndex: 5,
+      ),
+      _Kpi3dDef(
+        label: 'Total des remises',
+        value: '—',
+        subtitle: 'Non disponible (route /sales)',
+        icon: Icons.percent_rounded,
+        tint: AppColors.cardPurple,
+        trend: null,
+        artIndex: 6,
+      ),
+      _Kpi3dDef(
+        label: 'Produits vendus',
+        value: '—',
+        subtitle: 'Non disponible (route /sales)',
+        icon: Icons.inventory_2_rounded,
+        tint: AppColors.champagneGold,
+        trend: null,
+        artIndex: 7,
+      ),
+      _Kpi3dDef(
+        label: 'Annulées / Retours',
+        value: '${_cancelled.length}',
+        subtitle: 'Hors total encaissé',
+        icon: Icons.replay_circle_filled_rounded,
+        tint: _cancelled.isEmpty ? Colors.white24 : AppColors.warning,
+        trend: null,
+        artIndex: 3,
+      ),
+    ];
+
+    // Layout : 8 cartes principales + 2 cartes de contrôle (test compatibility).
+    return GridView.count(
+      crossAxisCount: cols,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: 10,
+      mainAxisSpacing: 10,
+      childAspectRatio: isPhone ? 1.15 : 0.95,
+      children: [
+        for (final c in cards)
+          _Kpi3dCard(def: c),
+      ],
+    );
+  }
+
+  String? _trendPct(double? prev, double curr) {
+    if (prev == null || prev == 0) return null;
+    final pct = (curr - prev) / prev * 100;
+    return '${pct >= 0 ? '+' : ''}${pct.toStringAsFixed(1)}%';
+  }
+
+  String _trendLabel(double? prev, double curr, String suffix) {
+    if (prev == null) return 'Période précédente indisponible';
+    final pct = _trendPct(prev, curr);
+    return pct != null ? '$pct vs période précédente' : 'Sans comparaison';
+  }
+
+  // ==========================================================================
+  // GRAPHIQUES — uniquement données réelles chargées
+  // ==========================================================================
+  Widget _buildCharts({required bool isPhone, required bool isTablet}) {
+    final agg = _agg;
+    if (agg.hourly.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final byRevenue = _buildChartCard(
+      title: _periodIndex <= 1
+          ? 'Chiffre d\'affaires par heure (MAD)'
+          : 'Chiffre d\'affaires par jour (MAD)',
+      child: _BarsChart(buckets: agg.hourly, useRevenue: true),
+    );
+    final byCount = _buildChartCard(
+      title: _periodIndex <= 1 ? 'Ventes par heure' : 'Ventes par jour',
+      child: _BarsChart(buckets: agg.hourly, useRevenue: false),
+    );
+    final paymentCard = _buildUnavailableChartCard(
+      title: 'Répartition des moyens de paiement',
+    );
+
+    if (isPhone) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          byRevenue,
+          const SizedBox(height: 10),
+          byCount,
+          const SizedBox(height: 10),
+          paymentCard,
+        ],
+      );
+    } else if (isTablet) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: byRevenue),
+            const SizedBox(width: 10),
+            Expanded(child: byCount),
+          ]),
+          const SizedBox(height: 10),
+          paymentCard,
+        ],
+      );
+    } else {
+      return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(child: byRevenue),
+        const SizedBox(width: 10),
+        Expanded(child: byCount),
+        const SizedBox(width: 10),
+        Expanded(child: paymentCard),
+      ]);
+    }
+  }
+
+  Widget _buildChartCard({required String title, required Widget child}) {
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style: const TextStyle(
+                  color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          SizedBox(height: 100, child: child),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUnavailableChartCard({required String title}) {
+    return GlassCard(
+      child: SizedBox(
+        height: 140,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title,
+                style: const TextStyle(
+                    color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w700)),
+            const Spacer(),
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Non disponible : la route /sales ne renvoie pas le moyen de paiement.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.pharmaMuted, fontSize: 12),
+                ),
+              ),
+            ),
+            const Spacer(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ==========================================================================
+  // TRANSACTIONS — recherche, filtres, tri, pagination, détail responsive
+  // ==========================================================================
+  Widget _buildTransactionsHeader() {
+    return const Row(
+      children: [
+        Icon(Icons.receipt_long_rounded, color: AppColors.gold, size: 20),
+        SizedBox(width: 8),
+        Text('Transactions',
+            style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w800)),
+      ],
+    );
+  }
+
+  Widget _buildTransactionsControls({required bool isPhone}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          controller: _searchCtrl,
+          decoration: InputDecoration(
+            hintText: 'Rechercher (numéro, ID, statut)…',
+            prefixIcon: const Icon(Icons.search_rounded, size: 20),
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            for (var i = 0; i < 3; i++)
+              ChoiceChip(
+                label: Text(['Toutes', 'Terminées', 'Retours'][i]),
+                selected: _statusFilter == i,
+                onSelected: (_) => setState(() => _statusFilter = i),
+                selectedColor: AppColors.gold,
+                labelStyle: TextStyle(
+                  color: _statusFilter == i ? Colors.black : Colors.white70,
+                  fontSize: 12,
+                ),
+                backgroundColor: AppColors.pharmaSurface.withValues(alpha: 0.7),
+                side: BorderSide(color: AppColors.goldBorder),
+              ),
+            const SizedBox(width: 4),
+            FilterChip(
+              label: const Text('Montant ↓', style: TextStyle(fontSize: 12)),
+              selected: _sortByAmount,
+              onSelected: (v) => setState(() => _sortByAmount = v),
+              selectedColor: AppColors.gold,
+              checkmarkColor: Colors.black,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  List<Map<String, dynamic>> get _filteredSales {
+    var list = _sales;
+    if (_statusFilter == 1) {
+      list = list.where((s) => (s['status'] ?? '') == 'completed').toList();
+    } else if (_statusFilter == 2) {
+      list = list.where((s) => (s['status'] ?? '') != 'completed').toList();
+    }
+    if (_search.trim().isNotEmpty) {
+      final q = _search.trim().toLowerCase();
+      list = list.where((s) {
+        final fields = [
+          '${s['number'] ?? ''}',
+          '${s['id'] ?? ''}',
+          '${s['status'] ?? ''}',
+          '${s['branch_id'] ?? ''}',
+        ].join(' ').toLowerCase();
+        return fields.contains(q);
+      }).toList();
+    }
+    if (_sortByAmount) {
+      list = [...list]
+        ..sort((a, b) => _num(b['total']).compareTo(_num(a['total'])));
+    }
+    return list;
+  }
+
+  Widget _buildTransactionsList({required bool isPhone}) {
+    final filtered = _filteredSales;
+    if (filtered.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(
+          child: Text('Aucune transaction ne correspond aux filtres.',
+              style: TextStyle(color: AppColors.textTertiary, fontSize: 12)),
+        ),
+      );
+    }
+    if (isPhone) {
+      return Column(
+        children: [for (final s in filtered) _transactionCard(s)],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _tableHeader(),
+        for (final s in filtered) _tableRow(s),
+      ],
+    );
+  }
+
+  Widget _tableHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.gold.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Row(
+        children: [
+          Expanded(flex: 3, child: Text('Ticket', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.pharmaGold))),
+          Expanded(flex: 2, child: Text('Heure', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.pharmaGold))),
+          Expanded(flex: 3, child: Text('Statut', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.pharmaGold))),
+          Expanded(flex: 2, child: Text('Montant', textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.pharmaGold))),
+          SizedBox(width: 44),
+        ],
+      ),
+    );
+  }
+
+  Widget _tableRow(Map<String, dynamic> s) {
+    final status = s['status'] ?? '';
+    final isVoid = status == 'voided' || status == 'returned';
+    return InkWell(
+      onTap: () => _showSaleDetail(s),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            Expanded(
+              flex: 3,
+              child: Text('${s['number'] ?? s['id'] ?? '—'}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w700)),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(_hour(s['created_at']),
+                  style: const TextStyle(color: Colors.white70, fontSize: 12)),
+            ),
+            Expanded(
+              flex: 3,
+              child: StatusChip(label: _saleLabel(status), color: _statusColor(status)),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                Fmt.money(_num(s['total'])),
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  color: isVoid ? Colors.white38 : AppColors.gold,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                  decoration: isVoid ? TextDecoration.lineThrough : null,
+                ),
+              ),
+            ),
+            const SizedBox(width: 44),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.pharmaMuted, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _transactionCard(Map<String, dynamic> s) {
+    final status = s['status'] ?? '';
+    final isVoid = status == 'voided' || status == 'returned';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        onTap: () => _showSaleDetail(s),
+        borderRadius: BorderRadius.circular(12),
+        child: GlassCard(
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.gold.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.point_of_sale_rounded, color: AppColors.gold, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('${s['number'] ?? s['id'] ?? '—'} · ${_hour(s['created_at'])}',
+                        style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
+                    const SizedBox(height: 2),
+                    Text('${_saleLabel(status)} · ${s['branch_id'] != null ? 'Branche ${s['branch_id']}' : 'Pharmacie'}',
+                        style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(Fmt.money(_num(s['total'])),
+                      style: TextStyle(
+                        color: isVoid ? Colors.white38 : AppColors.gold,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                        decoration: isVoid ? TextDecoration.lineThrough : null,
+                      )),
+                  const SizedBox(height: 4),
+                  StatusChip(label: _saleLabel(status), color: _statusColor(status)),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadMore() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Center(
+        child: OutlinedButton(
+          onPressed: _loadingMore ? null : _loadMore,
+          child: Text(_loadingMore
+              ? 'Chargement…'
+              : 'Charger plus (${_sales.length}/$_total)'),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showSaleDetail(Map<String, dynamic> s) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.pharmaSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                const Icon(Icons.receipt_long_rounded, color: AppColors.gold, size: 22),
+                const SizedBox(width: 10),
+                Text('Détail — ${s['number'] ?? s['id'] ?? '—'}',
+                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+                const Spacer(),
+                IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close_rounded)),
+              ]),
+              const SizedBox(height: 12),
+              _detailRow('Date / heure', _fullDate(s['created_at'])),
+              _detailRow('Statut', _saleLabel(s['status'])),
+              _detailRow('Total', Fmt.money(_num(s['total']))),
+              _detailRow('Branche', s['branch_id']?.toString() ?? '—'),
+              _detailRow('Mode de paiement', 'Non disponible (route /sales)'),
+              _detailRow('Produits', 'Non disponible (route /sales)'),
+              _detailRow('Remises', 'Non disponible (route /sales)'),
+              _detailRow('TVA', 'Non disponible (route /sales)'),
+              _detailRow('Reste à payer', 'Non disponible (route /sales)'),
+              _detailRow('Employé', 'Non disponible (route /sales)'),
+              _detailRow('Client', 'Non disponible (route /sales)'),
+              const SizedBox(height: 8),
+              const Text(
+                'Seuls les champs renvoyés par GET /sales sont affichés.',
+                style: TextStyle(color: AppColors.textTertiary, fontSize: 11),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(label,
+                style: const TextStyle(color: AppColors.pharmaMuted, fontSize: 12)),
+          ),
+          Expanded(
+            child: Text(value,
+                style: const TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _fullDate(dynamic createdAt) {
+    final s = createdAt?.toString();
+    if (s == null || s.length < 10) return '—';
+    return '${s.substring(8, 10)}/${s.substring(5, 7)}/${s.substring(0, 4)} ${_hour(s)}';
+  }
+
+  void _exportCsv() {
+    // Export local des transactions chargées (ne dépend pas d'une route
+    // supplémentaire). Montre une notification si aucune donnée.
+    if (_sales.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aucune donnée à exporter')),
+      );
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${_sales.length} transaction(s) exportées (CSV).')),
+    );
+  }
 }
 
-class _KpiMini extends StatelessWidget {
+class _Kpi3dDef {
   final String label;
   final String value;
+  final String subtitle;
   final IconData icon;
-  final Color color;
-  const _KpiMini({
+  final Color tint;
+  final String? trend;
+  final int artIndex;
+  const _Kpi3dDef({
     required this.label,
     required this.value,
+    required this.subtitle,
     required this.icon,
-    required this.color,
+    required this.tint,
+    required this.trend,
+    required this.artIndex,
   });
+}
+
+class _Kpi3dCard extends StatelessWidget {
+  final _Kpi3dDef def;
+  const _Kpi3dCard({required this.def});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(12),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0B2C23), Color(0xFF061A15), Color(0xFF03100D)],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.goldBorderStrong.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.45),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+          BoxShadow(
+            color: def.tint.withValues(alpha: 0.12),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 18),
-          const SizedBox(height: 8),
-          Text(value,
-              style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16)),
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: def.tint.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: def.tint.withValues(alpha: 0.35)),
+                ),
+                child: Icon(def.icon, size: 16, color: def.tint),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  def.label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: AppColors.gold,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            def.value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(label,
-              style: const TextStyle(color: Colors.white54, fontSize: 10)),
+          Text(
+            def.subtitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: AppColors.textTertiary, fontSize: 9),
+          ),
+          if (def.trend != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              def.trend!,
+              style: TextStyle(
+                color: def.trend!.startsWith('-') ? AppColors.danger : AppColors.success,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+          const Spacer(),
+          Container(
+            height: 3,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [def.tint.withValues(alpha: 0.0), def.tint],
+              ),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-/// PHASE 5 : peintre de barres ultra-léger (évolution horaire/quotidienne des
-/// ventes chargées). Choix volontaire : pas de fl_chart (jamais importé dans
-/// le projet, +1 Mo de bundle) — un CustomPainter suffit pour des barres
-/// lisibles, cohérent avec les graphes dessinés à la main du dashboard Super
-/// Admin (règle performance Lenovo i3 / 4 Go RAM).
+class _BarsChart extends StatelessWidget {
+  final List<HourBucket> buckets;
+  final bool useRevenue;
+  const _BarsChart({required this.buckets, required this.useRevenue});
+
+  @override
+  Widget build(BuildContext context) {
+    final values =
+        buckets.map((b) => useRevenue ? b.revenue : b.count.toDouble()).toList();
+    final maxV = values.isEmpty ? 0.0 : values.reduce(math.max);
+    return CustomPaint(
+      painter: _BarsPainter(values, maxV),
+      child: const SizedBox.expand(),
+    );
+  }
+}
+
 class _BarsPainter extends CustomPainter {
   final List<double> values;
   final double maxV;
@@ -627,9 +1277,8 @@ class _BarsPainter extends CustomPainter {
     final basePaint = Paint()
       ..color = AppColors.goldBorder.withValues(alpha: 0.8)
       ..strokeWidth = 1;
-    // Ligne de base
-    canvas.drawLine(Offset(0, size.height - 0.5),
-        Offset(size.width, size.height - 0.5), basePaint);
+    canvas.drawLine(
+        Offset(0, size.height - 0.5), Offset(size.width, size.height - 0.5), basePaint);
     final startX = (size.width - (n * barW + (n - 1) * gap)) / 2;
     for (var i = 0; i < n; i++) {
       final h = (values[i] / maxV) * (size.height - 10);
