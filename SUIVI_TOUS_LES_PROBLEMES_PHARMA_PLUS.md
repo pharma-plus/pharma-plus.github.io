@@ -585,3 +585,19 @@ Aucune preuve authentifiée n'est encore disponible depuis ce poste. Après dép
 - Correctif diagnostic appliqué après capture (build 127 local) : exposition à l'écran et en console de `base=host hasToken=… req=GET /sales ms=…`, type exact d'exception (`runtimeType`), message masqué, résultat `tryRefresh`, et normalisation anti-`//sales` côté `ApiClient` + `AuthStore._doInit`.
 - Statut déploiement : push `a02b0b4` effectué ; build **127** compilé localement (`version.json` = 127) ; workflows CI/Deploy à confirmer puis `version.json` publié à reconfirmer avant tout verdict authentifié.
 
+### 14.7 Preuve CORS avec en-têtes Flutter exacts (09/11, navigateur)
+- `OPTIONS /sales` → 200.
+- `GET /sales` anonyme → 401 (101 o, ~420 ms).
+- `GET /sales` avec `Authorization: Bearer …` + `Content-Type: application/json` + `Accept` → **401 JSON normal** (~2,7 s), en-têtes CORS `*`.
+- Conclusion : le transport navigateur est sain ; la `NETWORK_ERROR` Flutter est donc une exception de transport **avant** la réponse serveur (Configuration URL / mixed-content / cert / DNS / fetch Flutter), pas une erreur métier 401/403/500. Le détail exact (`base`, `hasToken`, `exception`, `cause`, `tryRefresh`) est maintenant visible sur l'écran d'erreur du build 127.
+
+### 14.8 Déploiement confirmé 09/11
+| Élément | Statut |
+|---|---|
+| Commit distant | `2b70ac9` (= HEAD local = `origin/main`) |
+| CI #172 | **success** |
+| Deploy Flutter Web #127 | **success** sur `2b70ac9` |
+| `https://pharma-plus.github.io/version.json` | **127** (build_number = 127) |
+| Pages deployment | pages build #385 success |
+| Edge Functions | **non redéployées** (route `/sales` inchangée, v2.5.9 déjà live) |
+
