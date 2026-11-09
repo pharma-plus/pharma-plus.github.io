@@ -912,6 +912,15 @@ class _PosPageState extends State<PosPage> {
     }
   }
 
+  /// ↓ : passer de la recherche aux résultats (ex-RawKeyboardListener).
+  /// Défocalise le champ pour libérer le clavier et permettre la navigation
+  /// dans la liste des médicaments trouvés.
+  void _searchArrowDown() {
+    if (_searchFocus.hasFocus && _results.isNotEmpty) {
+      _searchFocus.unfocus();
+    }
+  }
+
   /// Échap : « annuler l'action en cours » — vide la recherche et rend le
   /// focus à la page. Dans une modale, Échap ferme D'ABORD la modale
   /// (comportement Flutter standard, prioritaire sur ce handler) : aucun
@@ -1474,6 +1483,9 @@ class _PosPageState extends State<PosPage> {
         const SingleActivator(LogicalKeyboardKey.f4): _showCustomerPicker,
         const SingleActivator(LogicalKeyboardKey.f9): _confirmPayment,
         const SingleActivator(LogicalKeyboardKey.escape): _onEscapePos,
+        // ↓ : passer aux résultats depuis la recherche (ex-RawKeyboardListener)
+        const SingleActivator(LogicalKeyboardKey.arrowDown):
+            _searchArrowDown,
       },
       child: Focus(
         autofocus: true,
@@ -1750,63 +1762,49 @@ class _PosPageState extends State<PosPage> {
           alignment: Alignment.centerLeft,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 380),
-            child: Focus(
+            child: TextField(
+              controller: _search,
               focusNode: _searchFocus,
-              child: RawKeyboardListener(
-                focusNode: _searchFocus,
-                onKey: (event) {
-                  if (event is RawKeyDownEvent) {
-                    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-                      if (_results.isNotEmpty) {
-                        _searchFocus.unfocus();
-                      }
-                    } else if (event.logicalKey == LogicalKeyboardKey.escape) {
-                      _searchFocus.unfocus();
-                      _search.clear();
-                      _onSearchChanged('');
-                    }
-                  }
-                },
-                child: TextField(
-                controller: _search,
-                focusNode: _searchFocus,
-                onChanged: _onSearchChanged,
-                // PHASE 4 : le scanner HID (wedge clavier) saisit l'EAN puis
-                // envoie « Entrée » — onSubmitted route le code vers le même
-                // flux que le scan caméra (voir _onSearchSubmitted).
-                onSubmitted: _onSearchSubmitted,
-                style: const TextStyle(color: Colors.white, fontSize: 13),
-                decoration: InputDecoration(
-                  hintText: S.t('search', locale),
-                  prefixIcon: const Icon(Icons.search,
-                      color: AppColors.pharmaMuted, size: 20),
-                  suffixIcon: _searching
-                      ? const Padding(
-                          padding: EdgeInsets.all(12),
-                          child: SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2)),
-                        )
-                      : null,
-                  fillColor: AppColors.pharmaSurface,
-                  filled: true,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.goldBorder)),
-                  enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.goldBorder)),
-                  focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.pharmaGold)),
-                ),
-              ),
+              onChanged: _onSearchChanged,
+              // PHASE 4 : le scanner HID (wedge clavier) saisit l'EAN puis
+              // envoie « Entrée » — onSubmitted route le code vers le même
+              // flux que le scan caméra (voir _onSearchSubmitted).
+              onSubmitted: _onSearchSubmitted,
+              // PHASE 4 corr. : les touches ↓ et Échap sont gérées par le
+              // CallbackShortcuts de la page (_searchArrowDown / _onEscapePos).
+              // L'ancien RawKeyboardListener partageait _searchFocus entre
+              // Focus + RawKeyboardListener + TextField (assertion child != this
+              // → exception à la construction, cause du gel).
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              decoration: InputDecoration(
+                hintText: S.t('search', locale),
+                prefixIcon: const Icon(Icons.search,
+                    color: AppColors.pharmaMuted, size: 20),
+                suffixIcon: _searching
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2)),
+                      )
+                    : null,
+                fillColor: AppColors.pharmaSurface,
+                filled: true,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.goldBorder)),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.goldBorder)),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.pharmaGold)),
               ),
             ),
-        ),
+          ),
         ),
         // ── Bandeau hors-ligne : signale que prix/stock ne sont pas garantis
         // à jour (données servies depuis le cache local, dernière synchro). ──
