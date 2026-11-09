@@ -260,7 +260,11 @@ class AuthStore extends ChangeNotifier {
     } else if (storedUrl != null && storedUrl.isNotEmpty) {
       // L'URL choisie dans les paramètres (⚙) est respectée, y compris
       // une URL locale (http://127.0.0.1:4000/api/v1) en développement.
-      _baseUrl = storedUrl;
+      // Normalisation : aucun '/' final (évite //sales côté ApiClient).
+      _baseUrl = storedUrl.trim();
+      while (_baseUrl.endsWith('/')) {
+        _baseUrl = _baseUrl.substring(0, _baseUrl.length - 1);
+      }
     }
 
     _accessToken = await _tokenRead(_kAccess);

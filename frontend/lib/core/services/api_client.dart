@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'auth_store.dart';
 import '../models/user.dart';
@@ -114,6 +115,67 @@ bool _isWakePage(String body) {
   return false;
 }
 
+/// Diagnostic Ventes du jour : masque tout secret et borne la taille des
+/// messages. Ne logge JAMAIS de jeton, mot de passe ou donnée personnelle.
+String _sanitizeForDiag(String input) {
+  var s = input.replaceAll(RegExp(r'Bearer\s+[A-Za-z0-9\-._~+\/=]+'), 'Bearer ***');
+  s = s.replaceAll(RegExp(r'(eyJ[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+)'), 'eyJ***');
+  if (s.length > 400) s = s.substring(0, 400);
+  return s;
+}
+
+/// Étiquette de requête sans valeurs sensibles : méthode + chemin + noms de
+/// paramètres uniquement (jamais les tokens ni le corps complet).
+String _requestTag(String method, String path, Map<String, dynamic>? query) {
+  final keys = query == null || query.isEmpty
+      ? ''
+      : ' ?${query.keys.join(',')}';
+  return '$method $path$keys';
+}
+
+/// Journal de diagnostic pour les appels Ventes du jour uniquement.
+void _logDiag(String message) {
+  debugPrint('[Diag ApiClient] ${_sanitizeForDiag(message)}');
+}
+
+/// Extrait un résumé de réponse sans données personnelles
+/// (codes et messages d'erreur, taille, jamais les montants complets).
+String _responseSummary(http.Response res) {
+  final body = res.body;
+  var snippet = '';
+  try {
+    final decoded = jsonDecode(body);
+    if (decoded is Map) {
+      final err = decoded['error'];
+      final meta = decoded['meta'];
+      snippet = 'error=${err == null ? 'null' : err.runtimeType}, dataType=${decoded['data']?.runtimeType ?? 'null'}, metaTotal=${meta is Map ? '${meta['total']}' : 'n/a'}, keys=${decoded.keys.join(',')}';
+      if (err is Map) {
+        snippet +=
+            ', errCode=${err['code'] ?? 'n/a'}, errMsg=${err['message'] ?? 'n/a'}';
+      }
+    } else if (decoded is List) {
+      snippet = 'listLen=${decoded.length}';
+    } else {
+      snippet = 'decodeType=${decoded?.runtimeType ?? 'null'}';
+    }
+  } catch (_) {
+    snippet = 'bodyNotJson len=${body.length}';
+  }
+  if (snippet.length > 400) snippet = snippet.substring(0, 400);
+  return 'status=${res.statusCode}, len=${body.length}, $snippet';
+}
+
+/// Host de l'URL de base (sans secret) pour le diagnostic.
+String _hostOf(String? baseUrl) {
+  if (baseUrl == null || baseUrl.isEmpty) return 'null';
+  try {
+    final uri = Uri.parse(baseUrl);
+    return '${uri.host}${uri.path}';
+  } catch (_) {
+    return 'unparseable';
+  }
+}
+
 /// Client HTTP central : injecte le jeton, gère le renouvellement de session
 /// et la file hors-ligne.
 class ApiClient {
@@ -142,8 +204,14 @@ class ApiClient {
   }
 
   Uri _uri(String path, [Map<String, dynamic>? query]) {
-    final base = baseUrl ?? 'http://localhost:4000/api/v1';
-    final uri = Uri.parse('$base$path');
+    var base = (baseUrl ?? 'http://localhost:4000/api/v1').trim();
+    // Normalise : aucun '/' final sur la base (évite //sales) et '/' initial sur le chemin.
+    while (base.endsWith('/')) {
+      base = base.substring(0, base.length - 1);
+    }
+    var normalizedPath = path;
+    if (!normalizedPath.startsWith('/')) normalizedPath = '/$normalizedPath';
+    final uri = Uri.parse('$base$normalizedPath');
     if (query == null || query.isEmpty) return uri;
     return uri.replace(queryParameters: query.map((k, v) => MapEntry(k, '$v')));
   }
@@ -169,6 +237,7 @@ class ApiClient {
       () => _http.get(_uri(path, query),
           headers: _headers(auth: true, customHeaders: customHeaders)),
       timeoutOverride: timeout,
+      debugTag: _requestTag('GET', path, query),
     );
   }
 
@@ -191,6 +260,7 @@ class ApiClient {
         body: body is String ? body : jsonEncode(body ?? {}),
       ),
       timeoutOverride: timeout,
+      debugTag: _requestTag('POST', path, null),
     );
   }
 
@@ -199,6 +269,7 @@ class ApiClient {
       () => _http.put(_uri(path),
           headers: _headers(customHeaders: customHeaders),
           body: jsonEncode(body ?? {})),
+      debugTag: _requestTag('PUT', path, null),
     );
   }
 
@@ -210,11 +281,15 @@ class ApiClient {
       () => _http.patch(_uri(path),
           headers: _headers(customHeaders: customHeaders),
           body: jsonEncode(body ?? {})),
+      debugTag: _requestTag('PATCH', path, null),
     );
   }
 
   Future<ApiResult<dynamic>> delete(String path, {Map<String, String>? customHeaders}) async {
-    return _send(() => _http.delete(_uri(path), headers: _headers(customHeaders: customHeaders)));
+    return _send(
+      () => _http.delete(_uri(path), headers: _headers(customHeaders: customHeaders)),
+      debugTag: _requestTag('DELETE', path, null),
+    );
   }
 
   /// Envoie la requête. Gère :
@@ -223,8 +298,14 @@ class ApiClient {
   ///  - le renouvellement de session unique en cas de 401 ;
   ///  - les erreurs réseau / timeout.
   Future<ApiResult<dynamic>> _send(Future<http.Response> Function() request,
-      {bool retried = false, Duration? timeoutOverride}) async {
+      {bool retried = false, Duration? timeoutOverride, String? debugTag}) async {
     final timeout = timeoutOverride ?? ApiClient.timeout;
+    final bool isSales = debugTag != null && debugTag.contains('sales');
+    final sw = Stopwatch()..start();
+    if (isSales) {
+      _logDiag(
+          '▶ $debugTag | hasToken=${_auth.accessToken != null} | baseHost=${_hostOf(baseUrl)}');
+    }
     // Ancien plafond : 10 × 4 s + timeouts 25 s = jusqu'à ~315-650 s de blocage.
     // On borne maintenant à 3 tentatives + un délai total maximal de 45 s.
     const maxWakeRetries = 3;
@@ -264,14 +345,21 @@ class ApiClient {
           // brut, sans jamais altérer les erreurs de connexion (pas de
           // session avant la tentative).
           final hadSession = _auth.accessToken != null;
+          if (isSales) {
+            _logDiag(
+                '401 sur $debugTag | hasToken=$hadSession | tryRefresh en cours… | ${_responseSummary(res)}');
+          }
           final renewed = await _auth.tryRefresh();
+          if (isSales) _logDiag('401 refresh résultat=$renewed');
           if (renewed) {
             return await _send(request,
-                retried: true, timeoutOverride: timeoutOverride);
+                retried: true,
+                timeoutOverride: timeoutOverride,
+                debugTag: debugTag);
           }
           _auth.signOut();
           if (hadSession) {
-            return ApiResult<dynamic>._(
+            final result = ApiResult<dynamic>._(
               false,
               null,
               null,
@@ -283,6 +371,11 @@ class ApiClient {
               ),
               401,
             );
+            if (isSales) {
+              _logDiag(
+                  '✕ $debugTag | final=SESSION_EXPIRED HTTP 401 | tryRefresh=false | ${sw.elapsed.inMilliseconds}ms');
+            }
+            return result;
           }
         }
         // Session verrouillée côté serveur (423) : afficher l'écran PIN.
@@ -292,7 +385,12 @@ class ApiClient {
         if (res.statusCode == 423) {
           _auth.serverLocked();
         }
-        return ApiResult<dynamic>.fromResponse(res);
+        final result = ApiResult<dynamic>.fromResponse(res);
+        if (isSales) {
+          _logDiag(
+              '${res.statusCode >= 200 && res.statusCode < 300 ? '✓' : '✕'} $debugTag | ${_responseSummary(res)} | final=${result.error?.code ?? 'OK'} HTTP ${result.statusCode} | ${sw.elapsed.inMilliseconds}ms');
+        }
+        return result;
       } on ApiResult<dynamic> {
         rethrow;
       } catch (e) {
@@ -301,13 +399,17 @@ class ApiClient {
         final label = isTimeout
             ? 'Délai d’attente dépassé (le serveur ne répond pas).'
             : 'Connexion au serveur impossible.';
+        if (isSales) {
+          _logDiag(
+              '✕ $debugTag | exception=${e.runtimeType} | cause=${_sanitizeForDiag(e.toString())} | ${sw.elapsed.inMilliseconds}ms');
+        }
         return ApiResult._(
           false,
           null,
           null,
           ApiError(
             code,
-            '$label\nCause technique : ${e.toString()}',
+            '$label\nCause technique : ${_sanitizeForDiag(e.toString())}',
             const [],
             0,
           ),
