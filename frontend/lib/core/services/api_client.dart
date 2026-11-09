@@ -306,7 +306,7 @@ class ApiClient {
     final sw = Stopwatch()..start();
     if (isSales) {
       _logDiag(
-          '▶ $debugTag | hasToken=${_auth.accessToken != null} | baseHost=${_hostOf(baseUrl)}');
+          '▶ $debugTag | hasToken=${_auth.accessToken != null} | baseHost=${_hostOf(baseUrl)} | baseSource=${_auth.baseSource} localMode=${_auth.isLocalMode}');
     }
     // Ancien plafond : 10 × 4 s + timeouts 25 s = jusqu'à ~315-650 s de blocage.
     // On borne maintenant à 3 tentatives + un délai total maximal de 45 s.
@@ -403,10 +403,10 @@ class ApiClient {
             : 'Connexion au serveur impossible.';
         if (isSales) {
           _logDiag(
-              '✕ $debugTag | exception=${e.runtimeType} | cause=${_sanitizeForDiag(e.toString())} | ${sw.elapsed.inMilliseconds}ms');
+              '✕ $debugTag | exception=${e.runtimeType} | baseSource=${_auth.baseSource} localMode=${_auth.isLocalMode} baseHost=${_hostOf(baseUrl)} | cause=${_sanitizeForDiag(e.toString())} | ${sw.elapsed.inMilliseconds}ms');
         }
         final diag =
-            'base=${_hostOf(baseUrl)}; hasToken=${_auth.accessToken != null}; req=${debugTag ?? 'GET ?'}; ms=${sw.elapsed.inMilliseconds}';
+            'base=${_hostOf(baseUrl)}; baseSource=${_auth.baseSource}; localMode=${_auth.isLocalMode}; hasToken=${_auth.accessToken != null}; req=${debugTag ?? 'GET ?'}; ms=${sw.elapsed.inMilliseconds}';
         return ApiResult._(
           false,
           null,

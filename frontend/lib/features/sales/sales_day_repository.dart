@@ -178,7 +178,7 @@ class SalesDayRepository {
     final tech = status > 0
         ? '$code HTTP $status$detail'
         : '$code$detail | cause=$cleanMsg';
-    if (status == 401 || code == 'SESSION_EXPIRED' || code == 'UNAUTHORIZED') {
+    if (status == 401 || status == 423 || code == 'SESSION_EXPIRED' || code == 'UNAUTHORIZED' || code == 'SESSION_LOCKED') {
       return SalesDayError(
         kind: SalesDayErrorKind.sessionExpired,
         message: e?.message ?? 'Session expirée',

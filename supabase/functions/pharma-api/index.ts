@@ -4,7 +4,7 @@ import { decideLoginProfile } from "./login_policy.ts";
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-pharmacy-id",
+    "authorization, x-client-info, apikey, content-type, accept, x-pharmacy-id",
   "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 };
 
@@ -1460,7 +1460,7 @@ async function proxyToTable(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS")
     return new Response(null, { headers: corsHeaders });
-
+  try {
   const url = new URL(req.url);
   const raw = url.pathname.replace(/^\/pharma-api\/?/, "").replace(/^\/+/, "/");
   const path = raw.startsWith("api/v1/") ? raw.slice(7) : raw;
@@ -8848,4 +8848,8 @@ Deno.serve(async (req) => {
     { error: { code: "NOT_FOUND", message: `Route ${path} non trouvée` } },
     404,
   );
+  } catch (e) {
+    console.error("[Edge] exception non interceptée:", String(e));
+    return json({ error: { code: "INTERNAL_ERROR", message: String(e) } }, 500);
+  }
 });

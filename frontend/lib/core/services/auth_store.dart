@@ -189,10 +189,18 @@ class AuthStore extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_kLocalMode, enabled);
     _baseUrl = enabled ? _localBaseUrl : _defaultBaseUrl;
+    _baseSource = enabled ? 'local' : 'default';
     notifyListeners();
   }
 
   String _baseUrl = _defaultBaseUrl;
+
+  /// Source de l'URL effective après `_doInit` : `default` (URL distante
+  /// par défaut), `stored` (valeur persistée `pmg_base_url`), ou `local`
+  /// (mode local forcé). Diagnostic non sensible, sans jeton.
+  String _baseSource = 'default';
+  String get baseSource => _baseSource;
+
   ThemeMode _themeMode = ThemeMode.system;
   String _locale = 'fr';
 
@@ -257,6 +265,7 @@ class AuthStore extends ChangeNotifier {
     final storedUrl = prefs.getString(_kBaseUrl);
     if (_localMode) {
       _baseUrl = _localBaseUrl;
+      _baseSource = 'local';
     } else if (storedUrl != null && storedUrl.isNotEmpty) {
       // L'URL choisie dans les paramètres (⚙) est respectée, y compris
       // une URL locale (http://127.0.0.1:4000/api/v1) en développement.
@@ -265,6 +274,10 @@ class AuthStore extends ChangeNotifier {
       while (_baseUrl.endsWith('/')) {
         _baseUrl = _baseUrl.substring(0, _baseUrl.length - 1);
       }
+      _baseSource = 'stored';
+    } else {
+      _baseUrl = _defaultBaseUrl;
+      _baseSource = 'default';
     }
 
     _accessToken = await _tokenRead(_kAccess);
@@ -361,6 +374,7 @@ class AuthStore extends ChangeNotifier {
 
   Future<void> setBaseUrl(String url) async {
     _baseUrl = url.replaceAll(RegExp(r'/$'), '');
+    _baseSource = 'stored';
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kBaseUrl, _baseUrl);
     notifyListeners();

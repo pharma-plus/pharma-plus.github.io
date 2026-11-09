@@ -81,6 +81,24 @@ void main() {
       ApiClient.resetClientForTesting();
     });
 
+    test('423 → sessionExpired (session verrouillée)', () async {
+      ApiClient.setClientForTesting(http_testing.MockClient((r) async {
+        return http.Response(
+          jsonEncode({
+            'error': {'code': 'SESSION_LOCKED', 'message': 'Session verrouillée'},
+          }),
+          423,
+        );
+      }));
+      final res = await SalesDayRepository.instance.loadPage(
+          fromIso: '2026-11-09T00:00:00+01:00',
+          toIso: '2026-11-10T00:00:00+01:00',
+          page: 1,
+          limit: 10);
+      expect(res.error?.kind, SalesDayErrorKind.sessionExpired);
+      ApiClient.resetClientForTesting();
+    });
+
     test('NETWORK_ERROR retenté exactement 1 fois puis exposé', () async {
       int calls = 0;
       ApiClient.setClientForTesting(http_testing.MockClient((r) async {
