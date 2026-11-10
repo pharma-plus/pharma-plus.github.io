@@ -1460,18 +1460,59 @@ async function proxyToTable(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS")
     return new Response(null, { headers: corsHeaders });
+  const traceId =
+    req.headers.get("x-request-id") ||
+    req.headers.get("sb-request-id") ||
+    req.headers.get("x-deno-execution-id") ||
+    crypto.randomUUID();
+  let traceStep = "handler_enter";
+  let tracePath = "";
+  let traceMethod = req.method || "";
+  let traceEnabled = false;
+  const sanitizeTrace = (v: unknown): string => {
+    let s = typeof v === "string" ? v : String(v ?? "");
+    s = s.replace(/Bearer\s+[A-Za-z0-9\-._~+/=]+/gi, "Bearer [REDACTED]");
+    s = s.replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, "[REDACTED_EMAIL]");
+    s = s.replace(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g, "[REDACTED_JWT]");
+    if (s.length > 1200) s = s.slice(0, 1200) + "…";
+    return s;
+  };
+  const traceLog = (step: string, extra?: Record<string, unknown>) => {
+    if (!traceEnabled) return;
+    traceStep = step;
+    try {
+      console.error(
+        JSON.stringify({
+          scope: "trace_sales",
+          reqId: traceId,
+          step,
+          path: tracePath,
+          method: traceMethod,
+          ...(extra || {}),
+        }),
+      );
+    } catch (_e) {
+      // observabilité uniquement : ne jamais altérer la réponse
+    }
+  };
   try {
   const url = new URL(req.url);
   const raw = url.pathname.replace(/^\/pharma-api\/?/, "").replace(/^\/+/, "/");
   const path = raw.startsWith("api/v1/") ? raw.slice(7) : raw;
+  tracePath = path;
+  traceEnabled = path === "sales" && req.method === "GET";
+  traceLog("path_parsed");
   let pid: string;
   if (PUBLIC_PATHS.has(path.replace(/^\/+/, ""))) {
     // Routes publiques (login/refresh/health) : accessibles sans JWT.
     pid = publicPharmacyId(req);
   } else {
+    traceLog("jwt_start");
     try {
       pid = await pharmacyId(req);
+      traceLog("jwt_ok");
     } catch (e) {
+      traceLog("jwt_denied");
       return json({ error: { code: "UNAUTHORIZED", message: String(e) } }, 401);
     }
   }
@@ -1497,7 +1538,10 @@ Deno.serve(async (req) => {
      session active.
      =========================================================== */
   if (!PUBLIC_PATHS.has(path.replace(/^\/+/, ""))) {
-    if (!(await sessionActive(sb, req))) {
+    traceLog("session_check_start");
+    const _sessionOk = await sessionActive(sb, req);
+    if (!_sessionOk) {
+      traceLog("session_denied");
       return json(
         {
           error: {
@@ -1508,8 +1552,12 @@ Deno.serve(async (req) => {
         401,
       );
     }
+    traceLog("session_ok");
     const normPath = path.replace(/^\/+/, "");
-    if (!LOCK_EXEMPT.has(normPath) && (await sessionLocked(sb, req))) {
+    traceLog("lock_check_start");
+    const _locked = !LOCK_EXEMPT.has(normPath) && (await sessionLocked(sb, req));
+    if (_locked) {
+      traceLog("lock_denied");
       return json(
         {
           error: {
@@ -1520,8 +1568,14 @@ Deno.serve(async (req) => {
         423,
       );
     }
+    traceLog("lock_ok");
+    traceLog("rbac_start");
     const rbacDeny = await enforcePathPermission(sb, req, path);
-    if (rbacDeny) return rbacDeny;
+    if (rbacDeny) {
+      traceLog("rbac_denied");
+      return rbacDeny;
+    }
+    traceLog("rbac_ok");
   }
 
   /* ===========================================================
@@ -5551,23 +5605,31 @@ Deno.serve(async (req) => {
   // GET /sales — ventes du jour (filtre par date from/to, pagination)
   if (path === "sales" && req.method === "GET") {
     try {
+      traceLog("sales_handler_enter");
       const userId = await currentUserId(req);
-      if (!userId)
+      if (!userId) {
+        traceLog("sales_no_user");
         return json({ error: { code: "FORBIDDEN", message: "Non authentifié" } }, 403);
+      }
+      traceLog("sales_user_ok");
       const { data: u } = await sb
         .from("users")
         .select("pharmacy_id")
         .eq("id", userId)
         .maybeSingle();
       const pharmacyId = u?.pharmacy_id;
-      if (!pharmacyId)
+      if (!pharmacyId) {
+        traceLog("sales_no_pharmacy");
         return json({ error: { code: "FORBIDDEN", message: "Pharmacie requise" } }, 403);
+      }
+      traceLog("sales_pharmacy_ok");
       const { searchParams } = new URL(req.url);
       const from = searchParams.get("from");
       const to = searchParams.get("to");
       const limit = Number(searchParams.get("limit") ?? "100");
       const page = Number(searchParams.get("page") ?? "1");
       const offset = (page - 1) * limit;
+      traceLog("sales_query_start", { hasFrom: !!from, hasTo: !!to });
       let query = sb
         .from("sales")
         .select("id, total, created_at, status, branch_id", { count: "exact" })
@@ -5577,9 +5639,17 @@ Deno.serve(async (req) => {
       if (to) query = query.lt("created_at", to);
       query = query.order("created_at", { ascending: false }).range(offset, offset + limit - 1);
       const { data, error, count } = await query;
-      if (error) return json({ error: { code: "QUERY_FAILED", message: error.message } }, 500);
+      if (error) {
+        traceLog("sales_query_error", { dbCode: error.code ?? null });
+        return json({ error: { code: "QUERY_FAILED", message: error.message } }, 500);
+      }
+      traceLog("sales_query_ok", { count: count ?? 0, rows: Array.isArray(data) ? data.length : 0 });
+      traceLog("sales_response_ok");
       return json({ data, meta: { total: count ?? 0, page, limit } });
     } catch (e) {
+      traceLog("sales_handler_exception", {
+        errName: e instanceof Error ? e.name : "UnknownError",
+      });
       return json({ error: { code: "QUERY_FAILED", message: String(e) } }, 500);
     }
   }
@@ -8849,7 +8919,26 @@ Deno.serve(async (req) => {
     404,
   );
   } catch (e) {
-    console.error("[Edge] exception non interceptée:", String(e));
+    if (traceEnabled) {
+      const errName = e instanceof Error ? e.name : "UnknownError";
+      const errMsg = sanitizeTrace(e instanceof Error ? e.message : String(e));
+      const stack = e instanceof Error && e.stack ? sanitizeTrace(e.stack) : "";
+      const stackHead = stack ? stack.split("\n").slice(0, 12).join("\n") : "";
+      console.error(
+        JSON.stringify({
+          scope: "trace_sales",
+          reqId: traceId,
+          step: traceStep,
+          path: tracePath,
+          method: traceMethod,
+          errName,
+          errMsg,
+          stackHead,
+        }),
+      );
+    } else {
+      console.error("[Edge] exception non interceptée:", String(e));
+    }
     return json({ error: { code: "INTERNAL_ERROR", message: String(e) } }, 500);
   }
 });
