@@ -4827,8 +4827,25 @@ Deno.serve(async (req) => {
   const qp = new URL(req.url).searchParams;
   const rFrom = qp.get("from");
   const rTo = qp.get("to");
-  const rFromIso = rFrom ? new Date(rFrom + "T00:00:00").toISOString() : new Date(Date.now() - 30 * 86400000).toISOString();
-  const rToIso = rTo ? new Date(rTo + "T23:59:59").toISOString() : new Date().toISOString();
+  /* Parsing défensif des dates from/to : une valeur invalide (ex. timestamp
+     ISO déjà pourvu d'heure et de fuseau envoyé par le Flutter) ne doit
+     JAMAIS lever RangeError: Invalid time value. Si invalide, la variable
+     reste undefined et l'endpoint appelant (reports/*) gérera l'absence
+     plutôt que de faire planter toute requête passe par le middleware. */
+  let rFromIso: string | undefined;
+  let rToIso: string | undefined;
+  if (rFrom) {
+    const d = new Date(rFrom.includes("T") ? rFrom : rFrom + "T00:00:00");
+    if (!isNaN(d.getTime())) rFromIso = d.toISOString();
+  } else {
+    rFromIso = new Date(Date.now() - 30 * 86400000).toISOString();
+  }
+  if (rTo) {
+    const d = new Date(rTo.includes("T") ? rTo : rTo + "T23:59:59");
+    if (!isNaN(d.getTime())) rToIso = d.toISOString();
+  } else {
+    rToIso = new Date().toISOString();
+  }
 
   if (path === "reports/sales" && req.method === "GET") {
     const { data: sales } = await sb.from("sales")

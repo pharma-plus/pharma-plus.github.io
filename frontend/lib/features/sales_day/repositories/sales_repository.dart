@@ -114,15 +114,32 @@ class SalesRepository {
     });
     if (!res.success) return (null, _mapError(res));
     // ApiClient expose déjà le champ `data` du corps (déballé).
+    // Réponse incomplète (data absent ou non objet) → KPIs à zéro,
+    // jamais d'erreur bloquante : l'affiche reste honnête (« — »).
     final data = res.data;
-    if (data is! Map) {
-      return const (
-        null,
-        SalesDayFailure(
-          kind: SalesDayErrorKind.unknown,
-          message: 'Réponse inattendue du serveur',
-          technical: '/sales/day payload non objet',
+    if (data is! Map || data.isEmpty) {
+      return (
+        const SalesDayAnalytics(
+          kpis: SalesDayKpis(
+            grossRevenue: 0,
+            netRevenue: 0,
+            taxTotal: 0,
+            discountsTotal: 0,
+            salesCount: 0,
+            averageBasket: 0,
+            cancelledCount: 0,
+            returnedCount: 0,
+            paidAmount: 0,
+            outstandingAmount: 0,
+            refundedAmount: null,
+            costTotal: 0,
+            totalRows: 0,
+          ),
+          hourly: const [],
+          payments: const [],
+          topProducts: const [],
         ),
+        null,
       );
     }
     return (

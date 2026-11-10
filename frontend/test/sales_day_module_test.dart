@@ -166,6 +166,59 @@ void main() {
       expect(captured['to']!, startsWith('2026-11-11T00:00:00'));
     });
 
+    test('Bornes de période : from/to avec décalage horaire local', () async {
+      var captured = <String, String>{};
+      ApiClient.setClientForTesting(http_testing.MockClient((r) async {
+        captured = r.url.queryParameters;
+        return http.Response(
+          jsonEncode({'data': {'kpis': {}}}),
+          200,
+        );
+      }));
+      final range = SalesDateRange(
+          DateTime(2026, 11, 10), DateTime(2026, 11, 11));
+      await SalesRepository.instance.loadAnalytics(range, offsetMinutes: 60);
+      // from/to doivent être des ISO avec décalage local (UTC ou local)
+      expect(captured['from']!, startsWith('2026-11-10T00:00:00'));
+      expect(captured['from']!, contains(RegExp(r'[+-]\d{2}:\d{2}')));
+      expect(captured['to']!, startsWith('2026-11-11T00:00:00'));
+      expect(captured['to']!, contains(RegExp(r'[+-]\d{2}:\d{2}')));
+    });
+
+    test('Réponse API incomplète (data absent) : pas de crash, kpis à zéro',
+        () async {
+      ApiClient.setClientForTesting(http_testing.MockClient((r) async {
+        return http.Response(
+          jsonEncode({'meta': {'total': 0}}), // pas de champ 'data'
+          200,
+        );
+      }));
+      final (a, err) = await SalesRepository.instance.loadAnalytics(
+        SalesDateRange(DateTime(2026, 11, 10), DateTime(2026, 11, 11)),
+        offsetMinutes: 0,
+      );
+      expect(err, isNull);
+      expect(a, isNotNull);
+      expect(a!.kpis.grossRevenue, 0);
+      expect(a!.kpis.salesCount, 0);
+    });
+
+    test('Réponse API vide : kpis à zéro, pas de crash', () async {
+      ApiClient.setClientForTesting(http_testing.MockClient((r) async {
+        return http.Response(jsonEncode({}), 200);
+      }));
+      final (a, err) = await SalesRepository.instance.loadAnalytics(
+        SalesDateRange(DateTime(2026, 11, 10), DateTime(2026, 11, 11)),
+        offsetMinutes: 0,
+      );
+      expect(err, isNull);
+      expect(a, isNotNull);
+      expect(a!.kpis.grossRevenue, 0);
+      expect(a!.hourly, isEmpty);
+      expect(a!.payments, isEmpty);
+      expect(a!.topProducts, isEmpty);
+    });
+
     test('401 → sessionExpired', () async {
       ApiClient.setClientForTesting(http_testing.MockClient((r) async {
         return http.Response(
