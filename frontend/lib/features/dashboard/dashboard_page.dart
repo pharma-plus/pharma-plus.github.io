@@ -20,7 +20,7 @@ import '../pos/payment_models.dart';
 import '../pos/pos_models.dart';
 import '../pos/pos_page.dart';
 import '../scanner/scanner_page.dart';
-import '../sales/sales_of_day_page.dart';
+import '../sales_day/pages/sales_day_page.dart';
 import '../shell/app_side_menu.dart';
 import '../shell/shell_nav.dart';
 import '../stock/stock_page.dart';
@@ -204,11 +204,13 @@ class _DashboardPageState extends State<DashboardPage> {
   VoidCallback? _kpiTap(String label) {
     switch (label) {
       case 'VENTES DU JOUR':
-        // Vue de détail des ventes du jour (1 appel API léger, borné au jour
-        // local). JAMAIS le POS complet : son ouverture charge catalogue,
-        // clients, branches, facets, ventes suspendues et sessions de caisse
-        // — c'était la cause du gel du dashboard sur smartphone.
-        return () => _push(const SalesOfDayPage());
+        // Nouveau module Ventes du jour (reconstruction indépendante,
+        // données réelles directes) : 2 appels API légers /sales/day +
+        // /sales/day/transactions. JAMAIS le POS complet : son ouverture
+        // charge catalogue, clients, branches, facets, ventes suspendues
+        // et sessions de caisse — c'était la cause du gel du dashboard
+        // sur smartphone.
+        return () => _push(const SalesDayPage());
       case 'MÉDICAMENTS':
         return () => ShellNav.index.value = 3; // catalogue
       case 'PRODUITS EN STOCK':

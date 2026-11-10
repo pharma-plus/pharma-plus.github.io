@@ -5654,6 +5654,314 @@ Deno.serve(async (req) => {
     }
   }
 
+  /* =========================================================
+     VENTES DU JOUR — Module analytics read-only
+     Sources : tables existantes (sales, sale_items, sale_returns,
+     customers, medications). Aucune écriture, aucune migration.
+     RBAC : la route est couverte par le préfixe "sales" de
+     ROUTE_MODULE → GET = sales:view (déjà appliqué par middleware).
+     GET sales/day?from=&to=&offsetMin= → KPIs 8 + graphes
+     GET sales/day/transactions?page=&limit=&status=&search=
+     Dates : jamais de toISOString() sur les données ; comparaisons
+     en millisecondes via Date.parse validé. Aucune date inventée.
+     ========================================================= */
+  if ((path === "sales/day" || path === "sales/day/transactions") &&
+      req.method === "GET") {
+    try {
+      const params = new URL(req.url).searchParams;
+      const fromRaw = params.get("from") ?? "";
+      const toRaw = params.get("to") ?? "";
+      const fromMs = Date.parse(fromRaw);
+      const toMs = Date.parse(toRaw);
+      if (
+        !fromRaw || !toRaw ||
+        !Number.isFinite(fromMs) || !Number.isFinite(toMs) ||
+        toMs <= fromMs
+      ) {
+        return json(
+          { error: { code: "VALIDATION", message: "from/to requis (ISO valides, to > from)" } },
+          400,
+        );
+      }
+      const offsetMinRaw = Number(params.get("offsetMin") ?? "0");
+      const offsetMin = Number.isFinite(offsetMinRaw)
+        ? Math.min(840, Math.max(-720, Math.trunc(offsetMinRaw)))
+        : 0;
+      const n = (v: unknown): number => {
+        if (v == null) return 0;
+        const x = typeof v === "number" ? v : Number(v);
+        return Number.isFinite(x) ? x : 0;
+      };
+      const chunk = <T>(arr: T[], size: number): T[][] => {
+        const out: T[][] = [];
+        for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+        return out;
+      };
+
+      /* --- GET sales/day : analyse de la période --- */
+      if (path === "sales/day") {
+        const salesRows = await fetchPaged(
+          sb,
+          "sales",
+          "id, number, status, sale_type, subtotal, discount_total, tax_total, total, cost_total, paid_amount, change_amount, payment_method, payments, customer_id, created_at",
+          (q) => q.eq("pharmacy_id", pid).gte("created_at", fromRaw).lt("created_at", toRaw),
+        );
+        const completed = (salesRows as any[]).filter((r) => r?.status === "completed");
+        const voided = (salesRows as any[]).filter(
+          (r) => r?.status === "voided" || r?.status === "cancelled",
+        );
+        const returned = (salesRows as any[]).filter(
+          (r) => r?.status === "returned" || r?.status === "refunded",
+        );
+
+        let grossRevenue = 0, netRevenue = 0, discountsTotal = 0, taxTotal = 0,
+          costTotal = 0, paidAmount = 0, outstanding = 0;
+        for (const s of completed) {
+          const total = n(s.total);
+          const disc = n(s.discount_total);
+          grossRevenue += total;
+          netRevenue += n(s.subtotal) - disc;
+          discountsTotal += disc;
+          taxTotal += n(s.tax_total);
+          costTotal += n(s.cost_total);
+          const paid = n(s.paid_amount);
+          paidAmount += Math.max(0, paid - n(s.change_amount));
+          const rest = total - paid;
+          if (rest > 0) outstanding += rest;
+        }
+        const averageBasket = completed.length ? grossRevenue / completed.length : 0;
+
+        // Répartition paiements : détail JSONB si présent, sinon
+        // payment_method × montant payé réel (paid − change). Le détail
+        // JSONB peut contenir plusieurs entrées par vente (paiements mixtes).
+        const paySum = new Map<string, number>();
+        const payCount = new Map<string, number>();
+        const addPay = (method: string, amount: number, count: number) => {
+          const key = method || "inconnu";
+          paySum.set(key, (paySum.get(key) ?? 0) + amount);
+          payCount.set(key, (payCount.get(key) ?? 0) + count);
+        };
+        for (const s of completed) {
+          const pays: any[] = Array.isArray(s.payments) ? s.payments : [];
+          if (pays.length) {
+            for (const pay of pays) addPay(String(pay?.method ?? ""), n(pay?.amount), 1);
+          } else {
+            const netPaid = Math.max(0, n(s.paid_amount) - n(s.change_amount));
+            if (netPaid > 0) addPay(String(s.payment_method ?? ""), netPaid, 1);
+          }
+        }
+        const paymentBreakdown = [...paySum.entries()]
+          .map(([method, amount]) => ({ method, amount, count: payCount.get(method) ?? 0 }))
+          .sort((a, b) => b.amount - a.amount);
+
+        // Ventes par heure (heure locale : offset minutes fourni par le
+        // client). Les heures sans vente sont à 0 (réel, pas inventé).
+        const hourAgg = new Map<number, { revenue: number; count: number }>();
+        for (const s of completed) {
+          const t = Date.parse(String(s.created_at ?? ""));
+          if (!Number.isFinite(t)) continue;
+          const hour = ((Math.floor((Math.floor(t / 60000) + offsetMin) / 60) % 24) + 24) % 24;
+          const b = hourAgg.get(hour) ?? { revenue: 0, count: 0 };
+          b.revenue += n(s.total);
+          b.count += 1;
+          hourAgg.set(hour, b);
+        }
+        const hourly: any[] = [];
+        if (hourAgg.size) {
+          for (let h = 0; h < 24; h++) {
+            const b = hourAgg.get(h) ?? { revenue: 0, count: 0 };
+            hourly.push({
+              hour: h,
+              label: `${String(h).padStart(2, "0")}:00`,
+              revenue: Number(b.revenue.toFixed(2)),
+              count: b.count,
+            });
+          }
+        }
+
+        // Top produits : lignes réelles des ventes terminées (sale_items),
+        // noms réels (medications). Bounded par la fenêtre chargée.
+        const completedIds = completed.map((s) => s.id);
+        const topProducts: any[] = [];
+        try {
+          const itemAgg = new Map<string, { qty: number; rev: number; sales: number }>();
+          for (const chunkIds of chunk(completedIds, 100)) {
+            const { data: items, error } = await sb
+              .from("sale_items")
+              .select("medication_id, quantity, line_total, sale_id")
+              .in("sale_id", chunkIds);
+            if (error || !Array.isArray(items)) break;
+            for (const it of items as any[]) {
+              if (!it?.medication_id) continue;
+              const cur = itemAgg.get(it.medication_id) ?? { qty: 0, rev: 0, sales: 0 };
+              cur.qty += n(it.quantity);
+              cur.rev += n(it.line_total);
+              cur.sales += 1;
+              itemAgg.set(it.medication_id, cur);
+            }
+          }
+          if (itemAgg.size) {
+            const medNames = new Map<string, { name: string; dosage: string | null }>();
+            for (const mchunk of chunk([...itemAgg.keys()], 100)) {
+              const { data: meds } = await sb
+                .from("medications")
+                .select("id, name, dosage")
+                .in("id", mchunk);
+              for (const m of meds ?? []) {
+                medNames.set(m.id, { name: String(m.name ?? ""), dosage: m.dosage ?? null });
+              }
+            }
+            const ranked = [...itemAgg.entries()]
+              .map(([id, v]) => ({ id, ...v }))
+              .sort((a, b) => b.rev - a.rev)
+              .slice(0, 10);
+            for (const r of ranked) {
+              topProducts.push({
+                medication_id: r.id,
+                name: medNames.get(r.id)?.name ?? "",
+                dosage: medNames.get(r.id)?.dosage ?? null,
+                quantity: Number(r.qty.toFixed(3)),
+                revenue: Number(r.rev.toFixed(2)),
+                sales: r.sales,
+              });
+            }
+          }
+        } catch (_e) {
+          /* Top produits indisponible → tableau vide, jamais de données fictives */
+        }
+
+        // Remboursements réels (sale_returns liées aux ventes de la période).
+        let refundedAmount: number | null = null;
+        try {
+          let sum = 0;
+          for (const chunkIds of chunk(completedIds, 100)) {
+            const { data: rets, error } = await sb
+              .from("sale_returns")
+              .select("total_refund")
+              .in("sale_id", chunkIds);
+            if (error) break;
+            for (const r of rets ?? []) sum += n((r as any).total_refund);
+          }
+          refundedAmount = Number(sum.toFixed(2));
+        } catch (_e) {
+          refundedAmount = null; // Non disponible
+        }
+
+        return json({
+          data: {
+            period: { from: fromRaw, to: toRaw, offset_min: offsetMin },
+            kpis: {
+              gross_revenue: Number(grossRevenue.toFixed(2)),
+              net_revenue: Number(netRevenue.toFixed(2)),
+              tax_total: Number(taxTotal.toFixed(2)),
+              discounts_total: Number(discountsTotal.toFixed(2)),
+              sales_count: completed.length,
+              average_basket: Number(averageBasket.toFixed(2)),
+              cancelled_count: voided.length,
+              returned_count: returned.length,
+              paid_amount: Number(paidAmount.toFixed(2)),
+              outstanding_amount: Number(outstanding.toFixed(2)),
+              refunded_amount: refundedAmount,
+              cost_total: Number(costTotal.toFixed(2)),
+              total_rows: salesRows.length,
+            },
+            hourly,
+            payment_breakdown: paymentBreakdown,
+            top_products: topProducts,
+          },
+          meta: { total: completed.length, page: 1, limit: completed.length },
+        });
+      }
+
+      /* --- GET sales/day/transactions : liste paginée --- */
+      {
+        const limitRaw = Number(params.get("limit") ?? "50");
+        const limit = Number.isFinite(limitRaw)
+          ? Math.min(200, Math.max(1, Math.trunc(limitRaw)))
+          : 50;
+        const pageRaw = Number(params.get("page") ?? "1");
+        const page = Number.isFinite(pageRaw) && pageRaw >= 1 ? Math.trunc(pageRaw) : 1;
+        const offset = (page - 1) * limit;
+        const statusFilter = params.get("status") ?? "";
+        const searchRaw = (params.get("search") ?? "").trim().slice(0, 40);
+        const search = searchRaw.replace(/[%_\\]/g, "");
+
+        let q = sb
+          .from("sales")
+          .select(
+            "id, number, created_at, status, sale_type, subtotal, discount_total, tax_total, total, paid_amount, change_amount, payment_method, customer_id",
+            { count: "exact" },
+          )
+          .eq("pharmacy_id", pid)
+          .gte("created_at", fromRaw)
+          .lt("created_at", toRaw);
+        if (statusFilter === "completed") q = q.eq("status", "completed");
+        else if (statusFilter === "problems") q = q.in("status", ["voided", "cancelled", "returned", "refunded", "pending"]);
+        if (search) q = q.ilike("number", `%${search}%`);
+        const { data, error, count } = await q
+          .order("created_at", { ascending: false })
+          .range(offset, offset + limit - 1);
+        if (error) {
+          return json({ error: { code: "QUERY_FAILED", message: error.message } }, 500);
+        }
+        const rows = (data ?? []) as any[];
+
+        // Enrichissement (items_count, customer) — best-effort : en cas
+        // d'échec, la liste reste valide et le champ reste absent.
+        try {
+          const saleIds = rows.map((r) => r.id);
+          if (saleIds.length) {
+            await Promise.all([
+              (async () => {
+                const cnt = new Map<string, number>();
+                for (const chunkIds of chunk(saleIds, 100)) {
+                  const { data: items } = await sb
+                    .from("sale_items")
+                    .select("sale_id, quantity")
+                    .in("sale_id", chunkIds);
+                  for (const it of items ?? []) {
+                    cnt.set((it as any).sale_id, (cnt.get((it as any).sale_id) ?? 0) + n((it as any).quantity));
+                  }
+                }
+                for (const r of rows) {
+                  if (cnt.has(r.id)) r._items_count = cnt.get(r.id);
+                }
+              })(),
+              (async () => {
+                const cids = [...new Set(rows.map((r) => r.customer_id).filter(Boolean))];
+                if (!cids.length) return;
+                const map = new Map<string, string>();
+                for (const cchunk of chunk(cids, 100)) {
+                  const { data: cs } = await (sb as any)
+                    .from("customers")
+                    .select("id, name")
+                    .in("id", cchunk);
+                  for (const c of cs ?? []) map.set(c.id, String(c.name ?? ""));
+                }
+                for (const r of rows) {
+                  if (r.customer_id && map.has(r.customer_id)) r._customer = map.get(r.customer_id);
+                }
+              })(),
+            ]);
+          }
+        } catch (_e) {
+          /* enrichissement indisponible → champs absents, jamais inventés */
+        }
+
+        return json({
+          data: rows.map((r) => {
+            const cpy: any = { ...r };
+            delete cpy.customer_id;
+            return cpy;
+          }),
+          meta: { total: count ?? 0, page, limit },
+        });
+      }
+    } catch (e) {
+      return json({ error: { code: "QUERY_FAILED", message: String(e) } }, 500);
+    }
+  }
+
   if (path === "sales" && req.method === "POST") {
     try {
       const body = await req.json().catch(() => ({}));
