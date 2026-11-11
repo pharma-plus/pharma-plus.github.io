@@ -63,12 +63,28 @@ class MarbleBackground extends StatelessWidget {
         ),
       );
     }
+    // Thème sombre : la VRAIE texture graphite métal brossé (WebP léger
+    // 70 Ko), repli peint si l'asset échoue.
     return RepaintBoundary(
-      child: CustomPaint(
-        isComplex: true,
-        willChange: false,
-        painter: _GraphiteBrushedPainter(opacity: opacity),
-        child: child,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: CustomPaint(
+              isComplex: true,
+              willChange: false,
+              painter: _GraphiteBrushedPainter(opacity: opacity),
+            ),
+          ),
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/graphite_principale.webp',
+              fit: BoxFit.cover,
+              filterQuality: FilterQuality.low,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
+          ),
+          if (child != null) child!,
+        ],
       ),
     );
   }

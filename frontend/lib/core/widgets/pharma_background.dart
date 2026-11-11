@@ -27,14 +27,14 @@ class PharmaBackground extends StatelessWidget {
         assetImage!,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) =>
-            const ColoredBox(color: Color(0xFF07130F)),
+            const ColoredBox(color: Color(0xFF12171B)),
       );
     } else if (networkImage != null) {
       bg = Image.network(
         networkImage!,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) =>
-            const ColoredBox(color: Color(0xFF07130F)),
+            const ColoredBox(color: Color(0xFF12171B)),
       );
     } else if (kIsWeb) {
       bg = Image.network(
@@ -44,7 +44,7 @@ class PharmaBackground extends StatelessWidget {
           'images/pharma_login_background.jpg',
           fit: BoxFit.cover,
           errorBuilder: (_, __, ___) =>
-              const ColoredBox(color: Color(0xFF07130F)),
+              const ColoredBox(color: Color(0xFF12171B)),
         ),
       );
     } else {
@@ -52,7 +52,7 @@ class PharmaBackground extends StatelessWidget {
         'assets/images/background.webp',
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) =>
-            const ColoredBox(color: Color(0xFF07130F)),
+            const ColoredBox(color: Color(0xFF12171B)),
       );
     }
 
@@ -64,7 +64,7 @@ class PharmaBackground extends StatelessWidget {
         if (!customImage)
           ColoredBox(
               color:
-                  const Color(0xFF00110A).withValues(alpha: overlayOpacity)),
+                  const Color(0xFF0B0F13).withValues(alpha: overlayOpacity)),
         child,
       ],
     );
