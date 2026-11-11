@@ -20,17 +20,19 @@ class SalesProfitsPage extends StatefulWidget {
 }
 
 class _SalesProfitsPageState extends State<SalesProfitsPage> {
+  late final VoidCallback _listener;
+
   @override
   void initState() {
     super.initState();
-    widget.analytics.addListener(() {
-      if (mounted) setState(() {});
-    });
+    _listener = () {
+      if (mounted) setState(() {});};
+    widget.analytics.addListener(_listener);
   }
 
   @override
   void dispose() {
-    widget.analytics.removeListener(() {});
+    widget.analytics.removeListener(_listener);
     super.dispose();
   }
 

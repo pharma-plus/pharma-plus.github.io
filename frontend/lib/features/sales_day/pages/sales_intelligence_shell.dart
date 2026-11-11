@@ -139,6 +139,7 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
   late SalesDayController _analytics;
   late SalesNavigationController _nav;
   SalesIntelligencePage _current = SalesIntelligencePage.overview;
+  late final VoidCallback _listener;
 
   // Filtres globaux partagés entre les pages.
   SalesPeriod _period = SalesPeriod.today;
@@ -149,14 +150,16 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
     super.initState();
     _analytics = SalesDayController();
     _nav = SalesNavigationController(SalesMenuController());
-    _analytics.addListener(() {
+    _listener = () {
       if (mounted) setState(() {});
-    });
+    };
+    _analytics.addListener(_listener);
     _analytics.initialLoad();
   }
 
   @override
   void dispose() {
+    _analytics.removeListener(_listener);
     _analytics.dispose();
     _nav.dispose();
     super.dispose();

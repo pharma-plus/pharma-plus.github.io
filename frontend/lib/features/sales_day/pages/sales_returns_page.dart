@@ -20,17 +20,20 @@ class SalesReturnsPage extends StatefulWidget {
 }
 
 class _SalesReturnsPageState extends State<SalesReturnsPage> {
+  late final VoidCallback _listener;
+
   @override
   void initState() {
     super.initState();
-    widget.analytics.addListener(() {
+    _listener = () {
       if (mounted) setState(() {});
-    });
+    };
+    widget.analytics.addListener(_listener);
   }
 
   @override
   void dispose() {
-    widget.analytics.removeListener(() {});
+    widget.analytics.removeListener(_listener);
     super.dispose();
   }
 
@@ -44,7 +47,6 @@ class _SalesReturnsPageState extends State<SalesReturnsPage> {
     final returned = tx.where((t) =>
         t.status == 'returned' || t.status == 'refunded').toList();
 
-    // Construire les lignes de transactions détaillées
     final returnRows = <Widget>[];
     if (cancelled.isEmpty && returned.isEmpty) {
       returnRows.add(const Center(
@@ -98,87 +100,33 @@ class _SalesReturnsPageState extends State<SalesReturnsPage> {
                     ),
                     Expanded(
                       child: _kpiItem(
-                        'Retours / remboursés',
+                        'Remboursées / Retours',
                         '${k?.returnedCount ?? 0}',
-                        AppColors.pharmaDanger,
-                      ),
-                    ),
-                    Expanded(
-                      child: _kpiItem(
-                        'Problèmes',
-                        '${cancelled.length + returned.length}',
-                        AppColors.pharmaWarning,
+                        AppColors.pharmaMuted,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Détails des transactions annulées / retournées',
-                  style: TextStyle(
-                    color: AppColors.pharmaText,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 ...returnRows,
               ],
             ),
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildTransactionRow(SalesTransaction t) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: AppColors.pharmaSurface.withValues(alpha: 0.55),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.goldBorder, width: 1),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      t.number.isEmpty ? '—' : t.number,
-                      style: const TextStyle(
-                        color: AppColors.pharmaText,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '${t.statusLabel} · ${t.createdAt == null ? '—' : SalesAnalyticsService.hourMinute(t.createdAt)}',
-                      style: const TextStyle(
-                        color: AppColors.pharmaMuted,
-                        fontSize: 10.5,
-                      ),
-                    ),
-                  ],
-                ),
+        const SizedBox(height: 16),
+        if (c.coverageNote.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              c.coverageNote,
+              style: const TextStyle(
+                color: AppColors.pharmaMuted,
+                fontSize: 10.5,
+                fontStyle: FontStyle.italic,
               ),
-              Text(
-                Fmt.number(t.total, decimals: 2),
-                style: const TextStyle(
-                  color: AppColors.pharmaDanger,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+      ],
     );
   }
 
@@ -195,15 +143,51 @@ class _SalesReturnsPageState extends State<SalesReturnsPage> {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            color: color,
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              value,
+              style: TextStyle(
+                color: color,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '',
+              style: const TextStyle(
+                color: AppColors.pharmaMuted,
+                fontSize: 11,
+              ),
+            ),
+          ],
         ),
       ],
+    );
+  }
+
+  Widget _buildTransactionRow(SalesTransaction t) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: ListTile(
+        title: Text(
+          t.number.isEmpty ? '—' : t.number,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Text(
+          t.createdAt == null
+              ? '—'
+              : '${t.createdAt!.day}/${t.createdAt!.month}/${t.createdAt!.year}',
+          style: const TextStyle(fontSize: 12),
+        ),
+        trailing: Text(
+          t.statusLabel,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+        ),
+      ),
     );
   }
 }

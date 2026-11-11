@@ -20,17 +20,20 @@ class SalesAlertsPage extends StatefulWidget {
 }
 
 class _SalesAlertsPageState extends State<SalesAlertsPage> {
+  late final VoidCallback _listener;
+
   @override
   void initState() {
     super.initState();
-    widget.analytics.addListener(() {
+    _listener = () {
       if (mounted) setState(() {});
-    });
+    };
+    widget.analytics.addListener(_listener);
   }
 
   @override
   void dispose() {
-    widget.analytics.removeListener(() {});
+    widget.analytics.removeListener(_listener);
     super.dispose();
   }
 

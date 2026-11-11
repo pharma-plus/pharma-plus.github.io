@@ -21,6 +21,8 @@ class SalesPaymentsPage extends StatefulWidget {
 }
 
 class _SalesPaymentsPageState extends State<SalesPaymentsPage> {
+  late final VoidCallback _listener;
+
   // Saisie manuelle de la clôture de caisse (non stockée côté backend,
   // affichage local uniquement pour la session courante)
   double? _theoreticalCash;
@@ -29,14 +31,15 @@ class _SalesPaymentsPageState extends State<SalesPaymentsPage> {
   @override
   void initState() {
     super.initState();
-    widget.analytics.addListener(() {
+    _listener = () {
       if (mounted) setState(() {});
-    });
+    };
+    widget.analytics.addListener(_listener);
   }
 
   @override
   void dispose() {
-    widget.analytics.removeListener(() {});
+    widget.analytics.removeListener(_listener);
     super.dispose();
   }
 
