@@ -723,8 +723,11 @@ class _StockPageState extends State<StockPage> {
   }
 
   // Lignes alternées : couleurs SOLIDES (aucune transparence).
-  static const Color _rowDarkA = AppColors.pharmaSurface; // #08231C
-  static const Color _rowDarkB = AppColors.pharmaSurface2; // #0B2C23
+  // Charte « graphite métal brossé » : deux tons DISTINCTS pour que
+  // l'alternance reste visible (pharmaSurface2 == pharmaSurface depuis
+  // l'alias, on prend donc le token graphite de base pour la variante).
+  static const Color _rowDarkA = AppColors.pharmaSurface; // #3A424A
+  static const Color _rowDarkB = AppColors.graphite; // #20272D
 
   Color _rowStripe(int i) {
     final dark = Theme.of(context).brightness == Brightness.dark;
