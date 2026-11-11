@@ -258,7 +258,7 @@ class _SyncStatusPanelState extends State<SyncStatusPanel> {
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFFF1D58A),
+                        color: AppColors.champagneLight,
                       ),
                     ),
                   if (state.failedCount > 0)
@@ -267,7 +267,7 @@ class _SyncStatusPanelState extends State<SyncStatusPanel> {
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFFE94545),
+                        color: AppColors.danger,
                       ),
                     ),
                 ],
@@ -346,13 +346,13 @@ class _SyncStatusPanelState extends State<SyncStatusPanel> {
   Color _statusColor(ConnectionStatus s) {
     switch (s) {
       case ConnectionStatus.online:
-        return const Color(0xFF2FB563);
+        return AppColors.sageGreen;
       case ConnectionStatus.offline:
-        return const Color(0xFFF1A53A);
+        return AppColors.champagne;
       case ConnectionStatus.syncing:
-        return const Color(0xFF2E7D32);
+        return AppColors.sageGreen;
       case ConnectionStatus.syncError:
-        return const Color(0xFFE94545);
+        return AppColors.danger;
     }
   }
 
@@ -408,10 +408,10 @@ class _PendingList extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
+            color: AppColors.porcelain.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(8),
             border: conflict
-                ? Border.all(color: const Color(0xFFE94545).withValues(alpha: 0.5), width: 1)
+                ? Border.all(color: AppColors.danger.withValues(alpha: 0.5), width: 1)
                 : null,
           ),
           child: Column(
@@ -423,7 +423,7 @@ class _PendingList extends StatelessWidget {
                     width: 10,
                     height: 10,
                     decoration: BoxDecoration(
-                      color: conflict ? const Color(0xFFE94545) : const Color(0xFFF1A53A),
+                      color: conflict ? AppColors.danger : AppColors.champagne,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -465,7 +465,7 @@ class _PendingList extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 10,
                       color: conflict
-                          ? const Color(0xFFE94545)
+                          ? AppColors.danger
                           : Colors.white.withValues(alpha: 0.7),
                     ),
                   ),
@@ -489,7 +489,7 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.check_circle_outline, size: 64, color: Color(0xFF2FB563)),
+          const Icon(Icons.check_circle_outline, size: 64, color: AppColors.sageGreen),
           const SizedBox(height: 16),
           Text(
             message,

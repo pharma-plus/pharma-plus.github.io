@@ -20,7 +20,7 @@ import '../pos/payment_models.dart';
 import '../pos/pos_models.dart';
 import '../pos/pos_page.dart';
 import '../scanner/scanner_page.dart';
-import '../sales_day/pages/sales_day_page.dart';
+import '../sales_day/pages/sales_intelligence_shell.dart';
 import '../shell/app_side_menu.dart';
 import '../shell/shell_nav.dart';
 import '../stock/stock_page.dart';
@@ -204,13 +204,13 @@ class _DashboardPageState extends State<DashboardPage> {
   VoidCallback? _kpiTap(String label) {
     switch (label) {
       case 'VENTES DU JOUR':
-        // Nouveau module Ventes du jour (reconstruction indépendante,
+        // Nouveau module PHARMA+ SALES INTELLIGENCE (indépendant du POS,
         // données réelles directes) : 2 appels API légers /sales/day +
         // /sales/day/transactions. JAMAIS le POS complet : son ouverture
         // charge catalogue, clients, branches, facets, ventes suspendues
         // et sessions de caisse — c'était la cause du gel du dashboard
         // sur smartphone.
-        return () => _push(const SalesDayPage());
+        return () => _push(const SalesIntelligenceShell());
       case 'MÉDICAMENTS':
         return () => ShellNav.index.value = 3; // catalogue
       case 'PRODUITS EN STOCK':
@@ -606,14 +606,14 @@ class _KpiCardState extends State<_KpiCard> {
                     offset: const Offset(0, 5)),
                 if (_hover)
                   BoxShadow(
-                      color: const Color(0xFF00C96B).withValues(alpha: 0.16),
+                      color: AppColors.sageGreen.withValues(alpha: 0.16),
                       blurRadius: 18,
                       offset: const Offset(0, 8)),
               ],
               // Le fond 3D est la seule illustration de la carte. Les anciens
               // assets kpi/kpi_N.webp (cartons avec image au premier plan) ne
               // sont volontairement plus composés par-dessus.
-              color: const Color(0xFF05130D),
+              color: AppColors.graphiteDark,
             ),
             child: Stack(
               fit: StackFit.expand,
@@ -1078,14 +1078,14 @@ class _AlertsStockPanel extends StatelessWidget {
         (
           d(m['name']),
           'Stock faible (${_fmtQty(m['available'])} / seuil ${_fmtQty(m['reorder_level'])})',
-          const Color(0xFFF0A73B),
+          AppColors.champagne,
           Icons.priority_high_rounded
         ),
       for (final m in expiringRows.take(2))
         (
           d(m['name']),
           'Expire le ${_fmtDate(m['expiry_date'])}',
-          const Color(0xFFF0A73B),
+          AppColors.champagne,
           Icons.hourglass_bottom_rounded
         ),
       for (final m in expiredRows.take(2))
@@ -1111,7 +1111,7 @@ class _AlertsStockPanel extends StatelessWidget {
     return _DarkPanel(
       title: 'ALERTES STOCK',
       icon: Icons.notifications_active_outlined,
-      iconColor: const Color(0xFFF0A73B),
+      iconColor: AppColors.champagne,
       child: Column(children: [
         if (rows.isEmpty)
           Padding(
@@ -1145,7 +1145,7 @@ class _AlertsStockPanel extends StatelessWidget {
             onPressed: onViewAll,
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.white,
-              backgroundColor: const Color(0xFF0E2A1C),
+              backgroundColor: AppColors.graphiteDark,
               side: const BorderSide(color: AppColors.goldBorderStrong),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),

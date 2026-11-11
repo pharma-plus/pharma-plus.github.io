@@ -482,12 +482,12 @@ class _StockPageState extends State<StockPage> {
               onPressed: () => Navigator.of(context).push(MaterialPageRoute(
                   builder: (_) => const StockMovementsPage())),
               icon:
-                  const Icon(Icons.history_rounded, color: Color(0xFFE9C873))),
+                  const Icon(Icons.history_rounded, color: AppColors.champagneLight)),
           IconButton(
               tooltip: 'Scanner',
               onPressed: _scanAndFind,
               icon:
-                  const Icon(Icons.qr_code_scanner, color: Color(0xFFE9C873))),
+                  const Icon(Icons.qr_code_scanner, color: AppColors.champagneLight)),
           IconButton(
               onPressed: _load,
               icon: const Icon(Icons.refresh, color: AppColors.pharmaGold)),
@@ -729,7 +729,7 @@ class _StockPageState extends State<StockPage> {
   Color _rowStripe(int i) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     if (dark) return i.isOdd ? _rowDarkB : _rowDarkA;
-    return i.isOdd ? const Color(0xFFF2F5F3) : Colors.white;
+    return i.isOdd ? AppColors.silver : AppColors.silverLight;
   }
 
   Widget _headerCell(double w, String label,

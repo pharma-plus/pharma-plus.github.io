@@ -41,6 +41,9 @@ dependencies:
   # Graphiques du tableau de bord
   fl_chart: ^0.68.0
 
+  # Excel véritable (.xlsx)
+  excel: ^4.0.0
+
   # Icônes Material
   cupertino_icons: ^1.0.8
 

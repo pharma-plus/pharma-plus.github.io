@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/colors.dart';
 import '../../theme/design_tokens.dart';
 import 'app_empty_state.dart';
 import 'app_loading_state.dart';
@@ -229,13 +230,13 @@ class AppDataRow<T> extends StatelessWidget {
         : hovered
             ? (config.hoverColor ??
                 (isDark
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : Colors.grey.withValues(alpha: 0.08)))
+                    ? AppColors.champagne.withValues(alpha: 0.08)
+                    : AppColors.champagne.withValues(alpha: 0.04)))
             : (config.striped && index.isOdd
                 ? (isDark
                     ? tokens.brandPrimary.withValues(alpha: 0.08)
                     : tokens.brandPrimary.withValues(alpha: 0.03))
-                : (isDark ? tokens.bgSurfaceRaised : Colors.white));
+                : (isDark ? tokens.bgSurfaceRaised : AppColors.silver));
 
     return Container(
       color: rowColor,

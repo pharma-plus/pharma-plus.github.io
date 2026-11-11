@@ -44,24 +44,24 @@ class ReportExport {
         final widgets = <pw.Widget>[
           pw.Center(
             child: pw.Text('PHARMA+',
-                style: const pw.TextStyle(
+                style: pw.TextStyle(
                     fontSize: 20,
                     fontWeight: pw.FontWeight.bold,
                     color: PdfColors.green800)),
           ),
           pw.Center(
             child: pw.Text(title,
-                style: const pw.TextStyle(
+                style: pw.TextStyle(
                     fontSize: 15, fontWeight: pw.FontWeight.bold)),
           ),
           pw.Center(
               child: pw.Text(periodLabel,
-                  style: const pw.TextStyle(fontSize: 10))),
+                  style: pw.TextStyle(fontSize: 10))),
           pw.SizedBox(height: 6),
           pw.Center(
               child: pw.Text(
                   'Généré le ${DateTime.now().toLocal().toString().split('.').first}',
-                  style: const pw.TextStyle(
+                  style: pw.TextStyle(
                       fontSize: 9, color: PdfColors.grey600))),
           pw.Divider(thickness: 1.2),
           pw.SizedBox(height: 8),
@@ -71,7 +71,7 @@ class ReportExport {
           if (rows.isEmpty) continue;
           widgets.addAll([
             pw.Text('${s['title'] ?? ''}',
-                style: const pw.TextStyle(
+                style: pw.TextStyle(
                     fontSize: 13, fontWeight: pw.FontWeight.bold)),
             pw.SizedBox(height: 4),
             pw.TableHelper.fromTextArray(
@@ -82,9 +82,9 @@ class ReportExport {
               data: rows
                   .map((r) => (r as List).map((c) => '$c').toList())
                   .toList(),
-              headerStyle: const pw.TextStyle(
+              headerStyle: pw.TextStyle(
                   fontWeight: pw.FontWeight.bold, fontSize: 9),
-              cellStyle: const pw.TextStyle(fontSize: 9),
+              cellStyle: pw.TextStyle(fontSize: 9),
               headerDecoration:
                   const pw.BoxDecoration(color: PdfColors.grey300),
               cellAlignment: pw.Alignment.centerLeft,
@@ -100,7 +100,7 @@ class ReportExport {
         child: pw.Text(
             'PHARMA+ — Rapport confidentiel · page ${context.pageNumber}/${context.pagesCount}',
             style:
-                const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+                pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
       ),
     ));
     final bytes = await pdf.save();

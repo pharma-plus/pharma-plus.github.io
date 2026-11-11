@@ -16,11 +16,11 @@ import '../../../core/widgets/shared/app_search_field.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../shell/shell_nav.dart';
 
-const Color _kSuperAdminDark = Color(0xFF03100D);
-const Color _kSuperAdminSurface = Color(0xFF0A1E15);
-const Color _kSuperAdminGold = Color(0xFFD9B45C);
-const Color _kSuperAdminGoldLight = Color(0xFFE9C873);
-const Color _kSuperAdminAccent = Color(0xFF2FB563);
+const Color _kSuperAdminDark = AppColors.graphite;
+const Color _kSuperAdminSurface = AppColors.graphiteDark;
+const Color _kSuperAdminGold = AppColors.champagne;
+const Color _kSuperAdminGoldLight = AppColors.champagneLight;
+const Color _kSuperAdminAccent = AppColors.sageGreen;
 
 class SuperAdminDashboardPage extends StatefulWidget {
   const SuperAdminDashboardPage({super.key});
@@ -399,7 +399,7 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
                       color: rank > 1 ? Colors.white.withValues(alpha: 0.1) : null,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Center(child: Text('$rank', style: TextStyle(color: rank == 1 ? Color(0xFF03100D) : Colors.white70, fontWeight: FontWeight.w900, fontSize: 12))),
+                    child: Center(child: Text('$rank', style: TextStyle(color: rank == 1 ? AppColors.graphite : Colors.white70, fontWeight: FontWeight.w900, fontSize: 12))),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

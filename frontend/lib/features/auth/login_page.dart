@@ -146,7 +146,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     final isSplit = MediaQuery.of(context).size.width >= 760;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF010503),
+      backgroundColor: AppColors.graphite,
       body: SizedBox.expand(
         child: Stack(
           fit: StackFit.expand,
@@ -161,11 +161,11 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                     child: Container(
                       clipBehavior: Clip.antiAlias,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF092019),
+                        color: AppColors.graphiteLight,
                         borderRadius: BorderRadius.circular(26),
                         border: Border.all(
                           color:
-                              const Color(0xFF2FB563).withValues(alpha: 0.20),
+                              AppColors.sageGreen.withValues(alpha: 0.20),
                           width: 1,
                         ),
                         boxShadow: [
@@ -210,13 +210,13 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                 'images/pharma_login_full.jpg',
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) =>
-                    const ColoredBox(color: Color(0xFF03100D)),
+                    const ColoredBox(color: AppColors.graphite),
               )
             : Image.asset(
                 'assets/images/pharma_login_full.jpg',
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) =>
-                    const ColoredBox(color: Color(0xFF03100D)),
+                    const ColoredBox(color: AppColors.graphite),
               ),
         Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -257,15 +257,15 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                 right: Radius.circular(20),
               ),
               border: Border.all(
-                color: const Color(0xFF2FB563).withValues(alpha: 0.22),
+                color: AppColors.sageGreen.withValues(alpha: 0.22),
                 width: 1,
               ),
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Color(0xFF0A2B1F),
-                  Color(0xFF04160F),
+                  AppColors.graphiteDark,
+                  AppColors.graphite,
                 ],
               ),
             ),
@@ -379,7 +379,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFF123527).withValues(alpha: 0.85),
+              color: AppColors.graphiteDark.withValues(alpha: 0.85),
               border: Border.all(
                 color: const Color(0xFFFFF3CE).withValues(alpha: 0.8),
                 width: 1,
@@ -599,7 +599,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               onPressed: _loading ? null : _submit,
               style: FilledButton.styleFrom(
                 backgroundColor: Colors.transparent,
-                foregroundColor: const Color(0xFF123527),
+                foregroundColor: AppColors.graphiteDark,
                 minimumSize: const Size.fromHeight(50),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -617,7 +617,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         height: 16,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Color(0xFF123527),
+                          color: AppColors.graphiteDark,
                         ),
                       )
                     else ...[
@@ -679,7 +679,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             onPressed: _loading ? null : _showGoogleInfo,
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.white,
-              backgroundColor: const Color(0xFF0B1410).withValues(alpha: 0.6),
+              backgroundColor: AppColors.graphite.withValues(alpha: 0.6),
               side: BorderSide(color: Colors.white.withValues(alpha: 0.25)),
               minimumSize: const Size.fromHeight(46),
               shape: RoundedRectangleBorder(
@@ -741,7 +741,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: Color(0xFF123527),
+        backgroundColor: AppColors.sageGreen,
         content: Text(
           'La connexion Google sera disponible prochainement. '
           'Utilisez votre email professionnel.',
@@ -758,7 +758,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   }) {
     return InputDecoration(
       filled: true,
-      fillColor: const Color(0xFF0A221E),
+      fillColor: AppColors.graphiteLight,
       hintText: hintText,
       hintStyle: const TextStyle(color: Colors.white38),
       prefixIcon: Icon(icon, color: AppColors.emeraldLight),

@@ -327,7 +327,7 @@ class _LicenseCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       gradient: isGold
           ? LinearGradient(
-              colors: [Color(0xFF1A1E12), Color(0xFF0A1E15)],
+              colors: [AppColors.graphiteDark, AppColors.graphite],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             )
@@ -633,11 +633,11 @@ class _RenewDialogState extends State<RenewDialog> {
 /// ──────────────────────────────────────────────────────────────────────
 // THÈME
 // ──────────────────────────────────────────────────────────────────────
-const Color _kSuperAdminDark = Color(0xFF03100D);
-const Color _kSuperAdminSurface = Color(0xFF0A1E15);
-const Color _kSuperAdminGold = Color(0xFFD9B45C);
-const Color _kSuperAdminGoldLight = Color(0xFFE9C873);
-const Color _kSuperAdminAccent = Color(0xFF2FB563);
+const Color _kSuperAdminDark = AppColors.graphite;
+const Color _kSuperAdminSurface = AppColors.graphiteDark;
+const Color _kSuperAdminGold = AppColors.champagne;
+const Color _kSuperAdminGoldLight = AppColors.champagneLight;
+const Color _kSuperAdminAccent = AppColors.sageGreen;
 
 class ShellBackButton extends StatelessWidget {
   const ShellBackButton({super.key});
@@ -647,19 +647,19 @@ class ShellBackButton extends StatelessWidget {
   }
 }
 
-class AppColors {
-  static const Color dark = Color(0xFF03100D);
-  static const Color surface = Color(0xFF0A1E15);
-  static const Color gold = Color(0xFFD9B45C);
-  static const Color goldLight = Color(0xFFE9C873);
-  static const Color accent = Color(0xFF2FB563);
+class SubscriptionAppColors {
+  static const Color dark = Color(0xFF20272D);
+  static const Color surface = Color(0xFF1A1F24);
+  static const Color gold = Color(0xFFC6A76B);
+  static const Color goldLight = Color(0xFFE8D5B5);
+  static const Color accent = Color(0xFFA8C8B5);
   static const LinearGradient goldGradient = LinearGradient(
-    colors: [Color(0xFFD9B45C), Color(0xFFE9C873)],
+    colors: [Color(0xFFC6A76B), Color(0xFFE8D5B5)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
-  static const Color success = Color(0xFF2FB563);
-  static const Color danger = Color(0xFFE53E3E);
-  static const Color warning = Color(0xFFF6AD55);
+  static const Color success = Color(0xFFA8C8B5);
+  static const Color danger = AppColors.danger;
+  static const Color warning = Color(0xFFF59E0B);
   static const Color info = Color(0xFF4299E1);
 }

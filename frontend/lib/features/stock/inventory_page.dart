@@ -281,10 +281,10 @@ class _InventoryPageState extends State<InventoryPage> {
       pageFormat: PdfPageFormat.a4,
       build: (context) => [
         pw.Text('INVENTAIRE PHYSIQUE — ${d['branch_name'] ?? ''}',
-            style: const pw.TextStyle(
+            style: pw.TextStyle(
                 fontSize: 16, fontWeight: pw.FontWeight.bold)),
         pw.Text('Session ${d['id']} · ${d['started_at']} · ${d['status']}',
-            style: const pw.TextStyle(fontSize: 10)),
+            style: pw.TextStyle(fontSize: 10)),
         pw.SizedBox(height: 10),
         pw.TableHelper.fromTextArray(
           headers: ['Médicament', 'Lot', 'Système', 'Physique', 'Écart'],
@@ -299,7 +299,7 @@ class _InventoryPageState extends State<InventoryPage> {
                         : '${i['gap'] ?? 0}',
                   ])
               .toList(),
-          headerStyle: const pw.TextStyle(fontWeight: pw.FontWeight.bold),
+          headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
           cellAlignment: pw.Alignment.centerLeft,
         ),
       ],

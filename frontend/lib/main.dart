@@ -8,6 +8,7 @@ import 'core/services/connection_status_service.dart';
 import 'core/services/page_reload.dart';
 import 'core/theme/app_scroll_behavior.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/colors.dart';
 import 'features/super_admin/super_admin_crm_page.dart';
 import 'features/super_admin/super_admin_functions.dart';
 import 'features/super_admin/super_admin_binding.dart';
@@ -160,7 +161,7 @@ class _BootErrorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF03100D),
+      color: AppColors.graphite,
       child: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -168,7 +169,7 @@ class _BootErrorScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.error_outline,
-                  size: 52, color: Color(0xFFE9C873)),
+                  size: 52, color: AppColors.champagneLight),
               const SizedBox(height: 14),
               Text(
                 title,
@@ -198,8 +199,8 @@ class _BootErrorScreen extends StatelessWidget {
               if (pageReloadSupported)
                 FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFE9C873),
-                    foregroundColor: const Color(0xFF07201B),
+                    backgroundColor: AppColors.champagneLight,
+                    foregroundColor: AppColors.graphiteDark,
                     minimumSize: const Size(200, 48),
                   ),
                   onPressed: reloadPage,

@@ -5798,21 +5798,36 @@ Deno.serve(async (req) => {
 
         // Top produits : lignes réelles des ventes terminées (sale_items),
         // noms réels (medications). Bounded par la fenêtre chargée.
+        // Trois classements indépendants : quantité, CA, bénéfice brut.
         const completedIds = completed.map((s) => s.id);
-        const topProducts: any[] = [];
+        const topProductsQty: any[] = [];
+        const topProductsRev: any[] = [];
+        const topProductsProfit: any[] = [];
         try {
-          const itemAgg = new Map<string, { qty: number; rev: number; sales: number }>();
+          const itemAgg = new Map<string, {
+            qty: number; rev: number; profit: number; sales: number;
+          }>();
           for (const chunkIds of chunk(completedIds, 100)) {
             const { data: items, error } = await sb
               .from("sale_items")
-              .select("medication_id, quantity, line_total, sale_id")
+              .select("medication_id, quantity, line_total, cost_price, sale_id")
               .in("sale_id", chunkIds);
             if (error || !Array.isArray(items)) break;
             for (const it of items as any[]) {
               if (!it?.medication_id) continue;
-              const cur = itemAgg.get(it.medication_id) ?? { qty: 0, rev: 0, sales: 0 };
-              cur.qty += n(it.quantity);
-              cur.rev += n(it.line_total);
+              const qty = n(it.quantity);
+              const rev = n(it.line_total);
+              // Bénéfice brut de la ligne : line_total − (quantity × coût unitaire).
+              // cost_price peut être absent ou 0 → bénéfice non calculable pour
+              // cette ligne (non exclu, juste pas de bénéfice sur cette ligne).
+              const unitCost = n(it.cost_price);
+              const lineProfit = rev - qty * unitCost;
+              const cur = itemAgg.get(it.medication_id) ?? {
+                qty: 0, rev: 0, profit: 0, sales: 0,
+              };
+              cur.qty += qty;
+              cur.rev += rev;
+              cur.profit += lineProfit;
               cur.sales += 1;
               itemAgg.set(it.medication_id, cur);
             }
@@ -5828,23 +5843,41 @@ Deno.serve(async (req) => {
                 medNames.set(m.id, { name: String(m.name ?? ""), dosage: m.dosage ?? null });
               }
             }
-            const ranked = [...itemAgg.entries()]
-              .map(([id, v]) => ({ id, ...v }))
-              .sort((a, b) => b.rev - a.rev)
-              .slice(0, 10);
-            for (const r of ranked) {
-              topProducts.push({
+            const build = (sortBy: 'qty' | 'rev' | 'profit') => {
+              return [...itemAgg.entries()]
+                .map(([id, v]) => ({ id, ...v }))
+                .sort((a, b) => b[sortBy] - a[sortBy])
+                .slice(0, 10);
+            };
+            const toItem = (r: any, sortBy: 'qty' | 'rev' | 'profit') => {
+              const nameInfo = medNames.get(r.id);
+              const revenue = Number(r.rev.toFixed(2));
+              const profit = Number(r.profit.toFixed(2));
+              const marginPct = revenue > 0 ? (profit / revenue) * 100 : 0;
+              return {
                 medication_id: r.id,
-                name: medNames.get(r.id)?.name ?? "",
-                dosage: medNames.get(r.id)?.dosage ?? null,
+                name: nameInfo?.name ?? "",
+                dosage: nameInfo?.dosage ?? null,
                 quantity: Number(r.qty.toFixed(3)),
-                revenue: Number(r.rev.toFixed(2)),
+                revenue,
+                profit,
+                marginPct: Number(marginPct.toFixed(2)),
                 sales: r.sales,
-              });
+                sortBy,
+              };
+            };
+            for (const r of build('qty')) {
+              topProductsQty.push(toItem(r, 'qty'));
+            }
+            for (const r of build('rev')) {
+              topProductsRev.push(toItem(r, 'rev'));
+            }
+            for (const r of build('profit')) {
+              topProductsProfit.push(toItem(r, 'profit'));
             }
           }
         } catch (_e) {
-          /* Top produits indisponible → tableau vide, jamais de données fictives */
+          /* Top produits indisponible → tableaux vides, jamais de données fictives */
         }
 
         // Remboursements réels (sale_returns liées aux ventes de la période).
@@ -5884,7 +5917,9 @@ Deno.serve(async (req) => {
             },
             hourly,
             payment_breakdown: paymentBreakdown,
-            top_products: topProducts,
+            top_products_by_qty: topProductsQty,
+            top_products_by_rev: topProductsRev,
+            top_products_by_profit: topProductsProfit,
           },
           meta: { total: completed.length, page: 1, limit: completed.length },
         });
@@ -5906,7 +5941,7 @@ Deno.serve(async (req) => {
         let q = sb
           .from("sales")
           .select(
-            "id, number, created_at, status, sale_type, subtotal, discount_total, tax_total, total, paid_amount, change_amount, payment_method, customer_id",
+            "id, number, created_at, status, sale_type, subtotal, discount_total, tax_total, total, paid_amount, change_amount, payment_method, customer_id, user_id",
             { count: "exact" },
           )
           .eq("pharmacy_id", pid)
@@ -5959,6 +5994,21 @@ Deno.serve(async (req) => {
                   if (r.customer_id && map.has(r.customer_id)) r._customer = map.get(r.customer_id);
                 }
               })(),
+              (async () => {
+                const uids = [...new Set(rows.map((r) => r.user_id).filter(Boolean))];
+                if (!uids.length) return;
+                const map = new Map<string, string>();
+                for (const uchunk of chunk(uids, 100)) {
+                  const { data: us } = await (sb as any)
+                    .from("users")
+                    .select("id, name")
+                    .in("id", uchunk);
+                  for (const u of us ?? []) map.set(u.id, String(u.name ?? ""));
+                }
+                for (const r of rows) {
+                  if (r.user_id && map.has(r.user_id)) r._user = map.get(r.user_id);
+                }
+              })(),
             ]);
           }
         } catch (_e) {
@@ -5969,6 +6019,7 @@ Deno.serve(async (req) => {
           data: rows.map((r) => {
             const cpy: any = { ...r };
             delete cpy.customer_id;
+            delete cpy.user_id;
             return cpy;
           }),
           meta: { total: count ?? 0, page, limit },

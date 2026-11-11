@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import '../../../core/l10n/strings.dart';
 import '../../../core/services/api_client.dart';
 import '../../../core/services/auth_store.dart';
+import '../../../core/theme/colors.dart';
 import '../../../core/theme/colors.dart' as core_colors;
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/gradient_button.dart';
@@ -97,7 +98,7 @@ class _SuperAdminShellState extends State<SuperAdminShell> {
                     color: isSelected ? item.color : Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(item.icon, color: isSelected ? Color(0xFF03100D) : Colors.white70, size: 20),
+                  child: Icon(item.icon, color: isSelected ? AppColors.graphite : Colors.white70, size: 20),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -130,7 +131,7 @@ class _SuperAdminShellState extends State<SuperAdminShell> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [_kSuperAdminDark, Color(0xFF020A09)],
+          colors: [AppColors.graphite, AppColors.graphiteDark],
         ),
       ),
       child: Column(
@@ -148,7 +149,7 @@ class _SuperAdminShellState extends State<SuperAdminShell> {
                     gradient: core_colors.AppColors.goldGradient,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.shield, color: Color(0xFF03100D), size: 22),
+                  child: const Icon(Icons.shield, color: AppColors.graphite, size: 22),
                 ),
                 const SizedBox(height: 12),
                 const Text('PHARMA+', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1)),
@@ -275,11 +276,11 @@ class _SuperAdminShellState extends State<SuperAdminShell> {
 /// ──────────────────────────────────────────────────────────────────────
 // THÈME SUPER ADMIN
 // ──────────────────────────────────────────────────────────────────────
-const Color _kSuperAdminDark = Color(0xFF03100D);
-const Color _kSuperAdminSurface = Color(0xFF0A1E15);
-const Color _kSuperAdminGold = Color(0xFFD9B45C);
-const Color _kSuperAdminGoldLight = Color(0xFFE9C873);
-const Color _kSuperAdminAccent = Color(0xFF2FB563);
+const Color _kSuperAdminDark = AppColors.graphite;
+const Color _kSuperAdminSurface = AppColors.graphiteDark;
+const Color _kSuperAdminGold = AppColors.champagne;
+const Color _kSuperAdminGoldLight = AppColors.champagneLight;
+const Color _kSuperAdminAccent = AppColors.sageGreen;
 
 class ShellBackButton extends StatelessWidget {
   const ShellBackButton({super.key});

@@ -188,7 +188,7 @@ class _ChatbotManagementPageState extends State<ChatbotManagementPage> {
                                 ),
                                 child: Text(
                                   m['text'] ?? '',
-                                  style: TextStyle(color: isUser ? Color(0xFF03100D) : Colors.white),
+                                  style: TextStyle(color: isUser ? AppColors.graphite : Colors.white),
                                 ),
                               ),
                             );
@@ -230,10 +230,10 @@ class _ChatbotManagementPageState extends State<ChatbotManagementPage> {
 /// ──────────────────────────────────────────────────────────────────────
 // THÈME
 // ──────────────────────────────────────────────────────────────────────
-const Color _kSuperAdminDark = Color(0xFF03100D);
-const Color _kSuperAdminSurface = Color(0xFF0A1E15);
-const Color _kSuperAdminGold = Color(0xFFD9B45C);
-const Color _kSuperAdminAccent = Color(0xFF2FB563);
+const Color _kSuperAdminDark = AppColors.graphite;
+const Color _kSuperAdminSurface = AppColors.graphiteDark;
+const Color _kSuperAdminGold = AppColors.champagne;
+const Color _kSuperAdminAccent = AppColors.sageGreen;
 
 class ShellBackButton extends StatelessWidget {
   const ShellBackButton({super.key});

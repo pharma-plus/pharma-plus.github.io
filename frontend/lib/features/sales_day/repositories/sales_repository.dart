@@ -137,7 +137,9 @@ class SalesRepository {
           ),
           hourly: const [],
           payments: const [],
-          topProducts: const [],
+          topProductsQty: const [],
+          topProductsRev: const [],
+          topProductsProfit: const [],
         ),
         null,
       );

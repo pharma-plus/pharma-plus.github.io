@@ -16,6 +16,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../core/theme/colors.dart';
 import '../../core/services/connection_status_service.dart';
 import '../../core/widgets/sync_status_panel.dart';
 
@@ -47,13 +48,13 @@ class _ConnectionStatusIndicatorState
   Color _statusColor(ConnectionStatus s) {
     switch (s) {
       case ConnectionStatus.online:
-        return const Color(0xFF2FB563); // vert
+        return AppColors.sageGreen;
       case ConnectionStatus.offline:
-        return const Color(0xFFF1A53A); // or/amber
+        return AppColors.champagne;
       case ConnectionStatus.syncing:
-        return const Color(0xFF2E7D32); // bleu-vert
+        return AppColors.sageGreen;
       case ConnectionStatus.syncError:
-        return const Color(0xFFE94545); // rouge
+        return AppColors.danger;
     }
   }
 
@@ -111,7 +112,7 @@ class _ConnectionStatusIndicatorState
               style: const TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFFF1D58A),
+                color: AppColors.champagneLight,
               ),
             ));
           }
@@ -120,7 +121,7 @@ class _ConnectionStatusIndicatorState
               '${state.failedCount} échec(s)',
               style: const TextStyle(
                 fontSize: 10,
-                color: Color(0xFFE94545),
+                color: AppColors.danger,
               ),
             ));
           }
@@ -147,7 +148,7 @@ class _ConnectionStatusIndicatorState
                         ]
                       : null,
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.3),
+                    color: AppColors.porcelain.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
@@ -176,10 +177,10 @@ class _ConnectionStatusIndicatorState
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.45),
+              color: AppColors.graphite.withValues(alpha: 0.45),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.15),
+                color: AppColors.porcelain.withValues(alpha: 0.15),
                 width: 1,
               ),
             ),

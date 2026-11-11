@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'colors.dart';
 
-/// Thèmes PHARMA+ : light et dark, déclinés autour de la palette
-/// de marque (vert émeraude / bleu profond / ambre doré).
+/// Thèmes PHARMA+ v4 — Nouvelle identité visuelle
+/// Thème clair : marbre gris argent (silver) + texte foncé (inkDark)
+/// Thème sombre : graphite + texte clair (porcelain)
+/// Accents communs : vert sauge (sageGreen) + champagne
 class AppTheme {
   AppTheme._();
 
-  // Mémoïsation : `ColorScheme.fromSeed` + la trentaine de sous-thèmes
-  // coûtent cher ; sans cache, chaque notifyListeners() du AuthStore
-  // reconstruisait les 2 ThemeData depuis zéro.
+  // Mémoïsation
   static final ThemeData _light = _base(Brightness.light);
   static final ThemeData _dark = _base(Brightness.dark);
 
@@ -18,48 +18,59 @@ class AppTheme {
 
   static ThemeData _base(Brightness brightness) {
     final isDark = brightness == Brightness.dark;
+
+    // Couleurs de surface selon le thème
+    final bgColor = isDark ? AppColors.graphite : AppColors.silver;
+    final surfaceColor = isDark ? AppColors.surfaceDark : Colors.white;
+    final textColor = isDark ? AppColors.porcelain : AppColors.inkDark;
+    final mutedColor = isDark ? AppColors.graphiteLight : AppColors.silverDark;
+
+    // Accent : vert sauge dans les deux thèmes
+    final accent = AppColors.sageGreen;
+    final accentDark = AppColors.sageGreenDark;
+
     final scheme = ColorScheme.fromSeed(
-      seedColor: AppColors.primary,
+      seedColor: accent,
       brightness: brightness,
-      primary: AppColors.primary,
-      secondary: AppColors.secondary,
-      surface: isDark ? AppColors.surfaceDark : Colors.white,
+      primary: accent,
+      secondary: AppColors.champagne,
+      surface: surfaceColor,
+      onPrimary: AppColors.inkDark, // Texte sur fond vert sauge : graphite foncé
+      onSurface: textColor,
     );
+
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
       colorScheme: scheme,
-      scaffoldBackgroundColor:
-          isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+      scaffoldBackgroundColor: bgColor,
       fontFamilyFallback: const ['Arial', 'Noto Sans Arabic'],
       appBarTheme: AppBarTheme(
-        backgroundColor: isDark ? AppColors.menu : AppColors.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: isDark ? AppColors.graphite : AppColors.silver,
+        foregroundColor: textColor,
         elevation: 0,
         centerTitle: true,
       ),
       cardTheme: CardThemeData(
         elevation: 6,
-        shadowColor:
-            isDark ? AppColors.primary.withValues(alpha: 0.45) : Colors.black26,
-        surfaceTintColor: isDark
-            ? AppColors.turquoise.withValues(alpha: 0.06)
-            : AppColors.primary.withValues(alpha: 0.04),
+        shadowColor: AppColors.shadowColor.withValues(alpha: isDark ? 0.35 : 0.12),
+        surfaceTintColor: accent.withValues(alpha: isDark ? 0.06 : 0.04),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: isDark
-              ? const BorderSide(color: AppColors.goldBorder) // liseré or maquette
-              : BorderSide.none,
+          side: BorderSide(
+            color: isDark ? AppColors.graphiteLight : AppColors.silverDark,
+            width: 1,
+          ),
         ),
-        color: isDark ? AppColors.surfaceDark : Colors.white,
+        color: surfaceColor,
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: isDark ? AppColors.surfaceDark : Colors.white,
-        indicatorColor: AppColors.primary,
+        backgroundColor: surfaceColor,
+        indicatorColor: accent,
         elevation: 8,
       ),
       dividerTheme: DividerThemeData(
-        color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
+        color: isDark ? AppColors.graphiteLight : AppColors.silverDark,
         thickness: 1,
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -70,18 +81,18 @@ class AppTheme {
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(
-            color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
+            color: isDark ? AppColors.graphiteLight : AppColors.silverDark,
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(
-            color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
+            color: isDark ? AppColors.graphiteLight : AppColors.silverDark,
           ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppColors.gold, width: 1.6),
+          borderSide: const BorderSide(color: AppColors.sageGreen, width: 1.6),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -94,10 +105,10 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
+          backgroundColor: accent,
+          foregroundColor: AppColors.inkDark,
           elevation: 4,
-          shadowColor: AppColors.primary.withValues(alpha: 0.5),
+          shadowColor: accent.withValues(alpha: 0.5),
           minimumSize: const Size(48, 48),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -106,10 +117,10 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
+          backgroundColor: accent,
+          foregroundColor: AppColors.inkDark,
           elevation: 4,
-          shadowColor: AppColors.primary.withValues(alpha: 0.5),
+          shadowColor: accent.withValues(alpha: 0.5),
           minimumSize: const Size(48, 48),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -117,22 +128,20 @@ class AppTheme {
         ),
       ),
       navigationRailTheme: NavigationRailThemeData(
-        backgroundColor: isDark ? AppColors.menu : AppColors.backgroundLight,
-        selectedIconTheme: IconThemeData(
-            color: isDark ? AppColors.gold : AppColors.primary),
+        backgroundColor: isDark ? AppColors.graphite : AppColors.silver,
+        selectedIconTheme: IconThemeData(color: accent),
         selectedLabelTextStyle: TextStyle(
-          color: isDark ? AppColors.gold : AppColors.primary,
+          color: AppColors.inkDark,
           fontWeight: FontWeight.w700,
         ),
         unselectedIconTheme: IconThemeData(
             color: isDark ? Colors.white60 : Colors.black54),
         unselectedLabelTextStyle: TextStyle(
             color: isDark ? Colors.white60 : Colors.black54),
-        indicatorColor: (isDark ? AppColors.gold : AppColors.primary)
-            .withValues(alpha: 0.18),
+        indicatorColor: accent.withValues(alpha: 0.18),
       ),
       drawerTheme: DrawerThemeData(
-        backgroundColor: isDark ? AppColors.menu : AppColors.backgroundLight,
+        backgroundColor: isDark ? AppColors.graphite : AppColors.silver,
         shape: const RoundedRectangleBorder(),
         scrimColor: Colors.black.withValues(alpha: 0.5),
       ),
@@ -141,22 +150,15 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       bottomSheetTheme: BottomSheetThemeData(
-        /* AUDIT PHASE 4 — fond OPAQUE (était Colors.transparent).
-           Le thème transparent laissait le contenu des feuilles remontées
-           (filtres catalogue, fiche produit, menus actions stock, minuterie
-           inactivité, formulaire retours, fiches fournisseur/client/employé/
-           commande/facture/pharmacie) flotter directement sur la barrière
-           sombre : ~12 surfaces illisibles. Les feuilles qui définissent
-           leur propre couleur (ex. feuille de paiement) restent inchangées. */
-        backgroundColor: isDark ? AppColors.surfacePanel : Colors.white,
+        backgroundColor: surfaceColor,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
       ),
-      textSelectionTheme: const TextSelectionThemeData(
-        cursorColor: AppColors.accent,
-        selectionColor: AppColors.primaryLight,
-        selectionHandleColor: AppColors.accent,
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: accent,
+        selectionColor: accent.withValues(alpha: 0.3),
+        selectionHandleColor: accent,
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
@@ -168,9 +170,9 @@ class AppTheme {
         },
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(
-        color: AppColors.primary,
+        color: accent,
         linearTrackColor:
-            isDark ? AppColors.dividerDark : AppColors.dividerLight,
+            isDark ? AppColors.graphiteLight : AppColors.silverDark,
       ),
       scrollbarTheme: ScrollbarThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
@@ -181,13 +183,13 @@ class AppTheme {
       ),
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(
-          color: isDark ? AppColors.menu : AppColors.primary,
+          color: isDark ? AppColors.graphite : AppColors.silver,
           borderRadius: BorderRadius.circular(8),
         ),
-        textStyle: const TextStyle(color: Colors.white, fontSize: 12),
+        textStyle: const TextStyle(color: AppColors.porcelain, fontSize: 12),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: isDark ? AppColors.surfaceDark : Colors.white,
+        backgroundColor: surfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       ),
       splashFactory: InkRipple.splashFactory,

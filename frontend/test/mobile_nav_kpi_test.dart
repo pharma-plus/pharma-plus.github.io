@@ -10,17 +10,17 @@ import 'package:provider/provider.dart';
 
 import 'package:pharma_maroc_gold/core/services/auth_store.dart';
 import 'package:pharma_maroc_gold/features/dashboard/dashboard_page.dart';
-import 'package:pharma_maroc_gold/features/sales_day/pages/sales_day_page.dart';
+import 'package:pharma_maroc_gold/features/sales_day/pages/sales_intelligence_shell.dart';
 import 'package:pharma_maroc_gold/features/sales_day/widgets/sales_date_filter.dart';
 import 'package:pharma_maroc_gold/features/shell/home_shell.dart';
 import 'package:pharma_maroc_gold/features/shell/shell_nav.dart';
 
 /// Mission reconstruction « VENTES DU JOUR » + navigation mobile :
-///  1. le KPI « VENTES DU JOUR » ouvre la nouvelle page (SalesDayPage) et
+///  1. le KPI « VENTES DU JOUR » ouvre le shell SALES INTELLIGENCE et
 ///     JAMAIS le POS complet (ShellNav.index reste 0 — le POS chargeait
 ///     catalogue + clients + branches + facets + ventes suspendues et
 ///     gelait le dashboard smartphone) ;
-///  2. SalesDayPage affiche les données RÉELLES servies par
+///  2. SalesIntelligenceShell affiche les données RÉELLES servies par
 ///     /sales/day et /sales/day/transactions (KPI + transactions) ;
 ///  3. la barre inférieure mobile est COMPACTE : 4 destinations
 ///     (Point de vente, Stock, Fournisseur, Bénéfice), pas les 14 modules.
@@ -434,7 +434,7 @@ void main() {
     await _settle(tester);
 
     // 1. La nouvelle page Ventes du jour est poussée (pas de remplacement).
-    expect(find.byType(SalesDayPage), findsOneWidget,
+    expect(find.byType(SalesIntelligenceShell), findsOneWidget,
         reason: 'la nouvelle page ventes du jour doit s\'ouvrir');
 
     // 2. Le POS n'est PAS ouvert : ShellNav.index reste 0 (dashboard).
@@ -449,7 +449,7 @@ void main() {
   });
 
   testWidgets(
-      'SalesDayPage : CA brut + encaissé = ventes completed (23.40), '
+      'SalesIntelligenceShell : CA brut + encaissé = ventes completed (23.40), '
       'annulée exclue des montants', (tester) async {
     HttpOverrides.global = _FakeHttpOverrides(true);
 
@@ -462,7 +462,7 @@ void main() {
         child: MaterialApp(
           themeAnimationDuration: Duration.zero,
           theme: ThemeData(brightness: Brightness.dark),
-          home: const SalesDayPage(),
+          home: const SalesIntelligenceShell(),
         ),
       ),
     ));

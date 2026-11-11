@@ -46,7 +46,7 @@ final _superAdminPagesMenu = <Widget>[
 /// pas : le backend refuse aussi la requête (enforcePathPermission,
 /// matrice ROUTE_MODULE).
 /// ============================================================
-const Color _sideGold = Color(0xFFD9B45C);
+const Color _sideGold = AppColors.champagne;
 
 /// État partagé de la sidebar rétractable (64 px rail / 232 px ouverte).
 /// Préférence historique conservée : `pmg_dashboard_sidebar_collapsed`.
@@ -269,19 +269,18 @@ class _AppSideMenuState extends State<AppSideMenu> {
                         width: 44,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: active ? const Color(0xFF07271C) : null,
+                          color: active ? AppColors.graphiteDark : null,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                               color: active
-                                  ? const Color(0xFFC9A24B)
-                                      .withValues(alpha: 0.55)
+                                  ? AppColors.champagne.withValues(alpha: 0.55)
                                   : Colors.transparent),
                         ),
                         child: Icon(item.icon,
                             size: 20,
                             color: active
                                 ? Colors.white
-                                : const Color(0xFFC9A24B)),
+                                : AppColors.champagne),
                       ),
                     ),
                   ),
@@ -310,7 +309,7 @@ class _AppSideMenuState extends State<AppSideMenu> {
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                           color:
-                              const Color(0xFFC9A24B).withValues(alpha: 0.55)),
+                              AppColors.champagne.withValues(alpha: 0.55)),
                     ),
                     child: const Icon(Icons.lock_open_outlined,
                         color: _sideGold, size: 18),
@@ -332,7 +331,7 @@ class _AppSideMenuState extends State<AppSideMenu> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                        color: const Color(0xFFC9A24B).withValues(alpha: 0.55)),
+                        color: AppColors.champagne.withValues(alpha: 0.55)),
                   ),
                   child: const Icon(Icons.logout, color: _sideGold, size: 18),
                 ),
@@ -383,11 +382,11 @@ class _AppSideMenuState extends State<AppSideMenu> {
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                           color: active
-                              ? const Color(0xFFC9A24B).withValues(alpha: 0.55)
+                              ? AppColors.champagne.withValues(alpha: 0.55)
                               : Colors.transparent),
                     ),
                     child: Row(children: [
-                      Icon(item.icon, size: 19, color: const Color(0xFFC9A24B)),
+                      Icon(item.icon, size: 19, color: AppColors.champagne),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(S.t(item.label, context.watch<AuthStore>().locale),
@@ -425,9 +424,9 @@ class _AppSideMenuState extends State<AppSideMenu> {
                 height: 42,
                 decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFF123327),
+                    color: AppColors.graphiteDark,
                     border: Border.all(
-                        color: const Color(0xFFC9A24B).withValues(alpha: 0.5))),
+                        color: AppColors.champagne.withValues(alpha: 0.5))),
                 child:
                     const Icon(Icons.person, color: Colors.white70, size: 24),
               ),
@@ -499,10 +498,10 @@ class _AppSideMenuState extends State<AppSideMenu> {
                     child: Container(
                       height: 42,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF07271C),
+                        color: AppColors.graphiteDark,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                            color: const Color(0xFFC9A24B)
+                            color: AppColors.champagne
                                 .withValues(alpha: 0.55)),
                       ),
                       child: const Center(
@@ -521,10 +520,10 @@ class _AppSideMenuState extends State<AppSideMenu> {
                   child: Container(
                     height: 42,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF07271C),
+                      color: AppColors.graphiteDark,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                          color: const Color(0xFFC9A24B)
+                          color: AppColors.champagne
                               .withValues(alpha: 0.55)),
                     ),
                     child: const Center(
@@ -569,7 +568,7 @@ class _AppSideMenuState extends State<AppSideMenu> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                     side: BorderSide(
-                        color: const Color(0xFFC9A24B).withValues(alpha: 0.7))),
+                        color: AppColors.champagne.withValues(alpha: 0.7))),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(10),
                   onTap: () => _showMoroccanCalendar(context),
@@ -930,7 +929,7 @@ class ModulesMenuDialog extends StatelessWidget {
             gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFF10291B), Color(0xFF0A1D13)]),
+                colors: [AppColors.graphiteDark, AppColors.graphite]),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: AppColors.goldBorder),
             boxShadow: [
@@ -950,10 +949,10 @@ class ModulesMenuDialog extends StatelessWidget {
                   height: 40,
                   decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
-                      color: const Color(0xFF123327),
+                      color: AppColors.graphiteDark,
                       border: Border.all(
                           color:
-                              const Color(0xFFC9A24B).withValues(alpha: 0.5))),
+                              AppColors.champagne.withValues(alpha: 0.5))),
                   child: const Icon(Icons.apps_rounded,
                       color: _sideGold, size: 21),
                 ),
@@ -1040,7 +1039,7 @@ class ModuleMenuTile extends StatelessWidget {
             color: Colors.white.withValues(alpha: 0.035),
             borderRadius: BorderRadius.circular(13),
             border: Border.all(
-                color: const Color(0xFFC9A24B).withValues(alpha: 0.45)),
+                color: AppColors.champagne.withValues(alpha: 0.45)),
           ),
           child: Row(children: [
             Container(
@@ -1048,10 +1047,10 @@ class ModuleMenuTile extends StatelessWidget {
               height: 34,
               decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  color: const Color(0xFF123327),
+                  color: AppColors.graphiteDark,
                   border: Border.all(
-                      color: const Color(0xFFC9A24B).withValues(alpha: 0.45))),
-              child: Icon(icon, size: 18, color: const Color(0xFFC9A24B)),
+                      color: AppColors.champagne.withValues(alpha: 0.45))),
+              child: Icon(icon, size: 18, color: AppColors.champagne),
             ),
             const SizedBox(width: 10),
             Expanded(

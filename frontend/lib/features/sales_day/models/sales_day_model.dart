@@ -202,24 +202,45 @@ class SalesPaymentSlice {
   }
 }
 
-/// Produit réel du classement (sale_items × medications).
+/// Produit réel d'un classement (sale_items × medications).
+/// [sortBy] indique le critère de classement : 'qty', 'rev' ou 'profit'.
 class SalesProductRank {
   final String name;
   final String? dosage;
   final double quantity;
   final double revenue;
+  final double profit;
+  final double marginPct;
   final int sales;
+  final String sortBy;
 
   const SalesProductRank({
     required this.name,
     required this.dosage,
     required this.quantity,
     required this.revenue,
+    required this.profit,
+    required this.marginPct,
     required this.sales,
+    required this.sortBy,
   });
 
   String get displayName =>
       name.isEmpty ? 'Référence inconnue' : name;
+
+  /// Libellé du critère de classement affiché.
+  String get sortLabel {
+    switch (sortBy) {
+      case 'qty':
+        return 'Quantité';
+      case 'rev':
+        return 'CA';
+      case 'profit':
+        return 'Bénéfice';
+      default:
+        return sortBy;
+    }
+  }
 
   factory SalesProductRank.fromJson(Map<String, dynamic> j) {
     double n(dynamic v) => num.tryParse('${v ?? ''}')?.toDouble() ?? 0;
@@ -228,7 +249,10 @@ class SalesProductRank {
       dosage: j['dosage']?.toString(),
       quantity: n(j['quantity']),
       revenue: n(j['revenue']),
+      profit: n(j['profit']),
+      marginPct: n(j['marginPct']),
       sales: n(j['sales']).round(),
+      sortBy: '${j['sortBy'] ?? 'rev'}',
     );
   }
 }
@@ -238,13 +262,20 @@ class SalesDayAnalytics {
   final SalesDayKpis kpis;
   final List<SalesHourBucket> hourly;
   final List<SalesPaymentSlice> payments;
-  final List<SalesProductRank> topProducts;
+  /// Top 10 par quantité vendue.
+  final List<SalesProductRank> topProductsQty;
+  /// Top 10 par chiffre d'affaires.
+  final List<SalesProductRank> topProductsRev;
+  /// Top 10 par bénéfice brut.
+  final List<SalesProductRank> topProductsProfit;
 
   const SalesDayAnalytics({
     required this.kpis,
     required this.hourly,
     required this.payments,
-    required this.topProducts,
+    required this.topProductsQty,
+    required this.topProductsRev,
+    required this.topProductsProfit,
   });
 
   factory SalesDayAnalytics.fromJson(Map<String, dynamic> j) {
@@ -276,8 +307,12 @@ class SalesDayAnalytics {
       payments: listOf(j['payment_breakdown'])
           .map(SalesPaymentSlice.fromJson)
           .toList(),
-      topProducts:
-          listOf(j['top_products']).map(SalesProductRank.fromJson).toList(),
+      topProductsQty:
+          listOf(j['top_products_by_qty']).map(SalesProductRank.fromJson).toList(),
+      topProductsRev:
+          listOf(j['top_products_by_rev']).map(SalesProductRank.fromJson).toList(),
+      topProductsProfit:
+          listOf(j['top_products_by_profit']).map(SalesProductRank.fromJson).toList(),
     );
   }
 }
@@ -298,6 +333,8 @@ class SalesTransaction {
   final String? paymentMethod;
   final String? customer;   // absent si indéchiffrable
   final double? itemsCount; // absent si enrichissement indisponible
+  final String? userId;     // absent si enrichissement indisponible
+  final String? userName;   // absent si enrichissement indisponible
 
   const SalesTransaction({
     required this.id,
@@ -314,6 +351,8 @@ class SalesTransaction {
     required this.paymentMethod,
     required this.customer,
     required this.itemsCount,
+    required this.userId,
+    required this.userName,
   });
 
   bool get isCompleted => status == 'completed';
@@ -343,6 +382,8 @@ class SalesTransaction {
       itemsCount: j['_items_count'] == null
           ? null
           : n(j['_items_count']),
+      userId: j['user_id']?.toString(),
+      userName: j['_user']?.toString(),
     );
   }
 

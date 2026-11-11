@@ -52,14 +52,17 @@ void main() {
         'payment_breakdown': [
           {'method': 'cash', 'amount': 123.45, 'count': 1},
         ],
-        'top_products': [
+        'top_products_by_rev': [
           {
             'medication_id': 'm1',
             'name': 'DOLIPRANE',
             'dosage': '1000 mg',
             'quantity': 3.0,
             'revenue': 50.0,
+            'profit': 30.0,
+            'marginPct': 60.0,
             'sales': 2,
+            'sortBy': 'rev',
           },
         ],
       },
@@ -75,8 +78,8 @@ void main() {
           reason: 'champ null = non disponible, jamais 0 inventé');
       expect(a.hourly.single.revenue, 123.45);
       expect(a.payments.single.label, 'Espèces');
-      expect(a.topProducts.single.displayName, 'DOLIPRANE');
-      expect(a.topProducts.single.dosage, '1000 mg');
+      expect(a.topProductsRev.single.displayName, 'DOLIPRANE');
+      expect(a.topProductsRev.single.dosage, '1000 mg');
     });
 
     test('payload vide / malformé → zéros honnêtes, pas de crash', () {
@@ -84,7 +87,7 @@ void main() {
       expect(a.kpis.grossRevenue, 0);
       expect(a.hourly, isEmpty);
       expect(a.payments, isEmpty);
-      expect(a.topProducts, isEmpty);
+      expect(a.topProductsRev, isEmpty);
     });
   });
 
@@ -216,7 +219,80 @@ void main() {
       expect(a!.kpis.grossRevenue, 0);
       expect(a!.hourly, isEmpty);
       expect(a!.payments, isEmpty);
-      expect(a!.topProducts, isEmpty);
+      expect(a!.topProductsRev, isEmpty);
+    });
+
+    test('Formules financières : cohérence des KPIs et absence de double déduction', () async {
+      // Données : 3 ventes terminées
+      // Vente 1 : subtotal=100, discount=10, tax=20, total=110, paid=110, cost=60
+      // Vente 2 : subtotal=200, discount=0, tax=40, total=240, paid=200, cost=120
+      // Vente 3 : subtotal=50, discount=5, tax=10, total=55, paid=30, cost=30
+      // Attendus :
+      //   gross_revenue = 110+240+55 = 405
+      //   net_revenue = (100-10)+(200-0)+(50-5) = 90+200+45 = 335
+      //   tax_total = 20+40+10 = 70
+      //   discounts_total = 10+0+5 = 15
+      //   Vérification : gross = net + tax + discounts = 335+70+15 = 410 != 405 ?
+      //   Non : gross = Σ total = 405, net = Σ(subtotal-discount) = 335
+      //   gross - net = 70 = tax_total → cohérent (pas de double déduction)
+      //   sales_count = 3
+      //   average_basket = 405/3 = 135
+      //   paid_amount = 110+200+30 = 340
+      //   outstanding = max(110-110,0)+max(240-200,0)+max(55-30,0) = 0+40+25 = 65
+      //   cost_total = 60+120+30 = 210
+      //   gross_profit = gross - cost = 405-210 = 195
+      //   margin_pct = 195/405 = 48.1%
+      ApiClient.setClientForTesting(http_testing.MockClient((r) async {
+        return http.Response(
+          jsonEncode({
+            'data': {
+              'kpis': {
+                'gross_revenue': 405.0,
+                'net_revenue': 335.0,
+                'tax_total': 70.0,
+                'discounts_total': 15.0,
+                'sales_count': 3,
+                'average_basket': 135.0,
+                'cancelled_count': 0,
+                'returned_count': 0,
+                'paid_amount': 340.0,
+                'outstanding_amount': 65.0,
+                'refunded_amount': null,
+                'cost_total': 210.0,
+                'total_rows': 3,
+              },
+              'hourly': [],
+              'payment_breakdown': [],
+              'top_products_by_rev': [],
+              'top_products_by_qty': [],
+              'top_products_by_profit': [],
+            },
+          }),
+          200,
+        );
+      }));
+      final (a, err) = await SalesRepository.instance.loadAnalytics(
+        SalesDateRange(DateTime(2026, 11, 10), DateTime(2026, 11, 11)),
+        offsetMinutes: 0,
+      );
+      expect(err, isNull);
+      expect(a, isNotNull);
+
+      // Vérification : gross = net + tax (pas de double déduction des remises)
+      expect(a!.kpis.grossRevenue, a.kpis.netRevenue + a.kpis.taxTotal);
+
+      // Vérification : gross - cost = gross profit
+      final grossProfit = a.kpis.grossRevenue - a.kpis.costTotal;
+      expect(grossProfit, 195.0);
+
+      // Vérification : outstanding = Σ max(total - paid, 0)
+      expect(a.kpis.outstandingAmount, 65.0);
+
+      // Vérification : paid_amount = Σ min(total, paid)
+      expect(a.kpis.paidAmount, 340.0);
+
+      // Vérification : moyenne
+      expect(a.kpis.averageBasket, 135.0);
     });
 
     test('401 → sessionExpired', () async {

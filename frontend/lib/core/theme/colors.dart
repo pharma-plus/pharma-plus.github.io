@@ -1,357 +1,412 @@
 import 'package:flutter/material.dart';
 
 /// ============================================================
-/// PALETTE PHARMA+ v3 — « LUXE PHARMACEUTIQUE »
-/// Vert pétrole profond · Vert forêt · Noir profond · Or champagne
-/// Design tokens officiels de la maquette :
-///   --pharma-bg #03100D · --pharma-bg-2 #061A15
-///   --pharma-surface #08231C · --pharma-surface-2 #0B2C23
-///   --pharma-green #00C96B · --pharma-green-dark #006B43
-///   --pharma-gold #D6A84F · --pharma-gold-light #F1D58A
-///   --pharma-text #F4F4EE · --pharma-muted #9BAEA7
-///   --pharma-danger #EF4444 · --pharma-warning #F59E0B
+/// PALETTE PHARMA+ v4 — NOUVELLE IDENTITÉ VISUELLE
+/// Vert sauge #A8C8B5 · Champagne #C6A76B · Texte foncé #26343D
+/// Graphite #20272D · Texte clair #F5F6F5
 /// ============================================================
+
 class AppColors {
   AppColors._();
 
-  // === DESIGN TOKENS OFFICIELS PHARMA+ ===
-  static const Color pharmaBg = Color(0xFF03100D);
-  static const Color pharmaBg2 = Color(0xFF061A15);
-  static const Color pharmaSurface = Color(0xFF08231C);
-  static const Color pharmaSurface2 = Color(0xFF0B2C23);
-  static const Color pharmaGreen = Color(0xFF00C96B);
-  static const Color pharmaGreenDark = Color(0xFF006B43);
-  static const Color pharmaGold = Color(0xFFD6A84F);
-  static const Color pharmaGoldLight = Color(0xFFF1D58A);
-  static const Color pharmaText = Color(0xFFF4F4EE);
-  static const Color pharmaMuted = Color(0xFF9BAEA7);
-  static const Color pharmaDanger = Color(0xFFEF4444);
-  static const Color pharmaWarning = Color(0xFFF59E0B);
+  // ============================================================
+  // NOUVELLE PALETTE DE MARQUE PHARMA+
+  // ============================================================
 
-  /// Liseré or maquette : 1px rgba(214,168,79,0.15)
-  static const Color goldBorder = Color(0x26D6A84F);
-  /// Liseré or renforcé : rgba(214,168,79,0.32)
-      static const Color goldBorderStrong = Color(0x52D6A84F);
+  // Vert sauge — couleur de marque principale (remplace vert pétrole #006B43 / #00C96B)
+  static const Color sageGreen = Color(0xFFA8C8B5);
+  static const Color sageGreenDark = Color(0xFF8FB39A);
+  static const Color sageGreenLight = Color(0xFFD4E4DA);
 
-  // === MARQUE PHARMA+ ===
-  static const Color primary = Color(0xFF006B43);        // Vert pétrole profond
-  static const Color primaryLight = Color(0xFF0E3B2C);   // Vert forêt
-  static const Color secondary = Color(0xFF08231C);      // Presque noir
-  static const Color emerald = Color(0xFF00C96B);        // Vert PHARMA+ (actif)
-  static const Color emeraldDark = Color(0xFF006B43);    // Vert foncé
-  static const Color emeraldLight = Color(0xFF3BE39A);   // Vert clair subtil
+  // Champagne — accents et sélections (remplace or #D6A84F)
+  static const Color champagne = Color(0xFFC6A76B);
+  static const Color champagneDark = Color(0xFFB08A3C);
+  static const Color champagneLight = Color(0xFFE8D5B5);
 
-  // === COULEURS DE BADGES KPI (dashboard) ===
-  static const Color emeraldRich = Color(0xFF00C96B);
-  static const Color cardBlue = Color(0xFF5B8FD9);
+  // Graphite — fonds sombres et texte
+  static const Color graphite = Color(0xFF20272D);
+  static const Color graphiteDark = Color(0xFF1A1F24);
+  static const Color graphiteLight = Color(0xFF3A424A);
+
+  // Texte foncé — pour les surfaces claires
+  static const Color inkDark = Color(0xFF26343D);
+  static const Color inkDarkLight = Color(0xFF4A5A65);
+
+  // Texte clair — pour les surfaces sombres
+  static const Color porcelain = Color(0xFFF5F6F5); // Blanc porcelaine / texte clair
+
+  // Gris argent — surfaces principales (thème clair / marbre)
+  static const Color silver = Color(0xFFE8EAEC); // Gris argent / marbre
+  static const Color silverLight = Color(0xFFF0F1F2);
+  static const Color silverDark = Color(0xFFCED3D8);
+
+  // ============================================================
+  // COULEURS SÉMANTIQUES (préservées — succès, erreur, avertissement)
+  // ============================================================
+
+  static const Color success = Color(0xFFA8C8B5);      // Vert sauge pour succès
+  static const Color danger = Color(0xFFEF4444);       // Rouge (inchangé)
+  static const Color warning = Color(0xFFF59E0B);      // Ambre (inchangé)
+  static const Color info = Color(0xFF5BB8E8);         // Bleu (inchangé)
+
+  // ============================================================
+  // COULEURS MÉTIER SUPPLÉMENTAIRES (préservées)
+  // ============================================================
+
+  static const Color cardBlue = Color(0xFF5BB8E8);
   static const Color cardAmber = Color(0xFFF59E0B);
   static const Color cardPurple = Color(0xFF9B5FC0);
-  static const Color petroleumBlue = Color(0xFF0C2418);
-  static const Color emeraldDeep = Color(0xFF006B43);
-  static const Color emeraldInk = Color(0xFF03100D);
-  static const Color champagneGold = Color(0xFFD6A84F);
-
-  /// Palette graphique cohérente (illustrations / KPI / rapports)
-  static const Color chart = Color(0xFF5B8FD9);         // Bleu outil/graphique
-  static const Color chartAccent = Color(0xFF00C96B);    // Dernière barre / flèche ↑
-  static const Color warnAmber = Color(0xFFF59E0B);     // Alertes expirations / stock faible
-  static const Color alertRed = Color(0xFFEF4444);      // Rupture / danger
-  static const Color danger = Color(0xFFEF4444);
-
-  // === FONDS PREMIUM SOMBRES ===
-  static const Color backgroundDark = Color(0xFF03100D); // Vert pétrole profond
-  static const Color surfaceDark = Color(0xFF061A15);    // Fond secondaire
-  static const Color surfaceCard = Color(0xFF08231C);    // Surface carte
-  static const Color surfacePanel = Color(0xFF0B2C23);   // Surface panneau
-  static const Color surfaceSidebar = Color(0xFF020B08); // Sidebar
-
-  // === TEXTES ===
-  static const Color textPrimary = Color(0xFFF4F4EE);    // Blanc crème
-  static const Color textSecondary = Color(0xFF9BAEA7);  // Texte secondaire
-  static const Color textTertiary = Color(0xFF6B857C);   // Texte tertiaire
-  static const Color textDisabled = Color(0xFF3E5A50);   // Texte disabled
-
-  // === BORDURES FINES ===
-  static const Color dividerLight = Color(0xFF143B2B);   // Bordure légère
-  static const Color dividerDark = Color(0xFF0A241B);    // Bordure sombre
-  static const Color borderLight = Color(0xFF1A4734);    // Bordure légère cartes
-  static const Color borderDark = Color(0xFF0C2B20);     // Bordure sombre cartes
-
-  // === ORANGE/DORÉ POUR STOCK ===
-  static const Color warning = Color(0xFFF59E0B);        // Ambre premium
-  static const Color warningLight = Color(0xFFFBBF49);   // Ambre clair
-  static const Color gold = Color(0xFFD6A84F);           // Or champagne
-
-  // === OR DE MARQUE (maquette connexion) ===
-  static const Color brandGold = Color(0xFFD6A84F);      // Liseré or des cartes/panneaux
-
-  // === VIOLET POUR COMMANDES ===
-  static const Color purple = Color(0xFF9B5FC0);        // Violet
-  static const Color purpleDark = Color(0xFF7A3FA8);    // Violet foncé
-
-  // === CYAN/BLEU POUR FOURNISSEURS ===
-  static const Color cyan = Color(0xFF2BD4C4);          // Turquoise
-  static const Color cyanLight = Color(0xFF67E6DA);     // Turquoise clair
-
-  // === ROSE/VIOLET POUR CLIENTS ===
-  static const Color pink = Color(0xFFE0557C);          // Rose
-  static const Color pinkLight = Color(0xFFED7FA0);     // Rose clair
-
-  // === VERT/OLIVE POUR EMPLOYÉS ===
-  static const Color olive = Color(0xFF9BCB6B);         // Olive
-  static const Color oliveLight = Color(0xFFB9E091);    // Olive clair
-
-    // === SEMANTIQUE ===
-  static const Color success = Color(0xFF00C96B);
-  static const Color info = Color(0xFF5BB8E8);
-
-  // === GLOW / OMBRE COULEURS ===
-  static const Color shadowColor = Color(0xFF000000);   // Ombre noire
-
-  // === GRADIENTS SOMBRES (tout est très sombre + emerald) ===
-
-  // Gradient principal vert pétrole
-  static const LinearGradient emeraldGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [
-      Color(0xFF0B2C23),
-      Color(0xFF061A15),
-      Color(0xFF03100D),
-    ],
-  );
-
-  // Gradient sidebar
-  static const LinearGradient sidebarGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [
-      Color(0xFF020B08),
-      Color(0xFF061A15),
-    ],
-  );
-
-  // Gradient carte
-  static const LinearGradient cardGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [
-      Color(0xFF08231C),
-      Color(0xFF061A15),
-    ],
-  );
-
-  // Gradient alerte
-  static const LinearGradient alertGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [
-      Color(0xFF241A0F),
-      Color(0xFF170E06),
-    ],
-  );
+  static const Color purple = Color(0xFF9B5FC0);
+  static const Color purpleDark = Color(0xFF7A3FA8);
+  static const Color cyan = Color(0xFF2BD4C4);
+  static const Color cyanLight = Color(0xFF67E6DA);
+  static const Color pink = Color(0xFFE0557C);
+  static const Color pinkLight = Color(0xFFED7FA0);
+  static const Color olive = Color(0xFF9BCB6B);
+  static const Color oliveLight = Color(0xFFB9E091);
 
   // ============================================================
-  // === ALIASES DE COMPATIBILITE (autres pages de l'app) =======
+  // ALIASES DE RÉTROCOMPATIBILITÉ (anciens noms → nouvelles valeurs)
+  // Ces alias permettent aux composants existants de continuer à fonctionner
+  // avec la nouvelle palette.
   // ============================================================
-  static const Color menu = Color(0xFF020B08);            // Fond menu
-  static const Color accent = Color(0xFF00C96B);          // Accent vert PHARMA+
-  static const Color accentDeep = Color(0xFF006B43);      // Accent vert foncé
-  static const Color turquoise = Color(0xFF00C96B);       // Turquoise => vert PHARMA+
-  static const Color turquoiseLight = Color(0xFF8FFFE0);  // Turquoise clair
-  static const Color turquoiseDark = Color(0xFF006B43);   // Turquoise profond
-  static const Color teal = Color(0xFF0E5C4E);            // Teal
-  static const Color backgroundLight = Color(0xFFFAFAF5); // Fond clair (mode light)
-  static const Color goldLight = Color(0xFFF1D58A);       // Or champagne clair
-  static const Color goldDeep = Color(0xFFA07E2E);        // Or foncé
-  static const Color goldRose = Color(0xFFE8C893);        // Or rosé
-  static const LinearGradient goldGradient = LinearGradient(
+
+  /// Ancien "primary" (vert pétrole) → vert sauge
+  static const Color primary = sageGreen;
+
+  /// Ancien "emerald" (vert pétrole) → vert sauge
+  static const Color emerald = sageGreen;
+
+  /// Ancien "emeraldDark" → vert sauge foncé
+  static const Color emeraldDark = sageGreenDark;
+
+  /// Ancien "emeraldLight" → vert sauge clair
+  static const Color emeraldLight = sageGreenLight;
+
+  /// Ancien "emeraldRich" → vert sauge
+  static const Color emeraldRich = sageGreen;
+
+  /// Ancien "pharmaGreen" → vert sauge
+  static const Color pharmaGreen = sageGreen;
+
+  /// Ancien "pharmaGreenDark" → vert sauge foncé
+  static const Color pharmaGreenDark = sageGreenDark;
+
+  /// Ancien "turquoise" → vert sauge
+  static const Color turquoise = sageGreen;
+
+  /// Ancien "turquoiseLight" → vert sauge clair
+  static const Color turquoiseLight = sageGreenLight;
+
+  /// Ancien "turquoiseDark" → vert sauge foncé
+  static const Color turquoiseDark = sageGreenDark;
+
+  /// Ancien "teal" → vert sauge foncé
+  static const Color teal = sageGreenDark;
+
+  /// Ancien "accent" → vert sauge
+  static const Color accent = sageGreen;
+
+  /// Ancien "accentDeep" → vert sauge foncé
+  static const Color accentDeep = sageGreenDark;
+
+  /// Ancien "menu" (fond menu sombre) → graphite
+  static const Color menu = graphite;
+
+  /// Ancien "brandGold" → champagne
+  static const Color brandGold = champagne;
+
+  /// Ancien "gold" → champagne
+  static const Color gold = champagne;
+
+  /// Ancien "pharmaGold" → champagne
+  static const Color pharmaGold = champagne;
+
+  /// Ancien "goldLight" → champagne light
+  static const Color goldLight = champagneLight;
+
+  /// Ancien "goldDeep" → champagne dark
+  static const Color goldDeep = champagneDark;
+
+  /// Ancien "goldRose" → champagne light
+  static const Color goldRose = champagneLight;
+
+  /// Ancien "pharmaBg" (fond sombre) → graphite (thème sombre)
+  static const Color pharmaBg = graphite;
+
+  /// Ancien "pharmaBg2" → graphite dark
+  static const Color pharmaBg2 = graphiteDark;
+
+  /// Ancien "backgroundDark" → graphite
+  static const Color backgroundDark = graphite;
+
+  /// Ancien "surfaceDark" → graphite light
+  static const Color surfaceDark = graphiteLight;
+
+  /// Ancien "surfaceCard" → graphite light
+  static const Color surfaceCard = graphiteLight;
+
+  /// Ancien "surfacePanel" → graphite light
+  static const Color surfacePanel = graphiteLight;
+
+  /// Ancien "surfaceSidebar" → graphite
+  static const Color surfaceSidebar = graphite;
+
+  /// Ancien "backgroundLight" → silver (thème clair / marbre)
+  static const Color backgroundLight = silver;
+
+  /// Ancien "textPrimary" → porcelain (texte clair sur sombre)
+  static const Color textPrimary = porcelain;
+
+  /// Ancien "textSecondary" → graphite light
+  static const Color textSecondary = graphiteLight;
+
+  /// Ancien "textTertiary" → graphite light
+  static const Color textTertiary = graphiteLight;
+
+  /// Ancien "textDisabled" → graphite light
+  static const Color textDisabled = graphiteLight;
+
+  /// Ancien "pharmaText" → porcelain
+  static const Color pharmaText = porcelain;
+
+  /// Ancien "pharmaMuted" → graphite light
+  static const Color pharmaMuted = graphiteLight;
+
+  /// Ancien "pharmaDanger" → danger
+  static const Color pharmaDanger = danger;
+
+  /// Ancien "pharmaWarning" → warning
+  static const Color pharmaWarning = warning;
+
+  /// Ancien "pharmaSurface" → graphite light
+  static const Color pharmaSurface = graphiteLight;
+
+  /// Ancien "pharmaSurface2" → graphite light
+  static const Color pharmaSurface2 = graphiteLight;
+
+  /// Ancien "primaryLight" → vert sauge foncé
+  static const Color primaryLight = sageGreenDark;
+
+  /// Ancien "pharmaGoldLight" → champagne light
+  static const Color pharmaGoldLight = champagneLight;
+
+  /// Ancien "warnAmber" → ambre
+  static const Color warnAmber = warning;
+
+  /// Ancien "alertRed" → danger
+  static const Color alertRed = danger;
+
+  /// Ancien "chart" → bleu info
+  static const Color chart = info;
+
+  /// Ancien "chartAccent" → vert sauge
+  static const Color chartAccent = sageGreen;
+
+  /// Ancien "petroleumBlue" → vert sauge foncé
+  static const Color petroleumBlue = sageGreenDark;
+
+  /// Ancien "emeraldDeep" → vert sauge foncé
+  static const Color emeraldDeep = sageGreenDark;
+
+  /// Ancien "emeraldInk" → graphite
+  static const Color emeraldInk = graphite;
+
+  /// Ancien "champagneGold" → champagne
+  static const Color champagneGold = champagne;
+
+  // Bordures — argent pour thème clair, graphite pour sombre
+  static const Color dividerLight = silverDark;
+  static const Color dividerDark = graphiteLight;
+  static const Color borderLight = silverDark;
+  static const Color borderDark = graphiteLight;
+
+  // Liserés or → champagne
+  static const Color goldBorder = Color(0x26C6A76B);
+  static const Color goldBorderStrong = Color(0x52C6A76B);
+
+  // Ombres
+  static const Color shadowColor = Color(0xFF000000);
+
+  // ============================================================
+  // GRADIENTS — NOUVELLE IDENTITÉ
+  // ============================================================
+
+  static const LinearGradient sageGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Color(0xFFF1D58A),
-      Color(0xFFD6A84F),
-      Color(0xFFB08A3C),
+      sageGreenLight,
+      sageGreen,
+      sageGreenDark,
+    ],
+  );
+
+  static const LinearGradient champagneGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      champagneLight,
+      champagne,
+      champagneDark,
     ],
     stops: [0.0, 0.55, 1.0],
   );
-  static const LinearGradient goldGradientHover = LinearGradient(
+
+  static const LinearGradient graphiteGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Color(0xFFE8C778),
-      Color(0xFFC79A3E),
-      Color(0xFF9C7528),
+      graphiteLight,
+      graphite,
+      graphiteDark,
     ],
-  );
-  static const LinearGradient greenGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [
-      Color(0xFF00C96B),
-      Color(0xFF00A85C),
-      Color(0xFF007C45),
-    ],
-  );
-  static const LinearGradient forestGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [
-      Color(0xFF0B2C23),
-      Color(0xFF08231C),
-      Color(0xFF041712),
-    ],
-  );
-  static const LinearGradient turquoiseGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [
-      Color(0xFF00C96B),
-      Color(0xFF00A878),
-      Color(0xFF00875F),
-      Color(0xFF006B43),
-    ],
-    stops: [0.0, 0.3, 0.7, 1.0],
-  );
-  static const LinearGradient turquoiseGoldGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [
-      Color(0xFF00C96B),
-      Color(0xFF00A878),
-      Color(0xFFD6A84F),
-      Color(0xFFB08A3C),
-    ],
-    stops: [0.0, 0.35, 0.65, 1.0],
-  );
-  static const LinearGradient aiGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [
-      Color(0xFF6A1B9A),
-      Color(0xFF7C4DFF),
-      Color(0xFF00E8B5),
-      Color(0xFFFFD100),
-    ],
-    stops: [0.0, 0.3, 0.65, 1.0],
   );
 
-  // === Couleurs de glow (ombres) par défaut - vert PHARMA+ ==========
+  static const LinearGradient silverGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      silverLight,
+      silver,
+      silverDark,
+    ],
+  );
+
+  // Gradients de compatibilité (anciens noms → nouveaux)
+  static const LinearGradient emeraldGradient = sageGradient;
+  static const LinearGradient greenGradient = sageGradient;
+  static const LinearGradient goldGradient = champagneGradient;
+  static const LinearGradient goldGradientHover = champagneGradient;
+  static const LinearGradient forestGradient = graphiteGradient;
+  static const LinearGradient turquoiseGradient = sageGradient;
+  static const LinearGradient turquoiseGoldGradient = sageGradient;
+  static const LinearGradient sidebarGradient = graphiteGradient;
+  static const LinearGradient cardGradient = silverGradient;
+  static const LinearGradient alertGradient = graphiteGradient;
+  static const LinearGradient primaryGradient = sageGradient;
+
+  // ============================================================
+  // GLOW / OMBRES COLORÉES PAR DOMAINE
+  // ============================================================
+
   static const Map<String, Color> premiumGlowColors = {
-    'revenue': Color(0xFF00C96B),        // Vert glow
-    'stock': Color(0xFFF59E0B),          // Ambre glow
-    'sales': Color(0xFF00C96B),
-    'revenue_month': Color(0xFF00C96B),
-    'prescriptions': Color(0xFF9B5FC0),  // Violet glow
-    'customers': Color(0xFFE0557C),      // Rose glow
-    'suppliers': Color(0xFF2BD4C4),      // Turquoise glow
-    'parapharmacy': Color(0xFF00C96B),
-    'alerts': Color(0xFFF59E0B),         // Ambre glow alerts
-    'ai': Color(0xFF9B5FC0),
-    'analytics': Color(0xFF2BD4C4),
+    'revenue': sageGreen,
+    'stock': warning,
+    'sales': sageGreen,
+    'revenue_month': sageGreen,
+    'prescriptions': info,
+    'customers': danger,
+    'suppliers': turquoise,
+    'parapharmacy': sageGreen,
+    'alerts': warning,
+    'ai': info,
+    'analytics': turquoise,
   };
 
-  // Détermine si un fond est sombre
+  // ============================================================
+  // HELPERS
+  // ============================================================
+
+  /// Détermine si un fond est sombre (luminance < 0.25)
   static bool isDark(Color color) => color.computeLuminance() < 0.25;
 
-  // Obtenir gradient premium par clé
+  /// Obtenir gradient premium par clé
   static LinearGradient getGradient(String key) =>
-      _premiumCardGradients[key] ?? emeraldGradient;
+      _premiumCardGradients[key] ?? sageGradient;
 
-  // Obtenir glow color par clé
-  static Color getGlow(String key) => premiumGlowColors[key] ?? emerald;
+  /// Obtenir glow color par clé
+  static Color getGlow(String key) => premiumGlowColors[key] ?? sageGreen;
 
-  // Gradients de cartes par type (sombres avec emerald)
+  // Gradients de cartes par type (nouvelle identité)
   static const Map<String, LinearGradient> _premiumCardGradients = {
     'revenue': LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
-        Color(0xFF0C2418),
-        Color(0xFF081B12),
+        sageGreenLight,
+        sageGreen,
       ],
     ),
     'stock': LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
-        Color(0xFF271A0E),
-        Color(0xFF180E06),
+        champagneLight,
+        champagne,
       ],
     ),
     'sales': LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
-        Color(0xFF0C2418),
-        Color(0xFF081B12),
+        sageGreenLight,
+        sageGreen,
       ],
     ),
     'revenue_month': LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
-        Color(0xFF0E2A1C),
-        Color(0xFF081B12),
+        sageGreenLight,
+        sageGreen,
       ],
     ),
     'prescriptions': LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
-        Color(0xFF23152E),
-        Color(0xFF130A18),
+        champagneLight,
+        champagne,
       ],
     ),
     'customers': LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
-        Color(0xFF2A1428),
-        Color(0xFF180A16),
+        Color(0xFFF0E0D0),
+        pink,
       ],
     ),
     'suppliers': LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
-        Color(0xFF0E262E),
-        Color(0xFF07151C),
+        Color(0xFFD8E8E8),
+        cyan,
       ],
     ),
     'parapharmacy': LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
-        Color(0xFF0C2418),
-        Color(0xFF081B12),
+        sageGreenLight,
+        sageGreen,
       ],
     ),
     'alerts': LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
-        Color(0xFF251A0F),
-        Color(0xFF1A0F05),
+        Color(0xFFF5E0B0),
+        warning,
       ],
     ),
     'ai': LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
-        Color(0xFF23152E),
-        Color(0xFF130A18),
+        Color(0xFFE8E0F0),
+        purple,
       ],
     ),
     'analytics': LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
-        Color(0xFF0E262E),
-        Color(0xFF07151C),
+        Color(0xFFD8E8E8),
+        cyan,
       ],
     ),
   };
 }
-
-
