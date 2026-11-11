@@ -92,11 +92,11 @@ class ProductArtPainter extends CustomPainter {
     canvas.drawOval(
         Rect.fromCenter(center: P(50, 74), width: 74 * ux, height: 14 * uy),
         Paint()
-          ..color = const Color(0xFF00C96B).withValues(alpha: 0.16)
+          ..color = const Color(0xFFA8C8B5).withValues(alpha: 0.16)
           ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 5));
     canvas.drawOval(
         Rect.fromCenter(center: P(50, 75), width: 62 * ux, height: 10 * uy),
-        Paint()..color = const Color(0xFF0B241A));
+        Paint()..color = const Color(0xFF171D22));
 
     // Ombre portée douce.
     final shadow = Paint()
@@ -305,8 +305,8 @@ class ProductArtPainter extends CustomPainter {
 
       // ---- FALLBACK : boîte verte croix blanche ----
       case ProductArt.generic:
-        box3d(32, 22, 30, 38, 5.5, const Color(0xFF0E8C4F),
-            const Color(0xFF0B7440), const Color(0xFF096035));
+        box3d(32, 22, 30, 38, 5.5, const Color(0xFF3D6B51),
+            const Color(0xFF2F5440), const Color(0xFF24402F));
         final cross = Paint()..color = Colors.white;
         canvas.drawRRect(rr(44, 32, 6, 16, 1.2), cross);
         canvas.drawRRect(rr(39, 37, 16, 6, 1.2), cross);

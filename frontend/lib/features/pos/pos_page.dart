@@ -1530,12 +1530,10 @@ class _PosPageState extends State<PosPage> {
       ),
       body: Stack(
         children: [
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/background.webp',
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-            ),
+          // Fond COMPACTE (graphite plein, sans image) : visibilité maximale
+          // des produits, du panier et des boutons.
+          const Positioned.fill(
+            child: ColoredBox(color: AppColors.graphiteDark),
           ),
           Positioned.fill(
             child: GestureDetector(
@@ -1693,9 +1691,9 @@ class _PosPageState extends State<PosPage> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: const Color(0xFF123528),
+        color: const Color(0xFF232B31),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF2A7A5A)),
+        border: Border.all(color: const Color(0xFF3A424A)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1728,7 +1726,7 @@ class _PosPageState extends State<PosPage> {
                     onPressed: () => _resumeHeld('${h['id']}'),
                     child: const Text('Reprendre',
                         style:
-                            TextStyle(fontSize: 11, color: Color(0xFF7BEBA4))),
+                            TextStyle(fontSize: 11, color: AppColors.sageGreen)),
                   ),
                   IconButton(
                     tooltip: 'Supprimer la vente suspendue',
@@ -1846,7 +1844,7 @@ class _PosPageState extends State<PosPage> {
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF1A4A32), Color(0xFF0E2A1C)],
+                    colors: [Color(0xFF232B31), Color(0xFF171D22)],
                   ),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.goldBorder),
@@ -1875,7 +1873,7 @@ class _PosPageState extends State<PosPage> {
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF1A4A32), Color(0xFF0E2A1C)],
+                  colors: [Color(0xFF232B31), Color(0xFF171D22)],
                 ),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.goldBorder),
@@ -2380,7 +2378,7 @@ class _PosPageState extends State<PosPage> {
                 label: 'Espèces',
                 selected: _paymentMode == 'cash',
                 onTap: () => setState(() => _paymentMode = 'cash'),
-                selectedColor: const Color(0xFF00C96B),
+                selectedColor: AppColors.sageGreen,
               )),
               const SizedBox(width: 6),
               Expanded(
@@ -3261,9 +3259,9 @@ class _PayButtonState extends State<_PayButton>
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Color.lerp(const Color(0xFF0E8C4F),
-                            const Color(0xFF3BE39A), g * 0.4)!,
-                        const Color(0xFF086B3D),
+                        Color.lerp(AppColors.sageGreen,
+                            AppColors.sageGreenLight, g * 0.4)!,
+                        AppColors.sageGreenDark,
                       ],
                     )
                   : null,
@@ -3272,20 +3270,20 @@ class _PayButtonState extends State<_PayButton>
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: widget.enabled
-                    ? const Color(0xFF2A7A5A).withValues(alpha: 0.6 + g * 0.3)
+                    ? const Color(0xFF3A424A).withValues(alpha: 0.6 + g * 0.3)
                     : Colors.white.withValues(alpha: 0.08),
               ),
               boxShadow: widget.enabled
                   ? [
                       BoxShadow(
                         color:
-                            const Color(0xFF0E8C4F).withValues(alpha: g * 0.45),
+                            AppColors.sageGreen.withValues(alpha: g * 0.45),
                         blurRadius: 10 + g * 6,
                         offset: const Offset(0, 3),
                       ),
                       BoxShadow(
-                        color:
-                            const Color(0xFF3BE39A).withValues(alpha: g * 0.2),
+                        color: AppColors.sageGreenLight
+                            .withValues(alpha: g * 0.2),
                         blurRadius: 16 + g * 8,
                         offset: const Offset(0, 0),
                       ),
@@ -3300,7 +3298,7 @@ class _PayButtonState extends State<_PayButton>
                   child: Icon(Icons.payments_outlined,
                       size: 14,
                       color: widget.enabled
-                          ? Colors.white
+                          ? AppColors.sageGreenInk
                           : Colors.white.withValues(alpha: 0.25)),
                 ),
                 const SizedBox(width: 4),
@@ -3312,7 +3310,7 @@ class _PayButtonState extends State<_PayButton>
                           fontSize: 10,
                           fontWeight: FontWeight.w800,
                           color: widget.enabled
-                              ? Colors.white
+                              ? AppColors.sageGreenInk
                               : Colors.white.withValues(alpha: 0.25))),
                 ),
               ],

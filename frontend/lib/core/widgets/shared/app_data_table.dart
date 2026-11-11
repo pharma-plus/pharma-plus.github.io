@@ -87,12 +87,17 @@ class _SortableHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    // En-tête clair = pastille vert clair (charte) → texte encre foncée ;
+    // en-tête sombre = graphite → texte clair conservé.
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final headerInk =
+        isDark ? tokens.textPrimary : AppColors.sageGreenInk;
 
     if (!sortable) {
       return Text(
         label,
         style: tokens.tableHeader.copyWith(
-          color: tokens.textPrimary,
+          color: headerInk,
           fontWeight: FontWeight.w800,
         ),
         overflow: TextOverflow.ellipsis,
@@ -116,7 +121,9 @@ class _SortableHeader extends StatelessWidget {
               child: Text(
                 label,
                 style: tokens.tableHeader.copyWith(
-                  color: isSorted ? tokens.brandGold : tokens.textPrimary,
+                  color: isSorted
+                      ? (isDark ? tokens.brandGold : AppColors.sageGreenInkDark)
+                      : headerInk,
                   fontWeight: FontWeight.w800,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -129,7 +136,7 @@ class _SortableHeader extends StatelessWidget {
                     ? Icons.arrow_upward_rounded
                     : Icons.arrow_downward_rounded,
                 size: tokens.fontSizeSm,
-                color: tokens.brandGold,
+                color: isDark ? tokens.brandGold : AppColors.sageGreenInk,
               ),
             ] else ...[
               SizedBox(width: tokens.sp1),
@@ -624,7 +631,7 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
     final verticalController =
         widget.scrollController ?? _internalVerticalController;
     final headerColor =
-        isDark ? const Color(0xFF0F2520) : const Color(0xFF006B43);
+        isDark ? const Color(0xFF0F2520) : AppColors.sageGreen;
     final divider = widget.config.dividerColor ??
         (isDark ? tokens.borderDark : tokens.borderLight);
 
@@ -867,7 +874,7 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
 
     return DataTable(
       headingRowColor: WidgetStateProperty.resolveWith((states) =>
-          isDark ? const Color(0xFF0F2520) : const Color(0xFF006B43)),
+          isDark ? const Color(0xFF0F2520) : AppColors.sageGreen),
       headingRowHeight: widget.config.headerHeight,
       dataRowMinHeight: widget.config.rowHeight,
       dataRowMaxHeight: widget.config.rowHeight * 2,

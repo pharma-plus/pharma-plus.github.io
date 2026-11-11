@@ -70,7 +70,7 @@ class _PosCategoryTileState extends State<PosCategoryTile> {
                       offset: const Offset(0, 4)),
                   if (widget.selected || _hover)
                     BoxShadow(
-                        color: const Color(0xFF00C96B).withValues(alpha: 0.18),
+                        color: const Color(0xFFA8C8B5).withValues(alpha: 0.18),
                         blurRadius: 14,
                         offset: const Offset(0, 6)),
                 ],
@@ -159,19 +159,19 @@ class _GlyphPainter extends CustomPainter {
         Paint()
           ..shader = ui.Gradient.radial(
               Offset(cx - 9, cy - 11), s.width * .34, [
-            const Color(0xFFB9F5D9).withValues(alpha: .18),
+            const Color(0xFFD4E4DA).withValues(alpha: .18),
             Colors.transparent
           ]));
     c.drawOval(
         Rect.fromCenter(
             center: Offset(cx, s.height - 4), width: s.width * 0.68, height: 7),
         Paint()
-          ..color = const Color(0xFF00C96B).withValues(alpha: 0.20)
+          ..color = const Color(0xFFA8C8B5).withValues(alpha: 0.20)
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
     c.drawOval(
         Rect.fromCenter(
             center: Offset(cx, s.height - 5), width: s.width * .52, height: 3),
-        Paint()..color = const Color(0xFFB9F5D9).withValues(alpha: .28));
+        Paint()..color = const Color(0xFFD4E4DA).withValues(alpha: .28));
     // Les objets occupent réellement la carte : le volume reste lisible
     // même lorsque la grille du POS est compacte.
     c.save();

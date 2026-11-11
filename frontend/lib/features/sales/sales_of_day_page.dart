@@ -1176,7 +1176,7 @@ class _Kpi3dCard extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF0B2C23), Color(0xFF061A15), Color(0xFF03100D)],
+          colors: [Color(0xFF232B31), Color(0xFF171D22), Color(0xFF12171B)],
         ),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.goldBorderStrong.withValues(alpha: 0.5)),

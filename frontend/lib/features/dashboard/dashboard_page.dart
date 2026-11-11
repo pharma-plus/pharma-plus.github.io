@@ -1154,8 +1154,11 @@ class _AlertsStockPanel extends StatelessWidget {
           Padding(
             padding: EdgeInsets.symmetric(vertical: compact ? 14 : 22),
             child: Column(children: [
-              const Icon(Icons.verified_rounded,
-                  size: 26, color: AppColors.emeraldLight),
+              Icon(Icons.verified_rounded,
+                  size: 26,
+                  color: dashDark(context)
+                      ? AppColors.sageGreen
+                      : AppColors.sageGreenInk),
               const SizedBox(height: 6),
               Text('Aucune alerte — stock et péremptions sains',
                   textAlign: TextAlign.center,

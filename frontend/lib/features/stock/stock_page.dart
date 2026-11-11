@@ -525,14 +525,20 @@ class _StockPageState extends State<StockPage> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(S.t('stockValue', locale),
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 11,
-                                    color: AppColors.pharmaMuted)),
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white60
+                                        : AppColors.pharmaMuted)),
                             Text('${Fmt.money(_totalValue)} MAD',
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w800,
-                                    color: AppColors.pharmaText)),
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white
+                                        : AppColors.inkDark)),
                           ],
                         ),
                       ),
@@ -547,8 +553,12 @@ class _StockPageState extends State<StockPage> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 10),
                     child: Row(children: [
-                      const Icon(Icons.inventory_2_outlined,
-                          size: 18, color: AppColors.emerald),
+                      Icon(Icons.inventory_2_outlined,
+                          size: 18,
+                          color: Theme.of(context).brightness ==
+                                  Brightness.dark
+                              ? AppColors.sageGreen
+                              : AppColors.sageGreenInk),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Column(
@@ -556,14 +566,20 @@ class _StockPageState extends State<StockPage> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(S.t('stockQtyTotal', locale),
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 11,
-                                    color: AppColors.pharmaMuted)),
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white60
+                                        : AppColors.pharmaMuted)),
                             Text('${Fmt.number(_totalQty)} u.',
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w800,
-                                    color: AppColors.pharmaText)),
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white
+                                        : AppColors.inkDark)),
                           ],
                         ),
                       ),
@@ -745,12 +761,12 @@ class _StockPageState extends State<StockPage> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: align,
-            // Blanc crème sur vert pétrole : contraste ~13:1, lisible
-            // même en défilement (liseré or conservé sur le fond d'en-tête).
+            // Blanc crème → encre foncée : le fond d'en-tête est la pastille
+            // vert clair (charte), l'écriture doit être TRÈS FONCÉE.
             style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
-                color: AppColors.pharmaText)),
+                color: AppColors.sageGreenInk)),
       ),
     );
   }
@@ -832,7 +848,10 @@ class _StockPageState extends State<StockPage> {
                 Text('${item['med_detail'] ?? ''}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: cellStyle.copyWith(color: AppColors.pharmaMuted)),
+                    style: cellStyle.copyWith(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white70
+                            : AppColors.pharmaMuted)),
               ),
               _cell(
                 TableColumnWidths.width(TableColumnType.code),
@@ -873,7 +892,10 @@ class _StockPageState extends State<StockPage> {
                       ? Fmt.number(_number(item['reorder_level']))
                       : '—',
                   textAlign: TextAlign.right,
-                  style: cellStyle.copyWith(color: AppColors.pharmaMuted),
+                  style: cellStyle.copyWith(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white70
+                          : AppColors.pharmaMuted),
                 ),
                 align: TextAlign.right,
               ),

@@ -395,9 +395,12 @@ class _CatalogPageState extends State<CatalogPage> {
                           labelText: 'Code-barres (EAN-13)',
                           suffixIcon: IconButton(
                             tooltip: 'Scanner le code-barres',
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.qr_code_scanner_rounded,
-                              color: AppColors.emeraldLight,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? AppColors.sageGreen
+                                  : AppColors.sageGreenInk,
                             ),
                             onPressed: () async {
                               final r = await BarcodeScannerSheet.show(
@@ -1031,7 +1034,10 @@ class _CatalogPageState extends State<CatalogPage> {
   }
 
   static const _headerStyle = TextStyle(
-      fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.gold);
+      fontSize: 12,
+      fontWeight: FontWeight.w800,
+      // En-tête vert clair (charte) → écriture TRÈS FONCÉE.
+      color: AppColors.sageGreenInk);
 
   Widget _headerCell(double w, String label,
       {TextAlign align = TextAlign.left}) {
@@ -1716,8 +1722,9 @@ class _MedicationDetailState extends State<_MedicationDetail> {
           children: [
             Row(
               children: [
-                const Icon(Icons.medication,
-                    color: AppColors.primary, size: 28),
+                Icon(Icons.medication,
+                    color: isDark ? AppColors.sageGreen : AppColors.sageGreenInk,
+                    size: 28),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(m.name,

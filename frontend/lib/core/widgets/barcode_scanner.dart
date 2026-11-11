@@ -338,7 +338,7 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet>
                   icon: const Icon(Icons.check_rounded, size: 18),
                   label: const Text('Terminer',
                       style: TextStyle(
-                          color: Color(0xFF7BEBA4),
+                          color: AppColors.sageGreen,
                           fontWeight: FontWeight.w800)),
                 ),
               ]
@@ -490,7 +490,7 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet>
                     icon: const Icon(Icons.search_rounded, size: 18),
                     label: const Text('OK',
                         style: TextStyle(
-                            color: Color(0xFF7BEBA4),
+                            color: AppColors.sageGreen,
                             fontWeight: FontWeight.w800)),
                   ),
                 ]),
@@ -543,7 +543,8 @@ class _BarcodeScannerSheetState extends State<BarcodeScannerSheet>
                 _startCamera();
               },
               style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0E8C4F)),
+                  backgroundColor: AppColors.sageGreen,
+                  foregroundColor: AppColors.sageGreenInk),
               icon: const Icon(Icons.refresh_rounded, size: 18),
               label: const Text('Réessayer la caméra',
                   style: TextStyle(fontWeight: FontWeight.w700)),

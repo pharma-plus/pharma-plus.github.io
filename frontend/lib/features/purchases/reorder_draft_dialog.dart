@@ -153,8 +153,11 @@ class _ReorderDraftDialogState extends State<ReorderDraftDialog> {
         children: [
           Row(
             children: [
-              const Icon(Icons.edit_document,
-                  color: AppColors.emerald, size: 22),
+              Icon(Icons.edit_document,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.sageGreen
+                      : AppColors.sageGreenInk,
+                  size: 22),
               const SizedBox(width: 10),
               const Expanded(
                 child: Text('Préparer une commande (brouillon)',

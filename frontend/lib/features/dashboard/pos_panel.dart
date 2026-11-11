@@ -852,7 +852,7 @@ class _PosPanelState extends State<PosPanel> {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF1A4A32), Color(0xFF0E2A1C)],
+                    colors: [Color(0xFF232B31), Color(0xFF171D22)],
                   ),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
@@ -882,7 +882,7 @@ class _PosPanelState extends State<PosPanel> {
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF1A4A32), Color(0xFF0E2A1C)],
+                  colors: [Color(0xFF232B31), Color(0xFF171D22)],
                 ),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
@@ -957,7 +957,7 @@ class _PosPanelState extends State<PosPanel> {
                             child: _PanelButton(
                                 label: 'Reprendre (${_heldQty[id] ?? 0} art.)',
                                 icon: Icons.unarchive_rounded,
-                                color: const Color(0xFF2A7A5A),
+                                color: const Color(0xFF3A424A),
                                 onTap: () => _resume(id)),
                           ),
                           const SizedBox(width: 6),
@@ -1034,7 +1034,7 @@ class _PosPanelState extends State<PosPanel> {
               child: DropdownButton<String>(
                 isExpanded: true,
                 value: _customerId,
-                dropdownColor: const Color(0xFF1A2E23),
+                dropdownColor: const Color(0xFF20272D),
                 icon: Icon(Icons.keyboard_arrow_down_rounded,
                     size: 16, color: Colors.white.withValues(alpha: 0.5)),
                 hint: Row(children: [
@@ -1113,15 +1113,19 @@ class _PosPanelState extends State<PosPanel> {
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 decoration: BoxDecoration(
                     color: _discountPercent
-                        ? const Color(0xFF17523A)
+                        ? AppColors.sageGreen.withValues(alpha: 0.45)
                         : Colors.white.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(7),
                     border: Border.all(
-                        color: const Color(0xFF2A7A5A).withValues(alpha: 0.6))),
+                        color: _discountPercent
+                            ? AppColors.sageGreenDark.withValues(alpha: 0.7)
+                            : const Color(0xFF3A424A).withValues(alpha: 0.6))),
                 child: Center(
                     child: Text(_discountPercent ? '%' : 'MAD',
-                        style: const TextStyle(
-                            color: Color(0xFF7BEBA4),
+                        style: TextStyle(
+                            color: _discountPercent
+                                ? AppColors.sageGreenInk
+                                : AppColors.sageGreen,
                             fontSize: 10,
                             fontWeight: FontWeight.w900))),
               ),
@@ -1136,10 +1140,10 @@ class _PosPanelState extends State<PosPanel> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-                color: const Color(0xFF0E2A1C),
+                color: const Color(0xFF232B31),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                    color: const Color(0xFF2E7A50).withValues(alpha: 0.55))),
+                    color: const Color(0xFF3A424A).withValues(alpha: 0.55))),
             child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -1156,7 +1160,7 @@ class _PosPanelState extends State<PosPanel> {
                           fontWeight: FontWeight.w900)),
                   Text(_fmt(t.total),
                       style: const TextStyle(
-                          color: Color(0xFF7BEBA4),
+                          color: AppColors.sageGreen,
                           fontSize: 15,
                           fontWeight: FontWeight.w900)),
                 ]),
@@ -1371,7 +1375,9 @@ class _PanelShell extends StatelessWidget {
       margin: const EdgeInsets.only(left: 14, right: 14, bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
+        // Fond COMPACTE profond (graphite) : lisibilité maximale du mini POS,
+        // contraste net avec les tuiles et le fond du dashboard.
+        color: AppColors.graphiteDark,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.dividerDark),
         boxShadow: const [
@@ -1506,17 +1512,21 @@ class _PayButton extends StatelessWidget {
       child: Container(
         height: 38,
         decoration: BoxDecoration(
-            gradient: const LinearGradient(
-                colors: [Color(0xFF0E8C4F), Color(0xFF086B3D)]),
+            // Charte « boutons vert clair » : sauge + encre foncée lisible.
+            gradient: const LinearGradient(colors: [
+              AppColors.sageGreen,
+              AppColors.sageGreenDark,
+            ]),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-                color: const Color(0xFF2A7A5A).withValues(alpha: 0.6))),
+                color: AppColors.sageGreenDark.withValues(alpha: 0.8))),
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          const Icon(Icons.payments_outlined, size: 15, color: Colors.white),
+          const Icon(Icons.payments_outlined,
+              size: 15, color: AppColors.sageGreenInk),
           const SizedBox(width: 5),
           Text(label,
               style: const TextStyle(
-                  color: Colors.white,
+                  color: AppColors.sageGreenInk,
                   fontSize: 10.5,
                   fontWeight: FontWeight.w800)),
         ]),
@@ -1631,7 +1641,7 @@ class _CartRow extends StatelessWidget {
             InkWell(
                 onTap: onMinus,
                 child: const Icon(Icons.remove_circle_outline_rounded,
-                    size: 15, color: Color(0xFF7BEBA4))),
+                    size: 15, color: AppColors.sageGreen)),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 7),
               child: Text('$qty',
@@ -1643,7 +1653,7 @@ class _CartRow extends StatelessWidget {
             InkWell(
                 onTap: onPlus,
                 child: const Icon(Icons.add_circle_outline_rounded,
-                    size: 15, color: Color(0xFF7BEBA4))),
+                    size: 15, color: AppColors.sageGreen)),
           ]),
         ),
         SizedBox(

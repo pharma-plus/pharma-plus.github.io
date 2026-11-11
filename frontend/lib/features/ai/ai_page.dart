@@ -324,8 +324,11 @@ class _AiPageState extends State<AiPage> {
         GlassCard(
           child: Row(
             children: [
-              const Icon(Icons.local_shipping_outlined,
-                  color: AppColors.emerald, size: 22),
+              Icon(Icons.local_shipping_outlined,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.sageGreen
+                      : AppColors.sageGreenInk,
+                  size: 22),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(

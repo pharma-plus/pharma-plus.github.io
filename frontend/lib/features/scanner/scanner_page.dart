@@ -199,7 +199,7 @@ class _ScannerPageState extends State<ScannerPage> {
                             if (_busy)
                               const Center(
                                 child: CircularProgressIndicator(
-                                    color: Color(0xFF0E8C4F)),
+                                    color: AppColors.sageGreenDark),
                               ),
                           ],
                         ),
@@ -241,7 +241,7 @@ class _ScannerPageState extends State<ScannerPage> {
                   onPressed: () => _handleCode(_manual.text),
                   child: const Text('Rechercher',
                       style: TextStyle(
-                          color: Color(0xFF7BEBA4),
+                          color: AppColors.sageGreen,
                           fontWeight: FontWeight.w800)),
                 ),
               ]),

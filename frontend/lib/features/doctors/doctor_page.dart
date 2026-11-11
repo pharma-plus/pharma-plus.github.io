@@ -224,9 +224,11 @@ class _DoctorPageState extends State<DoctorPage> {
                     color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.medication,
-                    color: AppColors.primary,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.sageGreen
+                        : AppColors.sageGreenInk,
                   ),
                 ),
                 const SizedBox(width: 12),

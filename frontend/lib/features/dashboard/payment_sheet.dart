@@ -197,12 +197,12 @@ class _PaymentSheetState extends State<PaymentSheet>
                   controller: _tab,
                   onTap: (_) => setState(() {}),
                   indicator: BoxDecoration(
-                    color: const Color(0xFF17523A),
+                    color: AppColors.sageGreen.withValues(alpha: 0.45),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFF2E7A50)),
+                    border: Border.all(color: const Color(0xFF3A424A)),
                   ),
                   indicatorSize: TabBarIndicatorSize.tab,
-                  labelColor: const Color(0xFF7BEBA4),
+                  labelColor: AppColors.sageGreenInk,
                   unselectedLabelColor: Colors.white54,
                   labelStyle: const TextStyle(
                       fontSize: 12, fontWeight: FontWeight.w800),
@@ -314,7 +314,7 @@ class _PaymentSheetState extends State<PaymentSheet>
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
                         color: _cashSufficient
-                            ? const Color(0xFF2E7A50)
+                            ? const Color(0xFF3A424A)
                             : AppColors.danger.withValues(alpha: 0.7))),
                 focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -376,12 +376,12 @@ class _PaymentSheetState extends State<PaymentSheet>
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-                color: const Color(0xFF0E2A1C),
+                color: const Color(0xFF232B31),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF2E7A50).withValues(alpha: 0.6))),
+                border: Border.all(color: const Color(0xFF3A424A).withValues(alpha: 0.6))),
             child: Row(children: [
               const Icon(Icons.attach_money_rounded,
-                  color: Color(0xFF7BEBA4), size: 20),
+                  color: AppColors.sageGreen, size: 20),
               const SizedBox(width: 10),
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('MONTANT À PAYER',
@@ -392,7 +392,7 @@ class _PaymentSheetState extends State<PaymentSheet>
                         letterSpacing: 0.8)),
                 Text('${Fmt.money(widget.total)} MAD',
                     style: const TextStyle(
-                        color: Color(0xFF7BEBA4),
+                        color: AppColors.sageGreen,
                         fontSize: 19,
                         fontWeight: FontWeight.w900)),
               ]),
@@ -438,8 +438,8 @@ class _PaymentSheetState extends State<PaymentSheet>
         sub = 'Présentez la carte au terminal…';
         break;
       case 'confirmed':
-        bgColor = const Color(0xFF0E2A1C);
-        borderColor = const Color(0xFF2E7A50);
+        bgColor = const Color(0xFF232B31);
+        borderColor = const Color(0xFF3A424A);
         icon = Icons.check_circle_rounded;
         label = 'PAIEMENT CONFIRMÉ';
         sub = 'Transaction validée';
@@ -598,12 +598,12 @@ class _PaymentSheetState extends State<PaymentSheet>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                  color: const Color(0xFF0E2A1C),
+                  color: const Color(0xFF232B31),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF2E7A50).withValues(alpha: 0.6))),
+                  border: Border.all(color: const Color(0xFF3A424A).withValues(alpha: 0.6))),
               child: Row(children: [
                 const Icon(Icons.person_rounded,
-                    color: Color(0xFF7BEBA4), size: 18),
+                    color: AppColors.sageGreen, size: 18),
                 const SizedBox(width: 8),
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('RESTE À PAYER (PART CLIENT)',
@@ -614,7 +614,7 @@ class _PaymentSheetState extends State<PaymentSheet>
                   Text(
                       '${Fmt.money(widget.total - _creditAmount)} MAD',
                       style: const TextStyle(
-                          color: Color(0xFF7BEBA4),
+                          color: AppColors.sageGreen,
                           fontSize: 16,
                           fontWeight: FontWeight.w900)),
                 ]),
@@ -692,12 +692,12 @@ class _CardTypeChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             color: selected
-                ? const Color(0xFF17523A)
+                ? AppColors.sageGreen.withValues(alpha: 0.45)
                 : Colors.white.withValues(alpha: 0.04),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
                 color: selected
-                    ? const Color(0xFF2E7A50)
+                    ? const Color(0xFF3A424A)
                     : Colors.white.withValues(alpha: 0.12)),
           ),
           child: Column(children: [
@@ -708,7 +708,7 @@ class _CardTypeChip extends StatelessWidget {
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
                     color: selected
-                        ? const Color(0xFF7BEBA4)
+                        ? AppColors.sageGreenInk
                         : Colors.white54)),
           ]),
         ),
@@ -766,17 +766,17 @@ class _QuickChip extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
             color: highlight
-                ? const Color(0xFF17523A)
+                ? AppColors.sageGreen.withValues(alpha: 0.45)
                 : Colors.white.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(9),
             border: Border.all(
                 color: highlight
-                    ? const Color(0xFF2E7A50)
+                    ? const Color(0xFF3A424A)
                     : Colors.white.withValues(alpha: 0.12))),
         child: Text(label,
             maxLines: 1,
             style: TextStyle(
-                color: highlight ? const Color(0xFF7BEBA4) : Colors.white,
+                color: highlight ? AppColors.sageGreenInk : Colors.white,
                 fontSize: 11.5,
                 fontWeight: FontWeight.w800)),
       ),
@@ -798,12 +798,12 @@ class _ChangeBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
           color: sufficient
-              ? const Color(0xFF0E2A1C)
+              ? const Color(0xFF232B31)
               : const Color(0xFF2A1310),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
               color: sufficient
-                  ? const Color(0xFF2E7A50).withValues(alpha: 0.8)
+                  ? const Color(0xFF3A424A).withValues(alpha: 0.8)
                   : AppColors.danger.withValues(alpha: 0.8))),
       child: Row(children: [
         Icon(
@@ -811,7 +811,7 @@ class _ChangeBanner extends StatelessWidget {
                 ? Icons.savings_rounded
                 : Icons.report_problem_rounded,
             color:
-                sufficient ? const Color(0xFF7BEBA4) : AppColors.danger,
+                sufficient ? AppColors.sageGreen : AppColors.danger,
             size: 20),
         const SizedBox(width: 10),
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -827,7 +827,7 @@ class _ChangeBanner extends StatelessWidget {
                   : '${Fmt.money(due)} MAD',
               style: TextStyle(
                   color: sufficient
-                      ? const Color(0xFF7BEBA4)
+                      ? AppColors.sageGreen
                       : AppColors.danger,
                   fontSize: 19,
                   fontWeight: FontWeight.w900)),
