@@ -31,13 +31,43 @@ class MarbleBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Thème clair : la VRAIE texture marbre de la maquette, en WebP
+    // LÉGER (71 Ko, décodée une fois et mise en cache par Flutter).
+    // Repli : texture peinte (sous le calque image, visible si l'asset
+    // échoue à charger).
+    if (!dark) {
+      return RepaintBoundary(
+        child: Stack(
+          children: [
+            // Calque texture peinte (repli si l'asset échoue).
+            Positioned.fill(
+              child: CustomPaint(
+                isComplex: true,
+                willChange: false,
+                painter: _SilverMarblePainter(opacity: opacity),
+              ),
+            ),
+            // Calque image WebP légère.
+            Positioned.fill(
+              child: Image.asset(
+                'assets/images/marble_principale.webp',
+                fit: BoxFit.cover,
+                filterQuality: FilterQuality.low,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+            // Contenu : contraintes libres (shrink-wrap OK dans les
+            // barres compactes).
+            if (child != null) child!,
+          ],
+        ),
+      );
+    }
     return RepaintBoundary(
       child: CustomPaint(
         isComplex: true,
         willChange: false,
-        painter: dark
-            ? _GraphiteBrushedPainter(opacity: opacity)
-            : _SilverMarblePainter(opacity: opacity),
+        painter: _GraphiteBrushedPainter(opacity: opacity),
         child: child,
       ),
     );

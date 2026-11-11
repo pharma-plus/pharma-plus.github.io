@@ -379,7 +379,9 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
           left: 0,
           right: 0,
           bottom: 0,
-          child: Container(
+          child: MarbleBackground(
+            dark: false,
+            child: Container(
             color: AppColors.silver,
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             child: Row(
@@ -391,6 +393,7 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
                 _nav.buildNextButton(context, _next, compact: true),
               ],
             ),
+          ),
           ),
         ),
       ],

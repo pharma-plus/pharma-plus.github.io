@@ -10,6 +10,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/colors.dart';
+import '../../../core/widgets/marble_texture.dart';
 
 /// Définition d'une rubrique du menu.
 class SalesMenuItem {
@@ -162,7 +163,9 @@ class SalesSidebarMenu extends StatelessWidget {
       width: menu.open ? width : 0,
       color: AppColors.silver,
       child: menu.open
-          ? Column(
+          ? MarbleBackground(
+              dark: false,
+              child: Column(
               children: [
                 // En-tête du menu
                 _buildHeader(context),
@@ -182,6 +185,7 @@ class SalesSidebarMenu extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
             )
           : null,
     );
@@ -255,12 +259,16 @@ class SalesSidebarMenu extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
+          // Sélection façon maquette : pastille vert clair (sauge),
+          // texte encre foncée — toujours lisible sur marbre.
           color: active
-              ? AppColors.sageGreenInk.withValues(alpha: 0.10)
+              ? AppColors.sageGreen.withValues(alpha: 0.45)
               : Colors.transparent,
           border: Border(
             left: BorderSide(
-              color: active ? AppColors.sageGreenInk : Colors.transparent,
+              color: active
+                  ? AppColors.sageGreenDark
+                  : Colors.transparent,
               width: 3,
             ),
           ),
@@ -272,7 +280,7 @@ class SalesSidebarMenu extends StatelessWidget {
               size: 19,
               color: active
                   ? AppColors.sageGreenInk
-                  : AppColors.pharmaMuted.withValues(alpha: 0.85),
+                  : AppColors.inkDarkLight,
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -283,7 +291,7 @@ class SalesSidebarMenu extends StatelessWidget {
                       ? AppColors.sageGreenInk
                       : AppColors.inkDark.withValues(alpha: 0.9),
                   fontSize: 13.5,
-                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: active ? FontWeight.w800 : FontWeight.w600,
                 ),
               ),
             ),
