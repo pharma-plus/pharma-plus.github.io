@@ -71,7 +71,7 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
   Color _statusColor(String status) {
     switch (status) {
       case 'completed':
-        return AppColors.emerald;
+        return AppColors.sageGreenInk;
       case 'returned':
       case 'voided':
       case 'cancelled':
@@ -103,7 +103,7 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
               child: Text(
                 'Transactions',
                 style: TextStyle(
-                  color: AppColors.pharmaText,
+                  color: AppColors.inkDark,
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
                 ),
@@ -133,7 +133,7 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
                     ),
                   ),
                   style: const TextStyle(
-                      color: AppColors.pharmaText, fontSize: 12),
+                      color: AppColors.inkDark, fontSize: 12),
                   onChanged: onSearch,
                 ),
               ),
@@ -244,18 +244,18 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: active
-              ? AppColors.emerald.withValues(alpha: 0.16)
+              ? AppColors.sageGreenInk.withValues(alpha: 0.16)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: active ? AppColors.emerald : AppColors.goldBorder,
+            color: active ? AppColors.sageGreenInk : AppColors.goldBorder,
             width: 1,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: active ? AppColors.emeraldLight : AppColors.pharmaMuted,
+            color: active ? AppColors.sageGreenInk : AppColors.pharmaMuted,
             fontSize: 10.5,
             fontWeight: active ? FontWeight.w700 : FontWeight.w500,
           ),
@@ -265,7 +265,7 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
   }
 
   Widget _row(List<String> cells, {bool header = false, String? status}) {
-    final color = header ? AppColors.pharmaMuted : AppColors.pharmaText;
+    final color = header ? AppColors.pharmaMuted : AppColors.inkDark;
     final style = TextStyle(
       color: color,
       fontSize: 11,
@@ -307,9 +307,9 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
     final rows = c.txRows;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.pharmaSurface.withValues(alpha: 0.55),
+        color: AppColors.silver.withValues(alpha: 0.75),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.goldBorder, width: 1),
+        border: Border.all(color: AppColors.sageGreenDark.withValues(alpha: 0.35), width: 1),
       ),
       child: Column(
         children: [
@@ -367,7 +367,7 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              color: AppColors.pharmaText,
+                              color: AppColors.inkDark,
                               fontWeight: FontWeight.w700,
                               fontSize: 12,
                             ),
@@ -408,7 +408,7 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
                         Text(
                           '${Fmt.number(t.total, decimals: 2)} MAD',
                           style: const TextStyle(
-                            color: AppColors.pharmaGoldLight,
+                            color: AppColors.champagneInkLight,
                             fontWeight: FontWeight.w700,
                             fontSize: 12,
                           ),

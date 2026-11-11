@@ -84,7 +84,7 @@ class _SalesReturnsPageState extends State<SalesReturnsPage> {
                 const Text(
                   'Annulations et retours',
                   style: TextStyle(
-                    color: AppColors.pharmaText,
+                    color: AppColors.inkDark,
                     fontWeight: FontWeight.w700,
                     fontSize: 16,
                   ),

@@ -67,7 +67,7 @@ class _SalesProfitsPageState extends State<SalesProfitsPage> {
                 const Text(
                   'Bénéfices et marges',
                   style: TextStyle(
-                    color: AppColors.pharmaText,
+                    color: AppColors.inkDark,
                     fontWeight: FontWeight.w700,
                     fontSize: 16,
                   ),
@@ -78,7 +78,7 @@ class _SalesProfitsPageState extends State<SalesProfitsPage> {
                     Expanded(
                       child: _kpiItem(
                         'CA TTC', Fmt.number(gross, decimals: 2),
-                        AppColors.emerald,
+                        AppColors.sageGreenInk,
                       ),
                     ),
                     Expanded(
@@ -90,7 +90,7 @@ class _SalesProfitsPageState extends State<SalesProfitsPage> {
                     Expanded(
                       child: _kpiItem(
                         'Bénéfice brut', Fmt.number(grossProfit, decimals: 2),
-                        grossProfit >= 0 ? AppColors.emerald : AppColors.pharmaDanger,
+                        grossProfit >= 0 ? AppColors.sageGreenInk : AppColors.pharmaDanger,
                       ),
                     ),
                   ],
@@ -101,19 +101,19 @@ class _SalesProfitsPageState extends State<SalesProfitsPage> {
                     Expanded(
                       child: _kpiItem(
                         'Taux marge brute', '${marginPct.toStringAsFixed(1)} %',
-                        marginPct >= 0 ? AppColors.emerald : AppColors.pharmaDanger,
+                        marginPct >= 0 ? AppColors.sageGreenInk : AppColors.pharmaDanger,
                       ),
                     ),
                     Expanded(
                       child: _kpiItem(
                         'CA net HT', Fmt.number(net, decimals: 2),
-                        AppColors.pharmaGold,
+                        AppColors.champagneInk,
                       ),
                     ),
                     Expanded(
                       child: _kpiItem(
                         'Marge nette', '${netMarginPct.toStringAsFixed(1)} %',
-                        netMarginPct >= 0 ? AppColors.emerald : AppColors.pharmaDanger,
+                        netMarginPct >= 0 ? AppColors.sageGreenInk : AppColors.pharmaDanger,
                       ),
                     ),
                   ],

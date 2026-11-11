@@ -10,9 +10,11 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/glass_card.dart';
+import '../../../core/widgets/marble_texture.dart';
 import '../controllers/sales_day_controller.dart';
 import '../models/sales_day_model.dart';
 import '../services/sales_analytics_service.dart';
@@ -208,11 +210,16 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
     final isWide = MediaQuery.of(context).size.width >= 900;
     final menuOpen = _nav.menu.open;
 
-    return Scaffold(
+    // Le module SALES INTELLIGENCE a sa propre présentation « Marbre
+    // gris argenté » (thème clair de la charte), indépendante du
+    // themeMode global — écritures encre foncée toujours lisibles.
+    return Theme(
+      data: AppTheme.light(),
+      child: Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        foregroundColor: AppColors.pharmaText,
+        foregroundColor: AppColors.inkDark,
         elevation: 0,
         leading: isWide
             ? null
@@ -228,16 +235,16 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(
-                    color: AppColors.emerald.withValues(alpha: 0.15),
+                    color: AppColors.sageGreenInk.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(7),
                     border: Border.all(
-                      color: AppColors.emerald.withValues(alpha: 0.5),
+                      color: AppColors.sageGreenInk.withValues(alpha: 0.5),
                       width: 1,
                     ),
                   ),
                   child: const Icon(
                     Icons.point_of_sale,
-                    color: AppColors.emerald,
+                    color: AppColors.sageGreenInk,
                     size: 16,
                   ),
                 ),
@@ -250,7 +257,7 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
                       const Text(
                         'PHARMA+ SALES INTELLIGENCE',
                         style: TextStyle(
-                          color: AppColors.pharmaGold,
+                          color: AppColors.champagneInk,
                           fontWeight: FontWeight.w800,
                           fontSize: 15,
                         ),
@@ -258,7 +265,7 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
                       Text(
                         _current.title,
                         style: const TextStyle(
-                          color: AppColors.pharmaText,
+                          color: AppColors.inkDark,
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                         ),
@@ -283,7 +290,7 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
               onPressed: () => _nav.menu.toggle(),
               icon: Icon(
                 menuOpen ? Icons.close : Icons.menu,
-                color: AppColors.pharmaGold,
+                color: AppColors.champagneInk,
                 size: 20,
               ),
               tooltip: menuOpen ? 'Fermer le menu' : 'Menu',
@@ -292,13 +299,17 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
           IconButton(
             onPressed: () => _analytics.reload(),
             icon: const Icon(Icons.refresh, size: 20),
-            color: AppColors.pharmaGold,
+            color: AppColors.champagneInk,
             tooltip: 'Actualiser',
           ),
           const SizedBox(width: 4),
         ],
       ),
-      body: _buildBody(context, isWide),
+      body: MarbleBackground(
+        dark: false,
+        child: _buildBody(context, isWide),
+      ),
+      ),
     );
   }
 
@@ -369,7 +380,7 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
           right: 0,
           bottom: 0,
           child: Container(
-            color: AppColors.surfaceSidebar,
+            color: AppColors.silver,
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -388,7 +399,7 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
 
   Widget _buildNavigationRow() {
     return Container(
-      color: AppColors.surfacePanel.withValues(alpha: 0.6),
+      color: AppColors.silver.withValues(alpha: 0.7),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -643,7 +654,7 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
                 const Text(
                   'Résumé analytique',
                   style: TextStyle(
-                    color: AppColors.pharmaText,
+                    color: AppColors.inkDark,
                     fontWeight: FontWeight.w700,
                     fontSize: 16,
                   ),
@@ -654,14 +665,14 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
                     Expanded(
                       child: _kpiItem(
                         'Tickets', '${kpis?.salesCount ?? 0}',
-                        AppColors.emerald,
+                        AppColors.sageGreenInk,
                       ),
                     ),
                     Expanded(
                       child: _kpiItem(
                         'CA TTC', Fmt.number(kpis?.grossRevenue ?? 0,
                             decimals: 2),
-                        AppColors.pharmaGold,
+                        AppColors.champagneInk,
                       ),
                     ),
                     Expanded(
@@ -714,7 +725,7 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
         const Text(
           'Dernières transactions',
           style: TextStyle(
-            color: AppColors.pharmaText,
+            color: AppColors.inkDark,
             fontWeight: FontWeight.w700,
             fontSize: 16,
           ),
@@ -752,7 +763,7 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
                               Text(
                                 t.number.isEmpty ? '—' : t.number,
                                 style: const TextStyle(
-                                  color: AppColors.pharmaText,
+                                  color: AppColors.inkDark,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 12,
                                 ),
@@ -773,7 +784,7 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
                         Text(
                           Fmt.number(t.total, decimals: 2),
                           style: const TextStyle(
-                            color: AppColors.pharmaGoldLight,
+                            color: AppColors.champagneInkLight,
                             fontWeight: FontWeight.w700,
                             fontSize: 12,
                           ),

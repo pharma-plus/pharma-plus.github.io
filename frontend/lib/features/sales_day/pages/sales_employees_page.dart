@@ -117,7 +117,7 @@ class _SalesEmployeesPageState extends State<SalesEmployeesPage> {
                     child: Text(
                       empName,
                       style: const TextStyle(
-                        color: AppColors.pharmaText,
+                        color: AppColors.inkDark,
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
                       ),
@@ -126,7 +126,7 @@ class _SalesEmployeesPageState extends State<SalesEmployeesPage> {
                   Text(
                     Fmt.money(grossRevenue),
                     style: const TextStyle(
-                      color: AppColors.pharmaGoldLight,
+                      color: AppColors.champagneInkLight,
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
                     ),
@@ -138,11 +138,11 @@ class _SalesEmployeesPageState extends State<SalesEmployeesPage> {
                 children: [
                   Expanded(
                     child: _empMetric('Ventes', '${completed.length}',
-                        AppColors.emerald),
+                        AppColors.sageGreenInk),
                   ),
                   Expanded(
                     child: _empMetric(
-                        'CA net', Fmt.money(netRevenue), AppColors.pharmaGold),
+                        'CA net', Fmt.money(netRevenue), AppColors.champagneInk),
                   ),
                   Expanded(
                     child: _empMetric(
@@ -159,7 +159,7 @@ class _SalesEmployeesPageState extends State<SalesEmployeesPage> {
                 children: [
                   Expanded(
                     child: _empMetric(
-                        'Encaissé', Fmt.money(paid), AppColors.emerald),
+                        'Encaissé', Fmt.money(paid), AppColors.sageGreenInk),
                   ),
                   Expanded(
                     child: _empMetric(

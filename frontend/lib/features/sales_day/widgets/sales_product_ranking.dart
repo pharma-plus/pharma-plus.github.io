@@ -31,7 +31,7 @@ class SalesProductRanking extends StatelessWidget {
   });
 
   static const List<Color> _medals = [
-    AppColors.pharmaGoldLight, // 1 (or)
+    AppColors.champagneInkLight, // 1 (or)
     AppColors.pharmaMuted,     // 2 (argent)
     Color(0xFFCD7F32),         // 3 (bronze)
   ];
@@ -40,13 +40,13 @@ class SalesProductRanking extends StatelessWidget {
   Color _barColor(String sortBy) {
     switch (sortBy) {
       case 'qty':
-        return AppColors.emerald;
+        return AppColors.sageGreenInk;
       case 'rev':
-        return AppColors.pharmaGold;
+        return AppColors.champagneInk;
       case 'profit':
         return AppColors.cardBlue;
       default:
-        return AppColors.emerald;
+        return AppColors.sageGreenInk;
     }
   }
 
@@ -79,7 +79,7 @@ class SalesProductRanking extends StatelessWidget {
                   Text(
                     title,
                     style: const TextStyle(
-                      color: AppColors.pharmaText,
+                      color: AppColors.inkDark,
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
                     ),
@@ -205,7 +205,7 @@ class SalesProductRanking extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              color: AppColors.pharmaText,
+                              color: AppColors.inkDark,
                               fontSize: 12.5,
                               fontWeight: FontWeight.w600,
                             ),
@@ -236,7 +236,7 @@ class SalesProductRanking extends StatelessWidget {
                                       ? product.revenue
                                       : product.profit),
                           style: const TextStyle(
-                            color: AppColors.pharmaGoldLight,
+                            color: AppColors.champagneInkLight,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                           ),
@@ -282,7 +282,7 @@ class SalesProductRanking extends StatelessWidget {
                       child: _metricChip(
                         'CA',
                         Fmt.money(product.revenue),
-                        AppColors.pharmaGoldLight,
+                        AppColors.champagneInkLight,
                       ),
                     ),
                     Expanded(
@@ -298,7 +298,7 @@ class SalesProductRanking extends StatelessWidget {
                           'Marge',
                           '${product.marginPct.toStringAsFixed(0)} %',
                           product.marginPct >= 0
-                              ? AppColors.emerald
+                              ? AppColors.sageGreenInk
                               : AppColors.pharmaDanger,
                         ),
                       ),

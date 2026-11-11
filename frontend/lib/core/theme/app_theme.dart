@@ -44,7 +44,39 @@ class AppTheme {
       brightness: brightness,
       colorScheme: scheme,
       scaffoldBackgroundColor: bgColor,
-      fontFamilyFallback: const ['Arial', 'Noto Sans Arabic'],
+      // Police officielle PHARMA+ : Times New Roman (« New Roman gras »),
+      // titres en gras via textTheme ci-dessous.
+      fontFamily: 'Times New Roman',
+      fontFamilyFallback: const ['Georgia', 'Times', 'serif', 'Arial', 'Noto Sans Arabic'],
+      textTheme: (isDark ? ThemeData.dark() : ThemeData.light())
+          .textTheme
+          .apply(
+            fontFamily: 'Times New Roman',
+            fontFamilyFallback: const ['Georgia', 'Times', 'serif'],
+            bodyColor: textColor,
+            displayColor: textColor,
+          )
+          .copyWith(
+            // Écritures TOUJOURS lisibles : titres en gras, corps en w500.
+            bodyMedium: TextStyle(
+                color: textColor, fontWeight: FontWeight.w500),
+            bodyLarge: TextStyle(
+                color: textColor, fontWeight: FontWeight.w500),
+            bodySmall: TextStyle(
+                color: mutedColor, fontWeight: FontWeight.w500),
+            titleLarge: TextStyle(
+                color: textColor,
+                fontWeight: FontWeight.w700,
+                fontSize: 22),
+            titleMedium: TextStyle(
+                color: textColor,
+                fontWeight: FontWeight.w700,
+                fontSize: 16),
+            titleSmall: TextStyle(
+                color: textColor,
+                fontWeight: FontWeight.w700,
+                fontSize: 14),
+          ),
       appBarTheme: AppBarTheme(
         backgroundColor: isDark ? AppColors.graphite : AppColors.silver,
         foregroundColor: textColor,

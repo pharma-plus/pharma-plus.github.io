@@ -34,7 +34,7 @@ class SalesHourlyChart extends StatelessWidget {
         Text(
           title,
           style: const TextStyle(
-            color: AppColors.pharmaText,
+            color: AppColors.inkDark,
             fontWeight: FontWeight.w700,
             fontSize: 14,
           ),
@@ -123,7 +123,7 @@ class SalesHourlyChart extends StatelessWidget {
                       return BarTooltipItem(
                         '${h.toString().padLeft(2, '0')}:00',
                         const TextStyle(
-                          color: AppColors.pharmaText,
+                          color: AppColors.inkDark,
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                         ),
@@ -131,7 +131,7 @@ class SalesHourlyChart extends StatelessWidget {
                           TextSpan(
                             text: '\n${Fmt.money(rod.toY)}',
                             style: const TextStyle(
-                              color: AppColors.pharmaGoldLight,
+                              color: AppColors.champagneInkLight,
                               fontSize: 11,
                             ),
                           ),
@@ -161,9 +161,9 @@ class SalesHourlyChart extends StatelessWidget {
                             begin: Alignment.bottomCenter,
                             end: Alignment.topCenter,
                             colors: [
-                              AppColors.emeraldDark.withValues(alpha: 0.95),
-                              AppColors.emerald.withValues(alpha: 0.95),
-                              AppColors.emeraldLight.withValues(alpha: 0.95),
+                              AppColors.sageGreenInkDark.withValues(alpha: 0.95),
+                              AppColors.sageGreenInk.withValues(alpha: 0.95),
+                              AppColors.sageGreenInk.withValues(alpha: 0.95),
                             ],
                           ),
                         ),

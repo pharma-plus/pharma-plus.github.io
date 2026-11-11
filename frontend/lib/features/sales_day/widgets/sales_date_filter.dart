@@ -48,10 +48,10 @@ class SalesDateFilter extends StatelessWidget {
               builder: (ctx, child) => Theme(
                 data: Theme.of(ctx).copyWith(
                   colorScheme: Theme.of(ctx).colorScheme.copyWith(
-                        primary: AppColors.emerald,
+                        primary: AppColors.sageGreenInk,
                         onPrimary: Colors.white,
                         surface: AppColors.pharmaSurface,
-                        onSurface: AppColors.pharmaText,
+                        onSurface: AppColors.inkDark,
                       ),
                 ),
                 child: child!,
@@ -66,18 +66,18 @@ class SalesDateFilter extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
             color: active
-                ? AppColors.emerald.withValues(alpha: 0.16)
+                ? AppColors.sageGreenInk.withValues(alpha: 0.16)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: active ? AppColors.emerald : AppColors.goldBorder,
+              color: active ? AppColors.sageGreenInk : AppColors.goldBorder,
               width: 1,
             ),
           ),
           child: Text(
             p.label,
             style: TextStyle(
-              color: active ? AppColors.emeraldLight : AppColors.pharmaMuted,
+              color: active ? AppColors.sageGreenInk : AppColors.pharmaMuted,
               fontSize: 11,
               fontWeight: active ? FontWeight.w700 : FontWeight.w500,
             ),
@@ -93,12 +93,12 @@ class SalesDateFilter extends StatelessWidget {
       children: [
         ...chips,
         const SizedBox(width: 4),
-        Icon(Icons.date_range, size: 14, color: AppColors.pharmaGold),
+        Icon(Icons.date_range, size: 14, color: AppColors.champagneInk),
         const SizedBox(width: 2),
         Text(
           periodLabel,
           style: const TextStyle(
-            color: AppColors.pharmaGoldLight,
+            color: AppColors.champagneInkLight,
             fontSize: 11,
             fontWeight: FontWeight.w700,
           ),
@@ -173,9 +173,9 @@ class SalesStateBlock extends StatelessWidget {
                 icon: const Icon(Icons.refresh, size: 16),
                 label: const Text('Réessayer'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.emeraldLight,
+                  foregroundColor: AppColors.sageGreenInk,
                   side: BorderSide(
-                      color: AppColors.emerald.withValues(alpha: 0.5)),
+                      color: AppColors.sageGreenInk.withValues(alpha: 0.5)),
                 ),
               ),
             ],

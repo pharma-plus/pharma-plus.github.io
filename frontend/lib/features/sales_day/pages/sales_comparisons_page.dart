@@ -59,7 +59,7 @@ class _SalesComparisonsPageState extends State<SalesComparisonsPage> {
         const Text(
           'Comparaison avec la période précédente',
           style: TextStyle(
-            color: AppColors.pharmaText,
+            color: AppColors.inkDark,
             fontWeight: FontWeight.w700,
             fontSize: 16,
           ),
@@ -90,7 +90,7 @@ class _SalesComparisonsPageState extends State<SalesComparisonsPage> {
                         ? '${grossDelta >= 0 ? '+' : ''}${grossDelta.toStringAsFixed(1)} %'
                         : '—',
                     grossDelta != null && grossDelta >= 0
-                        ? AppColors.emerald
+                        ? AppColors.sageGreenInk
                         : grossDelta != null
                         ? AppColors.pharmaDanger
                         : AppColors.pharmaMuted,
@@ -105,7 +105,7 @@ class _SalesComparisonsPageState extends State<SalesComparisonsPage> {
                         ? '${countDelta >= 0 ? '+' : ''}${countDelta.toStringAsFixed(1)} %'
                         : '—',
                     countDelta != null && countDelta >= 0
-                        ? AppColors.emerald
+                        ? AppColors.sageGreenInk
                         : countDelta != null
                         ? AppColors.pharmaDanger
                         : AppColors.pharmaMuted,
@@ -155,7 +155,7 @@ class _SalesComparisonsPageState extends State<SalesComparisonsPage> {
                 Text(
                   label,
                   style: const TextStyle(
-                    color: AppColors.pharmaText,
+                    color: AppColors.inkDark,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
                   ),
@@ -178,7 +178,7 @@ class _SalesComparisonsPageState extends State<SalesComparisonsPage> {
                 Text(
                   current,
                   style: const TextStyle(
-                    color: AppColors.pharmaGoldLight,
+                    color: AppColors.champagneInkLight,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
                   ),

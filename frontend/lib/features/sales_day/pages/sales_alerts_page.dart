@@ -111,7 +111,7 @@ class _SalesAlertsPageState extends State<SalesAlertsPage> {
         'Aucune anomalie détectée',
         'Tous les indicateurs sont dans les normes pour la période sélectionnée.',
         'low',
-        AppColors.emerald,
+        AppColors.sageGreenInk,
       ));
     }
 
@@ -129,7 +129,7 @@ class _SalesAlertsPageState extends State<SalesAlertsPage> {
         const Text(
           'Alertes intelligentes',
           style: TextStyle(
-            color: AppColors.pharmaText,
+            color: AppColors.inkDark,
             fontWeight: FontWeight.w700,
             fontSize: 16,
           ),
@@ -189,7 +189,7 @@ class _SalesAlertsPageState extends State<SalesAlertsPage> {
                     Text(
                       alert.title,
                       style: TextStyle(
-                        color: AppColors.pharmaText,
+                        color: AppColors.inkDark,
                         fontWeight: FontWeight.w700,
                         fontSize: 13.5,
                       ),

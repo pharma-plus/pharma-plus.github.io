@@ -79,7 +79,7 @@ class _SalesPaymentsPageState extends State<SalesPaymentsPage> {
                 const Text(
                   'Paiements et caisse',
                   style: TextStyle(
-                    color: AppColors.pharmaText,
+                    color: AppColors.inkDark,
                     fontWeight: FontWeight.w700,
                     fontSize: 16,
                   ),
@@ -90,13 +90,13 @@ class _SalesPaymentsPageState extends State<SalesPaymentsPage> {
                     Expanded(
                       child: _kpiItem(
                         'Encaissé', Fmt.number(totalPaid, decimals: 2),
-                        AppColors.emerald,
+                        AppColors.sageGreenInk,
                       ),
                     ),
                     Expanded(
                       child: _kpiItem(
                         'Reste à encaisser', Fmt.number(outstanding, decimals: 2),
-                        outstanding > 0 ? AppColors.pharmaWarning : AppColors.emerald,
+                        outstanding > 0 ? AppColors.pharmaWarning : AppColors.sageGreenInk,
                       ),
                     ),
                     Expanded(
@@ -112,7 +112,7 @@ class _SalesPaymentsPageState extends State<SalesPaymentsPage> {
                 const Text(
                   'Clôture de caisse (saisie manuelle)',
                   style: TextStyle(
-                    color: AppColors.pharmaText,
+                    color: AppColors.inkDark,
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
                   ),
@@ -124,7 +124,7 @@ class _SalesPaymentsPageState extends State<SalesPaymentsPage> {
                       child: _cashInput(
                         'CAISSE THÉORIQUE',
                         _theoreticalCash?.toStringAsFixed(2),
-                        AppColors.pharmaGold,
+                        AppColors.champagneInk,
                         (v) => setState(() => _theoreticalCash =
                             double.tryParse(v)),
                       ),
@@ -134,7 +134,7 @@ class _SalesPaymentsPageState extends State<SalesPaymentsPage> {
                       child: _cashInput(
                         'CAISSE COMPTÉE',
                         _countedCash?.toStringAsFixed(2),
-                        AppColors.emerald,
+                        AppColors.sageGreenInk,
                         (v) => setState(() => _countedCash =
                             double.tryParse(v)),
                       ),
@@ -149,7 +149,7 @@ class _SalesPaymentsPageState extends State<SalesPaymentsPage> {
                         const Text(
                           'Écart de caisse : ',
                           style: TextStyle(
-                            color: AppColors.pharmaText,
+                            color: AppColors.inkDark,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                           ),
@@ -158,7 +158,7 @@ class _SalesPaymentsPageState extends State<SalesPaymentsPage> {
                           '${cashGap >= 0 ? '+' : ''}${Fmt.money(cashGap)}',
                           style: TextStyle(
                             color: cashGap >= 0
-                                ? AppColors.emerald
+                                ? AppColors.sageGreenInk
                                 : AppColors.pharmaDanger,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -253,7 +253,7 @@ class _SalesPaymentsPageState extends State<SalesPaymentsPage> {
           borderSide: BorderSide(color: color, width: 1.5),
         ),
       ),
-      style: const TextStyle(color: AppColors.pharmaText, fontSize: 12),
+      style: const TextStyle(color: AppColors.inkDark, fontSize: 12),
       controller: TextEditingController(text: initialValue),
       onChanged: (v) {
         onChanged(v);

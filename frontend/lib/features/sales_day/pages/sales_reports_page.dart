@@ -56,7 +56,7 @@ class _SalesReportsPageState extends State<SalesReportsPage> {
         const Text(
           'Rapports et exports',
           style: TextStyle(
-            color: AppColors.pharmaText,
+            color: AppColors.inkDark,
             fontWeight: FontWeight.w700,
             fontSize: 16,
           ),
@@ -152,11 +152,11 @@ class _SalesReportsPageState extends State<SalesReportsPage> {
         border: Border.all(color: AppColors.goldBorder, width: 1),
       ),
       child: ListTile(
-        leading: Icon(icon, color: AppColors.pharmaGold, size: 24),
+        leading: Icon(icon, color: AppColors.champagneInk, size: 24),
         title: Text(
           title,
           style: const TextStyle(
-            color: AppColors.pharmaText,
+            color: AppColors.inkDark,
             fontWeight: FontWeight.w700,
             fontSize: 14,
           ),

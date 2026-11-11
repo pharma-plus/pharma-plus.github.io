@@ -23,12 +23,12 @@ class SalesPaymentChart extends StatelessWidget {
   });
 
   static const List<Color> _palette = [
-    AppColors.emerald,
-    AppColors.pharmaGold,
+    AppColors.sageGreenInk,
+    AppColors.champagneInk,
     AppColors.cardBlue,
     AppColors.cardPurple,
     AppColors.cardAmber,
-    AppColors.emeraldLight,
+    AppColors.sageGreenInk,
   ];
 
   @override
@@ -41,7 +41,7 @@ class SalesPaymentChart extends StatelessWidget {
         Text(
           title,
           style: const TextStyle(
-            color: AppColors.pharmaText,
+            color: AppColors.inkDark,
             fontWeight: FontWeight.w700,
             fontSize: 14,
           ),
@@ -103,7 +103,7 @@ class SalesPaymentChart extends StatelessWidget {
                         child: Text(
                           p.label,
                           style: const TextStyle(
-                            color: AppColors.pharmaText,
+                            color: AppColors.inkDark,
                             fontSize: 11.5,
                           ),
                         ),

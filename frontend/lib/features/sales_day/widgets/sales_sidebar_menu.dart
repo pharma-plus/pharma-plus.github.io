@@ -136,7 +136,7 @@ class SalesMenuToggle extends StatelessWidget {
       onPressed: onPressed,
       icon: const Icon(Icons.menu, size: 22),
       tooltip: 'Menu SALES INTELLIGENCE',
-      color: AppColors.pharmaGold,
+      color: AppColors.champagneInk,
     );
   }
 }
@@ -160,7 +160,7 @@ class SalesSidebarMenu extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
       width: menu.open ? width : 0,
-      color: AppColors.surfaceSidebar,
+      color: AppColors.silver,
       child: menu.open
           ? Column(
               children: [
@@ -196,16 +196,16 @@ class SalesSidebarMenu extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: AppColors.emerald.withValues(alpha: 0.15),
+              color: AppColors.sageGreenInk.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: AppColors.emerald.withValues(alpha: 0.5),
+                color: AppColors.sageGreenInk.withValues(alpha: 0.5),
                 width: 1,
               ),
             ),
             child: const Icon(
               Icons.point_of_sale,
-              color: AppColors.emerald,
+              color: AppColors.sageGreenInk,
               size: 18,
             ),
           ),
@@ -218,7 +218,7 @@ class SalesSidebarMenu extends StatelessWidget {
                 const Text(
                   'PHARMA+',
                   style: TextStyle(
-                    color: AppColors.pharmaGold,
+                    color: AppColors.champagneInk,
                     fontWeight: FontWeight.w800,
                     fontSize: 15,
                   ),
@@ -256,11 +256,11 @@ class SalesSidebarMenu extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: active
-              ? AppColors.emerald.withValues(alpha: 0.10)
+              ? AppColors.sageGreenInk.withValues(alpha: 0.10)
               : Colors.transparent,
           border: Border(
             left: BorderSide(
-              color: active ? AppColors.emerald : Colors.transparent,
+              color: active ? AppColors.sageGreenInk : Colors.transparent,
               width: 3,
             ),
           ),
@@ -271,7 +271,7 @@ class SalesSidebarMenu extends StatelessWidget {
               item.icon,
               size: 19,
               color: active
-                  ? AppColors.emeraldLight
+                  ? AppColors.sageGreenInk
                   : AppColors.pharmaMuted.withValues(alpha: 0.85),
             ),
             const SizedBox(width: 14),
@@ -280,8 +280,8 @@ class SalesSidebarMenu extends StatelessWidget {
                 item.title,
                 style: TextStyle(
                   color: active
-                      ? AppColors.emeraldLight
-                      : AppColors.pharmaText.withValues(alpha: 0.9),
+                      ? AppColors.sageGreenInk
+                      : AppColors.inkDark.withValues(alpha: 0.9),
                   fontSize: 13.5,
                   fontWeight: active ? FontWeight.w700 : FontWeight.w500,
                 ),
@@ -304,7 +304,7 @@ class SalesMenuFloatingButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return FloatingActionButton(
       onPressed: onPressed,
-      backgroundColor: AppColors.emerald,
+      backgroundColor: AppColors.sageGreenInk,
       foregroundColor: Colors.white,
       child: const Icon(Icons.menu, size: 22),
     );

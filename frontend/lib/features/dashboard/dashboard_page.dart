@@ -11,6 +11,7 @@ import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/calculations.dart';
 import '../../core/utils/format.dart';
+import '../../core/widgets/marble_texture.dart';
 import '../../core/widgets/pharma_logo.dart';
 
 import '../../core/services/scaffold_key.dart';
@@ -26,6 +27,18 @@ import '../shell/shell_nav.dart';
 import '../stock/stock_page.dart';
 import 'pos_panel.dart';
 import 'global_search.dart';
+
+/// Helpers thème-adaptatif dashboard : écritures TOUJOURS lisibles
+/// (encre foncée sur marbre clair, blanc sur graphite sombre).
+bool dashDark(BuildContext c) =>
+    Theme.of(c).brightness == Brightness.dark;
+Color dashText(BuildContext c) =>
+    dashDark(c) ? Colors.white : AppColors.inkDark;
+Color dashTextSoft(BuildContext c) =>
+    dashDark(c) ? Colors.white70 : AppColors.inkDarkLight;
+Color dashPanel(BuildContext c) => dashDark(c)
+    ? AppColors.graphiteLight
+    : AppColors.sageGreen.withValues(alpha: 0.10);
 
 /// ============================================================
 /// DASHBOARD PHARMA+ — reconstruction IDENTIQUE à la maquette :
@@ -702,7 +715,9 @@ class _KpiCardState extends State<_KpiCard> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.70),
+                                  color: dashDark(context)
+                                      ? Colors.white.withValues(alpha: 0.70)
+                                      : AppColors.inkDarkLight,
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.w600)),
                         ],
@@ -766,14 +781,21 @@ class _TopBar extends StatelessWidget {
         ? user!.fullName.trim()
         : pharmacyName;
     final narrow = MediaQuery.sizeOf(context).width < 700;
-    return Container(
+    final isDark = dashDark(context);
+    return MarbleBackground(
+      dark: isDark,
+      child: Container(
       height: 62,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
+          color: isDark
+              ? AppColors.surfaceDark
+              : const Color(0xFFF7F8F9).withValues(alpha: 0.72),
           border: Border(
               bottom: BorderSide(
-                  color: AppColors.dividerDark.withValues(alpha: 0.7)))),
+                  color: isDark
+                      ? AppColors.dividerDark.withValues(alpha: 0.7)
+                      : AppColors.silverDark))),
       child: Row(children: [
         // ☰ — menu rétractable sur tablette/mobile (masqué sur desktop).
         if (onMenu != null) ...[
@@ -835,8 +857,8 @@ class _TopBar extends StatelessWidget {
                 userName.isEmpty
                     ? '?'
                     : userName.characters.first.toUpperCase(),
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w900),
+                style: TextStyle(
+                    color: dashText(context), fontWeight: FontWeight.w900),
               ),
             ),
           )
@@ -845,10 +867,13 @@ class _TopBar extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
               decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.03),
+                  color: dashDark(context)
+                      ? Colors.white.withValues(alpha: 0.03)
+                      : AppColors.sageGreen.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.10))),
+                  border: Border.all(color: dashDark(context)
+                      ? Colors.white.withValues(alpha: 0.10)
+                      : AppColors.sageGreenDark.withValues(alpha: 0.35))),
               child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -858,8 +883,8 @@ class _TopBar extends StatelessWidget {
                         child: Text(pharmacyName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                color: Colors.white,
+                            style: TextStyle(
+                                color: dashText(context),
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800)),
                       ),
@@ -870,8 +895,10 @@ class _TopBar extends StatelessWidget {
                     Text('$userName · $roleLabel',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: AppColors.emeraldLight,
+                        style: TextStyle(
+                            color: isDark
+                                ? AppColors.emeraldLight
+                                : AppColors.sageGreenInk,
                             fontSize: 11.5,
                             fontWeight: FontWeight.w700)),
                   ]),
@@ -951,6 +978,7 @@ class _TopBar extends StatelessWidget {
           },
         ),
       ]),
+      ),
     );
   }
 }
@@ -979,8 +1007,11 @@ class _TopIcon extends StatelessWidget {
                 decoration: BoxDecoration(
                     color: AppColors.danger,
                     borderRadius: BorderRadius.circular(9),
-                    border:
-                        Border.all(color: AppColors.surfaceDark, width: 1.5)),
+                    border: Border.all(
+                        color: dashDark(context)
+                            ? AppColors.surfaceDark
+                            : AppColors.silver,
+                        width: 1.5)),
                 child: Text(badge!,
                     style: const TextStyle(
                         color: Colors.white,
@@ -1010,18 +1041,23 @@ class _DarkPanel extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final isDark = dashDark(context);
+    return MarbleBackground(
+      dark: isDark,
+      child: Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-          gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF101F18), Color(0xFF0B1512)]),
+          color: isDark
+              ? AppColors.graphite.withValues(alpha: 0.72)
+              : const Color(0xFFF7F8F9).withValues(alpha: 0.72),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.goldBorder),
+          border: Border.all(
+              color: isDark
+                  ? AppColors.goldBorder
+                  : AppColors.sageGreenDark.withValues(alpha: 0.30)),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.30),
+                color: Colors.black.withValues(alpha: isDark ? 0.30 : 0.08),
                 blurRadius: 8,
                 offset: const Offset(0, 4)),
           ]),
@@ -1036,7 +1072,7 @@ class _DarkPanel extends StatelessWidget {
                 child: Text(
                   title,
                   style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.95),
+                      color: dashText(context),
                       fontSize: 13.5,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.6),
@@ -1048,6 +1084,7 @@ class _DarkPanel extends StatelessWidget {
             const SizedBox(height: 10),
             child,
           ]),
+      ),
     );
   }
 }
@@ -1123,7 +1160,9 @@ class _AlertsStockPanel extends StatelessWidget {
               Text('Aucune alerte — stock et péremptions sains',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.45),
+                      color: dashDark(context)
+                          ? Colors.white.withValues(alpha: 0.45)
+                          : AppColors.inkDarkLight,
                       fontSize: 11)),
             ]),
           )
@@ -1144,15 +1183,25 @@ class _AlertsStockPanel extends StatelessWidget {
           child: OutlinedButton(
             onPressed: onViewAll,
             style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              backgroundColor: AppColors.graphiteDark,
-              side: const BorderSide(color: AppColors.goldBorderStrong),
+              foregroundColor: dashDark(context)
+                  ? Colors.white
+                  : AppColors.sageGreenInk,
+              backgroundColor: dashDark(context)
+                  ? AppColors.graphiteDark
+                  : AppColors.sageGreen.withValues(alpha: 0.45),
+              side: BorderSide(
+                  color: dashDark(context)
+                      ? AppColors.goldBorderStrong
+                      : AppColors.sageGreenDark.withValues(alpha: 0.55)),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Voir toutes',
+            child: Text('Voir toutes',
                 style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w700)),
+                    color: dashDark(context)
+                        ? Colors.white
+                        : AppColors.sageGreenInk,
+                    fontWeight: FontWeight.w700)),
           ),
         ),
       ]),
@@ -1177,9 +1226,12 @@ class _AlertRow extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 11, vertical: compact ? 6 : 9),
       decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.035),
+          color: dashPanel(context),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.07))),
+          border: Border.all(
+              color: dashDark(context)
+                  ? Colors.white.withValues(alpha: 0.07)
+                  : AppColors.sageGreenDark.withValues(alpha: 0.25))),
       child: Row(children: [
         Container(
           width: 23,
@@ -1196,11 +1248,17 @@ class _AlertRow extends StatelessWidget {
             Text(name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    color: Colors.white,
+                style: TextStyle(
+                    color: dashText(context),
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700)),
-            Text(detail, style: TextStyle(color: color, fontSize: 10.5)),
+            Text(detail,
+                style: TextStyle(
+                    color: dashDark(context)
+                        ? color
+                        : Color.lerp(color, Colors.black, 0.35)!,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600)),
           ]),
         ),
       ]),
@@ -1321,13 +1379,19 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
             height: compact ? 24 : 40,
             decoration: BoxDecoration(
               color: active
-                  ? AppColors.pharmaGreen.withValues(alpha: 0.20)
-                  : Colors.white.withValues(alpha: 0.07),
+                  ? (dashDark(context)
+                      ? AppColors.pharmaGreen.withValues(alpha: 0.20)
+                      : AppColors.sageGreen.withValues(alpha: 0.45))
+                  : dashPanel(context),
               borderRadius: BorderRadius.circular(compact ? 8 : 10),
               border: Border.all(
                   color: active
-                      ? AppColors.pharmaGreen.withValues(alpha: 0.75)
-                      : Colors.white.withValues(alpha: 0.16)),
+                      ? (dashDark(context)
+                          ? AppColors.pharmaGreen.withValues(alpha: 0.75)
+                          : AppColors.sageGreenDark.withValues(alpha: 0.75))
+                      : (dashDark(context)
+                          ? Colors.white.withValues(alpha: 0.16)
+                          : AppColors.sageGreenDark.withValues(alpha: 0.30))),
             ),
             child: labeled
                 ? Column(
@@ -1335,20 +1399,30 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
                     children: [
                       Icon(icon,
                           size: 15,
-                          color: active ? AppColors.pharmaGreen : Colors.white),
+                          color: active
+                              ? (dashDark(context)
+                                  ? AppColors.pharmaGreen
+                                  : AppColors.sageGreenInk)
+                              : dashText(context)),
                       const SizedBox(height: 1),
                       Text(tip,
                           style: TextStyle(
                               color: active
-                                  ? AppColors.pharmaGreen
-                                  : Colors.white.withValues(alpha: 0.82),
+                                  ? (dashDark(context)
+                                      ? AppColors.pharmaGreen
+                                      : AppColors.sageGreenInk)
+                                  : dashTextSoft(context),
                               fontSize: 8,
                               fontWeight: FontWeight.w700)),
                     ],
                   )
                 : Icon(icon,
                     size: compact ? 14 : 17,
-                    color: active ? AppColors.pharmaGreen : Colors.white),
+                    color: active
+                        ? (dashDark(context)
+                            ? AppColors.pharmaGreen
+                            : AppColors.sageGreenInk)
+                        : dashText(context)),
           ),
         ),
       ),
@@ -1447,8 +1521,15 @@ class _AnalyticsTiles extends StatelessWidget {
         legend: 'Valeurs réelles',
         painter: _AnalyticsBarsPainter(
           values: [revenueToday, revenueMonth, profitMonth],
-          colors: const [AppColors.emerald, AppColors.chart, AppColors.gold],
+          colors: dashDark(context)
+              ? const [AppColors.emerald, AppColors.chart, AppColors.gold]
+              : const [
+                  AppColors.sageGreenInk,
+                  Color(0xFF2E7EA6),
+                  Color(0xFF9A7A30)
+                ],
           labels: const ['Jour', 'Mois', 'Bénéfice'],
+          valueColor: dashText(context),
           valueLabels: [
             Fmt.money(revenueToday),
             Fmt.money(revenueMonth),
@@ -1466,6 +1547,8 @@ class _AnalyticsTiles extends StatelessWidget {
             expired.toDouble()
           ],
           colors: const [AppColors.gold, AppColors.warning, AppColors.danger],
+          labelColor: dashDark(context) ? Colors.white70 : AppColors.inkDarkLight,
+          valueColor: dashText(context),
         ),
       ),
     ];
@@ -1509,22 +1592,28 @@ class _AnalyticsChartCard extends StatelessWidget {
             height: 192,
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.035),
+              color: dashPanel(context),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+              border: Border.all(
+                  color: dashDark(context)
+                      ? Colors.white.withValues(alpha: 0.07)
+                      : AppColors.sageGreenDark.withValues(alpha: 0.25)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: const TextStyle(
-                        color: Colors.white,
+                    style: TextStyle(
+                        color: dashText(context),
                         fontSize: 12.5,
                         fontWeight: FontWeight.w800)),
                 const SizedBox(height: 2),
                 Text(legend,
-                    style: const TextStyle(
-                        color: AppColors.textTertiary, fontSize: 10.5)),
+                    style: TextStyle(
+                        color: dashDark(context)
+                            ? AppColors.textTertiary
+                            : AppColors.inkDarkLight,
+                        fontSize: 10.5)),
                 const SizedBox(height: 4),
                 Expanded(
                     child: CustomPaint(
@@ -1541,12 +1630,14 @@ class _AnalyticsBarsPainter extends CustomPainter {
   final List<Color> colors;
   final List<String> labels;
   final List<String> valueLabels;
+  final Color valueColor;
 
   const _AnalyticsBarsPainter({
     required this.values,
     required this.colors,
     required this.labels,
     required this.valueLabels,
+    this.valueColor = Colors.white,
   });
 
   @override
@@ -1607,7 +1698,7 @@ class _AnalyticsBarsPainter extends CustomPainter {
           text: TextSpan(
               text: valueLabels[i],
               style: TextStyle(
-                  color: Colors.white,
+                  color: valueColor,
                   fontSize: fontSize,
                   fontWeight: FontWeight.w800)),
           textDirection: TextDirection.ltr,
@@ -1638,8 +1729,15 @@ class _AnalyticsBarsPainter extends CustomPainter {
 class _AnalyticsDonutPainter extends CustomPainter {
   final List<double> values;
   final List<Color> colors;
+  final Color labelColor;
+  final Color valueColor;
 
-  const _AnalyticsDonutPainter({required this.values, required this.colors});
+  const _AnalyticsDonutPainter({
+    required this.values,
+    required this.colors,
+    this.labelColor = Colors.white70,
+    this.valueColor = Colors.white,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1700,11 +1798,11 @@ class _AnalyticsDonutPainter extends CustomPainter {
         text: TextSpan(children: [
           TextSpan(
               text: '${labels[i]} ',
-              style: const TextStyle(color: Colors.white70, fontSize: 11)),
+              style: TextStyle(color: labelColor, fontSize: 11)),
           TextSpan(
               text: '${values[i].round()}',
-              style: const TextStyle(
-                  color: Colors.white,
+              style: TextStyle(
+                  color: valueColor,
                   fontSize: 12.5,
                   fontWeight: FontWeight.w800)),
         ]),

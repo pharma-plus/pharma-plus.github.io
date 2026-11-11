@@ -140,7 +140,7 @@ class SalesKpiCard extends StatelessWidget {
                             style: TextStyle(
                               color: unavailable
                                   ? AppColors.pharmaMuted
-                                  : AppColors.pharmaText,
+                                  : AppColors.inkDark,
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
                               height: 1.1,
@@ -154,7 +154,7 @@ class SalesKpiCard extends StatelessWidget {
                           child: Text(
                             unit,
                             style: const TextStyle(
-                              color: AppColors.pharmaGold,
+                              color: AppColors.champagneInk,
                               fontSize: 10.5,
                               fontWeight: FontWeight.w700,
                             ),
@@ -200,7 +200,7 @@ class SalesKpiCard extends StatelessWidget {
       );
     }
     final up = delta >= 0;
-    final color = up ? AppColors.emerald : AppColors.pharmaDanger;
+    final color = up ? AppColors.sageGreenInk : AppColors.pharmaDanger;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

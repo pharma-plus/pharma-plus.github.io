@@ -128,7 +128,7 @@ class SalesNavigationController extends ChangeNotifier {
       icon: Icons.home_outlined,
       label: 'Maison',
       tooltip: 'Vue générale SALES INTELLIGENCE',
-      color: AppColors.pharmaGold,
+      color: AppColors.champagneInk,
       onPressed: onPressed,
       compact: compact,
     );

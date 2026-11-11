@@ -67,7 +67,7 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
                   const Text(
                     'Indicateurs principaux',
                     style: TextStyle(
-                      color: AppColors.pharmaText,
+                      color: AppColors.inkDark,
                       fontWeight: FontWeight.w700,
                       fontSize: 16,
                     ),
@@ -79,7 +79,7 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
                         child: _kpiItem(
                           'CA brut (TTC)',
                           Fmt.number(k.grossRevenue, decimals: 2),
-                          AppColors.emerald,
+                          AppColors.sageGreenInk,
                           'MAD',
                         ),
                       ),
@@ -87,7 +87,7 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
                         child: _kpiItem(
                           'CA net (HT)',
                           Fmt.number(k.netRevenue, decimals: 2),
-                          AppColors.emerald,
+                          AppColors.sageGreenInk,
                           'MAD',
                         ),
                       ),
@@ -95,7 +95,7 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
                         child: _kpiItem(
                           'TVA facturée',
                           Fmt.number(k.taxTotal, decimals: 2),
-                          AppColors.emerald,
+                          AppColors.sageGreenInk,
                           'MAD',
                         ),
                       ),
@@ -116,7 +116,7 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
                         child: _kpiItem(
                           'Ventes validées',
                           '${k.salesCount}',
-                          AppColors.emerald,
+                          AppColors.sageGreenInk,
                           'ventes',
                         ),
                       ),
@@ -124,7 +124,7 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
                         child: _kpiItem(
                           'Panier moyen',
                           Fmt.number(k.averageBasket, decimals: 2),
-                          AppColors.emerald,
+                          AppColors.sageGreenInk,
                           'MAD',
                         ),
                       ),
@@ -132,7 +132,7 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
                         child: _kpiItem(
                           'Montant encaissé',
                           Fmt.number(k.paidAmount, decimals: 2),
-                          AppColors.emerald,
+                          AppColors.sageGreenInk,
                           'MAD',
                         ),
                       ),
@@ -142,7 +142,7 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
                           Fmt.number(k.outstandingAmount, decimals: 2),
                           k.outstandingAmount > 0
                               ? AppColors.pharmaWarning
-                              : AppColors.emerald,
+                              : AppColors.sageGreenInk,
                           'MAD',
                         ),
                       ),
@@ -164,7 +164,7 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
                   const Text(
                     'Répartition horaire',
                     style: TextStyle(
-                      color: AppColors.pharmaText,
+                      color: AppColors.inkDark,
                       fontWeight: FontWeight.w700,
                       fontSize: 16,
                     ),

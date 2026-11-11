@@ -59,7 +59,7 @@ class _SalesProductsPageState extends State<SalesProductsPage> {
         const Text(
           'Top 10 produits par chiffre d\'affaires',
           style: TextStyle(
-            color: AppColors.pharmaText,
+            color: AppColors.inkDark,
             fontWeight: FontWeight.w700,
             fontSize: 16,
           ),
@@ -96,7 +96,7 @@ class _SalesProductsPageState extends State<SalesProductsPage> {
               Text(
                 'Top 10 par quantité et par bénéfice',
                 style: TextStyle(
-                  color: AppColors.pharmaText,
+                  color: AppColors.inkDark,
                   fontWeight: FontWeight.w700,
                   fontSize: 16,
                 ),

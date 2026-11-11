@@ -23,6 +23,20 @@ class AppColors {
   static const Color champagneDark = Color(0xFFB08A3C);
   static const Color champagneLight = Color(0xFFE8D5B5);
 
+  // Vert sauge foncé lisible sur marbre clair (valeurs/chiffres).
+  // #A8C8B5 seul est trop pâle pour du texte sur surface claire.
+  static const Color sageGreenInk = Color(0xFF3D6B51);
+
+  // Champagne foncé lisible sur marbre clair (titres dorés).
+  static const Color champagneInk = Color(0xFF9A7A30);
+  static const Color champagneInkLight = Color(0xFFB08A3C);
+
+  // Variantes dérivées (alias de lisibilité).
+  static const Color sageGreenInkDark = Color(0xFF2F5440);
+  static const Color sageGreenInkRich = Color(0xFF3D6B51);
+  static const Color sageGreenInkDeep = Color(0xFF2F5440);
+  static const Color sageGreenInkInk = Color(0xFF20272D);
+
   // Graphite — fonds sombres et texte
   static const Color graphite = Color(0xFF20272D);
   static const Color graphiteDark = Color(0xFF1A1F24);

@@ -9,6 +9,7 @@ import '../../core/l10n/strings.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/services/hijri_calendar.dart';
 import '../../core/theme/colors.dart';
+import '../../core/widgets/marble_texture.dart';
 import '../../core/widgets/pharma_logo.dart';
 import '../accounting/accounting_page.dart';
 import '../ai/ai_page.dart';
@@ -237,8 +238,13 @@ class _AppSideMenuState extends State<AppSideMenu> {
   /// Rail réduit : logo compact, icônes seules (tooltip au survol),
   /// accès déconnexion conservé — aucun grand espace vide.
   Widget _buildCollapsed(BuildContext context) {
-    return Container(
-      color: AppColors.surfaceSidebar,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Thème clair : marbre gris argenté, icônes vert sauge foncé lisibles.
+    // Thème sombre : graphite métal brossé, icônes champagne.
+    return MarbleBackground(
+      dark: isDark,
+      child: Container(
+      color: Colors.transparent,
       child: Column(children: [
         Container(
           width: double.infinity,
@@ -265,22 +271,34 @@ class _AppSideMenuState extends State<AppSideMenu> {
                     child: InkWell(
                       borderRadius: BorderRadius.circular(10),
                       onTap: () => _onItemTap(item),
-                      child: Container(
+                        child: Container(
                         width: 44,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: active ? AppColors.graphiteDark : null,
+                          color: active
+                              ? (isDark
+                                  ? AppColors.graphiteDark
+                                  : AppColors.sageGreen.withValues(alpha: 0.35))
+                              : null,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                               color: active
-                                  ? AppColors.champagne.withValues(alpha: 0.55)
+                                  ? (isDark
+                                      ? AppColors.champagne
+                                          .withValues(alpha: 0.55)
+                                      : AppColors.sageGreenDark
+                                          .withValues(alpha: 0.65))
                                   : Colors.transparent),
                         ),
                         child: Icon(item.icon,
                             size: 20,
                             color: active
-                                ? Colors.white
-                                : AppColors.champagne),
+                                ? (isDark
+                                    ? Colors.white
+                                    : AppColors.sageGreenInk)
+                                : (isDark
+                                    ? AppColors.champagne
+                                    : AppColors.sageGreenInk)),
                       ),
                     ),
                   ),
@@ -341,13 +359,17 @@ class _AppSideMenuState extends State<AppSideMenu> {
         ),
         const SizedBox(height: 12),
       ]),
+      ),
     );
   }
 
   Widget _buildExpanded(BuildContext context) {
     final visibleItems = _visibleItems;
-    return Container(
-      color: AppColors.surfaceSidebar,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return MarbleBackground(
+      dark: isDark,
+      child: Container(
+      color: Colors.transparent,
       child: Column(children: [
         // ---- Marque : logo officiel complet (textes inclus dans l'asset) ----
         Container(
@@ -378,23 +400,39 @@ class _AppSideMenuState extends State<AppSideMenu> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 10.5),
                     decoration: BoxDecoration(
-                      color: active ? const Color(0xFF07271C) : null,
+                      color: active
+                          ? (isDark
+                              ? AppColors.graphiteDark
+                              : AppColors.sageGreen.withValues(alpha: 0.35))
+                          : null,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                           color: active
-                              ? AppColors.champagne.withValues(alpha: 0.55)
+                              ? (isDark
+                                  ? AppColors.champagne
+                                      .withValues(alpha: 0.55)
+                                  : AppColors.sageGreenDark
+                                      .withValues(alpha: 0.65))
                               : Colors.transparent),
                     ),
                     child: Row(children: [
-                      Icon(item.icon, size: 19, color: AppColors.champagne),
+                      Icon(item.icon,
+                          size: 19,
+                          color: isDark
+                              ? AppColors.champagne
+                              : AppColors.sageGreenInk),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(S.t(item.label, context.watch<AuthStore>().locale),
                             style: TextStyle(
                                 fontSize: 13.5,
                                 color: active
-                                    ? Colors.white
-                                    : AppColors.textSecondary,
+                                    ? (isDark
+                                        ? Colors.white
+                                        : AppColors.sageGreenInk)
+                                    : (isDark
+                                        ? AppColors.textSecondary
+                                        : AppColors.inkDark),
                                 fontWeight: active
                                     ? FontWeight.w700
                                     : FontWeight.w500)),
@@ -414,9 +452,13 @@ class _AppSideMenuState extends State<AppSideMenu> {
           margin: const EdgeInsets.fromLTRB(12, 6, 12, 0),
           padding: const EdgeInsets.all(11),
           decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.035),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.035)
+                  : AppColors.sageGreen.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.goldBorder)),
+              border: Border.all(color: isDark
+                  ? AppColors.goldBorder
+                  : AppColors.sageGreenDark.withValues(alpha: 0.35))),
           child: Row(children: [
             Stack(clipBehavior: Clip.none, children: [
               Container(
@@ -424,11 +466,17 @@ class _AppSideMenuState extends State<AppSideMenu> {
                 height: 42,
                 decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: AppColors.graphiteDark,
+                    color: isDark
+                        ? AppColors.graphiteDark
+                        : AppColors.sageGreenLight,
                     border: Border.all(
-                        color: AppColors.champagne.withValues(alpha: 0.5))),
-                child:
-                    const Icon(Icons.person, color: Colors.white70, size: 24),
+                        color: isDark
+                            ? AppColors.champagne.withValues(alpha: 0.5)
+                            : AppColors.sageGreenDark
+                                .withValues(alpha: 0.55))),
+                child: Icon(Icons.person,
+                    color: isDark ? Colors.white70 : AppColors.sageGreenInk,
+                    size: 24),
               ),
               Positioned(
                 right: -1,
@@ -440,7 +488,10 @@ class _AppSideMenuState extends State<AppSideMenu> {
                         shape: BoxShape.circle,
                         color: AppColors.success,
                         border: Border.all(
-                            color: AppColors.surfaceSidebar, width: 2))),
+                            color: isDark
+                                ? AppColors.surfaceSidebar
+                                : AppColors.silver,
+                            width: 2))),
               ),
             ]),
             const SizedBox(width: 10),
@@ -461,23 +512,29 @@ class _AppSideMenuState extends State<AppSideMenu> {
                               : 'Admin',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              color: Colors.white,
+                          style: TextStyle(
+                              color: isDark
+                                  ? Colors.white
+                                  : AppColors.inkDark,
                               fontSize: 14,
                               fontWeight: FontWeight.w800)),
                       if (role != null && role.isNotEmpty)
                         Text(role,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                color: AppColors.textSecondary,
+                            style: TextStyle(
+                                color: isDark
+                                    ? AppColors.textSecondary
+                                    : AppColors.inkDarkLight,
                                 fontSize: 10.5)),
                       if (pharmacy != null && pharmacy.isNotEmpty)
                         Text(pharmacy,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                color: AppColors.emeraldLight,
+                            style: TextStyle(
+                                color: isDark
+                                    ? AppColors.emeraldLight
+                                    : AppColors.sageGreenInk,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600)),
                     ]);
@@ -498,15 +555,23 @@ class _AppSideMenuState extends State<AppSideMenu> {
                     child: Container(
                       height: 42,
                       decoration: BoxDecoration(
-                        color: AppColors.graphiteDark,
+                        color: isDark
+                            ? AppColors.graphiteDark
+                            : AppColors.sageGreenLight,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                            color: AppColors.champagne
-                                .withValues(alpha: 0.55)),
+                            color: isDark
+                                ? AppColors.champagne
+                                    .withValues(alpha: 0.55)
+                                : AppColors.sageGreenDark
+                                    .withValues(alpha: 0.55)),
                       ),
-                      child: const Center(
+                      child: Center(
                           child: Icon(Icons.lock_open_outlined,
-                              color: _sideGold, size: 19)),
+                              color: isDark
+                                  ? _sideGold
+                                  : AppColors.sageGreenInk,
+                              size: 19)),
                     ),
                   ),
                 ),
@@ -520,14 +585,23 @@ class _AppSideMenuState extends State<AppSideMenu> {
                   child: Container(
                     height: 42,
                     decoration: BoxDecoration(
-                      color: AppColors.graphiteDark,
+                      color: isDark
+                          ? AppColors.graphiteDark
+                          : AppColors.sageGreenLight,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                          color: AppColors.champagne
-                              .withValues(alpha: 0.55)),
+                          color: isDark
+                              ? AppColors.champagne
+                                  .withValues(alpha: 0.55)
+                              : AppColors.sageGreenDark
+                                  .withValues(alpha: 0.55)),
                     ),
-                    child: const Center(
-                        child: Icon(Icons.logout, color: _sideGold, size: 19)),
+                    child: Center(
+                        child: Icon(Icons.logout,
+                            color: isDark
+                                ? _sideGold
+                                : AppColors.sageGreenInk,
+                            size: 19)),
                   ),
                 ),
               ),
@@ -539,24 +613,32 @@ class _AppSideMenuState extends State<AppSideMenu> {
           margin: const EdgeInsets.all(12),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.03),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.03)
+                  : AppColors.sageGreen.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
+              border: Border.all(color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : AppColors.sageGreenDark.withValues(alpha: 0.35))),
           child: Row(children: [
             Expanded(
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(DateFormat('HH:mm').format(_now),
-                        style: const TextStyle(
-                            color: Colors.white,
+                        style: TextStyle(
+                            color: isDark
+                                ? Colors.white
+                                : AppColors.inkDark,
                             fontSize: 19,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 0.5)),
                     const SizedBox(height: 3),
                     Text(_dateLabel(),
-                        style: const TextStyle(
-                            color: AppColors.textSecondary,
+                        style: TextStyle(
+                            color: isDark
+                                ? AppColors.textSecondary
+                                : AppColors.inkDarkLight,
                             fontSize: 10.5,
                             fontWeight: FontWeight.w600)),
                   ]),
@@ -584,6 +666,7 @@ class _AppSideMenuState extends State<AppSideMenu> {
           ]),
         ),
       ]),
+      ),
     );
   }
 
