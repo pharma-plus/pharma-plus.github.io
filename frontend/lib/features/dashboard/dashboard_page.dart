@@ -605,6 +605,10 @@ class _KpiCardState extends State<_KpiCard> {
     final bool kpiDark = dashDark(context);
     final String kpiImg =
         kpiDark ? def.image : def.image.replaceFirst('kpi_bg_', 'kpi_bg_light_');
+    // Sur smartphone, les cartes KPI sont plus petites : on reduit l'ombre
+    // (blur/offset) pour eviter qu'elle deborde en dehors de la carte et
+    // chevauche l'illustration / les cartes voisines.
+    final bool mobile = MediaQuery.of(context).size.width < 980;
     return MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
@@ -629,14 +633,14 @@ class _KpiCardState extends State<_KpiCard> {
                       : AppColors.goldBorder),
               boxShadow: [
                 BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.30),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5)),
+                    color: Colors.black.withValues(alpha: mobile ? 0.18 : 0.30),
+                    blurRadius: mobile ? 6 : 10,
+                    offset: Offset(0, mobile ? 3 : 5)),
                 if (_hover)
                   BoxShadow(
                       color: AppColors.sageGreen.withValues(alpha: 0.16),
-                      blurRadius: 18,
-                      offset: const Offset(0, 8)),
+                      blurRadius: mobile ? 10 : 18,
+                      offset: const Offset(0, 6)),
               ],
               // Le fond 3D est la seule illustration de la carte. Les anciens
               // assets kpi/kpi_N.webp (cartons avec image au premier plan) ne
