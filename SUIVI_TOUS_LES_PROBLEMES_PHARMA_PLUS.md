@@ -682,4 +682,6 @@ Aucune preuve authentifiÃ©e n'est encore disponible depuis ce poste. AprÃ¨s 
 - Validation locale : `dart analyze lib` 0 erreur ; `flutter test` 200 PASS / 0 FAIL / 9 SKIP ; `flutter build web --release` termine par « Built build\web » (470,5 s ; avertissements wasm dry-run non bloquants, aucun echec de compilation).
 - Git : commit 97a32d8 (3 fichiers UI + 8 assets), push d6da17e..97a32d8. `runs_latest*.json`, logs et scripts temporaires exclus. Supabase/donnees/secrets intacts.
 - CI 97a32d8 : CI SUCCESS (run 43214601067) ; Deploy Flutter Web SUCCESS (run 43214601205) ; pages build and deployment SUCCESS (sha pages cc2f427, run 43215060157).
+- CI b0c4122 (ce registre) : CI SUCCESS (run 43215444632) ; Deploy Flutter Web SUCCESS (run 43215444604) ; pages build and deployment SUCCESS (sha pages a720720, run 43215935654).
+- Production : les 8 assets `kpi_bg_light_1..8.webp` sont servis en HTTP 200 avec les tailles exactes (11396 / 9376 / 8844 / 8518 / 13810 / 14722 / 6022 / 7848 octets) sur `https://pharma-plus.github.io/assets/assets/images/` (verifie apres deploiement).
 - Reste decisif : verification visuelle authentifiee en production par le proprietaire (Ctrl+F5) : KPI clairs entiers poses en bas a droite, mini POS au fond marbre clair, plan 3D clair.
