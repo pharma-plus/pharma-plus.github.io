@@ -651,7 +651,7 @@ Aucune preuve authentifiÃ©e n'est encore disponible depuis ce poste. AprÃ¨s 
 - Illustrations code : product_art socle 0xFF00C96B -> sage 0.16 + base 0xFF171D22, boite generique 0xFF0E8C4F -> encre sauge (0xFF3D6B51/0xFF2F5440/0xFF24402F) ; pos_category_grid halos menthe -> sauge (0xFFA8C8B5/0xFFD4E4DA). kpi_art.dart = code mort (aucune reference trouvee) -> intact.
 - Validation : dart analyze lib 0 erreur ; flutter test 200 PASS 0 FAIL 9 SKIP ; flutter build web --release exit 0 (395 s, log build_web_theme3.log non commité).
 - Commits : c66893c (assets textures/illustrations + marble_texture + pharma_background), 3d24dc7 (charte code + ecritures, 15 fichiers). Push a9146ab..3d24dc7. runs_latest*.json exclus. Supabase/donnees intacts.
-- CI 3d24dc7 : CI SUCCESS (run 186, id 43094543674, job bloquant Flutter analyze+tests vert), Deploy Flutter Web SUCCESS (run 141, id 43094543690), pages build and deployment BUILD 141 (488bcc7) en cours au moment de la redaction -> a confirmer SUCCESS.
+- CI 3d24dc7 : CI SUCCESS (run 186, id 43094543674, job bloquant Flutter analyze+tests vert), Deploy Flutter Web SUCCESS (run 141, id 43094543690), pages build and deployment BUILD 141 (488bcc7) SUCCESS confirme.
 - Reste decisif : confirmation pages BUILD 141 ; verification visuelle authentifiee en production par le proprietaire (Ctrl+F5) : fond compacte POS, mini POS graphite, texture graphite sombre, illustrations KPI au fond du theme, ecritures vertes tres foncees lisibles partout.
 
 ### 14.16 Audit visibilite complet + super-admin adaptatif + KPI marbre + scrollbars (12/11/2026)
@@ -667,4 +667,5 @@ Aucune preuve authentifiÃ©e n'est encore disponible depuis ce poste. AprÃ¨s 
 - Validation locale : dart analyze lib 0 erreur ; flutter test 200 PASS 0 FAIL 9 SKIP ; flutter build web --release exit 0 (388 s). Supabase/donnees/secrets intacts, aucune operation destructive.
 - Commit/push : 91d3316 (code UI, 42 fichiers) + bb6bb3e (assets KPI marbre + ce registre). Push 75745bd..bb6bb3e. runs_latest*.json, logs, scripts temporaires exclus.
 - CI bb6bb3e : CI SUCCESS (run 43141526083, job bloquant Flutter analyze+tests vert) ; Deploy Flutter Web SUCCESS (run 43141526067) ; pages build and deployment SUCCESS (813f15c, 02:30:18Z).
+- CI 97a6c65 (ce registre) : CI SUCCESS ; Deploy Flutter Web SUCCESS ; pages build and deployment SUCCESS (94b479a, 02:34:41Z).
 - Reste decisif : verification visuelle authentifiee en production par le proprietaire (Ctrl+F5) : menu sombre (titres champagne gras), scrollbars visibles haut/bas, Fournisseurs en clair, KPI marbre en clair / graphite en sombre, POS clair/sombre, dashboard super-admin marbre/graphite.
