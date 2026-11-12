@@ -220,7 +220,7 @@ class _CustomersPageState extends State<CustomersPage> {
                                                 overflow: TextOverflow.ellipsis,
                                                 style: const TextStyle(
                                                     fontSize: 12,
-                                                    color: Colors.grey),
+                                                    color: AppColors.textMuted),
                                               ),
                                             ],
                                           ),
@@ -243,7 +243,7 @@ class _CustomersPageState extends State<CustomersPage> {
                                               '${Fmt.money(double.tryParse('${c['total_spent'] ?? 0}') ?? 0)}',
                                               style: const TextStyle(
                                                   fontSize: 11,
-                                                  color: Colors.grey),
+                                                  color: AppColors.textMuted),
                                             ),
                                           ],
                                         ),
@@ -483,7 +483,7 @@ class _CustomerDetailState extends State<_CustomerDetail> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label, style: const TextStyle(color: Colors.grey)),
+              Text(label, style: const TextStyle(color: AppColors.textMuted)),
               Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
             ],
           ),

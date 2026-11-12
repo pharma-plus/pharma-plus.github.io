@@ -478,7 +478,7 @@ class _SettingsPageState extends State<SettingsPage> {
         const SizedBox(height: 24),
         const Center(
           child: Text('PHARMA+  v2.0.0',
-              style: TextStyle(fontSize: 11, color: Colors.grey)),
+              style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
         ),
       ],
     );
@@ -891,7 +891,7 @@ class _SettingsPageState extends State<SettingsPage> {
               _myPinConfigured
                   ? 'Saisissez un nouveau PIN à 4 à 6 chiffres.'
                   : 'Définissez votre PIN personnel (4 à 6 chiffres).',
-              style: const TextStyle(fontSize: 13, color: Colors.grey),
+              style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -991,10 +991,10 @@ class _PharmacyProfileTile extends StatelessWidget {
                         fontSize: 16, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 4),
                 Text('${p['city'] ?? ''} · ${p['phone'] ?? ''}',
-                    style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                    style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
                 if (p['email'] != null)
                   Text('${p['email']}',
-                      style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                      style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
               ],
             ),
           ),
@@ -1173,7 +1173,7 @@ class _AuditTile extends StatelessWidget {
                   const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
           subtitle: Text(
               '${who.isNotEmpty ? who : a['email'] ?? ''} · ${a['created_at'] ?? ''}',
-              style: const TextStyle(fontSize: 11, color: Colors.grey)),
+              style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
         );
       }).toList(),
     );
@@ -1641,7 +1641,7 @@ class _PaymentsTile extends StatelessWidget {
               '${p['method'] ?? ''}${p['card_type'] != null ? ' · ${p['card_type']}' : ''}'
               '${p['reference'] != null ? ' · ${p['reference']}' : ''}'
               '${p['received_at'] != null ? ' · ${p['received_at']}' : ''}',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
+              style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
             ),
           ),
         const Padding(
@@ -1737,7 +1737,7 @@ class _BackupsTile extends StatelessWidget {
               subtitle: Text(
                 '${b['created_at'] ?? ''}'
                 '${b['size_bytes'] != null ? ' · ${b['size_bytes']} o' : ''}',
-                style: const TextStyle(fontSize: 11, color: Colors.grey),
+                style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
               ),
             ),
       ],
@@ -1791,7 +1791,7 @@ class _DevicesTile extends StatelessWidget {
                       fontSize: 13, fontWeight: FontWeight.w600)),
               subtitle: Text(
                 '${s['ip_address'] ?? ''} · ${s['last_used_at'] ?? s['created_at'] ?? ''}',
-                style: const TextStyle(fontSize: 11, color: Colors.grey),
+                style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
               ),
             ),
         if (cameras.isNotEmpty) ...[
@@ -1810,7 +1810,7 @@ class _DevicesTile extends StatelessWidget {
               title: Text('${c['name'] ?? c['id'] ?? 'Caméra'}',
                   style: const TextStyle(fontSize: 13)),
               subtitle: Text('${c['location'] ?? ''} · ${c['status'] ?? ''}',
-                  style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
             ),
         ],
         const Divider(height: 1),
@@ -1821,7 +1821,7 @@ class _DevicesTile extends StatelessWidget {
               style:
                   TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
           subtitle: Text('Cet appareil · session en cours',
-              style: TextStyle(fontSize: 11, color: Colors.grey)),
+              style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
         ),
       ],
     );
@@ -2441,18 +2441,18 @@ class _MaintenanceSectionState extends State<_MaintenanceSection> {
           'Réinitialisation opérationnelle (données de démonstration/test '
           'uniquement). Le référentiel médicaments, les comptes, les '
           'paramètres et la structure Supabase ne sont JAMAIS touchés.',
-          style: TextStyle(fontSize: 12, color: Colors.white70),
+          style: TextStyle(fontSize: 12, color: AppColors.textMuted),
         ),
         const SizedBox(height: 12),
         ListTile(
           enabled: !_busy,
           leading: const Icon(Icons.receipt_long_rounded,
               color: AppColors.warning),
-          title: const Text('Ventes de test',
-              style: TextStyle(color: Colors.white, fontSize: 14)),
+          title: Text('Ventes de test',
+              style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.inkDark, fontSize: 14)),
           subtitle: const Text(
               'Supprime uniquement les ventes marquées VENTE-TEST',
-              style: TextStyle(fontSize: 12, color: Colors.white60)),
+              style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
           onTap: () => _confirmAndRun(
               'test_sales',
               'Réinitialisation des ventes de test',
@@ -2464,11 +2464,11 @@ class _MaintenanceSectionState extends State<_MaintenanceSection> {
           enabled: !_busy,
           leading: const Icon(Icons.inventory_2_outlined,
               color: AppColors.warning),
-          title: const Text('Stock à zéro',
-              style: TextStyle(color: Colors.white, fontSize: 14)),
+          title: Text('Stock à zéro',
+              style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.inkDark, fontSize: 14)),
           subtitle: const Text(
               'Met toutes les quantités de stock à 0 (références conservées)',
-              style: TextStyle(fontSize: 12, color: Colors.white60)),
+              style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
           onTap: () => _confirmAndRun(
               'stock_zero',
               'Réinitialisation du stock',
@@ -2481,10 +2481,10 @@ class _MaintenanceSectionState extends State<_MaintenanceSection> {
           leading:
               Icon(Icons.dangerous_rounded, color: AppColors.danger),
           title: Text('Réinitialisation complète',
-              style: TextStyle(color: Colors.white60, fontSize: 14)),
+              style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
           subtitle: Text(
               'Volontairement non automatisée — intervention manuelle requise',
-              style: TextStyle(fontSize: 12, color: Colors.white54)),
+              style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
         ),
         if (_busy)
           const Padding(

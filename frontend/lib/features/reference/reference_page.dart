@@ -241,7 +241,7 @@ class _ReferencePageState extends State<ReferencePage> {
                     ].where((e) => e != null && e.toString().isNotEmpty).join(' · '),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
                     if (p['price_sale'] != null && (p['price_sale'] as num) > 0)
                       Text('${Fmt.money((p['price_sale'] as num).toDouble())} DH',
                           style: const TextStyle(
@@ -297,7 +297,7 @@ class _ReferencePageState extends State<ReferencePage> {
                   (v) => setState(() => tmpPatho = v))
             else
               ListTile(
-                leading: const Icon(Icons.filter_alt_off, color: Colors.grey),
+                leading: const Icon(Icons.filter_alt_off, color: AppColors.textMuted),
                 title: Text(S.t('pathology', locale)),
                 subtitle: Text(S.t('noPathologyData', locale)),
               ),
@@ -487,7 +487,7 @@ class _ReferencePageState extends State<ReferencePage> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(width: 120, child: Text(label, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w600))),
+        SizedBox(width: 120, child: Text(label, style: const TextStyle(color: AppColors.textMuted, fontWeight: FontWeight.w600))),
         Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600))),
       ]),
     );
@@ -559,8 +559,8 @@ class _StatusChip extends StatelessWidget {
     switch (s) {
       case 'available': color = AppColors.success; label = 'Disponible'; break;
       case 'out_of_stock': color = AppColors.danger; label = 'Rupture'; break;
-      case 'retired': color = Colors.grey; label = 'Retiré'; break;
-      default: color = Colors.grey; label = s;
+      case 'retired': color = AppColors.textMuted; label = 'Retiré'; break;
+      default: color = AppColors.textMuted; label = s;
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

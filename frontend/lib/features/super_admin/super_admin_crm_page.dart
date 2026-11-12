@@ -386,7 +386,7 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(tiles[i].$1, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              Text(tiles[i].$1, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
               const SizedBox(height: 4),
               Text(tiles[i].$2, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
             ],
@@ -468,10 +468,10 @@ class _PharmacyCard extends StatelessWidget {
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('${item['name']}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
             const SizedBox(height: 2),
-            Text('@${item['slug']} · ${item['city'] ?? ''}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            Text('@${item['slug']} · ${item['city'] ?? ''}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
             const SizedBox(height: 4),
             Wrap(spacing: 8, children: [
-              StatusChip(label: status == 'active' ? S.t('pharmacyActive', locale) : status == 'suspended' ? S.t('suspended', locale) : S.t('deleted', locale), color: status == 'active' ? AppColors.success : status == 'suspended' ? AppColors.danger : Colors.grey),
+              StatusChip(label: status == 'active' ? S.t('pharmacyActive', locale) : status == 'suspended' ? S.t('suspended', locale) : S.t('deleted', locale), color: status == 'active' ? AppColors.success : status == 'suspended' ? AppColors.danger : AppColors.textMuted),
               StatusChip(label: item['license_type']?.toString().capitalize() ?? S.t('trial', locale), color: AppColors.info),
             ]),
           ])),
@@ -502,12 +502,12 @@ class _ProspectCard extends StatelessWidget {
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('${item['name']}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
           const SizedBox(height: 2),
-          Text('${item['company'] ?? ''} · ${item['email'] ?? ''}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          Text('${item['company'] ?? ''} · ${item['email'] ?? ''}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
         ])),
         Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
           StatusChip(label: item['status']?.toString().capitalize() ?? 'Nouveau', color: AppColors.info),
           const SizedBox(height: 4),
-          Text('${item['estimated_value'] != null ? '${item['estimated_value']} MAD' : ''}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+          Text('${item['estimated_value'] != null ? '${item['estimated_value']} MAD' : ''}', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
         ]),
       ])
     )
@@ -529,7 +529,7 @@ class _InvoiceCard extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('${item['number']}', style: const TextStyle(fontWeight: FontWeight.w700)),
-            Text('${item['pharmacy_name'] ?? ''}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            Text('${item['pharmacy_name'] ?? ''}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
           ])),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
             // Partie D — statuts réels (unpaid est le défaut ; pending
@@ -558,7 +558,7 @@ class _TicketCard extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('${item['subject']}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
-            Text('${item['pharmacy_name'] ?? ''} · ${item['created_at'] != null ? DateTime.tryParse('${item['created_at']}')?.toString().substring(0, 10) : ''}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            Text('${item['pharmacy_name'] ?? ''} · ${item['created_at'] != null ? DateTime.tryParse('${item['created_at']}')?.toString().substring(0, 10) : ''}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
           ])),
           StatusChip(label: item['status']?.toString().capitalize() ?? 'Open', color: item['status'] == 'resolved' ? AppColors.success : item['status'] == 'in_progress' ? AppColors.warning : AppColors.danger),
         ])
@@ -589,7 +589,7 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 8),
           Text(S.t(emptySubtitle, locale),
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey)),
+              style: const TextStyle(color: AppColors.textMuted)),
           // Partie D — PAS de bouton « Créer » ici : le FloatingActionButton
           // « Créer » est déjà visible (un seul bouton de création à l'écran,
           // plus de doublon). Pour les onglets sans création (analytics,
@@ -910,7 +910,7 @@ class _DetailSheet extends StatelessWidget {
                 ...item.entries.map((e) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    SizedBox(width: 120, child: Text(e.key, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.grey))),
+                    SizedBox(width: 120, child: Text(e.key, style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textMuted))),
                     Expanded(child: Text('${e.value}', style: const TextStyle(fontSize: 14))),
                   ]),
                 )),

@@ -129,8 +129,7 @@ class _Scaffold extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('${user?.fullName ?? ''}',
-                        style: const TextStyle(
-                            color: Colors.white,
+                        style: TextStyle(color: AppColors.inkDark,
                             fontSize: 20,
                             fontWeight: FontWeight.w900)),
                     if ('${user?.roleName ?? ''}'.isNotEmpty)
@@ -140,7 +139,7 @@ class _Scaffold extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text('Espace Employé — modules autorisés uniquement',
                         style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.62),
+                            color: AppColors.inkDarkLight,
                             fontSize: 12.5)),
                   ],
                 ),
@@ -192,8 +191,7 @@ class _Scaffold extends StatelessWidget {
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.white
-                                          .withValues(alpha: 0.6))),
+                                      color: AppColors.inkDarkLight)),
                             ],
                           ),
                         ),

@@ -266,7 +266,7 @@ class _KpiTile extends StatelessWidget {
         Icon(icon, color: color, size: 24),
         const SizedBox(height: 4),
         Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: color)),
-        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
+        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textMuted), textAlign: TextAlign.center),
       ]),
     );
   }
@@ -288,7 +288,7 @@ class _SupplierCostChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
-        Text('$count art. · $qty u. · $cost', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+        Text('$count art. · $qty u. · $cost', style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
       ]),
     );
   }

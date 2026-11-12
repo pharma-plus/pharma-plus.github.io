@@ -172,8 +172,12 @@ class AppColors {
   /// Ancien "textPrimary" → porcelain (texte clair sur sombre)
   static const Color textPrimary = porcelain;
 
-  /// Ancien "textSecondary" → graphite light
-  static const Color textSecondary = graphiteLight;
+  /// Ancien "textSecondary" → gris ardoise lisible sur LES DEUX thèmes
+  /// (#3A424A était invisible sur le graphite sombre).
+  static const Color textSecondary = Color(0xFF6B7280);
+
+  /// Texte secondaire atténué, contrasté sur marbre clair ET graphite sombre.
+  static const Color textMuted = Color(0xFF6B7280);
 
   /// Ancien "textTertiary" → graphite light
   static const Color textTertiary = graphiteLight;

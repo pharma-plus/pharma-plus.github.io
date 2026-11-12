@@ -20,6 +20,7 @@ import '../../core/theme/colors.dart';
 import '../../core/utils/calculations.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/barcode_scanner.dart';
+import '../../core/widgets/marble_texture.dart';
 import '../../core/widgets/stock_notification.dart';
 import '../shell/shell_nav.dart';
 import '../dashboard/pos_category_grid.dart';
@@ -1530,10 +1531,12 @@ class _PosPageState extends State<PosPage> {
       ),
       body: Stack(
         children: [
-          // Fond COMPACTE (graphite plein, sans image) : visibilité maximale
-          // des produits, du panier et des boutons.
-          const Positioned.fill(
-            child: ColoredBox(color: AppColors.graphiteDark),
+          // Fond ADAPTATIF : marbre (thème principal) en clair,
+          // graphite compact en sombre (validé).
+          Positioned.fill(
+            child: Theme.of(context).brightness == Brightness.dark
+                ? const ColoredBox(color: AppColors.graphiteDark)
+                : const MarbleBackground(dark: false),
           ),
           Positioned.fill(
             child: GestureDetector(
@@ -2004,7 +2007,7 @@ class _PosPageState extends State<PosPage> {
                 dense: true,
                 title: Text('${p['pathologie']}'),
                 trailing: Text('${p['count'] ?? 0}',
-                    style: const TextStyle(color: Colors.grey)),
+                    style: const TextStyle(color: AppColors.textMuted)),
                 onTap: () => Navigator.pop(ctx, '${p['pathologie']}'),
               ),
           ],
@@ -2035,7 +2038,7 @@ class _PosPageState extends State<PosPage> {
         ),
         child: const Center(
           child: Text('Recherchez ou scannez un produit pour commencer',
-              style: TextStyle(color: Colors.grey, fontSize: 12)),
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
         ),
       );
     }

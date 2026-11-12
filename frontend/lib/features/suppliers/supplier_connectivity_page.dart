@@ -223,7 +223,7 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 8),
           Text(S.t('addFirstConnection', locale),
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey)),
+              style: const TextStyle(color: AppColors.textMuted)),
           const SizedBox(height: 24),
           GradientButton(
             label: S.t('addConnection', locale),
@@ -266,7 +266,7 @@ class _SupplierCard extends StatelessWidget {
           width: 48, height: 48,
           decoration: BoxDecoration(
             gradient: config.enabled ? AppColors.goldGradient : null,
-            color: config.enabled ? null : Colors.grey,
+            color: config.enabled ? null : AppColors.textMuted,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(
@@ -282,16 +282,16 @@ class _SupplierCard extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
               StatusChip(
                 label: config.enabled ? 'Actif' : 'Inactif',
-                color: config.enabled ? AppColors.success : Colors.grey,
+                color: config.enabled ? AppColors.success : AppColors.textMuted,
               ),
             ]),
             const SizedBox(height: 4),
             Text(config.supplierCode.toUpperCase(),
-                style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
             if (config.lastSync != null) ...[
               const SizedBox(height: 4),
               Text('Dernière sync: ${DateFormat('dd/MM/yyyy HH:mm').format(config.lastSync!)}',
-                  style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
             ],
           ]),
         ),
@@ -312,7 +312,7 @@ class _SupplierCard extends StatelessWidget {
             onPressed: onEdit,
           ),
           PopupMenuButton(
-            icon: const Icon(Icons.more_vert, color: Colors.grey),
+            icon: const Icon(Icons.more_vert, color: AppColors.textMuted),
             itemBuilder: (_) => [
               PopupMenuItem(
                 value: 'toggle',

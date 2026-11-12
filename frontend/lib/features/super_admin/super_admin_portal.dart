@@ -54,7 +54,7 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
       case 'suspended':
         return AppColors.danger;
       case 'deleted':
-        return Colors.grey;
+        return AppColors.textMuted;
       default:
         return AppColors.warning;
     }
@@ -274,7 +274,7 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
                                                 '@${p['slug']} · ${p['city'] ?? ''}',
                                                 style: const TextStyle(
                                                     fontSize: 12,
-                                                    color: Colors.grey)),
+                                                    color: AppColors.textMuted)),
                                             const SizedBox(height: 4),
                                             Wrap(
                                               spacing: 8,
@@ -369,7 +369,7 @@ class _GlobalStats extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(tiles[i].$1,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
               const SizedBox(height: 4),
               Text(tiles[i].$2,
                   style: const TextStyle(
@@ -593,7 +593,7 @@ class _PharmacyDetailState extends State<_PharmacyDetail> {
       case 'suspended':
         return AppColors.danger;
       case 'deleted':
-        return Colors.grey;
+        return AppColors.textMuted;
       default:
         return AppColors.warning;
     }
@@ -648,7 +648,7 @@ class _PharmacyDetailState extends State<_PharmacyDetail> {
             ),
             const SizedBox(height: 6),
             Text('@${p['slug']} · ${p['city'] ?? ''} · ${p['phone'] ?? ''}',
-                style: const TextStyle(color: Colors.grey)),
+                style: const TextStyle(color: AppColors.textMuted)),
             const SizedBox(height: 16),
             if (_loading)
               const Center(child: CircularProgressIndicator())
@@ -703,7 +703,7 @@ class _StatRow extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: const TextStyle(color: Colors.grey)),
+            Text(label, style: const TextStyle(color: AppColors.textMuted)),
             Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
           ],
         ),

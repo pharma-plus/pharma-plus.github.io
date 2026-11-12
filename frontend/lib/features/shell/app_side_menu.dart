@@ -426,16 +426,18 @@ class _AppSideMenuState extends State<AppSideMenu> {
                         child: Text(S.t(item.label, context.watch<AuthStore>().locale),
                             style: TextStyle(
                                 fontSize: 13.5,
-                                color: active
-                                    ? (isDark
-                                        ? Colors.white
-                                        : AppColors.sageGreenInk)
-                                    : (isDark
-                                        ? AppColors.textSecondary
+                                // Sombre : même couleur que les icônes (champagne)
+                                // + gras, pour que chaque titre reste lisible.
+                                color: isDark
+                                    ? AppColors.champagne
+                                    : (active
+                                        ? AppColors.sageGreenInk
                                         : AppColors.inkDark),
-                                fontWeight: active
+                                fontWeight: isDark
                                     ? FontWeight.w700
-                                    : FontWeight.w500)),
+                                    : (active
+                                        ? FontWeight.w700
+                                        : FontWeight.w500))),
                       ),
                     ]),
                   ),

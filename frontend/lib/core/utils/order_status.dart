@@ -21,7 +21,7 @@ String orderStatusLabel(String status) => kOrderStatusLabels[status] ?? status;
 Color orderStatusColor(String status) {
   switch (status) {
     case 'draft':
-      return Colors.grey;
+      return AppColors.textMuted;
     case 'sent':
     case 'confirmed':
       return AppColors.primary;

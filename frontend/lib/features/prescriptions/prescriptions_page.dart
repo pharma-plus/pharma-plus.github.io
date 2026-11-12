@@ -214,7 +214,7 @@ class _PrescriptionsPageState extends State<PrescriptionsPage> {
                                                 overflow: TextOverflow.ellipsis,
                                                 style: const TextStyle(
                                                     fontSize: 12,
-                                                    color: Colors.grey),
+                                                    color: AppColors.textMuted),
                                               ),
                                             ],
                                           ),
@@ -703,9 +703,9 @@ class _PrescriptionDetailState extends State<_PrescriptionDetail> {
             ),
             const SizedBox(height: 6),
             Text('${S.t('doctorName', locale)}: ${p['doctor_name'] ?? '—'}',
-                style: const TextStyle(color: Colors.grey)),
+                style: const TextStyle(color: AppColors.textMuted)),
             Text(Fmt.dateTime(DateTime.tryParse('${p['created_at']}')),
-                style: const TextStyle(color: Colors.grey)),
+                style: const TextStyle(color: AppColors.textMuted)),
             const SizedBox(height: 12),
             Expanded(
               child: ListView(

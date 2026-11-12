@@ -140,7 +140,7 @@ class _ReturnsPageState extends State<ReturnsPage> {
     if (_sales.isEmpty) {
       return Center(
           child: Text('Aucune vente trouvée',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.55))));
+              style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.55) : AppColors.inkDarkLight)));
     }
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
@@ -165,7 +165,7 @@ class _ReturnsPageState extends State<ReturnsPage> {
                   ? const Icon(Icons.keyboard_return,
                       color: AppColors.pharmaGold)
                   : const Icon(Icons.lock_outline,
-                      size: 18, color: Colors.white38),
+                      size: 18, color: AppColors.textMuted),
             ),
           ),
         );
@@ -275,7 +275,7 @@ class ReturnFormState extends State<ReturnForm> {
             if (_loading)
               const CircularProgressIndicator()
             else if (_error != null)
-              Text(_error!, style: const TextStyle(color: Colors.white70))
+              Text(_error!, style: const TextStyle(color: AppColors.textMuted))
             else
               ..._items.map((it) {
                 final sold = _num(it['quantity']);
@@ -289,7 +289,7 @@ class ReturnFormState extends State<ReturnForm> {
                     ),
                     Text('vendu ${Fmt.number(sold)}',
                         style: const TextStyle(
-                            fontSize: 11, color: Colors.white54)),
+                            fontSize: 11, color: AppColors.textMuted)),
                     const SizedBox(width: 10),
                     SizedBox(
                       width: 90,

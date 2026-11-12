@@ -339,7 +339,7 @@ class _RegisterTab extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.payments_outlined, size: 56, color: Colors.grey),
+            const Icon(Icons.payments_outlined, size: 56, color: AppColors.textMuted),
             const SizedBox(height: 8),
             Text(S.t('noOpenRegister', locale)),
             const SizedBox(height: 16),
@@ -489,7 +489,7 @@ class _RegStat extends StatelessWidget {
           Text(label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 10, color: Colors.grey)),
+              style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
           Text(value,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -545,7 +545,7 @@ class _JournalTab extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                              fontSize: 12, color: Colors.grey)),
+                              fontSize: 12, color: AppColors.textMuted)),
                     ],
                   ),
                 ),
@@ -557,7 +557,7 @@ class _JournalTab extends StatelessWidget {
                             fontWeight: FontWeight.w800, fontSize: 13)),
                     Text(Fmt.shortDate(DateTime.tryParse('${e['entry_date']}')),
                         style:
-                            const TextStyle(fontSize: 11, color: Colors.grey)),
+                            const TextStyle(fontSize: 11, color: AppColors.textMuted)),
                   ],
                 ),
               ],

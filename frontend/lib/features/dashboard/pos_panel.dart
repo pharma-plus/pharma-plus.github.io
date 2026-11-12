@@ -1375,9 +1375,8 @@ class _PanelShell extends StatelessWidget {
       margin: const EdgeInsets.only(left: 14, right: 14, bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        // Fond COMPACTE profond (graphite) : lisibilité maximale du mini POS,
-        // contraste net avec les tuiles et le fond du dashboard.
-        color: AppColors.graphiteDark,
+        // Même ton graphite que le menu latéral (cohérence du thème sombre).
+        color: AppColors.graphite,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.dividerDark),
         boxShadow: const [

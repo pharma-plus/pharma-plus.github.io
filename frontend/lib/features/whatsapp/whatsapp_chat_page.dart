@@ -221,7 +221,7 @@ class _WhatsAppChatPageState extends State<WhatsAppChatPage> {
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                 Text(
                     widget.conversation.status == 'active' ? 'En ligne' : widget.conversation.status,
-                    style: TextStyle(fontSize: 11, color: widget.conversation.status == 'active' ? AppColors.success : Colors.grey),
+                    style: TextStyle(fontSize: 11, color: widget.conversation.status == 'active' ? AppColors.success : AppColors.textMuted),
                   ),
               ],
             ),
@@ -361,7 +361,7 @@ class _MessageBubble extends StatelessWidget {
             if (message.text.isNotEmpty)
               Text(message.text,
                   style: TextStyle(
-                      color: isMe ? Colors.black : Colors.white,
+                      color: isMe ? Colors.black : (isDark ? Colors.white : AppColors.inkDark),
                       fontSize: 14,
                       height: 1.4),
                   ),

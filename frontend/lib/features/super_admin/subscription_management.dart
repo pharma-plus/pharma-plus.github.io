@@ -141,7 +141,7 @@ class _SubscriptionManagementPageState extends State<SubscriptionManagementPage>
       case 'active': return Colors.green;
       case 'suspended': return Colors.orange;
       case 'expired': return Colors.red;
-      case 'cancelled': return Colors.grey;
+      case 'cancelled': return AppColors.textMuted;
       default: return Colors.white70;
     }
   }
@@ -309,7 +309,7 @@ class _LicenseCard extends StatelessWidget {
       case 'active': return Colors.green;
       case 'suspended': return Colors.orange;
       case 'expired': return Colors.red;
-      case 'cancelled': return Colors.grey;
+      case 'cancelled': return AppColors.textMuted;
       default: return Colors.white70;
     }
   }

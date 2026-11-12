@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
@@ -323,7 +323,7 @@ class _StockAuditTabState extends State<StockAuditTab> {
           const SizedBox(height: 6),
           Text('Comparez le stock système au stock physique.',
               style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6), fontSize: 12.5)),
+                  color: AppColors.inkDarkLight, fontSize: 12.5)),
           const SizedBox(height: 16),
           GradientButton(
               label: 'Démarrer un inventaire',
@@ -404,7 +404,7 @@ class _StockAuditTabState extends State<StockAuditTab> {
                           'Lot ${it['lot_number'] ?? 'â€”'} · Système : ${Fmt.number(sys)}',
                           style: TextStyle(
                               fontSize: 11.5,
-                              color: Colors.white.withValues(alpha: 0.55))),
+                              color: AppColors.inkDarkLight)),
                     ]),
               ),
               SizedBox(
@@ -463,7 +463,7 @@ class _GapChip extends StatelessWidget {
         ),
         if (gap != 0)
           Text(Fmt.money(gapValue),
-              style: const TextStyle(fontSize: 10.5, color: Colors.white54)),
+              style: const TextStyle(fontSize: 10.5, color: AppColors.textMuted)),
       ],
     );
   }
@@ -578,7 +578,7 @@ class _CashAuditTabState extends State<CashAuditTab> {
                 style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
-                    color: Colors.white.withValues(alpha: bold ? 1 : 0.7))),
+                    color: bold ? AppColors.inkDark : AppColors.inkDarkLight)),
             Text(value,
                 style: TextStyle(
                     fontSize: 13,
@@ -679,7 +679,7 @@ class _CashAuditView extends StatelessWidget {
                       '(aucune écriture financière modifiée).',
                       style: TextStyle(
                           fontSize: 11.5,
-                          color: Colors.white.withValues(alpha: 0.55))),
+                          color: AppColors.inkDarkLight)),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     initialValue: branchId,
@@ -772,7 +772,7 @@ class _HistoryList extends StatelessWidget {
             child: Center(
                 child: Text('Aucun audit enregistré',
                     style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5)))),
+                        color: AppColors.inkDarkLight))),
           )
         else
           ...history.map((h) {

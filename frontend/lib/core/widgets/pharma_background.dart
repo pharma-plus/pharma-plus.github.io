@@ -1,6 +1,8 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
+import 'marble_texture.dart';
+
 class PharmaBackground extends StatelessWidget {
   final Widget child;
   final double overlayOpacity;
@@ -21,8 +23,15 @@ class PharmaBackground extends StatelessWidget {
 
     @override
   Widget build(BuildContext context) {
+    // ADAPTATIF : thème principal (clair) = MARBRE du thème sur toutes les
+    // pages ; thème sombre = scène pharmacie graphite (validée). Les textes
+    // encre du thème clair redeviennent lisibles (bug "fournisseur").
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     Widget bg;
-    if (assetImage != null) {
+    bool showOverlay = false;
+    if (!isDark) {
+      bg = MarbleBackground(dark: false);
+    } else if (assetImage != null) {
       bg = Image.asset(
         assetImage!,
         fit: BoxFit.cover,
@@ -47,6 +56,7 @@ class PharmaBackground extends StatelessWidget {
               const ColoredBox(color: Color(0xFF12171B)),
         ),
       );
+      showOverlay = true;
     } else {
       bg = Image.asset(
         'assets/images/background.webp',
@@ -54,14 +64,14 @@ class PharmaBackground extends StatelessWidget {
         errorBuilder: (_, __, ___) =>
             const ColoredBox(color: Color(0xFF12171B)),
       );
+      showOverlay = true;
     }
 
-    final bool customImage = networkImage != null || assetImage != null;
     return Stack(
       fit: StackFit.expand,
       children: [
         bg,
-        if (!customImage)
+        if (showOverlay)
           ColoredBox(
               color:
                   const Color(0xFF0B0F13).withValues(alpha: overlayOpacity)),

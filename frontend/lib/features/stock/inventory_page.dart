@@ -330,11 +330,11 @@ class _InventoryPageState extends State<InventoryPage> {
           : _error != null
               ? Center(
                   child: Text(_error!,
-                      style: const TextStyle(color: Colors.white70)))
+                      style: const TextStyle(color: AppColors.textMuted)))
               : _sessions.isEmpty
                   ? const Center(
                       child: Text('Aucun inventaire. Démarrez une session.',
-                          style: TextStyle(color: Colors.white70)))
+                          style: TextStyle(color: AppColors.textMuted)))
                   : ListView.builder(
                       padding: const EdgeInsets.all(12),
                       itemCount: _sessions.length,
@@ -395,7 +395,7 @@ class _InventoryPageState extends State<InventoryPage> {
       body: items.isEmpty
           ? const Center(
               child: Text('Aucun article (stock vide)',
-                  style: TextStyle(color: Colors.white70)))
+                  style: TextStyle(color: AppColors.textMuted)))
           : ListView.builder(
               padding: const EdgeInsets.all(12),
               itemCount: items.length,

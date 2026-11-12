@@ -143,7 +143,7 @@ Color _statusColor(String status) => switch (status) {
       'paid' => AppColors.success,
       'unpaid' => AppColors.danger,
       'partial' => AppColors.warning,
-      _ => Colors.grey,
+      _ => AppColors.textMuted,
     };
 
 class _InvoiceTile extends StatelessWidget {
@@ -196,7 +196,7 @@ class _InvoiceTile extends StatelessWidget {
                     ].join(' · '),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                   ),
                 ],
               ),
@@ -367,7 +367,7 @@ class _DetailBody extends StatelessWidget {
             Text(label,
                 style: TextStyle(
                     fontSize: 12.5,
-                    color: Colors.grey,
+                    color: AppColors.textMuted,
                     fontWeight: bold ? FontWeight.w700 : FontWeight.w400)),
             Text(value,
                 style: TextStyle(
@@ -395,7 +395,7 @@ class _DetailBody extends StatelessWidget {
                 'paid' => AppColors.success,
                 'unpaid' => AppColors.danger,
                 'partial' => AppColors.warning,
-                _ => Colors.grey,
+                _ => AppColors.textMuted,
               },
             ),
           ],
@@ -407,12 +407,12 @@ class _DetailBody extends StatelessWidget {
               '${S.t('invoiceCustomer', locale)}: $customerName',
             if (date != null) Fmt.dateTime(date, locale: locale),
           ].join(' · '),
-          style: const TextStyle(fontSize: 12, color: Colors.grey),
+          style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
         ),
         const Divider(height: 20),
         if (items.isEmpty)
           Text(S.t('noInvoices', locale),
-              style: const TextStyle(color: Colors.grey))
+              style: const TextStyle(color: AppColors.textMuted))
         else
           for (final it in items)
             Padding(
@@ -434,7 +434,7 @@ class _DetailBody extends StatelessWidget {
                       '${S.t('quantity', locale)} ${it['quantity'] ?? 0}',
                       textAlign: TextAlign.right,
                       style: const TextStyle(
-                          fontSize: 11.5, color: Colors.grey),
+                          fontSize: 11.5, color: AppColors.textMuted),
                     ),
                   ),
                   SizedBox(

@@ -171,7 +171,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                           Text('${item['message']}',
                                               style: const TextStyle(
                                                   fontSize: 12,
-                                                  color: Colors.grey)),
+                                                  color: AppColors.textMuted)),
                                         ],
                                         const SizedBox(height: 5),
                                         Text(
@@ -179,7 +179,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                                 '${item['created_at']}')),
                                             style: const TextStyle(
                                                 fontSize: 11,
-                                                color: Colors.grey)),
+                                                color: AppColors.textMuted)),
                                       ],
                                     ),
                                   ),

@@ -147,7 +147,7 @@ class _ProfitPageState extends State<ProfitPage> {
               ? Center(
                   child: Text(
                     _error!,
-                    style: const TextStyle(color: Colors.white70),
+                    style: const TextStyle(color: AppColors.textMuted),
                   ),
                 )
               : SingleChildScrollView(
@@ -163,10 +163,10 @@ class _ProfitPageState extends State<ProfitPage> {
                           children: [
                             Text(
                               S.t('profit', locale),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.w900,
-                                color: Colors.white,
+                                color: AppColors.inkDark,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -174,7 +174,7 @@ class _ProfitPageState extends State<ProfitPage> {
                               'Vue financière de la pharmacie connectée',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.white.withValues(alpha: 0.7),
+                                color: AppColors.textMuted,
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -238,10 +238,10 @@ class _ProfitPageState extends State<ProfitPage> {
                           children: [
                             Text(
                               'Détail',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w800,
-                                color: Colors.white,
+                                color: AppColors.inkDark,
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -249,13 +249,13 @@ class _ProfitPageState extends State<ProfitPage> {
                               'Chiffre d\'affaires (ventes complétées)',
                               Fmt.money(_chiffreAffaires),
                               _ventesCount.toString(),
-                              Colors.white,
+                              AppColors.inkDark,
                             ),
                             _detailRow(
                               'Coût d\'achat (achats enregistrés)',
                               Fmt.money(_coutAchats),
                               _achatsCount.toString(),
-                              Colors.white70,
+                              AppColors.textMuted,
                             ),
                             _detailRow(
                               'Marge brute (CA − coût d\'achat)',
@@ -307,7 +307,7 @@ class _ProfitPageState extends State<ProfitPage> {
                   label,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.white.withValues(alpha: 0.7),
+                    color: AppColors.textMuted,
                   ),
                 ),
               ),
@@ -347,7 +347,7 @@ class _ProfitPageState extends State<ProfitPage> {
                   label,
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.white.withValues(alpha: 0.8),
+                    color: AppColors.textSecondary,
                     fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
                   ),
                 ),
@@ -356,7 +356,7 @@ class _ProfitPageState extends State<ProfitPage> {
                   subLabel,
                   style: TextStyle(
                     fontSize: 11,
-                    color: Colors.white.withValues(alpha: 0.5),
+                    color: AppColors.textMuted,
                   ),
                 ),
               ],

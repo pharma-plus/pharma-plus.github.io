@@ -37,7 +37,7 @@ Color dashText(BuildContext c) =>
 Color dashTextSoft(BuildContext c) =>
     dashDark(c) ? Colors.white70 : AppColors.inkDarkLight;
 Color dashPanel(BuildContext c) => dashDark(c)
-    ? AppColors.graphiteLight
+    ? AppColors.graphite // même ton que le menu latéral (cohérence sombre)
     : AppColors.sageGreen.withValues(alpha: 0.10);
 
 /// ============================================================
@@ -590,6 +590,11 @@ class _KpiCardState extends State<_KpiCard> {
 
   @override
   Widget build(BuildContext context) {
+    // Illustration selon le thème : graphite (sombre, validé) /
+    // marbre argenté (thème principal clair).
+    final bool kpiDark = dashDark(context);
+    final String kpiImg =
+        kpiDark ? def.image : def.image.replaceFirst('kpi_bg_', 'kpi_bg_light_');
     return MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
@@ -626,7 +631,9 @@ class _KpiCardState extends State<_KpiCard> {
               // Le fond 3D est la seule illustration de la carte. Les anciens
               // assets kpi/kpi_N.webp (cartons avec image au premier plan) ne
               // sont volontairement plus composés par-dessus.
-              color: AppColors.graphiteDark,
+              // Fond de carte selon le thème : graphite (sombre) /
+              // marbre argenté (clair). L'illustration 3D suit le thème.
+              color: kpiDark ? AppColors.graphiteDark : AppColors.silver,
             ),
             child: Stack(
               fit: StackFit.expand,
@@ -641,14 +648,14 @@ class _KpiCardState extends State<_KpiCard> {
                           scale: def.imageScale,
                           alignment: def.imageAlignment,
                           child: Image.asset(
-                            def.image,
+                            kpiImg,
                             fit: BoxFit.cover,
                             alignment: def.imageAlignment,
                             filterQuality: FilterQuality.low,
                           ),
                         )
                       : Image.asset(
-                          def.image,
+                          kpiImg,
                           fit: BoxFit.cover,
                           alignment: def.imageAlignment,
                           filterQuality: FilterQuality.low,
@@ -666,8 +673,10 @@ class _KpiCardState extends State<_KpiCard> {
                               alignment: Alignment.centerLeft,
                               child: Text(def.label,
                                   maxLines: 1,
-                                  style: const TextStyle(
-                                      color: _gold,
+                                  style: TextStyle(
+                                      color: kpiDark
+                                          ? _gold
+                                          : AppColors.champagneInk,
                                       fontSize: 10.5,
                                       fontWeight: FontWeight.w800,
                                       letterSpacing: 0.8)),
@@ -683,8 +692,10 @@ class _KpiCardState extends State<_KpiCard> {
                           alignment: Alignment.centerLeft,
                           child: Text(def.value,
                               maxLines: 1,
-                              style: const TextStyle(
-                                  color: _gold,
+                              style: TextStyle(
+                                  color: kpiDark
+                                      ? _gold
+                                      : AppColors.champagneInk,
                                   fontSize: 20,
                                   fontWeight: FontWeight.w900)),
                         ),
@@ -694,7 +705,10 @@ class _KpiCardState extends State<_KpiCard> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                  color: _gold.withValues(alpha: 0.85),
+                                  color: (kpiDark
+                                          ? _gold
+                                          : AppColors.champagneInk)
+                                      .withValues(alpha: 0.85),
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w700)),
                         ],

@@ -201,7 +201,7 @@ class _SuppliersPageState extends State<SuppliersPage> {
                                                       TextOverflow.ellipsis,
                                                   style: const TextStyle(
                                                       fontSize: 12,
-                                                      color: Colors.grey),
+                                                      color: AppColors.textMuted),
                                                 ),
                                               ],
                                             ),
@@ -230,7 +230,7 @@ class _SuppliersPageState extends State<SuppliersPage> {
                                                 '${s['nb_orders']} ${S.t('nbOrders', locale)}',
                                                 style: const TextStyle(
                                                     fontSize: 11,
-                                                    color: Colors.grey),
+                                                    color: AppColors.textMuted),
                                               ),
                                             ],
                                           ),
@@ -601,7 +601,7 @@ class _SupplierDetailState extends State<_SupplierDetail> {
                     const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
             const SizedBox(height: 6),
             Text('${s['contact_name'] ?? ''} · ${s['phone'] ?? ''}',
-                style: const TextStyle(color: Colors.grey)),
+                style: const TextStyle(color: AppColors.textMuted)),
             const SizedBox(height: 4),
             Text(
               '${S.t('totalPurchases', locale)}: '

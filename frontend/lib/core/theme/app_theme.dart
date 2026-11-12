@@ -208,10 +208,16 @@ class AppTheme {
       ),
       scrollbarTheme: ScrollbarThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
-          (states) => isDark ? Colors.white24 : Colors.black26,
+          // Pouces VISIBLES dans les deux thèmes (anciens white24/black26
+          // pratiquement invisibles sur marbre et graphite).
+          (states) => isDark
+              ? const Color(0xFF9AA3AB)
+              : const Color(0xFF6B7280),
         ),
         radius: const Radius.circular(8),
-        thickness: WidgetStateProperty.all(6),
+        thickness: WidgetStateProperty.all(7),
+        crossAxisMargin: 2,
+        mainAxisMargin: 4,
       ),
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(

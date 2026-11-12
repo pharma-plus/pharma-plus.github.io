@@ -185,7 +185,7 @@ class _StockMovementsPageState extends State<StockMovementsPage> {
                     : _filtered.isEmpty
                         ? const Center(
                             child: Text('Aucun mouvement',
-                                style: TextStyle(color: Colors.white70)))
+                                style: TextStyle(color: AppColors.textMuted)))
                         : RefreshIndicator(
                             onRefresh: _load,
                             child: ListView.builder(

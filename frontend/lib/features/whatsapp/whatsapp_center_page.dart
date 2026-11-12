@@ -222,7 +222,7 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 8),
           Text(S.t('addFirstConversation', locale),
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey)),
+              style: const TextStyle(color: AppColors.textMuted)),
           const SizedBox(height: 24),
           GradientButton(label: 'Nouvelle conversation', icon: Icons.add, onPressed: onAdd),
         ]),
@@ -275,7 +275,7 @@ class _ConversationTile extends StatelessWidget {
                       conversation.lastMessage ?? 'Aucun message',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
                 ],
               ),
             ),
@@ -285,7 +285,7 @@ class _ConversationTile extends StatelessWidget {
                 if (conversation.lastMessageTime != null)
                   Text(
                     _formatTime(conversation.lastMessageTime!),
-                    style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                    style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
                 if (conversation.unreadCount > 0)
                   Container(
                     margin: const EdgeInsets.only(top: 4),

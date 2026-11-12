@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '../../core/theme/colors.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/api_list.dart';
@@ -248,7 +250,7 @@ class _WebsitePageState extends State<WebsitePage> {
                                             ' · ${p['is_published'] == true ? S.t('published', locale) : S.t('draft', locale)}',
                                             style: const TextStyle(
                                                 fontSize: 12,
-                                                color: Colors.grey)),
+                                                color: AppColors.textMuted)),
                                       ],
                                     ),
                                   ),
@@ -258,7 +260,7 @@ class _WebsitePageState extends State<WebsitePage> {
                                         : S.t('draft', locale),
                                     color: p['is_published'] == true
                                         ? const Color(0xFF2E7D32)
-                                        : Colors.grey,
+                                        : AppColors.textMuted,
                                   ),
                                 ],
                               ),

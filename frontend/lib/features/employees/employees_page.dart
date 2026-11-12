@@ -307,7 +307,7 @@ class _EmployeesPageState extends State<EmployeesPage> {
                                                       TextOverflow.ellipsis,
                                                   style: const TextStyle(
                                                       fontSize: 12,
-                                                      color: Colors.grey)),
+                                                      color: AppColors.textMuted)),
                                             ],
                                           ),
                                         ),
@@ -413,7 +413,7 @@ class StatsChip extends StatelessWidget {
                 Text(label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                    style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
                 Text(value,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -892,7 +892,7 @@ class _EmployeeDetailState extends State<_EmployeeDetail> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label, style: const TextStyle(color: Colors.grey)),
+              Text(label, style: const TextStyle(color: AppColors.textMuted)),
               Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
             ],
           ),

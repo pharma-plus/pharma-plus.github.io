@@ -92,22 +92,22 @@ class _DoctorPageState extends State<DoctorPage> {
                   const SizedBox(height: 8),
                   Text(
                     'DCI : ${med['dci'] ?? 'Non renseigné'}',
-                    style: const TextStyle(color: Colors.grey),
+                    style: const TextStyle(color: AppColors.textMuted),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Laboratoire : ${med['laboratory'] ?? 'Non renseigné'}',
-                    style: const TextStyle(color: Colors.grey),
+                    style: const TextStyle(color: AppColors.textMuted),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Dosage : ${med['dosage'] ?? 'Non renseigné'}',
-                    style: const TextStyle(color: Colors.grey),
+                    style: const TextStyle(color: AppColors.textMuted),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Forme : ${med['form'] ?? 'Non renseigné'}',
-                    style: const TextStyle(color: Colors.grey),
+                    style: const TextStyle(color: AppColors.textMuted),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -248,17 +248,17 @@ class _DoctorPageState extends State<DoctorPage> {
                       const SizedBox(height: 4),
                       Text(
                         'DCI : ${m['dci'] ?? 'Non renseigné'}',
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                       ),
                       Text(
                         'Laboratoire : ${m['laboratory'] ?? 'Non renseigné'}',
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                       ),
                       if (m['presentation'] != null) ...[
                         const SizedBox(height: 4),
                         Text(
                           'Présentation : ${m['presentation']}',
-                          style: const TextStyle(fontSize: 11, color: Colors.grey),
+                          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
                         ),
                       ],
                     ],

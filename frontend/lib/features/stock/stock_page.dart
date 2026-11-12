@@ -977,7 +977,7 @@ class _StockPageState extends State<StockPage> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                              fontSize: 12, color: Colors.grey)),
+                              fontSize: 12, color: AppColors.textMuted)),
                       if (item['expiry_date'] != null)
                         Text(
                             '${S.t('expiryShort', locale)} ${Fmt.shortDate(DateTime.tryParse('${item['expiry_date']}'))}',
@@ -987,7 +987,7 @@ class _StockPageState extends State<StockPage> {
                                     ? AppColors.danger
                                     : status == StockStatus.expiring
                                         ? AppColors.warning
-                                        : Colors.grey)),
+                                        : AppColors.textMuted)),
                     ],
                   ),
                 ),

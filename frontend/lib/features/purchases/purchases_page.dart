@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/api_client.dart';
@@ -273,7 +273,7 @@ class _ReceptionList extends StatelessWidget {
                           style: const TextStyle(fontWeight: FontWeight.w700)),
                       Text('${r['supplier_name']}',
                           style: const TextStyle(
-                              fontSize: 12, color: Colors.grey)),
+                              fontSize: 12, color: AppColors.textMuted)),
                     ],
                   ),
                 ),
@@ -706,9 +706,9 @@ class _OrderDetailState extends State<_OrderDetail> {
             ),
             const SizedBox(height: 8),
             Text('${order['supplier_name']} · ${order['branch_name']}',
-                style: const TextStyle(color: Colors.grey)),
+                style: const TextStyle(color: AppColors.textMuted)),
             Text(Fmt.shortDate(DateTime.tryParse('${order['order_date']}')),
-                style: const TextStyle(color: Colors.grey)),
+                style: const TextStyle(color: AppColors.textMuted)),
             const SizedBox(height: 12),
             Expanded(
               child: ListView(
@@ -1105,7 +1105,7 @@ class _ReceiveFormState extends State<_ReceiveForm> {
             Text('Commandé ${_fmt(ordered)} · Déjà reçu ${_fmt(received)}'
                 ' · Reste ${_fmt(rem)}',
                 style:
-                    const TextStyle(fontSize: 11.5, color: Colors.white54)),
+                    const TextStyle(fontSize: 11.5, color: AppColors.textMuted)),
             const SizedBox(height: 6),
             Row(children: [
               Expanded(

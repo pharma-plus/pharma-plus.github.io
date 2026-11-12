@@ -428,7 +428,7 @@ class _ReportsPageState extends State<ReportsPage> {
                                           '${p['category_name'] ?? '—'} · ${Fmt.money(double.tryParse('${p['avg_price']}') ?? 0)}',
                                           style: const TextStyle(
                                               fontSize: 11,
-                                              color: Colors.grey)),
+                                              color: AppColors.textMuted)),
                                     ],
                                   ),
                                 ),
@@ -556,7 +556,7 @@ class _ReportsPageState extends State<ReportsPage> {
                     'Marge nette : ${margin?.toStringAsFixed(1) ?? 'N/A'}% | ${Fmt.money(netValue)}',
                     style: TextStyle(
                       fontSize: 11,
-                      color: Colors.white.withValues(alpha: .8),
+                      color: AppColors.textMuted,
                       fontWeight: FontWeight.w600),
                   ),
                 ]),
@@ -568,7 +568,7 @@ class _ReportsPageState extends State<ReportsPage> {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: Text(
                   'Marge calculée sur le bénéfice net : ${margin.toStringAsFixed(1)}%',
-                  style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
             ),
         ]);
       }),
@@ -592,7 +592,7 @@ class _ReportsPageState extends State<ReportsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+          Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
           Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
         ],
       ),
@@ -641,7 +641,9 @@ class _ReportChartCard extends StatelessWidget {
         margin: const EdgeInsets.fromLTRB(12, 0, 12, 4),
         padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
         decoration: BoxDecoration(
-          color: AppColors.surfaceDark.withValues(alpha: .52),
+          color: Theme.of(context).brightness == Brightness.dark
+            ? AppColors.surfaceDark.withValues(alpha: .52)
+            : AppColors.graphite.withValues(alpha: .88),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColors.goldBorder),
         ),
@@ -751,7 +753,7 @@ class _BenefitBars3DPainter extends CustomPainter {
       final tp = TextPainter(
         text: TextSpan(
           text: labels[i],
-          style: const TextStyle(color: Colors.grey, fontSize: 10)),
+          style: const TextStyle(color: AppColors.textMuted, fontSize: 10)),
         textDirection: TextDirection.ltr,
       )..layout(maxWidth: slot);
       tp.paint(canvas, Offset(i * slot + (slot - tp.width) / 2, base + 4));

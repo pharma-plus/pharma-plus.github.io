@@ -283,7 +283,7 @@ class _RoleCard extends StatelessWidget {
               if (isSystem) StatusChip(label: 'Système', color: AppColors.info),
             ]),
             const SizedBox(height: 2),
-            Text(roleDesc, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            Text(roleDesc, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
             const SizedBox(height: 4),
             Wrap(spacing: 6, children: [
               if (permissions is Map)
@@ -292,7 +292,7 @@ class _RoleCard extends StatelessWidget {
             ]),
           ])),
           PopupMenuButton(
-            icon: const Icon(Icons.more_vert, color: Colors.grey),
+            icon: const Icon(Icons.more_vert, color: AppColors.textMuted),
             itemBuilder: (_) => [
               PopupMenuItem(
                 onTap: () { Navigator.pop(context); onEdit(); },

@@ -11,6 +11,7 @@ import '../../../core/services/api_client.dart';
 import '../../../core/services/auth_store.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/widgets/glass_card.dart';
+import '../../../core/widgets/marble_texture.dart';
 import '../../../core/widgets/gradient_button.dart';
 import '../../../core/widgets/shared/app_search_field.dart';
 import '../../../core/widgets/status_chip.dart';
@@ -18,6 +19,17 @@ import '../shell/shell_nav.dart';
 
 const Color _kSuperAdminDark = AppColors.graphite;
 const Color _kSuperAdminSurface = AppColors.graphiteDark;
+
+// Helpers écritures adaptatives (blanc sur graphite / encre sur marbre),
+// partagés par toutes les classes de ce fichier.
+Color _txt(BuildContext c) =>
+    Theme.of(c).brightness == Brightness.dark ? Colors.white : AppColors.inkDark;
+Color _txtSoft(BuildContext c) => Theme.of(c).brightness == Brightness.dark
+    ? Colors.white70
+    : AppColors.inkDarkLight;
+Color _txtMuted(BuildContext c) => Theme.of(c).brightness == Brightness.dark
+    ? Colors.white60
+    : AppColors.inkDarkLight;
 const Color _kSuperAdminGold = AppColors.champagne;
 const Color _kSuperAdminGoldLight = AppColors.champagneLight;
 const Color _kSuperAdminAccent = AppColors.sageGreen;
@@ -126,22 +138,33 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
+    // Thème ADAPTATIF : marbre (thème principal) / graphite brossé (sombre),
+    // même traitement que le dashboard pharmacie.
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: _kSuperAdminDark,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: _kSuperAdminDark.withValues(alpha: 0.95),
+        backgroundColor: isDark
+            ? _kSuperAdminDark.withValues(alpha: 0.95)
+            : AppColors.silver.withValues(alpha: 0.95),
         elevation: 0,
         leading: const ShellBackButton(),
-        title: const Text('PHARMA+ Super Admin', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
+        title: Text('PHARMA+ Super Admin',
+            style: TextStyle(
+                color: isDark ? Colors.white : AppColors.inkDark,
+                fontWeight: FontWeight.w800,
+                fontSize: 18)),
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadAll),
           IconButton(icon: const Icon(Icons.logout), onPressed: () => context.read<AuthStore>().signOut()),
         ],
       ),
-      body: _loading
+      body: MarbleBackground(
+        dark: isDark,
+        child: _loading
           ? const Center(child: CircularProgressIndicator(color: _kSuperAdminGold))
           : _error != null
-              ? Center(child: Text(_error!, style: const TextStyle(color: Colors.white70)))
+              ? Center(child: Text(_error!, style: TextStyle(color: _txtSoft(context))))
               : RefreshIndicator(
                   color: _kSuperAdminGold,
                   onRefresh: _loadAll,
@@ -176,19 +199,25 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
                     ),
                   ),
                 ),
+      ),
     );
   }
+
+  // Helpers écritures adaptatives (blanc sur graphite / encre sur marbre)
+  // définis au niveau fichier pour être partagés par toutes les classes.
 
   Widget _periodChip(String p) {
     final selected = _selectedPeriod == p;
     return Padding(
       padding: const EdgeInsets.only(right: 6),
       child: ChoiceChip(
-        label: Text(p, style: TextStyle(color: selected ? Colors.black : Colors.white70, fontWeight: FontWeight.w600, fontSize: 11)),
+        label: Text(p, style: TextStyle(color: selected ? Colors.black : _txtSoft(context), fontWeight: FontWeight.w600, fontSize: 11)),
         selected: selected,
         onSelected: (_) => setState(() => _selectedPeriod = p),
         selectedColor: _kSuperAdminGold,
-        backgroundColor: Colors.white.withValues(alpha: 0.1),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? Colors.white.withValues(alpha: 0.1)
+            : Colors.black.withValues(alpha: 0.05),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
     );
@@ -198,7 +227,7 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text('Tableau de bord Super Admin', style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
+        Text('Tableau de bord Super Admin', style: TextStyle(color: _txt(context), fontSize: 22, fontWeight: FontWeight.w900)),
         Row(
           children: ['7j', '30j', '90j', '1a'].map((p) => _periodChip(p)).toList(),
         ),
@@ -272,12 +301,18 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
   }
 
   Widget _KPICard({required _KPIData kpi}) {
+    final bool dark = Theme.of(context).brightness == Brightness.dark;
+    // Illustration selon le thème : graphite (sombre) / marbre (clair).
+    final String img =
+        dark ? kpi.image : kpi.image.replaceFirst('kpi_bg_', 'kpi_bg_light_');
     return GlassCard(
       radius: BorderRadius.circular(14),
       // Le contenu gère son propre padding (Stack plein → illustration de fond).
       padding: EdgeInsets.zero,
       gradient: LinearGradient(
-        colors: [_kSuperAdminDark, _kSuperAdminSurface.withValues(alpha: 0.8)],
+        colors: dark
+            ? [_kSuperAdminDark, _kSuperAdminSurface.withValues(alpha: 0.8)]
+            : [Colors.white, AppColors.silver],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
@@ -292,7 +327,7 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
             // conçus sombres, le texte reste lisible (motif P0-2 UI fin).
             Positioned.fill(
               child: Image.asset(
-                kpi.image,
+                img,
                 fit: BoxFit.cover,
                 alignment: const Alignment(0, 0.92),
                 filterQuality: FilterQuality.low,
@@ -307,12 +342,12 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Flexible(child: Text(kpi.label, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                      Container(width: 32, height: 32, decoration: BoxDecoration(color: kpi.color.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)), child: Icon(kpi.icon, color: kpi.color, size: 18)),
+                      Flexible(child: Text(kpi.label, style: TextStyle(color: _txt(context), fontSize: 11, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                      Container(width: 32, height: 32, decoration: BoxDecoration(color: kpi.color.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)), child: Icon(kpi.icon, color: dark ? kpi.color : (kpi.color == Colors.white ? AppColors.inkDark : kpi.color), size: 18)),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  Text(kpi.value, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                  Text(kpi.value, style: TextStyle(color: _txt(context), fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
                 ],
               ),
             ),
@@ -326,7 +361,7 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+        Text(title, style: TextStyle(color: _txt(context), fontSize: 18, fontWeight: FontWeight.w800)),
         Container(width: 4, height: 20, decoration: BoxDecoration(gradient: AppColors.goldGradient, borderRadius: BorderRadius.circular(2))),
       ],
     );
@@ -339,11 +374,11 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(S.t('subscriptionTrendTitle', locale), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+          Text(S.t('subscriptionTrendTitle', locale), style: TextStyle(color: _txt(context), fontSize: 16, fontWeight: FontWeight.w800)),
           const SizedBox(height: 16),
           Expanded(
             child: _subscriptionTrend.isEmpty
-                ? Center(child: Text('Aucune donnée', style: TextStyle(color: Colors.white70)))
+                ? Center(child: Text('Aucune donnée', style: TextStyle(color: _txtSoft(context))))
                 : _SubscriptionChart(data: _subscriptionTrend),
           ),
         ],
@@ -358,11 +393,11 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Évolution des revenus', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+          Text('Évolution des revenus', style: TextStyle(color: _txt(context), fontSize: 16, fontWeight: FontWeight.w800)),
           const SizedBox(height: 16),
           Expanded(
             child: _revenueTrend.isEmpty
-                ? Center(child: Text('Aucune donnée', style: TextStyle(color: Colors.white70)))
+                ? Center(child: Text('Aucune donnée', style: TextStyle(color: _txtSoft(context))))
                 : _RevenueChart(data: _revenueTrend),
           ),
         ],
@@ -380,7 +415,7 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Top 8', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              Text('Top 8', style: TextStyle(color: _txtSoft(context), fontSize: 12)),
               TextButton(onPressed: () {}, child: Text('Voir tout', style: TextStyle(color: _kSuperAdminGold, fontSize: 12))),
             ],
           ),
@@ -396,26 +431,30 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
                     width: 28, height: 28,
                     decoration: BoxDecoration(
                       gradient: rank == 1 ? AppColors.goldGradient : null,
-                      color: rank > 1 ? Colors.white.withValues(alpha: 0.1) : null,
+                      color: rank > 1
+            ? (Theme.of(context).brightness == Brightness.dark
+                ? Colors.white.withValues(alpha: 0.1)
+                : Colors.black.withValues(alpha: 0.06))
+            : null,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Center(child: Text('$rank', style: TextStyle(color: rank == 1 ? AppColors.graphite : Colors.white70, fontWeight: FontWeight.w900, fontSize: 12))),
+                    child: Center(child: Text('$rank', style: TextStyle(color: rank == 1 ? AppColors.graphite : _txtSoft(context), fontWeight: FontWeight.w900, fontSize: 12))),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('${p['name'] ?? '—'}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
-                        Text('${p['city'] ?? ''} · ${p['license_type'] ?? '—'}', style: TextStyle(color: Colors.white60, fontSize: 11)),
+                        Text('${p['name'] ?? '—'}', style: TextStyle(color: _txt(context), fontWeight: FontWeight.w700, fontSize: 13)),
+                        Text('${p['city'] ?? ''} · ${p['license_type'] ?? '—'}', style: TextStyle(color: _txtMuted(context), fontSize: 11)),
                       ],
                     ),
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(_formatMoney(p['total_revenue'] ?? 0), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13)),
-                      Text('${p['nb_sales'] ?? 0} ventes', style: TextStyle(color: Colors.white60, fontSize: 11)),
+                      Text(_formatMoney(p['total_revenue'] ?? 0), style: TextStyle(color: _txt(context), fontWeight: FontWeight.w800, fontSize: 13)),
+                      Text('${p['nb_sales'] ?? 0} ventes', style: TextStyle(color: _txtMuted(context), fontSize: 11)),
                     ],
                   ),
                 ],
@@ -446,7 +485,7 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
                 children: [
                   Container(width: 10, height: 10, decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(5))),
                   const SizedBox(width: 8),
-                  Text('Alertes actives', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                  Text('Alertes actives', style: TextStyle(color: _txt(context), fontWeight: FontWeight.w800)),
                 ],
               ),
               Text('${expired.length + suspended.length}', style: const TextStyle(color: _kSuperAdminGold, fontSize: 16, fontWeight: FontWeight.w900)),
@@ -462,7 +501,7 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
             const SizedBox(height: 8),
           ],
           if (expired.isEmpty && suspended.isEmpty)
-            Center(child: Text('Aucune alerte', style: TextStyle(color: Colors.white70))),
+            Center(child: Text('Aucune alerte', style: TextStyle(color: _txtSoft(context)))),
         ],
       ),
     );
@@ -485,8 +524,8 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${a['name'] ?? a['subject'] ?? a['id']}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-                      Text('${a['pharmacy_name'] ?? ''} · ${_formatDate(a['created_at'])}', style: TextStyle(color: Colors.white60, fontSize: 11)),
+                      Text('${a['name'] ?? a['subject'] ?? a['id']}', style: TextStyle(color: _txt(context), fontWeight: FontWeight.w600, fontSize: 13)),
+                      Text('${a['pharmacy_name'] ?? ''} · ${_formatDate(a['created_at'])}', style: TextStyle(color: _txtMuted(context), fontSize: 11)),
                     ],
                   ),
                 ),
@@ -498,7 +537,7 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
               ],
             ),
           )).toList(),
-          if (_recentActivity.isEmpty) Center(child: Text('Aucune activité', style: TextStyle(color: Colors.white70))),
+          if (_recentActivity.isEmpty) Center(child: Text('Aucune activité', style: TextStyle(color: _txtSoft(context)))),
         ],
       ),
     );
@@ -519,22 +558,22 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${p['type'] == 'sale' ? 'Vente #' : 'Achats #'}${p['id']?.toString().substring(0, 8) ?? ''}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-                      Text('${p['pharmacy_name'] ?? ''} · ${_formatDate(p['created_at'])}', style: TextStyle(color: Colors.white60, fontSize: 11)),
+                      Text('${p['type'] == 'sale' ? 'Vente #' : 'Achats #'}${p['id']?.toString().substring(0, 8) ?? ''}', style: TextStyle(color: _txt(context), fontWeight: FontWeight.w600, fontSize: 13)),
+                      Text('${p['pharmacy_name'] ?? ''} · ${_formatDate(p['created_at'])}', style: TextStyle(color: _txtMuted(context), fontSize: 11)),
                     ],
                   ),
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(_formatMoney(p['total'] ?? 0), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13)),
+                    Text(_formatMoney(p['total'] ?? 0), style: TextStyle(color: _txt(context), fontWeight: FontWeight.w800, fontSize: 13)),
                     Text(p['type'] == 'sale' ? 'Vente' : 'Achat', style: TextStyle(color: p['type'] == 'sale' ? _kSuperAdminAccent : Colors.orange, fontSize: 11, fontWeight: FontWeight.w600)),
                   ],
                 ),
               ],
             ),
           )).toList(),
-          if (_recentPayments.isEmpty) Center(child: Text('Aucun paiement récent', style: TextStyle(color: Colors.white70))),
+          if (_recentPayments.isEmpty) Center(child: Text('Aucun paiement récent', style: TextStyle(color: _txtSoft(context)))),
         ],
       ),
     );
@@ -611,9 +650,9 @@ class _SubscriptionChart extends StatelessWidget {
                     child: count > 0 ? const Center() : null,
                   )),
                   const SizedBox(height: 6),
-                  Text(count.toString(), style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                  Text(count.toString(), style: TextStyle(color: _txtSoft(context), fontSize: 10)),
                   const SizedBox(height: 4),
-                  Text(d['month']?.toString().substring(5, 7) ?? '', style: TextStyle(color: Colors.white54, fontSize: 9)),
+                  Text(d['month']?.toString().substring(5, 7) ?? '', style: TextStyle(color: _txtMuted(context), fontSize: 9)),
                 ],
               );
             }).toList(),
@@ -660,8 +699,8 @@ class _AlertItem extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
-              Text(subtitle, style: TextStyle(color: Colors.white60, fontSize: 11)),
+              Text(title, style: TextStyle(color: _txt(context), fontWeight: FontWeight.w700, fontSize: 13)),
+              Text(subtitle, style: TextStyle(color: _txtMuted(context), fontSize: 11)),
             ],
           ),
         ),

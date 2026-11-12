@@ -245,7 +245,7 @@ class _CustomersPageV2State extends State<CustomersPageV2> {
                                                   overflow: TextOverflow.ellipsis,
                                                   style: const TextStyle(
                                                       fontSize: 12,
-                                                      color: Colors.grey),
+                                                      color: AppColors.textMuted),
                                               ),
                                             ],
                                           ),
@@ -270,7 +270,7 @@ class _CustomersPageV2State extends State<CustomersPageV2> {
                                               '${Fmt.money(double.tryParse('${c['total_spent'] ?? 0}') ?? 0)}',
                                               style: const TextStyle(
                                                   fontSize: 11,
-                                                  color: Colors.grey),
+                                                  color: AppColors.textMuted),
                                             ),
                                           ],
                                         ),
@@ -655,7 +655,7 @@ class _AffRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(children: [
-        SizedBox(width: 100, child: Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey))),
+        SizedBox(width: 100, child: Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textMuted))),
         Expanded(child: Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600))),
       ]),
     );
@@ -676,7 +676,7 @@ class _InfoChip extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: AppColors.dividerDark)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+          Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
           Text(value, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
         ]),
       ),
@@ -693,7 +693,7 @@ class _DetailRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(children: [
-        SizedBox(width: 120, child: Text(label, style: const TextStyle(color: Colors.grey))),
+        SizedBox(width: 120, child: Text(label, style: const TextStyle(color: AppColors.textMuted))),
         Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600))),
       ]),
     );

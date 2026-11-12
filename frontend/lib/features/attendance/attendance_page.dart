@@ -369,7 +369,7 @@ class _RecordsTab extends StatelessWidget {
                                           fontWeight: FontWeight.w700)),
                                   Text('${a['position']}',
                                       style: const TextStyle(
-                                          fontSize: 12, color: Colors.grey)),
+                                          fontSize: 12, color: AppColors.textMuted)),
                                 ],
                               ),
                             ),
@@ -382,7 +382,7 @@ class _RecordsTab extends StatelessWidget {
                                   '${a['clock_in'] == null ? '—' : Fmt.time(DateTime.tryParse('${a['clock_in']}'))} → '
                                   '${a['clock_out'] == null ? '—' : Fmt.time(DateTime.tryParse('${a['clock_out']}'))}',
                                   style: const TextStyle(
-                                      fontSize: 12, color: Colors.grey),
+                                      fontSize: 12, color: AppColors.textMuted),
                                 ),
                               ],
                             ),
@@ -460,7 +460,7 @@ class _LeavesTab extends StatelessWidget {
                               '${l['end_date']?.toString().substring(0, 10)} · '
                               '${l['days']} ${S.t('workingDays', locale)}',
                               style: const TextStyle(
-                                  fontSize: 12, color: Colors.grey),
+                                  fontSize: 12, color: AppColors.textMuted),
                             ),
                             if (isPending)
                               Row(

@@ -5,6 +5,8 @@
 
 import 'package:flutter/material.dart';
 
+import '../../core/theme/colors.dart';
+
 enum OrganismType {
   amo('amo', 'AMO', 'Assurance Maladie Obligatoire', Icons.health_and_safety_outlined),
   cnops('cnops', 'CNOPS', 'Caisse Nationale des Organismes de Prévoyance Sociale', Icons.account_balance_outlined),
@@ -115,7 +117,7 @@ class ClientAffiliation {
       case 'expired': return Colors.red;
       case 'suspended': return Colors.orange;
       case 'pending': return Colors.blue;
-      default: return Colors.grey;
+      default: return AppColors.textMuted;
     }
   }
 }

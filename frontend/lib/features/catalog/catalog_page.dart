@@ -273,7 +273,7 @@ class _CatalogPageState extends State<CatalogPage> {
                 dense: true,
                 title: Text('${p['pathologie']}'),
                 trailing: Text('${p['count'] ?? 0}',
-                    style: const TextStyle(color: Colors.grey)),
+                    style: const TextStyle(color: AppColors.textMuted)),
                 onTap: () => Navigator.pop(ctx, '${p['pathologie']}'),
               ),
           ],
