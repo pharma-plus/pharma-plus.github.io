@@ -486,10 +486,7 @@ class _DashboardPageState extends State<DashboardPage> {
           image: 'assets/images/kpi_bg_7.webp',
           badge: Icons.person_rounded,
           badgeColor: AppColors.emeraldInk,
-          module: 'employees',
-          // Illustration employe redimensionnee "un peu" plus grande (theme
-          // clair) apres correction fondu tete non lisible (v6).
-          lightScale: 1.05),
+          module: 'employees'),
       _KpiDef(
           label: 'BÉNÉFICE MOIS',
           value: Fmt.money(_profitMonth),
@@ -551,10 +548,6 @@ class _KpiDef {
   /// Ex: Alignment(0, 0.85) montre plus le bas que bottomCenter (0, 1.0).
   final Alignment imageAlignment;
 
-  /// Redimensionnement specifique au theme clair (>1.0 = agrandir,
-  /// <1.0 = reduire). distinct de imageScale (calibre du theme sombre).
-  final double? lightScale;
-
   /// Clé de module visible (null = toujours visible).
   final String? module;
   const _KpiDef({
@@ -569,7 +562,6 @@ class _KpiDef {
     this.imageScale = 1.0,
     this.imageAlignment = Alignment.bottomCenter,
     this.module,
-    this.lightScale,
   });
 }
 
@@ -674,35 +666,19 @@ class _KpiCardState extends State<_KpiCard> {
                 else
                   // Clair : illustrations détourées de la maquette (fond
                   // transparent). On les pose ENTIÈRES en bas à droite, sans
-                  // zoom ni recadrage, comme sur la maquette. `lightScale > 1`
-                  // redimensionne legerement l'illustration (ex: employe).
+                  // zoom ni recadrage, comme sur la maquette.
                   Align(
                     alignment: Alignment.bottomRight,
-                    child: def.lightScale != null && def.lightScale! > 1.0
-                        ? Transform.scale(
-                            scale: def.lightScale!,
-                            alignment: Alignment.bottomRight,
-                            child: FractionallySizedBox(
-                              widthFactor: 0.62,
-                              heightFactor: 1.0,
-                              child: Image.asset(
-                                kpiImg,
-                                fit: BoxFit.contain,
-                                alignment: Alignment.bottomRight,
-                                filterQuality: FilterQuality.medium,
-                              ),
-                            ),
-                          )
-                        : FractionallySizedBox(
-                            widthFactor: 0.62,
-                            heightFactor: 1.0,
-                            child: Image.asset(
-                              kpiImg,
-                              fit: BoxFit.contain,
-                              alignment: Alignment.bottomRight,
-                              filterQuality: FilterQuality.medium,
-                            ),
-                          ),
+                    child: FractionallySizedBox(
+                      widthFactor: 0.62,
+                      heightFactor: 1.0,
+                      child: Image.asset(
+                        kpiImg,
+                        fit: BoxFit.contain,
+                        alignment: Alignment.bottomRight,
+                        filterQuality: FilterQuality.medium,
+                      ),
+                    ),
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(14, 11, 14, 8),
