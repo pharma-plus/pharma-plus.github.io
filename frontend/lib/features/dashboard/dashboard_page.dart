@@ -486,7 +486,12 @@ class _DashboardPageState extends State<DashboardPage> {
           image: 'assets/images/kpi_bg_7.webp',
           badge: Icons.person_rounded,
           badgeColor: AppColors.emeraldInk,
-          module: 'employees'),
+          module: 'employees',
+          // Illustration employe : reduite pour ne pas toucher l'icone/badge,
+          // surtout en sombre (arriere-plan plus large). Clair: largeur reduite.
+          lightWidthFactor: 0.50,
+          imageScale: 0.85,
+          imageAlignment: const Alignment(0.25, 0.95)),
       _KpiDef(
           label: 'BÉNÉFICE MOIS',
           value: Fmt.money(_profitMonth),
@@ -548,6 +553,10 @@ class _KpiDef {
   /// Ex: Alignment(0, 0.85) montre plus le bas que bottomCenter (0, 1.0).
   final Alignment imageAlignment;
 
+  /// Largeur relative de l'illustration en theme clair (defaut 0.62).
+  /// Permet de reduire une illustration trop large (ex: employe).
+  final double lightWidthFactor;
+
   /// Clé de module visible (null = toujours visible).
   final String? module;
   const _KpiDef({
@@ -562,6 +571,7 @@ class _KpiDef {
     this.imageScale = 1.0,
     this.imageAlignment = Alignment.bottomCenter,
     this.module,
+    this.lightWidthFactor = 0.62,
   });
 }
 
@@ -642,10 +652,10 @@ class _KpiCardState extends State<_KpiCard> {
                 if (kpiDark)
                   // Sombre (validé) : illustration plein cadre, socle 3D calé
                   // en bas via imageAlignment / imageScale.
-                  // Pour imageScale > 1.0, on utilise Transform.scale SANS
+                  // Pour imageScale != 1.0, on utilise Transform.scale SANS
                   // ClipRect parent (AnimatedContainer a déjà Clip.antiAlias).
                   Positioned.fill(
-                    child: def.imageScale > 1.0
+                    child: def.imageScale != 1.0
                         ? Transform.scale(
                             scale: def.imageScale,
                             alignment: def.imageAlignment,
@@ -670,7 +680,7 @@ class _KpiCardState extends State<_KpiCard> {
                   Align(
                     alignment: Alignment.bottomRight,
                     child: FractionallySizedBox(
-                      widthFactor: 0.62,
+                      widthFactor: def.lightWidthFactor,
                       heightFactor: 1.0,
                       child: Image.asset(
                         kpiImg,
