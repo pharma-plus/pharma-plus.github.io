@@ -471,16 +471,28 @@ class PharmaTokensHelper {
   final BuildContext _context;
   const PharmaTokensHelper(this._context);
 
-  // Couleurs
-  Color get bgPrimary => PharmaTokens.bgPrimary;
-  Color get bgSurface => PharmaTokens.bgSurface;
-  Color get bgSurfaceRaised => PharmaTokens.bgSurfaceRaised;
-  Color get bgPanel => PharmaTokens.bgPanel;
-  Color get bgSidebar => PharmaTokens.bgSidebar;
-  Color get textPrimary => PharmaTokens.textPrimary;
-  Color get textSecondary => PharmaTokens.textSecondary;
-  Color get textTertiary => PharmaTokens.textTertiary;
-  Color get textDisabled => PharmaTokens.textDisabled;
+  // Couleurs — ADAPTATIVES au thème (clair : encre foncée sur surface
+  // claire ; sombre : porcelain / gris clair sur surface sombre graphite).
+  Color get bgPrimary =>
+      _context.isDark ? AppColors.graphite : AppColors.silver;
+  Color get bgSurface =>
+      _context.isDark ? AppColors.graphiteLight : AppColors.silverLight;
+  Color get bgSurfaceRaised =>
+      _context.isDark ? AppColors.graphiteLight : AppColors.silver;
+  Color get bgPanel =>
+      _context.isDark ? AppColors.graphite : AppColors.silver;
+  Color get bgSidebar =>
+      _context.isDark ? AppColors.graphite : AppColors.silver;
+  Color get bgCard =>
+      _context.isDark ? AppColors.graphiteLight : AppColors.silverLight;
+  Color get textPrimary =>
+      _context.isDark ? AppColors.textPrimary /* porcelain */ : AppColors.inkDark;
+  Color get textSecondary =>
+      _context.isDark ? const Color(0xFFB9C2C9) : AppColors.inkDarkLight;
+  Color get textTertiary =>
+      _context.isDark ? const Color(0xFF8A95A0) : AppColors.graphiteLight;
+  Color get textDisabled =>
+      _context.isDark ? const Color(0xFF7E8A94) : AppColors.inkDarkLight;
   Color get brandPrimary => PharmaTokens.brandPrimary;
   Color get brandEmerald => PharmaTokens.brandEmerald;
   Color get brandGold => PharmaTokens.brandGold;
@@ -605,13 +617,18 @@ class PharmaTokensHelper {
   TextStyle get labelLarge => PharmaTokens.labelLarge;
   TextStyle get labelMedium => PharmaTokens.labelMedium;
   TextStyle get labelSmall => PharmaTokens.labelSmall;
-  TextStyle get fieldLabel => PharmaTokens.fieldLabel;
-  TextStyle get fieldInput => PharmaTokens.fieldInput;
-  TextStyle get fieldHelper => PharmaTokens.fieldHelper;
-  TextStyle get fieldError => PharmaTokens.fieldError;
-  TextStyle get tableHeader => PharmaTokens.tableHeader;
-  TextStyle get tableCell => PharmaTokens.tableCell;
-  TextStyle get tableCellNumeric => PharmaTokens.tableCellNumeric;
+  TextStyle get fieldLabel => PharmaTokens.fieldLabel.copyWith(color: textSecondary);
+  TextStyle get fieldInput => PharmaTokens.bodyMedium.copyWith(color: textPrimary);
+  TextStyle get fieldHelper => PharmaTokens.bodySmall.copyWith(color: textSecondary);
+  TextStyle get fieldError => PharmaTokens.bodySmall.copyWith(color: danger);
+  TextStyle get tableHeader =>
+      PharmaTokens.labelMedium.copyWith(color: textSecondary, fontFamily: PharmaTokens.fontFamily);
+  TextStyle get tableCell => PharmaTokens.bodyMedium.copyWith(color: textPrimary);
+  TextStyle get tableCellNumeric => PharmaTokens.bodyMedium.copyWith(
+        color: textPrimary,
+        fontFeatures: const [FontFeature.tabularFigures()],
+        fontFamily: 'Roboto Mono',
+      );
   TextStyle get badge => PharmaTokens.badge;
 
   // Ombres

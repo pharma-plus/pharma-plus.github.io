@@ -1531,11 +1531,17 @@ class _PosPageState extends State<PosPage> {
       ),
       body: Stack(
         children: [
-          // Fond ADAPTATIF : marbre (thème principal) en clair,
-          // graphite compact en sombre (validé).
+          // Fond ADAPTIF : marbre (thème principal) en clair,
+          // image pharmacie (scene) en sombre - la texture graphite est
+          // remplacee par l'image pharmacie dans la partie sombre.
           Positioned.fill(
             child: Theme.of(context).brightness == Brightness.dark
-                ? const ColoredBox(color: AppColors.graphiteDark)
+                ? Image.asset(
+                    'assets/images/background.webp',
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) =>
+                        const ColoredBox(color: Color(0xFF12171B)),
+                  )
                 : const MarbleBackground(dark: false),
           ),
           Positioned.fill(

@@ -21,9 +21,12 @@ class AppTheme {
 
     // Couleurs de surface selon le thème
     final bgColor = isDark ? AppColors.graphite : AppColors.silver;
-    final surfaceColor = isDark ? AppColors.surfaceDark : Colors.white;
+    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.silverLight;
     final textColor = isDark ? AppColors.porcelain : AppColors.inkDark;
-    final mutedColor = isDark ? AppColors.graphiteLight : AppColors.silverDark;
+    // Texte secondaire ATTÉNUÉ mais lisible dans les deux thèmes
+    // (gris ardoise foncé sur surface claire, gris argent clair sur sombre).
+    final mutedColor =
+        isDark ? const Color(0xFFB9C2C9) : AppColors.inkDarkLight;
 
     // Accent : vert sauge dans les deux thèmes
     final accent = AppColors.sageGreen;
@@ -107,20 +110,30 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isDark ? AppColors.surfaceDark : Colors.white,
+        fillColor: isDark ? AppColors.surfaceDark : AppColors.silverLight,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        hintStyle: TextStyle(
+          color: isDark ? const Color(0xFF8A95A0) : AppColors.inkDarkLight,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          fontFamily: 'Times New Roman',
+        ),
+        labelStyle: TextStyle(
+          color: isDark ? const Color(0xFFB9C2C9) : AppColors.inkDark,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          fontFamily: 'Times New Roman',
+        ),
+        prefixIconColor: isDark ? AppColors.silver : AppColors.inkDarkLight,
+        suffixIconColor: isDark ? AppColors.silver : AppColors.inkDarkLight,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: isDark ? AppColors.graphiteLight : AppColors.silverDark,
-          ),
+          borderSide: const BorderSide(color: AppColors.silverDark, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: isDark ? AppColors.graphiteLight : AppColors.silverDark,
-          ),
+          borderSide: const BorderSide(color: AppColors.silverDark, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),

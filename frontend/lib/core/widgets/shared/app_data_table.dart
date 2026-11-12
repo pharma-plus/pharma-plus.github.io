@@ -631,7 +631,7 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
     final verticalController =
         widget.scrollController ?? _internalVerticalController;
     final headerColor =
-        isDark ? const Color(0xFF0F2520) : AppColors.sageGreen;
+        isDark ? AppColors.graphiteLight : AppColors.sageGreen;
     final divider = widget.config.dividerColor ??
         (isDark ? tokens.borderDark : tokens.borderLight);
 
@@ -699,10 +699,14 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
       final globalIndex =
           widget.pagination ? _currentPage * _pageSize + index : index;
       final rowColor = _isSelected(item)
-          ? (isDark ? const Color(0xFF0A2E22) : const Color(0xFFE3F2EC))
+          ? (isDark
+              ? AppColors.champagne.withValues(alpha: 0.12)
+              : const Color(0xFFE3F2EC))
           : (widget.config.striped && index.isOdd)
-              ? (isDark ? const Color(0xFF16362C) : const Color(0xFFF2F5F3))
-              : (isDark ? const Color(0xFF0F2520) : Colors.white);
+              ? (isDark
+                  ? AppColors.graphiteLight.withValues(alpha: 0.12)
+                  : const Color(0xFFF2F5F3))
+              : (isDark ? AppColors.graphite : Colors.white);
       return Material(
         color: rowColor,
         child: InkWell(
@@ -874,7 +878,7 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
 
     return DataTable(
       headingRowColor: WidgetStateProperty.resolveWith((states) =>
-          isDark ? const Color(0xFF0F2520) : AppColors.sageGreen),
+          isDark ? AppColors.graphiteLight : AppColors.sageGreen),
       headingRowHeight: widget.config.headerHeight,
       dataRowMinHeight: widget.config.rowHeight,
       dataRowMaxHeight: widget.config.rowHeight * 2,
@@ -929,14 +933,18 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
               hasSelection ? (v) => _handleSelectItem(item, v) : null,
           color: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
-              return isDark ? const Color(0xFF0A2E22) : const Color(0xFFE3F2EC);
+              return isDark
+                  ? AppColors.champagne.withValues(alpha: 0.12)
+                  : const Color(0xFFE3F2EC);
             }
             if (states.contains(WidgetState.hovered)) {
-              return isDark ? const Color(0xFF16362C) : const Color(0xFFEAF2EE);
+              return isDark ? AppColors.graphiteLight : const Color(0xFFEAF2EE);
             }
             return (widget.config.striped && index.isOdd)
-                ? (isDark ? const Color(0xFF16362C) : const Color(0xFFF2F5F3))
-                : (isDark ? const Color(0xFF0F2520) : Colors.white);
+                ? (isDark
+                    ? AppColors.graphiteLight.withValues(alpha: 0.12)
+                    : const Color(0xFFF2F5F3))
+                : (isDark ? AppColors.graphite : Colors.white);
           }),
           cells: [
             if (widget.showRowNumbers)

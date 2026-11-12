@@ -1404,8 +1404,9 @@ class _PanelShell extends StatelessWidget {
     final Widget base = Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        // Sombre : même ton graphite que le menu latéral (validé).
-        color: isDark ? AppColors.graphite : Colors.transparent,
+        // Fond transparent : la texture est posée par MarbleBackground
+        // SOUS le panneau (marbre clair en thème clair, graphite brossé
+        // en thème sombre).
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
             color: isDark
@@ -1449,13 +1450,28 @@ class _PanelShell extends StatelessWidget {
               color: Color(0x66000000), blurRadius: 18, offset: Offset(0, 10)),
         ],
       ),
-      // Clair : texture marbre identique au menu latéral.
-      child: isDark
-          ? base
-          : ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: MarbleBackground(dark: false, child: base),
-            ),
+      // Fond : marbre clair (texture de la maquette) en thème clair, et
+      // image pharmacie (scène) en sombre — la texture graphite est
+      // remplacée par l'image pharmacie dans la partie sombre.
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: isDark
+            ? Stack(
+                fit: StackFit.expand,
+                children: [
+                  Positioned.fill(
+                    child: Image.asset(
+                      'assets/images/background.webp',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          const ColoredBox(color: Color(0xFF12171B)),
+                    ),
+                  ),
+                  base,
+                ],
+              )
+            : MarbleBackground(dark: false, child: base),
+      ),
     );
   }
 }
