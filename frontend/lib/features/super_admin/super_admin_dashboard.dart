@@ -312,7 +312,7 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
       gradient: LinearGradient(
         colors: dark
             ? [_kSuperAdminDark, _kSuperAdminSurface.withValues(alpha: 0.8)]
-            : [Colors.white, AppColors.silver],
+            : [const Color(0xFFF5F6F7), AppColors.silverLight],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
@@ -321,18 +321,33 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Illustration 3D d'arrière-plan : réglages identiques au
-            // dashboard pharmacie validé (cover + socle 3D calé en bas via
-            // Alignment(0, 0.92)). Ni opacité ni voile : les assets sont
-            // conçus sombres, le texte reste lisible (motif P0-2 UI fin).
-            Positioned.fill(
-              child: Image.asset(
-                img,
-                fit: BoxFit.cover,
-                alignment: const Alignment(0, 0.92),
-                filterQuality: FilterQuality.low,
+            if (dark)
+              // Sombre (validé) : illustration plein cadre, socle 3D calé
+              // en bas (cover).
+              Positioned.fill(
+                child: Image.asset(
+                  img,
+                  fit: BoxFit.cover,
+                  alignment: const Alignment(0, 0.92),
+                  filterQuality: FilterQuality.low,
+                ),
+              )
+            else
+              // Clair : illustrations détourées de la maquette (fond
+              // transparent), posées entières en bas à droite, sans zoom.
+              Align(
+                alignment: Alignment.bottomRight,
+                child: FractionallySizedBox(
+                  widthFactor: 0.62,
+                  heightFactor: 1.0,
+                  child: Image.asset(
+                    img,
+                    fit: BoxFit.contain,
+                    alignment: Alignment.bottomRight,
+                    filterQuality: FilterQuality.medium,
+                  ),
+                ),
               ),
-            ),
             Padding(
               padding: const EdgeInsets.all(14),
               child: Column(

@@ -17,10 +17,27 @@ import '../../core/theme/colors.dart';
 import '../../core/utils/calculations.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/barcode_scanner.dart';
+import '../../core/widgets/marble_texture.dart';
 import '../../core/widgets/stock_notification.dart';
 import '../pos/payment_models.dart';
 import '../pos/pos_models.dart';
 import 'pos_category_grid.dart';
+
+/// Helpers thème du mini-POS : encre foncée sur marbre clair (thème
+/// principal), blanc sur graphite (thème sombre validé). Aucune règle
+/// métier : uniquement des couleurs.
+bool _posDark(BuildContext c) => Theme.of(c).brightness == Brightness.dark;
+Color _posInk(BuildContext c, [double alpha = 1]) => _posDark(c)
+    ? Colors.white.withValues(alpha: alpha)
+    : AppColors.inkDark.withValues(alpha: alpha);
+Color _posField(BuildContext c) => _posDark(c)
+    ? Colors.white.withValues(alpha: 0.04)
+    : Colors.white.withValues(alpha: 0.62);
+Color _posLine(BuildContext c) => _posDark(c)
+    ? Colors.white.withValues(alpha: 0.08)
+    : AppColors.inkDark.withValues(alpha: 0.14);
+Color _posGold(BuildContext c) =>
+    _posDark(c) ? const Color(0xFFE9C873) : AppColors.champagneInk;
 
 /// ============================================================
 /// POINT DE VENTE (encart dashboard) — VRAI mini-POS :
@@ -780,17 +797,19 @@ class _PosPanelState extends State<PosPanel> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
+            color: _posDark(context)
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.white.withValues(alpha: 0.55),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
                 color: const Color(0xFFC9A24B).withValues(alpha: 0.5)),
           ),
-          child: const Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.open_in_new_rounded, size: 13, color: Color(0xFFE9C873)),
-            SizedBox(width: 5),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.open_in_new_rounded, size: 13, color: _posGold(context)),
+            const SizedBox(width: 5),
             Text('POS complet',
                 style: TextStyle(
-                    color: Color(0xFFE9C873),
+                    color: _posGold(context),
                     fontSize: 10,
                     fontWeight: FontWeight.w800)),
           ]),
@@ -807,26 +826,29 @@ class _PosPanelState extends State<PosPanel> {
             child: Container(
               height: 38,
               decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.035),
+                  color: _posField(context),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                       color: const Color(0xFFC9A24B).withValues(alpha: 0.4))),
               child: Row(children: [
                 const SizedBox(width: 8),
                 Icon(Icons.search_rounded,
-                    size: 16, color: Colors.white.withValues(alpha: 0.45)),
+                    size: 16,
+                    color: _posInk(context, _posDark(context) ? 0.45 : 0.55)),
                 const SizedBox(width: 5),
                 Expanded(
                   child: TextField(
                     controller: _search,
                     onChanged: _onSearchChanged,
-                    style: const TextStyle(color: Colors.white, fontSize: 11.5),
-                    decoration: const InputDecoration(
+                    style: TextStyle(color: _posInk(context), fontSize: 11.5),
+                    decoration: InputDecoration(
                         isDense: true,
                         border: InputBorder.none,
                         hintText: 'Rechercher…',
-                        hintStyle:
-                            TextStyle(color: Color(0x66FFFFFF), fontSize: 11)),
+                        hintStyle: TextStyle(
+                            color: _posInk(
+                                context, _posDark(context) ? 0.40 : 0.45),
+                            fontSize: 11)),
                   ),
                 ),
                 if (_searching)
@@ -971,7 +993,8 @@ class _PosPanelState extends State<PosPanel> {
                       ),
                   Text('Recherchez un médicament',
                       style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.35),
+                          color:
+                              _posInk(context, _posDark(context) ? 0.35 : 0.55),
                           fontSize: 10)),
                 ]))
               : ListView(
@@ -1002,12 +1025,13 @@ class _PosPanelState extends State<PosPanel> {
                                     '${m.name}${m.dosage != null ? ' · ${m.dosage}' : ''}${m.laboratoryName != null && m.laboratoryName!.isNotEmpty ? ' · ${m.laboratoryName}' : ''}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                        color: Colors.white, fontSize: 10.5)),
+                                    style: TextStyle(
+                                        color: _posInk(context),
+                                        fontSize: 10.5)),
                               ),
                               Text(_fmt(m.priceSale),
-                                  style: const TextStyle(
-                                      color: Color(0xFFE9C873),
+                                  style: TextStyle(
+                                      color: _posGold(context),
                                       fontSize: 10.5,
                                       fontWeight: FontWeight.w800)),
                               /* Marge droite de 20 px : place le prix sous la
@@ -1026,7 +1050,7 @@ class _PosPanelState extends State<PosPanel> {
             margin: const EdgeInsets.only(bottom: 4),
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
             decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.04),
+                color: _posField(context),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                     color: const Color(0xFFC9A24B).withValues(alpha: 0.3))),
@@ -1034,31 +1058,32 @@ class _PosPanelState extends State<PosPanel> {
               child: DropdownButton<String>(
                 isExpanded: true,
                 value: _customerId,
-                dropdownColor: const Color(0xFF20272D),
+                dropdownColor:
+                    _posDark(context) ? const Color(0xFF20272D) : Colors.white,
                 icon: Icon(Icons.keyboard_arrow_down_rounded,
-                    size: 16, color: Colors.white.withValues(alpha: 0.5)),
+                    size: 16, color: _posInk(context, 0.55)),
                 hint: Row(children: [
-                  const Icon(Icons.person_outline_rounded,
-                      size: 16, color: Color(0xFFE9C873)),
+                  Icon(Icons.person_outline_rounded,
+                      size: 16, color: _posGold(context)),
                   const SizedBox(width: 8),
                   Text('Client comptoir',
                       style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
+                          color: _posInk(context, 0.65),
                           fontSize: 11.5,
                           fontWeight: FontWeight.w600)),
                 ]),
                 selectedItemBuilder: (ctx) => [
                   for (final c in _customers)
                     Row(children: [
-                      const Icon(Icons.person_outline_rounded,
-                          size: 16, color: Color(0xFFE9C873)),
+                      Icon(Icons.person_outline_rounded,
+                          size: 16, color: _posGold(context)),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text('${c['name'] ?? ''}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                color: Colors.white70,
+                            style: TextStyle(
+                                color: _posInk(context, 0.8),
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w600)),
                       ),
@@ -1069,8 +1094,8 @@ class _PosPanelState extends State<PosPanel> {
                     DropdownMenuItem(
                       value: '${c['id']}',
                       child: Text('${c['name'] ?? ''}',
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 11.5)),
+                          style: TextStyle(
+                              color: _posInk(context), fontSize: 11.5)),
                     ),
                 ],
                 onChanged: (v) => setState(() => _customerId = v),
@@ -1089,20 +1114,19 @@ class _PosPanelState extends State<PosPanel> {
                     const TextInputType.numberWithOptions(decimal: true),
                 onChanged: (v) => setState(() =>
                     _discount = double.tryParse(v.replaceAll(',', '.')) ?? 0),
-                style: const TextStyle(color: Colors.white, fontSize: 11),
+                style: TextStyle(color: _posInk(context), fontSize: 11),
                 decoration: InputDecoration(
                     isDense: true,
                     contentPadding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                     filled: true,
-                    fillColor: Colors.white.withValues(alpha: 0.04),
+                    fillColor: _posField(context),
                     enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(7),
-                        borderSide: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.1))),
+                        borderSide: BorderSide(color: _posLine(context))),
                     hintText: 'Remise',
-                    hintStyle: const TextStyle(
-                        color: Color(0x55FFFFFF), fontSize: 10)),
+                    hintStyle:
+                        TextStyle(color: _posInk(context, 0.45), fontSize: 10)),
               ),
             ),
             const SizedBox(width: 4),
@@ -1114,12 +1138,12 @@ class _PosPanelState extends State<PosPanel> {
                 decoration: BoxDecoration(
                     color: _discountPercent
                         ? AppColors.sageGreen.withValues(alpha: 0.45)
-                        : Colors.white.withValues(alpha: 0.05),
+                        : _posField(context),
                     borderRadius: BorderRadius.circular(7),
                     border: Border.all(
                         color: _discountPercent
                             ? AppColors.sageGreenDark.withValues(alpha: 0.7)
-                            : const Color(0xFF3A424A).withValues(alpha: 0.6))),
+                            : _posLine(context))),
                 child: Center(
                     child: Text(_discountPercent ? '%' : 'MAD',
                         style: TextStyle(
@@ -1132,18 +1156,18 @@ class _PosPanelState extends State<PosPanel> {
             ),
             const Spacer(),
             Text('TVA ${_fmt(t.tva)}',
-                style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.4), fontSize: 9.5)),
+                style: TextStyle(color: _posInk(context, 0.55), fontSize: 9.5)),
           ]),
         if (_cart.isNotEmpty) const SizedBox(height: 4),
         if (_cart.isNotEmpty)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-                color: const Color(0xFF232B31),
+                color: _posDark(context)
+                    ? const Color(0xFF232B31)
+                    : Colors.white.withValues(alpha: 0.72),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                    color: const Color(0xFF3A424A).withValues(alpha: 0.55))),
+                border: Border.all(color: _posLine(context))),
             child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -1153,14 +1177,16 @@ class _PosPanelState extends State<PosPanel> {
                             color: Color(0xFFB3372F),
                             fontSize: 10.5,
                             fontWeight: FontWeight.w700)),
-                  const Text('TOTAL',
+                  Text('TOTAL',
                       style: TextStyle(
-                          color: Colors.white,
+                          color: _posInk(context),
                           fontSize: 11,
                           fontWeight: FontWeight.w900)),
                   Text(_fmt(t.total),
-                      style: const TextStyle(
-                          color: AppColors.sageGreen,
+                      style: TextStyle(
+                          color: _posDark(context)
+                              ? AppColors.sageGreen
+                              : AppColors.sageGreenInk,
                           fontSize: 15,
                           fontWeight: FontWeight.w900)),
                 ]),
@@ -1175,13 +1201,14 @@ class _PosPanelState extends State<PosPanel> {
               FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d{0,2}'))
             ],
             onChanged: _setReceived,
-            style: const TextStyle(
-                color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
+            style: TextStyle(
+                color: _posInk(context),
+                fontSize: 18,
+                fontWeight: FontWeight.w900),
             decoration: InputDecoration(
               hintText: '0,00',
-              hintStyle: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.25), fontSize: 18),
-              fillColor: Colors.white.withValues(alpha: 0.04),
+              hintStyle: TextStyle(color: _posInk(context, 0.35), fontSize: 18),
+              fillColor: _posField(context),
               filled: true,
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1274,7 +1301,7 @@ class _PosPanelState extends State<PosPanel> {
                           size: 16,
                           color: _paymentMode == 'cash'
                               ? AppColors.emerald
-                              : Colors.white.withValues(alpha: 0.5)),
+                              : _posInk(context, 0.55)),
                       const SizedBox(width: 5),
                       Text('Especes',
                           style: TextStyle(
@@ -1282,7 +1309,7 @@ class _PosPanelState extends State<PosPanel> {
                               fontWeight: FontWeight.w800,
                               color: _paymentMode == 'cash'
                                   ? AppColors.emerald
-                                  : Colors.white.withValues(alpha: 0.6))),
+                                  : _posInk(context, 0.65))),
                     ],
                   ),
                 ),
@@ -1355,6 +1382,8 @@ class _PosPanelState extends State<PosPanel> {
 }
 
 /// Coquille des panneaux latéraux (identique au style du dashboard).
+/// Thème sombre : graphite validé. Thème clair : même fond marbre que le
+/// menu latéral, avec écritures encre foncée.
 class _PanelShell extends StatelessWidget {
   final String title;
   final IconData icon;
@@ -1371,18 +1400,17 @@ class _PanelShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(left: 14, right: 14, bottom: 10),
+    final bool isDark = _posDark(context);
+    final Widget base = Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        // Même ton graphite que le menu latéral (cohérence du thème sombre).
-        color: AppColors.graphite,
+        // Sombre : même ton graphite que le menu latéral (validé).
+        color: isDark ? AppColors.graphite : Colors.transparent,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.dividerDark),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x66000000), blurRadius: 18, offset: Offset(0, 10)),
-        ],
+        border: Border.all(
+            color: isDark
+                ? AppColors.dividerDark
+                : AppColors.inkDark.withValues(alpha: 0.14)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
@@ -1399,8 +1427,8 @@ class _PanelShell extends StatelessWidget {
             child: Text(title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    color: Colors.white,
+                style: TextStyle(
+                    color: _posInk(context),
                     fontSize: 12.5,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.6)),
@@ -1411,6 +1439,24 @@ class _PanelShell extends StatelessWidget {
         Expanded(child: child),
       ]),
     );
+    return Container(
+      margin: const EdgeInsets.only(left: 14, right: 14, bottom: 10),
+      // Ombre portée à l'extérieur du clip (elle reste visible en clair).
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x66000000), blurRadius: 18, offset: Offset(0, 10)),
+        ],
+      ),
+      // Clair : texture marbre identique au menu latéral.
+      child: isDark
+          ? base
+          : ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: MarbleBackground(dark: false, child: base),
+            ),
+    );
   }
 }
 
@@ -1420,7 +1466,7 @@ class _RowHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     TextStyle style = TextStyle(
-        color: Colors.white.withValues(alpha: 0.42),
+        color: _posInk(context, _posDark(context) ? 0.42 : 0.55),
         fontSize: 9,
         fontWeight: FontWeight.w800,
         letterSpacing: 0.6);
@@ -1484,11 +1530,11 @@ class _PanelButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: color.withValues(alpha: 0.5))),
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(icon, size: 15, color: Colors.white.withValues(alpha: 0.9)),
+          Icon(icon, size: 15, color: _posInk(context, 0.9)),
           const SizedBox(width: 5),
           Text(label,
-              style: const TextStyle(
-                  color: Colors.white,
+              style: TextStyle(
+                  color: _posInk(context),
                   fontSize: 10.5,
                   fontWeight: FontWeight.w800)),
         ]),
@@ -1557,12 +1603,12 @@ class _PaymentModeBtn extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected
               ? selectedColor.withValues(alpha: 0.15)
-              : Colors.white.withValues(alpha: 0.03),
+              : _posDark(context)
+                  ? Colors.white.withValues(alpha: 0.03)
+                  : Colors.white.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-              color: selected
-                  ? selectedColor
-                  : Colors.white.withValues(alpha: 0.08),
+              color: selected ? selectedColor : _posLine(context),
               width: selected ? 1.6 : 0.8),
         ),
         child: child,
@@ -1583,15 +1629,15 @@ class _QuickPayBtn extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 6),
           decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.04),
+              color: _posField(context),
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
+              border: Border.all(color: _posLine(context))),
           child: Text(label,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white70)),
+                  color: _posInk(context, 0.75))),
         ),
       ),
     );
@@ -1621,16 +1667,18 @@ class _CartRow extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 5),
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.03),
+          color: _posDark(context)
+              ? Colors.white.withValues(alpha: 0.03)
+              : Colors.white.withValues(alpha: 0.55),
           borderRadius: BorderRadius.circular(9),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.06))),
+          border: Border.all(color: _posLine(context))),
       child: Row(children: [
         Expanded(
           child: Text(name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  color: Colors.white,
+              style: TextStyle(
+                  color: _posInk(context),
                   fontSize: 11.5,
                   fontWeight: FontWeight.w600)),
         ),
@@ -1644,8 +1692,8 @@ class _CartRow extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 7),
               child: Text('$qty',
-                  style: const TextStyle(
-                      color: Colors.white,
+                  style: TextStyle(
+                      color: _posInk(context),
                       fontSize: 12,
                       fontWeight: FontWeight.w800)),
             ),
@@ -1659,8 +1707,8 @@ class _CartRow extends StatelessWidget {
           width: 62,
           child: Text(Fmt.money(lineTotal),
               textAlign: TextAlign.right,
-              style: const TextStyle(
-                  color: Color(0xFFE9C873),
+              style: TextStyle(
+                  color: _posGold(context),
                   fontSize: 11.5,
                   fontWeight: FontWeight.w800)),
         ),

@@ -632,35 +632,54 @@ class _KpiCardState extends State<_KpiCard> {
               // assets kpi/kpi_N.webp (cartons avec image au premier plan) ne
               // sont volontairement plus composés par-dessus.
               // Fond de carte selon le thème : graphite (sombre) /
-              // marbre argenté (clair). L'illustration 3D suit le thème.
-              color: kpiDark ? AppColors.graphiteDark : AppColors.silver,
+              // marbre argenté clair (quasi identique au fond de la maquette,
+              // ce qui fond les bords des illustrations détourées).
+              color: kpiDark ? AppColors.graphiteDark : AppColors.silverLight,
             ),
             child: Stack(
               fit: StackFit.expand,
               children: [
-                // Illustration de fond unique : BoxFit.cover remplit la carte,
-                // alignment garde le socle 3D visible.
-                // Pour imageScale > 1.0, on utilise Transform.scale SANS ClipRect
-                // parent (le AnimatedContainer a déjà clipBehavior: Clip.antiAlias).
-                Positioned.fill(
-                  child: def.imageScale > 1.0
-                      ? Transform.scale(
-                          scale: def.imageScale,
-                          alignment: def.imageAlignment,
-                          child: Image.asset(
+                if (kpiDark)
+                  // Sombre (validé) : illustration plein cadre, socle 3D calé
+                  // en bas via imageAlignment / imageScale.
+                  // Pour imageScale > 1.0, on utilise Transform.scale SANS
+                  // ClipRect parent (AnimatedContainer a déjà Clip.antiAlias).
+                  Positioned.fill(
+                    child: def.imageScale > 1.0
+                        ? Transform.scale(
+                            scale: def.imageScale,
+                            alignment: def.imageAlignment,
+                            child: Image.asset(
+                              kpiImg,
+                              fit: BoxFit.cover,
+                              alignment: def.imageAlignment,
+                              filterQuality: FilterQuality.low,
+                            ),
+                          )
+                        : Image.asset(
                             kpiImg,
                             fit: BoxFit.cover,
                             alignment: def.imageAlignment,
                             filterQuality: FilterQuality.low,
                           ),
-                        )
-                      : Image.asset(
-                          kpiImg,
-                          fit: BoxFit.cover,
-                          alignment: def.imageAlignment,
-                          filterQuality: FilterQuality.low,
-                        ),
-                ),
+                  )
+                else
+                  // Clair : illustrations détourées de la maquette (fond
+                  // transparent). On les pose ENTIÈRES en bas à droite, sans
+                  // zoom ni recadrage, comme sur la maquette.
+                  Align(
+                    alignment: Alignment.bottomRight,
+                    child: FractionallySizedBox(
+                      widthFactor: 0.62,
+                      heightFactor: 1.0,
+                      child: Image.asset(
+                        kpiImg,
+                        fit: BoxFit.contain,
+                        alignment: Alignment.bottomRight,
+                        filterQuality: FilterQuality.medium,
+                      ),
+                    ),
+                  ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(14, 11, 14, 8),
                     child: Column(
@@ -1328,12 +1347,25 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
                   decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xFF0D1713), Color(0xFF080E0C)]),
+                      gradient: dashDark(context)
+                          ? const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Color(0xFF0D1713),
+                                Color(0xFF080E0C)
+                              ])
+                          : const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Color(0xFFF6F7F8),
+                                Color(0xFFE7EAEC)
+                              ]),
                       border: Border.all(
-                          color: AppColors.dividerDark.withValues(alpha: 0.9))),
+                          color: dashDark(context)
+                              ? AppColors.dividerDark.withValues(alpha: 0.9)
+                              : AppColors.inkDark.withValues(alpha: 0.10))),
                   // MÊME modèle 3D que la page "Plan 3D" (PlanPainter +
                   // mêmes zones) : aperçu du plan complet, pas un modèle
                   // différent. Tap = ouverture de la page Plan 3D.
