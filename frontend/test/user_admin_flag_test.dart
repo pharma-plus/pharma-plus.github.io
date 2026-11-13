@@ -125,13 +125,34 @@ void main() {
     });
   });
 
-  group('Autorisation CRM (équivalent RootGate: auth.user?.isSuperAdmin == true)', () {
-    test('uniquement isSuperAdminFlag == true autorise', () {
-      bool crmVisible(User? u) => u?.isSuperAdmin == true;
-      expect(crmVisible(user({'is_super_admin': true})), isTrue);
-      expect(crmVisible(user({'is_super_admin': false})), isFalse);
-      expect(crmVisible(user({})), isFalse); // inconnu → refus
-      expect(crmVisible(null), isFalse);
+  group('applyServerConfirmation — fusion visible_modules (incident Fournisseurs)', () {
+    test('serveur fournit visible_modules → adopté', () {
+      final stored = user({'is_super_admin': true, 'visible_modules': ['pos', 'stock']});
+      final server = user({'is_super_admin': true, 'visible_modules': ['pos', 'stock', 'suppliers']});
+      final merged = stored.applyServerConfirmation(server);
+      expect(merged.visibleModules, equals(['pos', 'stock', 'suppliers']));
+    });
+
+    test('serveur ne fournit pas visible_modules (null) → valeur locale conservée', () {
+      final stored = user({'is_super_admin': true, 'visible_modules': ['pos', 'stock', 'suppliers']});
+      final server = user({'is_super_admin': true}); // visible_modules absent → null
+      final merged = stored.applyServerConfirmation(server);
+      expect(merged.visibleModules, equals(['pos', 'stock', 'suppliers']));
+    });
+
+    test('serveur fournit visible_modules vide ([]) → adopté (aucun module)', () {
+      final stored = user({'is_super_admin': true, 'visible_modules': ['pos', 'stock']});
+      final server = user({'is_super_admin': true, 'visible_modules': <String>[]});
+      final merged = stored.applyServerConfirmation(server);
+      expect(merged.visibleModules, isEmpty);
+    });
+
+    test('pas de réponse serveur (null) → profil local sans confirmation', () {
+      final stored = user({'is_super_admin': true, 'visible_modules': ['pos', 'stock']});
+      final merged = stored.applyServerConfirmation(null);
+      expect(merged.visibleModules, equals(['pos', 'stock']));
+      expect(merged.isSuperAdminFlag, isNull);
     });
   });
+
 }
