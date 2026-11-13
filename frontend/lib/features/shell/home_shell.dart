@@ -315,7 +315,9 @@ class _HomeShellState extends State<HomeShell> {
             if (_syncing) _SyncBanner(label: S.t('syncing', locale)),
             // Indicateur permanent de connexion (coin supérieur droit, position stable, ne déborde pas).
             Positioned(
-              top: 12,
+              top: (MediaQuery.of(context).padding.top > 0
+                      ? MediaQuery.of(context).padding.top
+                      : 12),
               right: 12,
               child: ConnectionStatusIndicator(
                 position: ConnectionStatusIndicatorPosition.topBar,

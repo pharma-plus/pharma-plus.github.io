@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'app.dart';
@@ -107,6 +108,16 @@ void _instantiateRetentionWidget() {
 }
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Barre de statut transparente avec icônes claires (fix affichage smartphone :
+  // évite que le contenu se dessine sous la barre réseau/wifi/heure).
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.light,
+    statusBarBrightness: Brightness.dark,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarIconBrightness: Brightness.light,
+  ));
   // En mode release, une exception pendant le build d'un widget remplace la
   // vue par un ErrorWidget muet (écran gris/vert SANS message) : c'était la
   // cause du fameux « Splash → écran vert pétrole vide » sur Mac — impossible

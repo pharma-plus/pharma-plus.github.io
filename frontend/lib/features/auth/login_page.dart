@@ -793,7 +793,7 @@ class _ThemeToggle extends StatelessWidget {
     final isDark = auth.themeMode != ThemeMode.light;
 
     return Positioned(
-      top: 18,
+      top: MediaQuery.of(context).padding.top + 18,
       right: 18,
       child: Material(
         color: Colors.white.withValues(alpha: 0.06),
