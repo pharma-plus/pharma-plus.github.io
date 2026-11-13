@@ -91,10 +91,31 @@ class User {
   ///  - réponse absente ou incomplète → profil local sans confirmation.
   /// Les informations non sensibles du profil sont conservées pour
   /// l'affichage, sans jamais accorder de privilège.
-  User applyServerConfirmation(User? server) =>
-      (server != null && server.isSuperAdminFlag != null)
-          ? server
-          : withoutAdminConfirmation();
+  /// `visible_modules` est fusionné : si le serveur ne le renseigne pas
+  /// (null), on conserve la valeur locale pour éviter l'effacement du menu
+  /// lors d'un profil incomplet (incident « Fournisseurs » disparu après F5).
+  User applyServerConfirmation(User? server) {
+    if (server == null || server.isSuperAdminFlag == null) {
+      return withoutAdminConfirmation();
+    }
+    final mergedModules = server.visibleModules ?? visibleModules;
+    if (mergedModules == server.visibleModules) return server;
+    return User(
+      id: server.id,
+      pharmacyId: server.pharmacyId,
+      branchId: server.branchId,
+      roleId: server.roleId,
+      firstName: server.firstName,
+      lastName: server.lastName,
+      email: server.email,
+      isSuperAdminFlag: server.isSuperAdminFlag,
+      permissions: server.permissions,
+      pharmacyName: server.pharmacyName,
+      roleName: server.roleName,
+      visibleModules: mergedModules,
+      hasPin: server.hasPin,
+    );
+  }
 
   /// Construit l'utilisateur à partir de la réponse de connexion /
   /// rafraîchissement : fusionne `user` + `pharmacy` + `role` renvoyés
