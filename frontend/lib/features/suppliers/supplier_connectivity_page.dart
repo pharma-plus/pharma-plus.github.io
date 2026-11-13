@@ -163,25 +163,38 @@ class _SupplierConnectivityPageState extends State<SupplierConnectivityPage> {
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? Center(child: Text(_error!))
-              : _configs.isEmpty
-                  ? _EmptyState(onAdd: _showAddDialog, locale: locale)
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _configs.length,
-                      itemBuilder: (context, i) {
-                        final config = _configs[i];
-                        final adapter = _hub.get(config.supplierCode);
-                        return _SupplierCard(
-                          config: config,
-                          adapter: adapter,
-                          onTest: () => _testConnection(config.supplierCode),
-                          onSync: () => _syncCatalog(config.supplierCode),
-                          onEdit: () => _editConfig(config),
-                          onToggle: () => _toggleEnabled(config),
-                          onDelete: () => _deleteConfig(config),
-                        );
-                      },
-                    ),
+              : Column(children: [
+                  // Bandeau informatif : aucune connexion active par défaut
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    color: AppColors.warning.withValues(alpha: 0.1),
+                    child: Row(children: [
+                      const Icon(Icons.info_outline, size: 20, color: AppColors.warning),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text('Aucun fournisseur connecte par defaut. Les connexions temps reel necessitent des identifiants partenaires (API, portail, Excel/CSV). Les donnees de disponibilite, prix et stock ne sont jamais inventees.', style: const TextStyle(fontSize: 12)))
+                    ]),
+                  ),
+                  Expanded(child: _configs.isEmpty
+                      ? _EmptyState(onAdd: _showAddDialog, locale: locale)
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _configs.length,
+                          itemBuilder: (context, i) {
+                            final config = _configs[i];
+                            final adapter = _hub.get(config.supplierCode);
+                            return _SupplierCard(
+                              config: config,
+                              adapter: adapter,
+                              onTest: () => _testConnection(config.supplierCode),
+                              onSync: () => _syncCatalog(config.supplierCode),
+                              onEdit: () => _editConfig(config),
+                              onToggle: () => _toggleEnabled(config),
+                              onDelete: () => _deleteConfig(config),
+                            );
+                          },
+                        )),
+                ]),
     );
   }
 
