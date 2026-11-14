@@ -42,6 +42,7 @@ class _ProfitPageState extends State<ProfitPage> {
   // Détails par période
   int _ventesCount = 0;
   int _achatsCount = 0;
+  int _missingCostCount = 0;
 
   @override
   void initState() {
@@ -74,15 +75,24 @@ class _ProfitPageState extends State<ProfitPage> {
       final purchasesRes = results[1];
 
       double ca = 0;
+      double cogs = 0;
+      int salesWithMissingCost = 0;
       if (salesRes.success && salesRes.data is List) {
         for (final s in salesRes.data as List) {
           if (s is Map) {
             ca += (s['total'] as num?)?.toDouble() ?? 0;
+            final ct = (s['cost_total'] as num?)?.toDouble();
+            if (ct != null) {
+              cogs += ct;
+            } else {
+              salesWithMissingCost++;
+            }
           }
         }
         _ventesCount = (salesRes.data as List).length;
       }
 
+      // Les achats sont affichés à titre informatif (pas utilisés pour le COGS).
       double coutAchats = 0;
       if (purchasesRes.success && purchasesRes.data is List) {
         for (final p in purchasesRes.data as List) {
@@ -93,7 +103,10 @@ class _ProfitPageState extends State<ProfitPage> {
         _achatsCount = (purchasesRes.data as List).length;
       }
 
-      final margeBrute = ca - coutAchats;
+      final margeBrute = ca - cogs;
+      // Note : si des ventes n'ont pas de cost_total (anciennes données),
+      // la marge est sous-estimée. On affiche un avertissement.
+      final hasMissingCost = salesWithMissingCost > 0;
 
       // Les dépenses proviennent des cash sessions (entrées/sorties)
       // ou des achats non-stock (frais de fonctionnement)
@@ -119,6 +132,7 @@ class _ProfitPageState extends State<ProfitPage> {
         _margeBrute = margeBrute;
         _depenses = depenses;
         _beneficeNet = beneficeNet;
+        _missingCostCount = salesWithMissingCost;
         _loading = false;
       });
     } catch (e) {
