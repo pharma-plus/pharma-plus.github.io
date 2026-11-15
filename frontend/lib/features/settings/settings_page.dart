@@ -154,8 +154,8 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _createBackup() async {
     setState(() => _backupBusy = true);
-    final r = await ApiClient.instance.post('/backups',
-        body: {'type': 'manual', 'scope': 'full'});
+    final r = await ApiClient.instance
+        .post('/backups', body: {'type': 'manual', 'scope': 'full'});
     if (!mounted) return;
     setState(() => _backupBusy = false);
     final locale = context.read<AuthStore>().locale;
@@ -275,7 +275,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 trailing: Checkbox(
                   value: auth.inactivityMinutes == 1,
                   onChanged: (bool? value) {
-                    setState(() => auth.inactivityMinutes = value == true ? 1 : 0);
+                    setState(
+                        () => auth.inactivityMinutes = value == true ? 1 : 0);
                   },
                 ),
               ),
@@ -284,7 +285,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 trailing: Checkbox(
                   value: auth.inactivityMinutes == 5,
                   onChanged: (bool? value) {
-                    setState(() => auth.inactivityMinutes = value == true ? 5 : 0);
+                    setState(
+                        () => auth.inactivityMinutes = value == true ? 5 : 0);
                   },
                 ),
               ),
@@ -293,7 +295,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 trailing: Checkbox(
                   value: auth.inactivityMinutes == 15,
                   onChanged: (bool? value) {
-                    setState(() => auth.inactivityMinutes = value == true ? 15 : 0);
+                    setState(
+                        () => auth.inactivityMinutes = value == true ? 15 : 0);
                   },
                 ),
               ),
@@ -302,7 +305,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 trailing: Checkbox(
                   value: auth.inactivityMinutes == 30,
                   onChanged: (bool? value) {
-                    setState(() => auth.inactivityMinutes = value == true ? 30 : 0);
+                    setState(
+                        () => auth.inactivityMinutes = value == true ? 30 : 0);
                   },
                 ),
               ),
@@ -315,7 +319,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         );
       },
-);
+    );
   }
 
   @override
@@ -367,7 +371,14 @@ class _SettingsPageState extends State<SettingsPage> {
                         ? 4
                         : width >= 480
                             ? 3
-                            : 2;
+                            : width >= 360
+                                ? 2
+                                : 1;
+    final childAspectRatio = width < 360
+        ? 2.4
+        : width < 480
+            ? 1.35
+            : 1.55;
 
     final cards = <_CardDef>[
       _CardDef('cardPharmacy', Icons.local_pharmacy_outlined,
@@ -400,8 +411,8 @@ class _SettingsPageState extends State<SettingsPage> {
           available: true, onTap: () => ShellNav.index.value = 9),
       _CardDef('cardAi', Icons.smart_toy_outlined,
           available: true,
-          onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const AiPage()))),
+          onTap: () => Navigator.of(context)
+              .push(MaterialPageRoute(builder: (_) => const AiPage()))),
       _CardDef('cardAppearance', Icons.palette_outlined,
           available: true, onTap: () => _openTool('appearance')),
       _CardDef('cardDevices', Icons.devices_outlined,
@@ -452,7 +463,7 @@ class _SettingsPageState extends State<SettingsPage> {
           crossAxisCount: crossAxisCount,
           mainAxisSpacing: 10,
           crossAxisSpacing: 10,
-          childAspectRatio: 1.55,
+          childAspectRatio: childAspectRatio,
           children: [
             for (final c in cards)
               _ControlCard(
@@ -498,8 +509,8 @@ class _SettingsPageState extends State<SettingsPage> {
               onPressed: () => setState(() => _tool = null),
             ),
             Text(_toolTitle(locale),
-                style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.w800)),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
           ],
         ),
         const SizedBox(height: 8),
@@ -598,8 +609,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 // Code PIN : création / modification du PIN personnel
                 // (verrouillage et changement d'employé sur poste partagé).
                 ListTile(
-                  leading: const Icon(Icons.pin_outlined,
-                      color: AppColors.primary),
+                  leading:
+                      const Icon(Icons.pin_outlined, color: AppColors.primary),
                   title: Text(S.t('code_pin', locale)),
                   subtitle: Text(_myPinConfigured
                       ? 'PIN configuré — toucher pour modifier'
@@ -665,8 +676,7 @@ class _SettingsPageState extends State<SettingsPage> {
       case 'tickets':
       case 'printers':
         return [
-          _PrintingSection(
-              pharmacyName: auth.user?.pharmacyName ?? 'PHARMA+'),
+          _PrintingSection(pharmacyName: auth.user?.pharmacyName ?? 'PHARMA+'),
         ];
       case 'scanner':
         return [
@@ -677,8 +687,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   leading: const Icon(Icons.qr_code_scanner,
                       color: AppColors.primary),
                   title: Text(S.t('cardScanner', locale)),
-                  subtitle: const Text(
-                      'Ouvrir le scanner code-barres produit'),
+                  subtitle: const Text('Ouvrir le scanner code-barres produit'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const ScannerPage())),
@@ -703,8 +712,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.point_of_sale,
-                      color: AppColors.primary),
+                  leading:
+                      const Icon(Icons.point_of_sale, color: AppColors.primary),
                   title: Text(S.t('pos', locale)),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => ShellNav.index.value = 2,
@@ -727,15 +736,14 @@ class _SettingsPageState extends State<SettingsPage> {
                       ? const SizedBox(
                           width: 22,
                           height: 22,
-                          child:
-                              CircularProgressIndicator(strokeWidth: 2))
+                          child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(Icons.sync),
                   onTap: _syncNow,
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.dns_outlined,
-                      color: AppColors.primary),
+                  leading:
+                      const Icon(Icons.dns_outlined, color: AppColors.primary),
                   title: Text(S.t('server', locale)),
                   subtitle: Text(auth.baseUrl),
                   trailing: const Icon(Icons.edit_outlined),
@@ -944,8 +952,7 @@ class _SettingsPageState extends State<SettingsPage> {
       ));
       return;
     }
-    final res =
-        await ApiClient.instance.put('/auth/pin', body: {'pin': pin});
+    final res = await ApiClient.instance.put('/auth/pin', body: {'pin': pin});
     if (!mounted) return;
     if (res.success) {
       setState(() => _pinConfigured = true);
@@ -991,10 +998,12 @@ class _PharmacyProfileTile extends StatelessWidget {
                         fontSize: 16, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 4),
                 Text('${p['city'] ?? ''} · ${p['phone'] ?? ''}',
-                    style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                    style: const TextStyle(
+                        color: AppColors.textMuted, fontSize: 12)),
                 if (p['email'] != null)
                   Text('${p['email']}',
-                      style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                      style: const TextStyle(
+                          color: AppColors.textMuted, fontSize: 12)),
               ],
             ),
           ),
@@ -1045,12 +1054,17 @@ class _UsersTile extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.danger.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
+              border:
+                  Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
             ),
             child: Row(children: [
-              const Icon(Icons.error_outline_rounded, size: 16, color: AppColors.danger),
+              const Icon(Icons.error_outline_rounded,
+                  size: 16, color: AppColors.danger),
               const SizedBox(width: 8),
-              Expanded(child: Text(error!, style: const TextStyle(color: AppColors.danger, fontSize: 12))),
+              Expanded(
+                  child: Text(error!,
+                      style: const TextStyle(
+                          color: AppColors.danger, fontSize: 12))),
             ]),
           ),
         if (loading)
@@ -1149,9 +1163,13 @@ class _AuditTile extends StatelessWidget {
           border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
         ),
         child: Row(children: [
-          const Icon(Icons.error_outline_rounded, size: 16, color: AppColors.danger),
+          const Icon(Icons.error_outline_rounded,
+              size: 16, color: AppColors.danger),
           const SizedBox(width: 8),
-          Expanded(child: Text(error!, style: const TextStyle(color: AppColors.danger, fontSize: 12))),
+          Expanded(
+              child: Text(error!,
+                  style:
+                      const TextStyle(color: AppColors.danger, fontSize: 12))),
         ]),
       );
     }
@@ -1235,39 +1253,43 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
          masquait la zone de saisie. */
       content: SingleChildScrollView(
         child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-              controller: _cur,
-              obscureText: true,
-              decoration:
-                  InputDecoration(labelText: S.t('currentPassword', l))),
-          const SizedBox(height: 10),
-          TextField(
-              controller: _nv,
-              obscureText: true,
-              decoration: InputDecoration(labelText: S.t('newPassword', l))),
-          const SizedBox(height: 10),
-          TextField(
-              controller: _conf,
-              obscureText: true,
-              decoration:
-                  InputDecoration(labelText: S.t('confirmPassword', l))),
-          if (_err != null) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.danger.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+                controller: _cur,
+                obscureText: true,
+                decoration:
+                    InputDecoration(labelText: S.t('currentPassword', l))),
+            const SizedBox(height: 10),
+            TextField(
+                controller: _nv,
+                obscureText: true,
+                decoration: InputDecoration(labelText: S.t('newPassword', l))),
+            const SizedBox(height: 10),
+            TextField(
+                controller: _conf,
+                obscureText: true,
+                decoration:
+                    InputDecoration(labelText: S.t('confirmPassword', l))),
+            if (_err != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.danger.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.error_outline_rounded,
+                      size: 14, color: AppColors.danger),
+                  const SizedBox(width: 6),
+                  Expanded(
+                      child: Text(_err!,
+                          style: const TextStyle(
+                              color: AppColors.danger, fontSize: 11))),
+                ]),
               ),
-              child: Row(children: [
-                const Icon(Icons.error_outline_rounded, size: 14, color: AppColors.danger),
-                const SizedBox(width: 6),
-                Expanded(child: Text(_err!, style: const TextStyle(color: AppColors.danger, fontSize: 11))),
-              ]),
-            ),
-          ],
+            ],
           ],
         ),
       ),
@@ -1345,6 +1367,7 @@ class _PharmacyEditDialogState extends State<_PharmacyEditDialog> {
   Widget build(BuildContext context) {
     final l = widget.locale;
     return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       title: Text(S.t('pharmacyProfile', l)),
       content: SingleChildScrollView(
         child: Column(
@@ -1379,9 +1402,13 @@ class _PharmacyEditDialogState extends State<_PharmacyEditDialog> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(children: [
-                  const Icon(Icons.error_outline_rounded, size: 14, color: AppColors.danger),
+                  const Icon(Icons.error_outline_rounded,
+                      size: 14, color: AppColors.danger),
                   const SizedBox(width: 6),
-                  Expanded(child: Text(_err!, style: const TextStyle(color: AppColors.danger, fontSize: 11))),
+                  Expanded(
+                      child: Text(_err!,
+                          style: const TextStyle(
+                              color: AppColors.danger, fontSize: 11))),
                 ]),
               ),
             ],
@@ -1462,6 +1489,7 @@ class _AddUserDialogState extends State<_AddUserDialog> {
   Widget build(BuildContext context) {
     final l = widget.locale;
     return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       title: Text(S.t('addUser', l)),
       content: SingleChildScrollView(
         child: Column(
@@ -1517,9 +1545,13 @@ class _AddUserDialogState extends State<_AddUserDialog> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(children: [
-                  const Icon(Icons.error_outline_rounded, size: 14, color: AppColors.danger),
+                  const Icon(Icons.error_outline_rounded,
+                      size: 14, color: AppColors.danger),
                   const SizedBox(width: 6),
-                  Expanded(child: Text(_err!, style: const TextStyle(color: AppColors.danger, fontSize: 11))),
+                  Expanded(
+                      child: Text(_err!,
+                          style: const TextStyle(
+                              color: AppColors.danger, fontSize: 11))),
                 ]),
               ),
             ],
@@ -1594,7 +1626,8 @@ class _PaymentsTile extends StatelessWidget {
           Text(error!,
               style: const TextStyle(color: AppColors.danger, fontSize: 12)),
           const SizedBox(height: 8),
-          OutlinedButton(onPressed: onRefresh, child: Text(S.t('retry', locale))),
+          OutlinedButton(
+              onPressed: onRefresh, child: Text(S.t('retry', locale))),
         ]),
       );
     }
@@ -1606,8 +1639,8 @@ class _PaymentsTile extends StatelessWidget {
     final byMethod = <String, double>{};
     for (final p in entries) {
       final m = '${p['method'] ?? 'other'}';
-      byMethod[m] = (byMethod[m] ?? 0) +
-          (double.tryParse('${p['amount'] ?? 0}') ?? 0);
+      byMethod[m] =
+          (byMethod[m] ?? 0) + (double.tryParse('${p['amount'] ?? 0}') ?? 0);
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1635,8 +1668,7 @@ class _PaymentsTile extends StatelessWidget {
             dense: true,
             leading: Icon(_methodIcon('${p['method'] ?? ''}'),
                 size: 18, color: AppColors.info),
-            title: Text(Fmt.money(
-                double.tryParse('${p['amount'] ?? 0}') ?? 0)),
+            title: Text(Fmt.money(double.tryParse('${p['amount'] ?? 0}') ?? 0)),
             subtitle: Text(
               '${p['method'] ?? ''}${p['card_type'] != null ? ' · ${p['card_type']}' : ''}'
               '${p['reference'] != null ? ' · ${p['reference']}' : ''}'
@@ -1686,8 +1718,7 @@ class _BackupsTile extends StatelessWidget {
       children: [
         ListTile(
           enabled: !busy,
-          leading:
-              const Icon(Icons.backup_outlined, color: AppColors.primary),
+          leading: const Icon(Icons.backup_outlined, color: AppColors.primary),
           title: Text(S.t('newBackup', locale)),
           subtitle: const Text(
               'Lance une sauvegarde réelle : pg_dump chiffré AES-256 '
@@ -1705,8 +1736,8 @@ class _BackupsTile extends StatelessWidget {
         const Divider(height: 1),
         ListTile(
           enabled: false,
-          leading:
-              const Icon(Icons.settings_backup_restore, color: AppColors.danger),
+          leading: const Icon(Icons.settings_backup_restore,
+              color: AppColors.danger),
           title: Text(S.t('restoreBackup', locale)),
           subtitle: const Text(
               'Approbation backups:approve, puis backup_worker.mjs --decrypt '
@@ -1717,8 +1748,7 @@ class _BackupsTile extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(10),
             child: Text(error!,
-                style:
-                    const TextStyle(color: AppColors.danger, fontSize: 12)),
+                style: const TextStyle(color: AppColors.danger, fontSize: 12)),
           )
         else if (entries.isEmpty)
           Padding(
@@ -1737,7 +1767,8 @@ class _BackupsTile extends StatelessWidget {
               subtitle: Text(
                 '${b['created_at'] ?? ''}'
                 '${b['size_bytes'] != null ? ' · ${b['size_bytes']} o' : ''}',
-                style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                style:
+                    const TextStyle(fontSize: 11, color: AppColors.textMuted),
               ),
             ),
       ],
@@ -1791,7 +1822,8 @@ class _DevicesTile extends StatelessWidget {
                       fontSize: 13, fontWeight: FontWeight.w600)),
               subtitle: Text(
                 '${s['ip_address'] ?? ''} · ${s['last_used_at'] ?? s['created_at'] ?? ''}',
-                style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                style:
+                    const TextStyle(fontSize: 11, color: AppColors.textMuted),
               ),
             ),
         if (cameras.isNotEmpty) ...[
@@ -1799,8 +1831,8 @@ class _DevicesTile extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
             child: Text(S.t('cameras', locale),
-                style: const TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w700)),
+                style:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
           ),
           for (final c in cameras)
             ListTile(
@@ -1810,7 +1842,8 @@ class _DevicesTile extends StatelessWidget {
               title: Text('${c['name'] ?? c['id'] ?? 'Caméra'}',
                   style: const TextStyle(fontSize: 13)),
               subtitle: Text('${c['location'] ?? ''} · ${c['status'] ?? ''}',
-                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                  style: const TextStyle(
+                      fontSize: 11, color: AppColors.textMuted)),
             ),
         ],
         const Divider(height: 1),
@@ -1818,8 +1851,7 @@ class _DevicesTile extends StatelessWidget {
           dense: true,
           leading: Icon(Icons.smartphone_outlined, size: 18),
           title: Text('PHARMA+ · Web',
-              style:
-                  TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
           subtitle: Text('Cet appareil · session en cours',
               style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
         ),
@@ -1855,9 +1887,8 @@ class _ControlCard extends StatelessWidget {
           ],
         ),
         border: Border.all(
-          color: unavailable
-              ? AppColors.dividerDark
-              : AppColors.goldBorderStrong,
+          color:
+              unavailable ? AppColors.dividerDark : AppColors.goldBorderStrong,
         ),
         boxShadow: unavailable
             ? const []
@@ -1910,34 +1941,40 @@ class _ControlCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Contenu strictement centré dans la cellule
+                // Contenu strictement centré dans la cellule. La hauteur du
+                // médaillon s'adapte à la place réelle : sur les cellules
+                // basses (320 px), 58 px + libellé débordaient de 2,3 px.
                 SizedBox.expand(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 64,
-                        height: 58,
-                        child: CustomPaint(
-                          painter: _Control3DPainter(icon: def.icon),
+                  child: LayoutBuilder(builder: (context, cell) {
+                    final iconH =
+                        (cell.maxHeight - 34).clamp(28.0, 58.0).toDouble();
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 64,
+                          height: iconH,
+                          child: CustomPaint(
+                            painter: _Control3DPainter(icon: def.icon),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        label,
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 11.5,
-                          height: 1.15,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.pharmaText,
+                        const SizedBox(height: 6),
+                        Text(
+                          label,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            height: 1.15,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.pharmaText,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    );
+                  }),
                 ),
               ],
             ),
@@ -1965,7 +2002,8 @@ class _Control3DPainter extends CustomPainter {
 
     // Halo vert pétrole
     canvas.drawOval(
-      Rect.fromCenter(center: Offset(cx, h * 0.88), width: w * 0.82, height: h * 0.22),
+      Rect.fromCenter(
+          center: Offset(cx, h * 0.88), width: w * 0.82, height: h * 0.22),
       Paint()
         ..color = AppColors.accent.withValues(alpha: 0.35)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
@@ -1979,8 +2017,10 @@ class _Control3DPainter extends CustomPainter {
         ..shader = ui.Gradient.linear(
           pod.topCenter,
           pod.bottomCenter,
-          [AppColors.pharmaGold.withValues(alpha: 0.75),
-           AppColors.pharmaGold.withValues(alpha: 0.2)],
+          [
+            AppColors.pharmaGold.withValues(alpha: 0.75),
+            AppColors.pharmaGold.withValues(alpha: 0.2)
+          ],
         ),
     );
     canvas.drawOval(
@@ -1994,9 +2034,7 @@ class _Control3DPainter extends CustomPainter {
     // Ombre portée du médaillon
     canvas.drawOval(
       Rect.fromCenter(
-          center: Offset(cx + 2, cy + r + 4),
-          width: r * 1.7,
-          height: r * 0.45),
+          center: Offset(cx + 2, cy + r + 4), width: r * 1.7, height: r * 0.45),
       Paint()
         ..color = Colors.black.withValues(alpha: 0.5)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
@@ -2013,8 +2051,9 @@ class _Control3DPainter extends CustomPainter {
       canvas.drawRRect(
         rect,
         Paint()
-          ..color = Color.lerp(const Color(0xFF8A6A28), const Color(0xFF3E2A00), f)!
-              .withValues(alpha: 0.95),
+          ..color =
+              Color.lerp(const Color(0xFF8A6A28), const Color(0xFF3E2A00), f)!
+                  .withValues(alpha: 0.95),
       );
     }
 
@@ -2029,7 +2068,12 @@ class _Control3DPainter extends CustomPainter {
         ..shader = ui.Gradient.linear(
           Offset(cx - r, cy - r),
           Offset(cx + r, cy + r),
-          [AppColors.pharmaGoldLight, AppColors.pharmaGold, const Color(0xFFA67C1F)],
+          [
+            AppColors.pharmaGoldLight,
+            AppColors.pharmaGold,
+            const Color(0xFFA67C1F)
+          ],
+          const [0.0, 0.5, 1.0],
         ),
     );
     // Biseau intérieur
@@ -2243,8 +2287,8 @@ class _TvaSectionState extends State<_TvaSection> {
   void initState() {
     super.initState();
     final tva = (widget.pharmacy?['settings'] is Map
-            ? (widget.pharmacy!['settings'] as Map)['tva']
-            : null) as Map?;
+        ? (widget.pharmacy!['settings'] as Map)['tva']
+        : null) as Map?;
     _medication.text = '${_rate(tva?['medication'], 0)}';
     _parapharmacie.text = '${_rate(tva?['parapharmacie'], 20)}';
     _other.text = '${_rate(tva?['other'], 20)}';
@@ -2265,8 +2309,15 @@ class _TvaSectionState extends State<_TvaSection> {
     final med = double.tryParse(_medication.text.replaceAll(',', '.'));
     final par = double.tryParse(_parapharmacie.text.replaceAll(',', '.'));
     final other = double.tryParse(_other.text.replaceAll(',', '.'));
-    if (med == null || par == null || other == null ||
-        med < 0 || par < 0 || other < 0 || med > 100 || par > 100 || other > 100) {
+    if (med == null ||
+        par == null ||
+        other == null ||
+        med < 0 ||
+        par < 0 ||
+        other < 0 ||
+        med > 100 ||
+        par > 100 ||
+        other > 100) {
       setState(() => _error = 'Taux invalides (0 à 100 attendus).');
       return;
     }
@@ -2322,8 +2373,8 @@ class _TvaSectionState extends State<_TvaSection> {
           child: TextField(
             controller: _other,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-                labelText: 'Autre (%)', suffixText: '%'),
+            decoration:
+                const InputDecoration(labelText: 'Autre (%)', suffixText: '%'),
           ),
         ),
       ]),
@@ -2343,9 +2394,13 @@ class _TvaSectionState extends State<_TvaSection> {
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(children: [
-            const Icon(Icons.error_outline_rounded, size: 14, color: AppColors.danger),
+            const Icon(Icons.error_outline_rounded,
+                size: 14, color: AppColors.danger),
             const SizedBox(width: 6),
-            Expanded(child: Text(_error!, style: const TextStyle(color: AppColors.danger, fontSize: 11))),
+            Expanded(
+                child: Text(_error!,
+                    style: const TextStyle(
+                        color: AppColors.danger, fontSize: 11))),
           ]),
         ),
       ],
@@ -2412,8 +2467,8 @@ class _MaintenanceSectionState extends State<_MaintenanceSection> {
               child: const Text('Annuler')),
           FilledButton(
               style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-              onPressed: () =>
-                  Navigator.pop(context, checkedCtrl.text.trim() == 'REINITIALISER'),
+              onPressed: () => Navigator.pop(
+                  context, checkedCtrl.text.trim() == 'REINITIALISER'),
               child: const Text('Réinitialiser')),
         ],
       ),
@@ -2446,10 +2501,14 @@ class _MaintenanceSectionState extends State<_MaintenanceSection> {
         const SizedBox(height: 12),
         ListTile(
           enabled: !_busy,
-          leading: const Icon(Icons.receipt_long_rounded,
-              color: AppColors.warning),
+          leading:
+              const Icon(Icons.receipt_long_rounded, color: AppColors.warning),
           title: Text('Ventes de test',
-              style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.inkDark, fontSize: 14)),
+              style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : AppColors.inkDark,
+                  fontSize: 14)),
           subtitle: const Text(
               'Supprime uniquement les ventes marquées VENTE-TEST',
               style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
@@ -2462,10 +2521,14 @@ class _MaintenanceSectionState extends State<_MaintenanceSection> {
         const Divider(height: 1),
         ListTile(
           enabled: !_busy,
-          leading: const Icon(Icons.inventory_2_outlined,
-              color: AppColors.warning),
+          leading:
+              const Icon(Icons.inventory_2_outlined, color: AppColors.warning),
           title: Text('Stock à zéro',
-              style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.inkDark, fontSize: 14)),
+              style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : AppColors.inkDark,
+                  fontSize: 14)),
           subtitle: const Text(
               'Met toutes les quantités de stock à 0 (références conservées)',
               style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
@@ -2478,8 +2541,7 @@ class _MaintenanceSectionState extends State<_MaintenanceSection> {
         const Divider(height: 1),
         const ListTile(
           enabled: false,
-          leading:
-              Icon(Icons.dangerous_rounded, color: AppColors.danger),
+          leading: Icon(Icons.dangerous_rounded, color: AppColors.danger),
           title: Text('Réinitialisation complète',
               style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
           subtitle: Text(
