@@ -232,6 +232,8 @@ class MobileNavDrawer extends StatelessWidget {
     final locale = auth.locale;
     final user = auth.user;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Couleur de texte adaptée au fond (émeraude = champagne, graphite = porcelain).
+    final textColor = isDark ? AppColors.porcelain : AppColors.champagne;
     final primary = visibleMobileDestinations(auth, locale);
     final primaryIndexes = primary.map((d) => d.shellIndex).toSet();
 
@@ -291,8 +293,8 @@ class MobileNavDrawer extends StatelessWidget {
                             : ''),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
+                    style: TextStyle(
+                      color: textColor,
                       fontSize: 11.5,
                       fontWeight: FontWeight.w600,
                     ),
@@ -446,7 +448,7 @@ class _DrawerTile extends StatelessWidget {
               Icon(
                 icon,
                 size: 24,
-                color: isDark ? AppColors.champagne : AppColors.sageGreenInk,
+                color: isDark ? AppColors.porcelain : AppColors.champagne,
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -460,14 +462,8 @@ class _DrawerTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 15,
-                        color: isDark
-                            ? AppColors.champagne
-                            : (active
-                                ? AppColors.sageGreenInk
-                                : AppColors.inkDark),
-                        fontWeight: isDark
-                            ? FontWeight.w800
-                            : (active ? FontWeight.w800 : FontWeight.w600),
+                        color: isDark ? AppColors.porcelain : AppColors.champagne,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     if (subtitle != null)
@@ -477,9 +473,7 @@ class _DrawerTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 12,
-                          color: isDark
-                              ? AppColors.textSecondary
-                              : AppColors.inkDarkLight,
+                          color: isDark ? AppColors.porcelain : AppColors.champagne,
                         ),
                       ),
                   ],

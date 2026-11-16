@@ -1334,10 +1334,12 @@ class _TopBar extends StatelessWidget {
                       ? '?'
                       : userName.characters.first.toUpperCase(),
                   style: TextStyle(
-                      color: dashText(context), fontWeight: FontWeight.w900),
-                ),
-              ),
+                      color: MarbleBackground.of(context)?.textColor ?? Colors.white,
+                      fontWeight: FontWeight.w900,
+                    )
+              )
             )
+          )
           else
             Flexible(
               child: Container(
@@ -1362,13 +1364,13 @@ class _TopBar extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                  color: dashText(context),
+                                  color: textColor,
                                   fontSize: 13,
                                   fontWeight: FontWeight.w800)),
                         ),
                         const SizedBox(width: 4),
-                        const Icon(Icons.keyboard_arrow_down,
-                            size: 18, color: AppColors.textSecondary),
+                        Icon(Icons.keyboard_arrow_down,
+                            size: 18, color: textColor),
                       ]),
                       Text('$userName · $roleLabel',
                           maxLines: 1,
@@ -1574,7 +1576,7 @@ class _DarkPanel extends StatelessWidget {
                   child: Text(
                     title,
                     style: TextStyle(
-                        color: dashText(context),
+                        color: textColor,
                         fontSize: 13.5,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.6),
@@ -1753,7 +1755,8 @@ class _AlertRow extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    color: dashText(context),
+                    color: MarbleBackground.of(context)?.textColor ??
+                        Colors.white,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700)),
             Text(detail,
@@ -2172,7 +2175,8 @@ class _AnalyticsChartCard extends StatelessWidget {
               children: [
                 Text(title,
                     style: TextStyle(
-                        color: dashText(context),
+                        color: MarbleBackground.of(context)?.textColor ??
+                            Colors.white,
                         fontSize: 12.5,
                         fontWeight: FontWeight.w800)),
                 const SizedBox(height: 2),
