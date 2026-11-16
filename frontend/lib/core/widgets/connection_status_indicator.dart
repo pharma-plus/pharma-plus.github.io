@@ -23,15 +23,20 @@ import '../../core/widgets/sync_status_panel.dart';
 class ConnectionStatusIndicator extends StatefulWidget {
   /// Position de l'indicateur : topBar (barre supérieure) ou bottom (bas d'écran).
   final ConnectionStatusIndicatorPosition position;
+
   /// Afficher le texte détaillé (dernière sync, opérations en attente).
   final bool showDetails;
   final double iconSize;
+
+  /// false = pastille icône seule (barre du haut compacte, smartphone).
+  final bool showLabel;
 
   const ConnectionStatusIndicator({
     super.key,
     this.position = ConnectionStatusIndicatorPosition.topBar,
     this.showDetails = true,
     this.iconSize = 14,
+    this.showLabel = true,
   });
 
   @override
@@ -41,8 +46,7 @@ class ConnectionStatusIndicator extends StatefulWidget {
 
 enum ConnectionStatusIndicatorPosition { topBar, bottom }
 
-class _ConnectionStatusIndicatorState
-    extends State<ConnectionStatusIndicator> {
+class _ConnectionStatusIndicatorState extends State<ConnectionStatusIndicator> {
   final ConnectionStatusService _svc = ConnectionStatusService.instance;
 
   Color _statusColor(ConnectionStatus s) {
@@ -158,15 +162,17 @@ class _ConnectionStatusIndicatorState
                   color: Colors.white,
                 ),
               ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
+              if (widget.showLabel) ...[
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ];

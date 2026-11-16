@@ -11,6 +11,7 @@ import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/calculations.dart';
 import '../../core/utils/format.dart';
+import '../../core/widgets/connection_status_indicator.dart';
 import '../../core/widgets/marble_texture.dart';
 import '../../core/widgets/pharma_logo.dart';
 
@@ -30,8 +31,7 @@ import 'global_search.dart';
 
 /// Helpers thème-adaptatif dashboard : écritures TOUJOURS lisibles
 /// (encre foncée sur marbre clair, blanc sur graphite sombre).
-bool dashDark(BuildContext c) =>
-    Theme.of(c).brightness == Brightness.dark;
+bool dashDark(BuildContext c) => Theme.of(c).brightness == Brightness.dark;
 Color dashText(BuildContext c) =>
     dashDark(c) ? Colors.white : AppColors.inkDark;
 Color dashTextSoft(BuildContext c) =>
@@ -267,6 +267,13 @@ class _DashboardPageState extends State<DashboardPage> {
         ),
       );
     }
+    // ---- Smartphones & tablettes (< 1150 px) : disposition DÉDIÉE ----
+    // La disposition desktop (top bar 62 px, KPI 4 colonnes, Alertes +
+    // Plan 3D en ligne, POS latéral) reste EXACTEMENT celle d'origine à
+    // partir de 1150 px. En dessous, on construit une expérience mobile
+    // propre : top bar compacte, KPI 1-3 colonnes, sections verticales.
+    final vwNow = MediaQuery.sizeOf(context).width;
+    if (vwNow < 1150) return _buildCompactLayout(context, vwNow);
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: Colors.transparent,
@@ -275,10 +282,15 @@ class _DashboardPageState extends State<DashboardPage> {
         // le cadre du dashboard) : la sidebar fixe est rendue par le shell,
         // le dashboard vit dans un Expanded à droite.
         final vw = MediaQuery.sizeOf(context).width;
-        // Large POS latéral uniquement sur les grands écrans ; en dessous,
-        // le POS complet reste accessible via le panneau réduit et les menus.
-        final showPosPanel = vw >= 1300;
-        final posWidth = vw >= 1560 ? 430.0 : 385.0;
+        // Mini-POS latéral fixe sur dashboard PC (zone dédiée, visible pendant
+        // le défilement du contenu gauche). Largeur adaptative pour rester
+        // stable sans masquer KPI/sections sur les résolutions PC demandées.
+        final showPosPanel = vw >= 1200;
+        final posWidth = vw >= 1366
+            ? 430.0
+            : vw >= 1280
+                ? 390.0
+                : 360.0;
         // Sidebar fixe sur desktop ; hamburger + overlay sur écrans réduits.
         final showSidebar = vw >= 1150;
         // Écrans bas (1366×768, 1536×864...) : proportions compactes pour
@@ -297,7 +309,8 @@ class _DashboardPageState extends State<DashboardPage> {
                       builder: (context, collapsed, _) => _TopBar(
                         onMenu: showSidebar ? null : _openMenuDrawer,
                         collapsed: collapsed,
-                        onToggleSidebar: showSidebar ? SideMenuState.toggle : null,
+                        onToggleSidebar:
+                            showSidebar ? SideMenuState.toggle : null,
                         onScan: () => _push(const ScannerPage()),
                         onNotifications: () => _push(const NotificationsPage()),
                         onSettings: () => ShellNav.index.value = 11,
@@ -357,7 +370,8 @@ class _DashboardPageState extends State<DashboardPage> {
                                       compact: compact,
                                     )
                                   : Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Expanded(
                                           flex: 5,
@@ -372,7 +386,8 @@ class _DashboardPageState extends State<DashboardPage> {
                                           ),
                                         ),
                                         // Espace flex: 7 pour aligner avec la proportion Alertes Stock / Plan3D
-                                        const Expanded(flex: 7, child: SizedBox.shrink()),
+                                        const Expanded(
+                                            flex: 7, child: SizedBox.shrink()),
                                       ],
                                     ),
                             ]),
@@ -413,7 +428,124 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+  /// ============================================================
+  /// DISPOSITION COMPACTE (smartphone + tablette, < 1150 px).
+  ///
+  /// Top bar mobile compacte → accueil (bienvenue, pharmacie, date) →
+  /// 8 KPI (1-3 colonnes) → Alertes stock → Plan 3D → Analytique.
+  /// Défilement vertical naturel, aucune largeur fixe héritée du PC,
+  /// aucun panneau POS latéral (le POS complet reste accessible via
+  /// la navigation inférieure et les KPI, sans modification du POS).
+  /// ============================================================
+  Widget _buildCompactLayout(BuildContext context, double vw) {
+    final mq = MediaQuery.of(context);
+    final phone = mq.size.shortestSide < 600;
+    final isDark = dashDark(context);
+    return Scaffold(
+      key: _scaffoldKey,
+      backgroundColor: Colors.transparent,
+      body: Stack(children: [
+        Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          _MobileTopBar(
+            onMenu: _openMenuDrawer,
+            onScan: () => _push(const ScannerPage()),
+            onNotifications: () => _push(const NotificationsPage()),
+            onSettings: () => ShellNav.index.value = 11,
+            onLock: () => context.read<AuthStore>().lockSession(manual: true),
+            onLogout: _onLogout,
+            notificationCount: _notificationCount,
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              // Défilement vertical naturel : ClampingPhysics comme desktop.
+              physics: const ClampingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 16),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _MobileWelcomeHeader(isDark: isDark),
+                    const SizedBox(height: 12),
+                    _buildMobileKpiGrid(context, vw),
+                    const SizedBox(height: 12),
+                    // Sections métier empilées verticalement (pleine largeur).
+                    _AlertsStockPanel(
+                      lowStock: _lowStock,
+                      expiring: _expiring,
+                      lowStockRows: _lowStockRows,
+                      expiringRows: _expiringRows,
+                      expiredRows: _expiredRows,
+                      onViewAll: () => StockPage.openWith(filter: 'low'),
+                      compact: true,
+                    ),
+                    const SizedBox(height: 12),
+                    _Plan3DPanel(
+                      onOpen: () => _push(const PharmacyPlanPage()),
+                      compact: true,
+                      phone: phone,
+                    ),
+                    const SizedBox(height: 12),
+                    _AnalyticsSection(
+                      revenueToday: _revenueToday,
+                      revenueMonth: _revenueMonth,
+                      profitMonth: _profitMonth,
+                      expiring: _expiring,
+                      expired: _expired,
+                      lowStock: _lowStock,
+                      compact: true,
+                      // Smartphones : graphiques empilés pleine largeur
+                      // (pas de scroll horizontal global) ; tablettes :
+                      // deux graphiques côte à côte.
+                      layout: phone
+                          ? _AnalyticsLayout.stacked
+                          : _AnalyticsLayout.sideBySide,
+                    ),
+                  ]),
+            ),
+          ),
+        ]),
+        if (_loading)
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: LinearProgressIndicator(
+              minHeight: 2,
+              color: AppColors.emerald,
+              backgroundColor: Colors.transparent,
+            ),
+          ),
+      ]),
+    );
+  }
+
   Widget _buildKpiGrid({required bool compact}) {
+    final kpis = _kpiDefs();
+    // Gabarit précédent validé : quatre colonnes sur PC, deux sur mobile.
+    // La largeur de fenêtre décide du mode, pas la largeur réduite après le
+    // panneau POS, afin d'éviter des cartes géantes en deux colonnes.
+    final cols = MediaQuery.of(context).size.width >= 980 ? 4 : 2;
+    return GridView.count(
+      crossAxisCount: cols,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: compact ? 10 : 12,
+      mainAxisSpacing: compact ? 10 : 12,
+      childAspectRatio: compact ? 1.28 : 0.95,
+      children: [
+        for (var i = 0; i < kpis.length; i++)
+          _KpiCard(
+            key: ValueKey('kpi-${kpis[i].label}'),
+            def: kpis[i],
+            onTap: _kpiTap(kpis[i].label),
+          ),
+      ],
+    );
+  }
+
+  /// Définitions des 8 KPI - source unique partagée par la grille desktop
+  /// (4 colonnes) et la grille mobile/tablette (1-3 colonnes). Le filtrage
+  /// par `canSeeModule` est conservé à l'identique, aucune valeur inventée.
+  List<_KpiDef> _kpiDefs() {
     // Tendance affichée UNIQUEMENT si un comparatif réel existe.
     String? pct(double? v) =>
         v == null ? null : '${v >= 0 ? '+' : ''}${v.toStringAsFixed(1)}%';
@@ -505,25 +637,34 @@ class _DashboardPageState extends State<DashboardPage> {
           imageScale: 1.10,
           imageAlignment: const Alignment(0, 0.92)),
     ].where((k) => k.module == null || auth.canSeeModule(k.module!)).toList();
-    // Gabarit précédent validé : quatre colonnes sur PC, deux sur mobile.
-    // La largeur de fenêtre décide du mode, pas la largeur réduite après le
-    // panneau POS, afin d'éviter des cartes géantes en deux colonnes.
-    final cols = MediaQuery.of(context).size.width >= 980 ? 4 : 2;
-    return GridView.count(
-      crossAxisCount: cols,
+    return kpis;
+  }
+
+  /// Grille KPI mobile/tablette : 1 colonne sous 360 px (très petit
+  /// écran), 2 colonnes smartphone, 3 colonnes tablette. Hauteur des
+  /// cartes fixée (`mainAxisExtent`) pour des cartes régulières,
+  /// lisibles et sans débordement, illustrations conservées.
+  Widget _buildMobileKpiGrid(BuildContext context, double vw) {
+    final kpis = _kpiDefs();
+    final cols = vw < 360 ? 1 : (vw < 700 ? 2 : 3);
+    final extent = cols == 2 ? 142.0 : 150.0;
+    return GridView.builder(
+      key: const ValueKey('mobile-kpi-grid'),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: compact ? 10 : 12,
-      mainAxisSpacing: compact ? 10 : 12,
-      childAspectRatio: compact ? 1.28 : 0.95,
-      children: [
-        for (var i = 0; i < kpis.length; i++)
-          _KpiCard(
-            key: ValueKey('kpi-${kpis[i].label}'),
-            def: kpis[i],
-            onTap: _kpiTap(kpis[i].label),
-          ),
-      ],
+      padding: EdgeInsets.zero,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: cols,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        mainAxisExtent: extent,
+      ),
+      itemCount: kpis.length,
+      itemBuilder: (context, i) => _KpiCard(
+        key: ValueKey('kpi-${kpis[i].label}'),
+        def: kpis[i],
+        onTap: _kpiTap(kpis[i].label),
+      ),
     );
   }
 }
@@ -603,8 +744,9 @@ class _KpiCardState extends State<_KpiCard> {
     // Illustration selon le thème : graphite (sombre, validé) /
     // marbre argenté (thème principal clair).
     final bool kpiDark = dashDark(context);
-    final String kpiImg =
-        kpiDark ? def.image : def.image.replaceFirst('kpi_bg_', 'kpi_bg_light_');
+    final String kpiImg = kpiDark
+        ? def.image
+        : def.image.replaceFirst('kpi_bg_', 'kpi_bg_light_');
     // Sur smartphone, les cartes KPI sont plus petites : on reduit l'ombre
     // (blur/offset) pour eviter qu'elle deborde en dehors de la carte et
     // chevauche l'illustration / les cartes voisines.
@@ -694,94 +836,380 @@ class _KpiCardState extends State<_KpiCard> {
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 11, 14, 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(children: [
-                          Expanded(
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerLeft,
-                              child: Text(def.label,
-                                  maxLines: 1,
-                                  style: TextStyle(
-                                      color: kpiDark
-                                          ? _gold
-                                          : AppColors.champagneInk,
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 0.8)),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          // Badge icône seul, sans fond coloré décoratif
-                          Icon(def.badge, key: ValueKey('kpi-badge-${def.label}'), size: 18, color: def.badgeColor),
-                        ]),
-                        const SizedBox(height: 6),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(def.value,
-                              maxLines: 1,
-                              style: TextStyle(
-                                  color: kpiDark
-                                      ? _gold
-                                      : AppColors.champagneInk,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w900)),
-                        ),
-                        if (def.sub.isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text(def.sub,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  color: (kpiDark
-                                          ? _gold
-                                          : AppColors.champagneInk)
-                                      .withValues(alpha: 0.85),
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w700)),
-                        ],
-                        if (def.trendPct != null) ...[
-                          const SizedBox(height: 3),
-                          (() {
-                            final t = def.trendPct!;
-                            final isPositive = !t.startsWith('-');
-                            return Text(t,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 11, 14, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        Expanded(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(def.label,
                                 maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                    color: isPositive ? AppColors.success : AppColors.danger,
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w900));
-                          })(),
-                          Text(def.trendVs,
+                                    color: kpiDark
+                                        ? _gold
+                                        : AppColors.champagneInk,
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.8)),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        // Badge icône seul, sans fond coloré décoratif
+                        Icon(def.badge,
+                            key: ValueKey('kpi-badge-${def.label}'),
+                            size: 18,
+                            color: def.badgeColor),
+                      ]),
+                      const SizedBox(height: 6),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(def.value,
+                            maxLines: 1,
+                            style: TextStyle(
+                                color: kpiDark ? _gold : AppColors.champagneInk,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900)),
+                      ),
+                      if (def.sub.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(def.sub,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color:
+                                    (kpiDark ? _gold : AppColors.champagneInk)
+                                        .withValues(alpha: 0.85),
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700)),
+                      ],
+                      if (def.trendPct != null) ...[
+                        const SizedBox(height: 3),
+                        (() {
+                          final t = def.trendPct!;
+                          final isPositive = !t.startsWith('-');
+                          return Text(t,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                  color: dashDark(context)
-                                      ? Colors.white.withValues(alpha: 0.70)
-                                      : AppColors.inkDarkLight,
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w600)),
-                        ],
+                                  color: isPositive
+                                      ? AppColors.success
+                                      : AppColors.danger,
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w900));
+                        })(),
+                        Text(def.trendVs,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: dashDark(context)
+                                    ? Colors.white.withValues(alpha: 0.70)
+                                    : AppColors.inkDarkLight,
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w600)),
                       ],
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
-      );
+      ),
+    );
   }
 }
 
 /// Or de marque utilisé par les accents dorés du dashboard.
 const Color _gold = Color(0xFFD9B45C);
+
+/// ============================================================
+/// TOP BAR MOBILE COMPACTE (smartphone + tablette < 1150 px).
+///
+/// PHARMA+ (logo officiel) · pharmacie · utilisateur connecté ·
+/// notifications (badge réel) · menu (drawer « Tous les modules ») ·
+/// actions secondaires regroupées (Paramètres / Verrouiller /
+/// Déconnexion). Hauteur 56 px : identité lisible sans jamais déborder
+/// à 320 px. Les icônes gardent une zone tactile ≥ 44 px.
+/// ============================================================
+class _MobileTopBar extends StatelessWidget {
+  final VoidCallback onMenu;
+  final VoidCallback onScan;
+  final VoidCallback onNotifications;
+  final VoidCallback onSettings;
+  final VoidCallback onLock;
+  final VoidCallback onLogout;
+  final int notificationCount;
+  const _MobileTopBar({
+    required this.onMenu,
+    required this.onScan,
+    required this.onNotifications,
+    required this.onSettings,
+    required this.onLock,
+    required this.onLogout,
+    this.notificationCount = 0,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final user = context.watch<AuthStore>().user;
+    final pharmacyName = (user?.pharmacyName?.trim().isNotEmpty ?? false)
+        ? user!.pharmacyName!
+        : 'PHARMA+';
+    final roleLabel = user?.roleName ?? 'Admin';
+    final userName = (user?.fullName.trim().isNotEmpty ?? false)
+        ? user!.fullName.trim()
+        : 'Admin';
+    final isDark = dashDark(context);
+    return MarbleBackground(
+      dark: isDark,
+      child: Container(
+        height: 56,
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        decoration: BoxDecoration(
+            color: isDark
+                ? AppColors.surfaceDark
+                : const Color(0xFFF7F8F9).withValues(alpha: 0.72),
+            border: Border(
+                bottom: BorderSide(
+                    color: isDark
+                        ? AppColors.dividerDark.withValues(alpha: 0.7)
+                        : AppColors.silverDark))),
+        child: Row(children: [
+          // Menu (drawer mobile « Tous les modules »).
+          InkWell(
+            key: const ValueKey('mobile-topbar-menu'),
+            onTap: onMenu,
+            borderRadius: BorderRadius.circular(10),
+            child: const Padding(
+              padding: EdgeInsets.all(10),
+              child: Icon(Icons.menu_rounded, size: 24, color: _gold),
+            ),
+          ),
+          // Identité PHARMA+ (logo officiel).
+          const PharmaPlusLogo(size: 28),
+          const SizedBox(width: 8),
+          // Pharmacie + utilisateur connecté.
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(pharmacyName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: dashText(context),
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w800)),
+                Text('$userName · $roleLabel',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: isDark
+                            ? AppColors.emeraldLight
+                            : AppColors.sageGreenInk,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700)),
+              ],
+            ),
+          ),
+          // Notifications (badge = compteur réel de l'API).
+          _TopIcon(
+              icon: Icons.notifications_outlined,
+              badge: notificationCount > 0 ? '$notificationCount' : null,
+              onTap: onNotifications),
+          // Synchronisation : INTÉGRÉE à la barre du haut, à droite de la
+          // cloche (n'est plus flottante par-dessus l'interface).
+          const ConnectionStatusIndicator(
+            key: ValueKey('sync-indicator-topbar'),
+            position: ConnectionStatusIndicatorPosition.topBar,
+            showDetails: false,
+            showLabel: false,
+            iconSize: 13,
+          ),
+          // Actions secondaires regroupées (jamais de débordement).
+          PopupMenuButton<String>(
+            tooltip: 'Plus d\'actions',
+            icon: const Icon(Icons.more_vert_rounded, size: 22, color: _gold),
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'settings',
+                onTap: onSettings,
+                child: const Row(children: [
+                  Icon(Icons.settings_outlined, size: 18, color: _gold),
+                  SizedBox(width: 10),
+                  Text('Paramètres', style: TextStyle(fontSize: 14)),
+                ]),
+              ),
+              PopupMenuItem(
+                value: 'lock',
+                onTap: onLock,
+                child: const Row(children: [
+                  Icon(Icons.lock_open_outlined, size: 18, color: _gold),
+                  SizedBox(width: 10),
+                  Text('Verrouiller', style: TextStyle(fontSize: 14)),
+                ]),
+              ),
+              PopupMenuItem(
+                value: 'logout',
+                onTap: onLogout,
+                child: const Row(children: [
+                  Icon(Icons.logout_rounded, size: 18, color: _gold),
+                  SizedBox(width: 10),
+                  Text('Déconnexion', style: TextStyle(fontSize: 14)),
+                ]),
+              ),
+            ],
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+/// ============================================================
+/// ACCUEIL MOBILE COMPACT - bienvenue + pharmacie + date.
+/// Carte premium (vert profond / champagne, relief subtil) : identité
+/// conservée, hauteur maîtrisée pour que les 8 KPI restent visibles
+/// dès le premier écran.
+/// ============================================================
+class _MobileWelcomeHeader extends StatelessWidget {
+  final bool isDark;
+  const _MobileWelcomeHeader({required this.isDark});
+
+  /// Date du jour en français, construite SANS intl (aucune dépendance
+  /// à l'initialisation des symboles de locale - aucune donnée inventée).
+  static const _frMonths = <String>[
+    'janvier',
+    'février',
+    'mars',
+    'avril',
+    'mai',
+    'juin',
+    'juillet',
+    'août',
+    'septembre',
+    'octobre',
+    'novembre',
+    'décembre',
+  ];
+  static const _frDays = <String>[
+    'lundi',
+    'mardi',
+    'mercredi',
+    'jeudi',
+    'vendredi',
+    'samedi',
+    'dimanche',
+  ];
+  String get _date {
+    final now = DateTime.now();
+    final raw =
+        '${_frDays[now.weekday - 1]} ${now.day} ${_frMonths[now.month - 1]} ${now.year}';
+    return raw[0].toUpperCase() + raw.substring(1);
+  }
+
+  String _greeting() {
+    final h = DateTime.now().hour;
+    if (h < 12) return 'Bonjour';
+    if (h < 18) return 'Bon après-midi';
+    return 'Bonsoir';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = context.watch<AuthStore>().user;
+    final pharmacyName = (user?.pharmacyName?.trim().isNotEmpty ?? false)
+        ? user!.pharmacyName!
+        : 'PHARMA+';
+    final firstName = (user?.fullName.trim().isNotEmpty ?? false) &&
+            user!.fullName.trim().contains(' ')
+        ? user.fullName.trim().split(' ').first
+        : (user?.fullName.trim() ?? '');
+    return Container(
+      key: const ValueKey('mobile-welcome-header'),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.goldBorder),
+        gradient: isDark
+            ? const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF12241C), Color(0xFF0D1713)],
+              )
+            : const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFE9F1EC), Color(0xFFDDE8E1)],
+              ),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 3)),
+        ],
+      ),
+      child: Row(children: [
+        Expanded(
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('${_greeting()}${firstName.isEmpty ? '' : ', $firstName'}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.75)
+                            : AppColors.sageGreenInk,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(height: 2),
+                Text(pharmacyName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: isDark ? _gold : AppColors.champagneInk,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900)),
+                const SizedBox(height: 2),
+                Text(_date,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.55)
+                            : AppColors.inkDarkLight,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600)),
+              ]),
+        ),
+        const SizedBox(width: 10),
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isDark
+                  ? AppColors.graphiteDark
+                  : AppColors.sageGreen.withValues(alpha: 0.30),
+              border: Border.all(
+                  color: isDark
+                      ? AppColors.champagne.withValues(alpha: 0.55)
+                      : AppColors.sageGreenDark.withValues(alpha: 0.55))),
+          child: const Icon(Icons.local_pharmacy_rounded,
+              size: 24, color: AppColors.champagne),
+        ),
+      ]),
+    );
+  }
+}
 
 /// ============================================================
 /// SIDEBAR — logo croix+feuille · PHARMA+ blanc · 13 modules ·
@@ -832,152 +1260,176 @@ class _TopBar extends StatelessWidget {
     return MarbleBackground(
       dark: isDark,
       child: Container(
-      height: 62,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-          color: isDark
-              ? AppColors.surfaceDark
-              : const Color(0xFFF7F8F9).withValues(alpha: 0.72),
-          border: Border(
-              bottom: BorderSide(
-                  color: isDark
-                      ? AppColors.dividerDark.withValues(alpha: 0.7)
-                      : AppColors.silverDark))),
-      child: Row(children: [
-        // ☰ — menu rétractable sur tablette/mobile (masqué sur desktop).
-        if (onMenu != null) ...[
-          InkWell(
-            onTap: onMenu,
-            borderRadius: BorderRadius.circular(10),
-            child: const Padding(
-              padding: EdgeInsets.all(8),
-              child: Icon(Icons.menu, size: 26, color: _gold),
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
-        // ← / → — réduire ou rouvrir la sidebar (desktop) : le dashboard
-        // et le POS récupèrent l'espace libéré en temps réel.
-        if (onToggleSidebar != null) ...[
-          Tooltip(
-            message: collapsed ? 'Ouvrir le menu' : 'Réduire le menu',
-            waitDuration: const Duration(milliseconds: 350),
-            child: InkWell(
-              onTap: onToggleSidebar,
+        height: 62,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+            color: isDark
+                ? AppColors.surfaceDark
+                : const Color(0xFFF7F8F9).withValues(alpha: 0.72),
+            border: Border(
+                bottom: BorderSide(
+                    color: isDark
+                        ? AppColors.dividerDark.withValues(alpha: 0.7)
+                        : AppColors.silverDark))),
+        child: Row(children: [
+          // ☰ — menu rétractable sur tablette/mobile (masqué sur desktop).
+          if (onMenu != null) ...[
+            InkWell(
+              onTap: onMenu,
               borderRadius: BorderRadius.circular(10),
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Icon(
-                    collapsed
-                        ? Icons.chevron_right_rounded
-                        : Icons.chevron_left_rounded,
-                    size: 26,
-                    color: _gold),
+              child: const Padding(
+                padding: EdgeInsets.all(8),
+                child: Icon(Icons.menu, size: 26, color: _gold),
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-        ],
-        // Identité PHARMA+ (logo officiel) à gauche du header.
-        const PharmaPlusLogo(size: 34),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: GlobalSearchField(onScan: onScan),
-          ),
-        ),
-        const SizedBox(width: 16),
-        if (narrow)
-          Tooltip(
-            message: '$userName · $roleLabel',
-            child: Container(
-              width: 36,
-              height: 36,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight,
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.goldBorderStrong),
-              ),
-              child: Text(
-                userName.isEmpty
-                    ? '?'
-                    : userName.characters.first.toUpperCase(),
-                style: TextStyle(
-                    color: dashText(context), fontWeight: FontWeight.w900),
+            const SizedBox(width: 8),
+          ],
+          // ← / → — réduire ou rouvrir la sidebar (desktop) : le dashboard
+          // et le POS récupèrent l'espace libéré en temps réel.
+          if (onToggleSidebar != null) ...[
+            Tooltip(
+              message: collapsed ? 'Ouvrir le menu' : 'Réduire le menu',
+              waitDuration: const Duration(milliseconds: 350),
+              child: InkWell(
+                onTap: onToggleSidebar,
+                borderRadius: BorderRadius.circular(10),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Icon(
+                      collapsed
+                          ? Icons.chevron_right_rounded
+                          : Icons.chevron_left_rounded,
+                      size: 26,
+                      color: _gold),
+                ),
               ),
             ),
-          )
-        else
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-              decoration: BoxDecoration(
-                  color: dashDark(context)
-                      ? Colors.white.withValues(alpha: 0.03)
-                      : AppColors.sageGreen.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: dashDark(context)
-                      ? Colors.white.withValues(alpha: 0.10)
-                      : AppColors.sageGreenDark.withValues(alpha: 0.35))),
-              child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Row(mainAxisSize: MainAxisSize.min, children: [
-                      Flexible(
-                        child: Text(pharmacyName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: dashText(context),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800)),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.keyboard_arrow_down,
-                          size: 18, color: AppColors.textSecondary),
+            const SizedBox(width: 8),
+          ],
+          // Identité PHARMA+ (logo officiel) à gauche du header.
+          const PharmaPlusLogo(size: 34),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: GlobalSearchField(onScan: onScan),
+            ),
+          ),
+          const SizedBox(width: 16),
+          if (narrow)
+            Tooltip(
+              message: '$userName · $roleLabel',
+              child: Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.goldBorderStrong),
+                ),
+                child: Text(
+                  userName.isEmpty
+                      ? '?'
+                      : userName.characters.first.toUpperCase(),
+                  style: TextStyle(
+                      color: dashText(context), fontWeight: FontWeight.w900),
+                ),
+              ),
+            )
+          else
+            Flexible(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                decoration: BoxDecoration(
+                    color: dashDark(context)
+                        ? Colors.white.withValues(alpha: 0.03)
+                        : AppColors.sageGreen.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: dashDark(context)
+                            ? Colors.white.withValues(alpha: 0.10)
+                            : AppColors.sageGreenDark.withValues(alpha: 0.35))),
+                child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Row(mainAxisSize: MainAxisSize.min, children: [
+                        Flexible(
+                          child: Text(pharmacyName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: dashText(context),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800)),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.keyboard_arrow_down,
+                            size: 18, color: AppColors.textSecondary),
+                      ]),
+                      Text('$userName · $roleLabel',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: isDark
+                                  ? AppColors.emeraldLight
+                                  : AppColors.sageGreenInk,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700)),
                     ]),
-                    Text('$userName · $roleLabel',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            color: isDark
-                                ? AppColors.emeraldLight
-                                : AppColors.sageGreenInk,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700)),
-                  ]),
+              ),
             ),
-          ),
-        const SizedBox(width: 14),
-        // Actions utilisateur : responsive — sur très petit écran, on regroupe
-        // dans un PopupMenu pour éviter tout débordement.
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final isVeryNarrow = constraints.maxWidth < 360;
-            final actions = <Widget>[
-              _TopIcon(
-                  icon: Icons.notifications_outlined,
-                  badge: notificationCount > 0 ? '$notificationCount' : null,
-                  onTap: onNotifications),
-              const SizedBox(width: 8),
-              _TopIcon(icon: Icons.settings_outlined, onTap: onSettings),
-              const SizedBox(width: 8),
-              _TopIcon(icon: Icons.lock_open_outlined, onTap: onLock),
-            ];
-            if (isVeryNarrow) {
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _TopIcon(icon: Icons.lock_open_outlined, onTap: onLock),
-                  const SizedBox(width: 8),
-                  PopupMenuButton<String>(
-                    tooltip: 'Plus d\'actions',
-                    icon: const Icon(Icons.more_vert, size: 22, color: _gold),
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
+          const SizedBox(width: 14),
+          // Actions utilisateur : responsive — sur très petit écran, on regroupe
+          // dans un PopupMenu pour éviter tout débordement.
+          // La largeur est lue sur MediaQuery : dans une Row, un LayoutBuilder
+          // reçoit une contrainte NON BORNÉE (infini) et ne détectait donc
+          // jamais l'écran étroit.
+          Builder(
+            builder: (context) {
+              final isVeryNarrow = MediaQuery.sizeOf(context).width < 420;
+              final actions = <Widget>[
+                _TopIcon(
+                    icon: Icons.notifications_outlined,
+                    badge: notificationCount > 0 ? '$notificationCount' : null,
+                    onTap: onNotifications),
+                // Synchronisation : à droite de la cloche, intégrée à la
+                // barre du haut (pastille icône seule, jamais débordante).
+                const ConnectionStatusIndicator(
+                  key: ValueKey('sync-indicator-topbar'),
+                  position: ConnectionStatusIndicatorPosition.topBar,
+                  showDetails: false,
+                  showLabel: false,
+                  iconSize: 13,
+                ),
+                const SizedBox(width: 8),
+                _TopIcon(icon: Icons.settings_outlined, onTap: onSettings),
+                const SizedBox(width: 8),
+                _TopIcon(icon: Icons.lock_open_outlined, onTap: onLock),
+              ];
+              if (isVeryNarrow) {
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Synchronisation : première icône de la rangée étroite,
+                    // à droite de la cloche repliée dans le menu « plus ».
+                    const ConnectionStatusIndicator(
+                      key: ValueKey('sync-indicator-topbar'),
+                      position: ConnectionStatusIndicatorPosition.topBar,
+                      showDetails: false,
+                      showLabel: false,
+                      iconSize: 13,
+                    ),
+                    const SizedBox(width: 8),
+                    _TopIcon(icon: Icons.lock_open_outlined, onTap: onLock),
+                    const SizedBox(width: 8),
+                    PopupMenuButton<String>(
+                      tooltip: 'Plus d\'actions',
+                      icon: const Icon(Icons.more_vert, size: 22, color: _gold),
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
                           value: 'notifications',
                           onTap: onNotifications,
                           child: Row(children: [
@@ -993,7 +1445,8 @@ class _TopBar extends StatelessWidget {
                                     horizontal: 6, vertical: 1),
                                 decoration: const BoxDecoration(
                                   color: AppColors.danger,
-                                  borderRadius: BorderRadius.all(Radius.circular(9)),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(9)),
                                 ),
                                 child: Text('$notificationCount',
                                     style: const TextStyle(
@@ -1016,15 +1469,15 @@ class _TopBar extends StatelessWidget {
                                 style: TextStyle(fontSize: 14)),
                           ]),
                         ),
-                    ],
-                  ),
-                ],
-              );
-            }
-            return Row(mainAxisSize: MainAxisSize.min, children: actions);
-          },
-        ),
-      ]),
+                      ],
+                    ),
+                  ],
+                );
+              }
+              return Row(mainAxisSize: MainAxisSize.min, children: actions);
+            },
+          ),
+        ]),
       ),
     );
   }
@@ -1092,45 +1545,45 @@ class _DarkPanel extends StatelessWidget {
     return MarbleBackground(
       dark: isDark,
       child: Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-          color: isDark
-              ? AppColors.graphite.withValues(alpha: 0.72)
-              : const Color(0xFFF7F8F9).withValues(alpha: 0.72),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-              color: isDark
-                  ? AppColors.goldBorder
-                  : AppColors.sageGreenDark.withValues(alpha: 0.30)),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.30 : 0.08),
-                blurRadius: 8,
-                offset: const Offset(0, 4)),
-          ]),
-      child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(children: [
-              Icon(icon, size: 17, color: iconColor),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                      color: dashText(context),
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.6),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+            color: isDark
+                ? AppColors.graphite.withValues(alpha: 0.72)
+                : const Color(0xFFF7F8F9).withValues(alpha: 0.72),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+                color: isDark
+                    ? AppColors.goldBorder
+                    : AppColors.sageGreenDark.withValues(alpha: 0.30)),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.30 : 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4)),
             ]),
-            const SizedBox(height: 10),
-            child,
-          ]),
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(children: [
+                Icon(icon, size: 17, color: iconColor),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                        color: dashText(context),
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 10),
+              child,
+            ]),
       ),
     );
   }
@@ -1233,9 +1686,8 @@ class _AlertsStockPanel extends StatelessWidget {
           child: OutlinedButton(
             onPressed: onViewAll,
             style: OutlinedButton.styleFrom(
-              foregroundColor: dashDark(context)
-                  ? Colors.white
-                  : AppColors.sageGreenInk,
+              foregroundColor:
+                  dashDark(context) ? Colors.white : AppColors.sageGreenInk,
               backgroundColor: dashDark(context)
                   ? AppColors.graphiteDark
                   : AppColors.sageGreen.withValues(alpha: 0.45),
@@ -1326,7 +1778,13 @@ class _AlertRow extends StatelessWidget {
 class _Plan3DPanel extends StatefulWidget {
   final VoidCallback onOpen;
   final bool compact;
-  const _Plan3DPanel({required this.onOpen, this.compact = false});
+
+  /// Smartphones (< 600 dp shortestSide) : scène un peu plus haute pour
+  /// rester lisible ; la page Plan 3D complète reste accessible (Vue 3D /
+  /// Plein écran) pour la consultation agrandie.
+  final bool phone;
+  const _Plan3DPanel(
+      {required this.onOpen, this.compact = false, this.phone = false});
   @override
   State<_Plan3DPanel> createState() => _Plan3DPanelState();
 }
@@ -1354,7 +1812,9 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
         SizedBox(
           // Hauteur adaptative : écrans bas => scène réduite mais complète
           // (le bas du dashboard reste entièrement visible, rien n'est masqué).
-          height: compact ? 152.0 : 236.0,
+          // Smartphone : 176 px - la scène reste entière (aucun recadrage
+          // coupant l'information) et l'agrandissement reste disponible.
+          height: widget.phone ? 176.0 : (compact ? 152.0 : 236.0),
           child: Row(children: [
             Expanded(
               child: ClipRRect(
@@ -1365,17 +1825,11 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
                           ? const LinearGradient(
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
-                              colors: [
-                                Color(0xFF0D1713),
-                                Color(0xFF080E0C)
-                              ])
+                              colors: [Color(0xFF0D1713), Color(0xFF080E0C)])
                           : const LinearGradient(
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
-                              colors: [
-                                Color(0xFFF6F7F8),
-                                Color(0xFFE7EAEC)
-                              ]),
+                              colors: [Color(0xFFF6F7F8), Color(0xFFE7EAEC)]),
                       border: Border.all(
                           color: dashDark(context)
                               ? AppColors.dividerDark.withValues(alpha: 0.9)
@@ -1394,24 +1848,33 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
             const SizedBox(width: 7),
             // Colonne de boutons de la maquette : Vue 3D · Tourner ·
             // + · − · plein écran (le plein écran réutilise la page).
-            Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _planBtn(Icons.view_in_ar_rounded, 'Vue 3D', widget.onOpen,
-                    compact: compact, labeled: !compact),
-                _planBtn(Icons.rotate_right_rounded, 'Tourner',
-                    () => setState(() => _auto = !_auto),
-                    compact: compact, labeled: !compact, active: _auto),
-                _planBtn(Icons.add_rounded, 'Zoom +', () => _zoomBy(1.15),
-                    compact: compact),
-                _planBtn(
-                    Icons.remove_rounded, 'Zoom -', () => _zoomBy(1 / 1.15),
-                    compact: compact),
-                _planBtn(Icons.open_in_full_rounded, 'Plein écran',
-                    () => openPlanFullScreen(context, zoom: _zoom),
-                    compact: compact),
-              ],
-            ),
+            // La hauteur réellement disponible décide du mode : sur un
+            // panneau bas (smartphone paysage, écran 915 px), cinq boutons
+            // de 40 px ne tiennent pas → mode compact 24 px.
+            LayoutBuilder(builder: (context, rail) {
+              final tight = !rail.maxHeight.isFinite || rail.maxHeight < 220;
+              final compactRail = compact || tight;
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _planBtn(Icons.view_in_ar_rounded, 'Vue 3D', widget.onOpen,
+                      compact: compactRail, labeled: !compactRail),
+                  _planBtn(Icons.rotate_right_rounded, 'Tourner',
+                      () => setState(() => _auto = !_auto),
+                      compact: compactRail,
+                      labeled: !compactRail,
+                      active: _auto),
+                  _planBtn(Icons.add_rounded, 'Zoom +', () => _zoomBy(1.15),
+                      compact: compactRail),
+                  _planBtn(
+                      Icons.remove_rounded, 'Zoom -', () => _zoomBy(1 / 1.15),
+                      compact: compactRail),
+                  _planBtn(Icons.open_in_full_rounded, 'Plein écran',
+                      () => openPlanFullScreen(context, zoom: _zoom),
+                      compact: compactRail),
+                ],
+              );
+            }),
           ]),
         ),
         const SizedBox(height: 9),
@@ -1436,8 +1899,12 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
         cursor: SystemMouseCursors.click,
         child: GestureDetector(
           onTap: onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
+          // Container (et non AnimatedContainer) : animer la hauteur entre le
+          // mode compact (24 px) et le mode libellé (40 px) provoquait un
+          // débordement transitoire du libellé pendant les 150 ms de
+          // transition (rotation / redimensionnement). La taille est donc
+          // appliquée immédiatement.
+          child: Container(
             width: compact ? 24 : 40,
             height: compact ? 24 : 40,
             decoration: BoxDecoration(
@@ -1519,8 +1986,15 @@ class _LegendItem extends StatelessWidget {
 }
 
 /// ============================================================
-/// ANALYTIQUE — graphiques compacts, 3D et alimentés uniquement par l'API.
+/// ANALYTIQUE - graphiques compacts, 3D et alimentés uniquement par l'API.
 /// ============================================================
+
+/// Disposition des 2 graphiques :
+/// - [scroll] : ligne horizontale défilable (desktop étroit, inchangé) ;
+/// - [stacked] : empilés pleine largeur (smartphone, pas de scroll H) ;
+/// - [sideBySide] : côte à côte extensibles (tablette).
+enum _AnalyticsLayout { scroll, stacked, sideBySide }
+
 class _AnalyticsSection extends StatelessWidget {
   final double revenueToday;
   final double revenueMonth;
@@ -1529,6 +2003,7 @@ class _AnalyticsSection extends StatelessWidget {
   final int expired;
   final int lowStock;
   final bool compact;
+  final _AnalyticsLayout layout;
   const _AnalyticsSection({
     required this.revenueToday,
     required this.revenueMonth,
@@ -1537,6 +2012,7 @@ class _AnalyticsSection extends StatelessWidget {
     required this.expired,
     required this.lowStock,
     this.compact = false,
+    this.layout = _AnalyticsLayout.scroll,
   });
 
   @override
@@ -1553,6 +2029,7 @@ class _AnalyticsSection extends StatelessWidget {
         expired: expired,
         lowStock: lowStock,
         compact: compact,
+        layout: layout,
       ),
     );
   }
@@ -1566,6 +2043,7 @@ class _AnalyticsTiles extends StatelessWidget {
   final int expired;
   final int lowStock;
   final bool compact;
+  final _AnalyticsLayout layout;
   const _AnalyticsTiles({
     required this.revenueToday,
     required this.revenueMonth,
@@ -1574,6 +2052,7 @@ class _AnalyticsTiles extends StatelessWidget {
     required this.expired,
     required this.lowStock,
     this.compact = false,
+    this.layout = _AnalyticsLayout.scroll,
   });
 
   @override
@@ -1610,13 +2089,37 @@ class _AnalyticsTiles extends StatelessWidget {
             expired.toDouble()
           ],
           colors: const [AppColors.gold, AppColors.warning, AppColors.danger],
-          labelColor: dashDark(context) ? Colors.white70 : AppColors.inkDarkLight,
+          labelColor:
+              dashDark(context) ? Colors.white70 : AppColors.inkDarkLight,
           valueColor: dashText(context),
         ),
       ),
     ];
-    // Une seule ligne sur toutes les largeurs ; sur mobile elle reste
-    // défilable horizontalement afin de ne jamais écraser les graphiques.
+    // Smartphones : graphiques EMPILÉS pleine largeur - chaque graphique
+    // reste entier, lisible, sans défilement horizontal.
+    if (layout == _AnalyticsLayout.stacked) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(height: 192, child: charts[0]),
+          const SizedBox(height: 10),
+          SizedBox(height: 192, child: charts[1]),
+        ],
+      );
+    }
+    // Tablettes : côte à côte extensible, graphiques jamais écrasés.
+    if (layout == _AnalyticsLayout.sideBySide) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: SizedBox(height: 200, child: charts[0])),
+          const SizedBox(width: 10),
+          Expanded(child: SizedBox(height: 200, child: charts[1])),
+        ],
+      );
+    }
+    // Desktop (inchangé) : une seule ligne défilable horizontalement afin
+    // de ne jamais écraser les graphiques.
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       physics: const ClampingScrollPhysics(),
@@ -1777,7 +2280,8 @@ class _AnalyticsBarsPainter extends CustomPainter {
       final text = TextPainter(
         text: TextSpan(
             text: labels[i],
-            style: const TextStyle(color: AppColors.textTertiary, fontSize: 11)),
+            style:
+                const TextStyle(color: AppColors.textTertiary, fontSize: 11)),
         textDirection: TextDirection.ltr,
       )..layout(maxWidth: slot);
       text.paint(canvas, Offset(i * slot + (slot - text.width) / 2, base + 4));
@@ -1826,8 +2330,7 @@ class _AnalyticsDonutPainter extends CustomPainter {
           Paint()
             ..style = PaintingStyle.stroke
             ..strokeWidth = 13
-            ..color = Colors.white
-                .withValues(alpha: .07 - l * .008));
+            ..color = Colors.white.withValues(alpha: .07 - l * .008));
       if (total > 0) {
         var start = -1.5708;
         for (var i = 0; i < values.length; i++) {
@@ -1844,8 +2347,8 @@ class _AnalyticsDonutPainter extends CustomPainter {
               Paint()
                 ..style = PaintingStyle.stroke
                 ..strokeWidth = 13
-                ..color = Color.lerp(
-                    colors[i], Colors.black, (l / layers) * .55)!);
+                ..color =
+                    Color.lerp(colors[i], Colors.black, (l / layers) * .55)!);
           start += sweep + .06;
         }
       }

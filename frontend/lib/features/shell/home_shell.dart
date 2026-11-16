@@ -6,8 +6,6 @@ import '../../core/services/auth_store.dart';
 import '../../core/services/sync_engine.dart';
 import '../../core/services/system_back_guard.dart';
 import '../../core/theme/colors.dart';
-import '../../core/widgets/connection_status_indicator.dart';
-import '../../core/utils/responsive.dart';
 import '../../core/widgets/pharma_background.dart';
 import '../shell/shell_nav.dart';
 import '../dashboard/dashboard_page.dart';
@@ -31,6 +29,7 @@ import '../ai/ai_page_v2.dart';
 import '../whatsapp/whatsapp_center_page.dart';
 import '../super_admin/super_admin_crm_page.dart';
 import 'app_side_menu.dart';
+import 'mobile_nav.dart';
 
 /// Global key for the HomeShell scaffold, accessible from DashboardPage to open the drawer.
 import 'package:pharma_maroc_gold/core/services/scaffold_key.dart';
@@ -193,11 +192,14 @@ class _HomeShellState extends State<HomeShell> {
       Navigator.of(context)
           .push(MaterialPageRoute(builder: (_) => item.pageBuilder!()));
     }
-    // Sur mobile, fermer le drawer après sélection.
-    final vw = MediaQuery.sizeOf(context).width;
-    if (vw < _sideMenuBreakpoint) {
-      Navigator.of(_scaffoldKey.currentContext!).pop();
-    }
+    // Fermeture directe du DrawerController (pas de pop de route racine).
+    _closeDrawer();
+  }
+
+  /// Fermeture sûre du drawer : DrawerController (pas Navigator.pop).
+  void _closeDrawer() {
+    if (!mounted) return;
+    _scaffoldKey.currentState?.closeDrawer();
   }
 
   Future<void> _onSideNavLogout() async {
@@ -221,69 +223,43 @@ class _HomeShellState extends State<HomeShell> {
     );
   }
 
+  // ---- Handlers du menu mobile (drawer smartphone/tablette) ----
+  void _onMobileShellIndex(int index) {
+    _closeDrawer();
+    ShellNav.index.value = index;
+  }
+
+  void _onMobilePush(Widget page) {
+    _closeDrawer();
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+  }
+
+  void _onMobileLock() {
+    _closeDrawer();
+    context.read<AuthStore>().lockSession(manual: true);
+  }
+
+  Future<void> _onMobileLogout() async {
+    _closeDrawer();
+    await _onSideNavLogout();
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthStore>();
     final locale = auth.locale;
-    final deviceType =
-        ResponsiveHelper.getDeviceType(MediaQuery.of(context).size.width);
-    final showBottomNav = deviceType == DeviceType.mobile;
+    // Smartphones ET tablettes : navigation inférieure persistante.
+    // Desktop (≥ 1150 px) : navigation par sidebar, apparence inchangée.
+    final showBottomNav =
+        MediaQuery.sizeOf(context).width < _sideMenuBreakpoint;
 
-    // Navigation items — filtrés par visibilité de module.
-    const allMobileItems = <(IconData, IconData, String, int)>[
-      (Icons.dashboard_outlined, Icons.dashboard, 'dashboard', 0),
-      (Icons.grid_view_rounded, Icons.grid_view_rounded, 'modules', 1),
-      (Icons.point_of_sale_outlined, Icons.point_of_sale, 'pos', 2),
-      (Icons.medication_outlined, Icons.medication, 'medications', 3),
-      (Icons.inventory_2_outlined, Icons.inventory_2, 'stock', 4),
-      (Icons.people_outlined, Icons.people, 'suppliers', 5),
-      (Icons.shopping_cart_outlined, Icons.shopping_cart, 'purchases', 6),
-      (Icons.people_outlined, Icons.people, 'customers', 7),
-      (Icons.menu_book_outlined, Icons.menu_book, 'reference', 12),
-      (Icons.storefront_outlined, Icons.storefront, 'pharmacyPlan', 10),
-      (Icons.settings_outlined, Icons.settings, 'settings', 11),
-      (Icons.chat_outlined, Icons.chat, 'whatsapp', 16),
-      (Icons.business_outlined, Icons.business, 'superAdminCRM', 17),
-      (Icons.description_outlined, Icons.description, 'reports', 9),
-      (Icons.person_outlined, Icons.person, 'employees', 8),
-      (Icons.trending_up, Icons.trending_up, 'profit', 18),
-    ];
-
-    // Clé de module pour les items de la bottom bar mobile.
-    const mobileModuleKeys = <int, String?>{
-      0: null, // dashboard — toujours visible
-      1: null, // modules — toujours visible
-      2: 'pos',
-      3: 'catalog',
-      4: 'stock',
-      5: 'suppliers',
-      6: 'purchases',
-      7: 'customers',
-      8: 'employees',
-      9: 'reports',
-      10: 'plan',
-      11: 'settings',
-      12: 'reference',
-      13: 'supplier_connectivity',
-      14: 'reorder',
-      15: 'ai',
-      16: 'whatsapp',
-      17: 'superadmin_crm',
-      18: 'profit',
-    };
-
-    final mobileItems = allMobileItems.where((m) {
-      final key = mobileModuleKeys[m.$4];
-      return key == null || auth.canSeeModule(key);
-    }).toList();
-
-    // Barre inférieure COMPACTE (règle UX mobile) : exactement 4 raccourcis
-    // essentiels — Point de vente (2), Stock (4), Fournisseur (5), Bénéfice
-    // (18). Aucune destination Dashboard ou Modules dans cette barre ; elles
-    // restent accessibles via le drawer latéral et la page Modules.
-    const bottomBarIndexes = <int>{2, 4, 5, 18};
-    final bottomItems =
-        mobileItems.where((m) => bottomBarIndexes.contains(m.$4)).toList();
+    // Barre inférieure COMPACTE (règle UX mobile/tablette) : exactement 4
+    // raccourcis essentiels — Point de vente (2), Stock (4), Fournisseur
+    // (5), Bénéfice (18), filtrés par permissions (source unique
+    // `visibleMobileDestinations`). Dashboard et Modules restent
+    // accessibles via le menu mobile « Tous les modules ».
+    final primaryDestinations = visibleMobileDestinations(auth, locale);
+    final primaryIndexes = primaryDestinations.map((d) => d.shellIndex).toSet();
 
     return ValueListenableBuilder<int>(
       valueListenable: ShellNav.index,
@@ -313,18 +289,10 @@ class _HomeShellState extends State<HomeShell> {
               children: [for (var i = 0; i < _pages.length; i++) _page(i)],
             ),
             if (_syncing) _SyncBanner(label: S.t('syncing', locale)),
-            // Indicateur permanent de connexion (coin supérieur droit, position stable, ne déborde pas).
-            Positioned(
-              top: (MediaQuery.of(context).padding.top > 0
-                      ? MediaQuery.of(context).padding.top
-                      : 12),
-              right: 12,
-              child: ConnectionStatusIndicator(
-                position: ConnectionStatusIndicatorPosition.topBar,
-                showDetails: false,
-                iconSize: 13,
-              ),
-            ),
+            // NOTE : l'indicateur de connexion (pastille sync) n'est plus
+            // superposé ici — il déborde/chevauche les icônes des en-têtes
+            // de page (cloche de notification). Il est désormais INTÉGRÉ
+            // dans la barre du haut, à droite de la cloche (dashboard).
           ],
         );
         // Desktop ≥1150 px : menu latéral FIXE à gauche (contenu de la page
@@ -333,21 +301,16 @@ class _HomeShellState extends State<HomeShell> {
         final showSideMenu = vw >= _sideMenuBreakpoint;
         return Scaffold(
           key: _scaffoldKey,
+          // Smartphones ET tablettes (< 1150 px) : menu mobile dédié
+          // « Tous les modules ». JAMAIS la sidebar PC `AppSideMenu`
+          // (réservée au desktop ≥ 1150 px, apparence préservée).
           drawer: !showSideMenu
-              ? Drawer(
-                  backgroundColor: AppColors.surfaceSidebar,
-                  child: SafeArea(
-                    child: AppSideMenu(
-                      collapsed: false,
-                      onToggleCollapse: SideMenuState.toggle,
-                      onLock: () => context
-                          .read<AuthStore>()
-                          .lockSession(manual: true),
-                      onNavigate: _onSideNavNavigate,
-                      onLogout: _onSideNavLogout,
-                      onMoreModules: _onSideNavMoreModules,
-                    ),
-                  ),
+              ? MobileNavDrawer(
+                  onShellIndex: _onMobileShellIndex,
+                  onPushPage: _onMobilePush,
+                  onClose: _closeDrawer,
+                  onLock: _onMobileLock,
+                  onLogout: _onMobileLogout,
                 )
               : null,
           body: PharmaBackground(
@@ -402,33 +365,12 @@ class _HomeShellState extends State<HomeShell> {
             ),
           ),
           bottomNavigationBar: showBottomNav
-              ? NavigationBar(
-                  selectedIndex: () {
-                    final idx = bottomItems
-                        .map((m) => m.$4)
-                        .toList()
-                        .indexOf(effectiveIndex);
-                    // Page courante hors barre compacte (ex : fournisseurs,
-                    // achats, clients…) : repli non-destructif sur l'onglet
-                    // Modules au lieu de -1 (crash/assert).
-                    // Si Modules n'est pas visible non plus → dashboard (0).
-                    if (idx >= 0) return idx;
-                    return bottomItems.any((m) => m.$4 == 1) ? 1 : 0;
-                  }(),
-                  onDestinationSelected: (i) =>
-                      ShellNav.index.value = bottomItems[i].$4,
-                  destinations: [
-                    for (final (ic, icS, key, pageIndex) in bottomItems)
-                      NavigationDestination(
-                        key: ValueKey<int>(pageIndex),
-                        icon: Icon(ic),
-                        selectedIcon: Icon(icS),
-                        label: S.t(key, locale),
-                      ),
-                  ],
-                  // Optimisation tactile : hauteur augmentée pour doigts
-                  height: 80,
-                  labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+              ? MobileBottomBar(
+                  destinations: primaryDestinations,
+                  selectedIndex: primaryIndexes.contains(effectiveIndex)
+                      ? effectiveIndex
+                      : -1,
+                  onSelected: (index) => ShellNav.index.value = index,
                 )
               : null,
         );
