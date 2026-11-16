@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
+import '../../core/widgets/marble_texture.dart';
 import '../../core/widgets/pharma_logo.dart';
 import 'app_side_menu.dart';
 import 'shell_nav.dart';
@@ -119,11 +120,13 @@ class MobileBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const activeColor = AppColors.champagne;
-    const inactive = AppColors.textSecondary;
-    return Material(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Fond émeraude métallisé (theme clair) / graphite (theme sombre),
+    // identique au reste de l'application.
+    final textColor = isDark ? AppColors.porcelain : AppColors.champagne;
+    return MarbleBackground(
       key: const ValueKey('mobile-bottom-bar'),
-      color: AppColors.graphiteDark,
+      dark: isDark,
       child: SafeArea(
         top: false,
         child: Container(
@@ -151,7 +154,7 @@ class MobileBottomBar extends StatelessWidget {
                           margin: const EdgeInsets.only(bottom: 5),
                           decoration: BoxDecoration(
                             color: d.shellIndex == selectedIndex
-                                ? activeColor
+                                ? textColor
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(2),
                           ),
@@ -162,8 +165,8 @@ class MobileBottomBar extends StatelessWidget {
                               : d.icon,
                           size: 26,
                           color: d.shellIndex == selectedIndex
-                              ? activeColor
-                              : inactive,
+                              ? textColor
+                              : textColor.withValues(alpha: 0.55),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -176,8 +179,8 @@ class MobileBottomBar extends StatelessWidget {
                                 ? FontWeight.w800
                                 : FontWeight.w700,
                             color: d.shellIndex == selectedIndex
-                                ? activeColor
-                                : inactive,
+                                ? textColor
+                                : textColor.withValues(alpha: 0.55),
                           ),
                         ),
                       ],
