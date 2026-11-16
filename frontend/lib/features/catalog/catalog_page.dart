@@ -664,52 +664,10 @@ class _CatalogPageState extends State<CatalogPage> {
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-            child: SegmentedButton<bool>(
-              segments: [
-                ButtonSegment(
-                  value: false,
-                  icon: const Icon(Icons.medication_outlined, size: 18),
-                  label: Text(S.t('catalog', locale)),
-                ),
-                ButtonSegment(
-                  value: true,
-                  icon: const Icon(Icons.spa_outlined, size: 18),
-                  label: Text(S.t('parapharmacy', locale)),
-                ),
-              ],
-              selected: {_paraMode},
-              onSelectionChanged: (selection) {
-                setState(() => _paraMode = selection.first);
-                _load(page: 1, query: _search.text);
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: AppSearchField(
-              controller: _search,
-              hint: S.t('search', locale),
-              showFilterButton: false,
-              debounceDuration: Duration.zero,
-              // La requête serveur garde son debounce existant de 300 ms.
-              onChanged: (q) {
-                _searchDebounce?.cancel();
-                _searchDebounce = Timer(const Duration(milliseconds: 300), () {
-                  if (mounted) _load(page: 1, query: q);
-                });
-              },
-            ),
-          ),
-          // -------- Filtres combinables (ComboBox + reset) --------
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
+          Builder(
+            builder: (context) {
+              final compactHeight = MediaQuery.sizeOf(context).height < 520;
+              final filterChildren = <Widget>[
                 _filterDropdown(
                   label: 'Laboratoire',
                   value: _fLab,
@@ -779,9 +737,6 @@ class _CatalogPageState extends State<CatalogPage> {
                     _load(page: 1, query: _search.text);
                   },
                 ),
-                // Pathologie : filtre reel sur medicine_indications quand
-                // des donnees tracees existent ; signale honnetement
-                // l'absence de donnees (aucune carte promettant du vide).
                 Tooltip(
                   message: _indicationsTotal > 0
                       ? '$_indicationsTotal indications tracées'
@@ -809,10 +764,80 @@ class _CatalogPageState extends State<CatalogPage> {
                     icon: const Icon(Icons.filter_alt_off_outlined, size: 16),
                     label: const Text('Réinitialiser les filtres'),
                   ),
-              ],
-            ),
+              ];
+
+              final filters = compactHeight
+                  ? SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Row(
+                        children: [
+                          for (var i = 0; i < filterChildren.length; i++) ...[
+                            filterChildren[i],
+                            if (i < filterChildren.length - 1)
+                              const SizedBox(width: 8),
+                          ],
+                        ],
+                      ),
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: filterChildren,
+                      ),
+                    );
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding:
+                        EdgeInsets.fromLTRB(12, compactHeight ? 8 : 12, 12, 0),
+                    child: SegmentedButton<bool>(
+                      segments: [
+                        ButtonSegment(
+                          value: false,
+                          icon: const Icon(Icons.medication_outlined, size: 18),
+                          label: Text(S.t('catalog', locale)),
+                        ),
+                        ButtonSegment(
+                          value: true,
+                          icon: const Icon(Icons.spa_outlined, size: 18),
+                          label: Text(S.t('parapharmacy', locale)),
+                        ),
+                      ],
+                      selected: {_paraMode},
+                      onSelectionChanged: (selection) {
+                        setState(() => _paraMode = selection.first);
+                        _load(page: 1, query: _search.text);
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.all(compactHeight ? 8 : 12),
+                    child: AppSearchField(
+                      controller: _search,
+                      hint: S.t('search', locale),
+                      showFilterButton: false,
+                      debounceDuration: Duration.zero,
+                      onChanged: (q) {
+                        _searchDebounce?.cancel();
+                        _searchDebounce =
+                            Timer(const Duration(milliseconds: 300), () {
+                          if (mounted) _load(page: 1, query: q);
+                        });
+                      },
+                    ),
+                  ),
+                  filters,
+                  SizedBox(height: compactHeight ? 2 : 4),
+                ],
+              );
+            },
           ),
-          const SizedBox(height: 4),
           Expanded(
             child: _loading && _items.isEmpty
                 ? const Center(child: CircularProgressIndicator())
@@ -823,7 +848,12 @@ class _CatalogPageState extends State<CatalogPage> {
                         : RefreshIndicator(
                             onRefresh: () =>
                                 _load(page: 1, query: _search.text),
-                            child: MediaQuery.sizeOf(context).width < 600
+                            child: MediaQuery.sizeOf(context).width < 600 ||
+                                    // Téléphone en paysage (390-430 px de
+                                    // haut) : le tableau a besoin de 44 px
+                                    // d'en-tête + des lignes ; on passe en
+                                    // cartes défilables pour ne pas déborder.
+                                    MediaQuery.sizeOf(context).height < 520
                                 ? SingleChildScrollView(
                                     controller: _vScroll,
                                     padding: const EdgeInsets.fromLTRB(
@@ -874,8 +904,11 @@ class _CatalogPageState extends State<CatalogPage> {
     required ValueChanged<String?> onChanged,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Smartphone : deux filtres par ligne (au lieu d'un seul) pour que la
+    // barre de filtres ne consomme pas toute la hauteur de l'écran.
+    final narrow = MediaQuery.sizeOf(context).width < 420;
     return SizedBox(
-      width: 168,
+      width: narrow ? 140 : 168,
       child: DropdownButtonFormField<String>(
         key: ValueKey('$label-$value'),
         initialValue: enabled ? value : null,
@@ -969,16 +1002,16 @@ class _CatalogPageState extends State<CatalogPage> {
      ------------------------------------------------------------------ */
   Widget _buildStickyTable(bool isDark) {
     // Utilisation des largeurs standardisées depuis TableColumnWidths
-    final fixedNonMed = 
-        TableColumnWidths.width(TableColumnType.description) +  // DCI
-        TableColumnWidths.width(TableColumnType.code) +         // Dosage
-        TableColumnWidths.width(TableColumnType.code) +         // Forme
-        TableColumnWidths.width(TableColumnType.description) +  // Laboratoire
-        TableColumnWidths.width(TableColumnType.money) +        // PPV
-        TableColumnWidths.width(TableColumnType.status) +       // Statut
-        TableColumnWidths.width(TableColumnType.quantity) +     // Stock
-        TableColumnWidths.width(TableColumnType.code) +         // Posologie
-        TableColumnWidths.width(TableColumnType.actionsWide);   // Actions
+    final fixedNonMed = TableColumnWidths.width(
+            TableColumnType.description) + // DCI
+        TableColumnWidths.width(TableColumnType.code) + // Dosage
+        TableColumnWidths.width(TableColumnType.code) + // Forme
+        TableColumnWidths.width(TableColumnType.description) + // Laboratoire
+        TableColumnWidths.width(TableColumnType.money) + // PPV
+        TableColumnWidths.width(TableColumnType.status) + // Statut
+        TableColumnWidths.width(TableColumnType.quantity) + // Stock
+        TableColumnWidths.width(TableColumnType.code) + // Posologie
+        TableColumnWidths.width(TableColumnType.actionsWide); // Actions
     const medMin = 200.0;
     final muted = isDark ? Colors.white60 : Colors.black54;
     final stripe = isDark ? AppColors.pharmaSurface2 : const Color(0xFFF2F5F3);
@@ -1057,7 +1090,6 @@ class _CatalogPageState extends State<CatalogPage> {
   }
 
   Widget _tableHeader({required double medW}) {
-    
     return Container(
       height: 44,
       color: AppColors.primary,
@@ -1065,15 +1097,25 @@ class _CatalogPageState extends State<CatalogPage> {
       child: Row(
         children: [
           _headerCell(medW, 'Médicament'),
-          _headerCell(TableColumnWidths.width(TableColumnType.description), 'DCI'),
+          _headerCell(
+              TableColumnWidths.width(TableColumnType.description), 'DCI'),
           _headerCell(TableColumnWidths.width(TableColumnType.code), 'Dosage'),
           _headerCell(TableColumnWidths.width(TableColumnType.code), 'Forme'),
-          _headerCell(TableColumnWidths.width(TableColumnType.description), 'Laboratoire'),
-          _headerCell(TableColumnWidths.width(TableColumnType.money), 'PPV', align: TextAlign.right),
-          _headerCell(TableColumnWidths.width(TableColumnType.status), 'Statut'),
-          _headerCell(TableColumnWidths.width(TableColumnType.quantity), 'Stock', align: TextAlign.right),
-          _headerCell(TableColumnWidths.width(TableColumnType.code), 'Posologie', align: TextAlign.center),
-          _headerCell(TableColumnWidths.width(TableColumnType.actionsWide), 'Actions', align: TextAlign.center),
+          _headerCell(TableColumnWidths.width(TableColumnType.description),
+              'Laboratoire'),
+          _headerCell(TableColumnWidths.width(TableColumnType.money), 'PPV',
+              align: TextAlign.right),
+          _headerCell(
+              TableColumnWidths.width(TableColumnType.status), 'Statut'),
+          _headerCell(
+              TableColumnWidths.width(TableColumnType.quantity), 'Stock',
+              align: TextAlign.right),
+          _headerCell(
+              TableColumnWidths.width(TableColumnType.code), 'Posologie',
+              align: TextAlign.center),
+          _headerCell(
+              TableColumnWidths.width(TableColumnType.actionsWide), 'Actions',
+              align: TextAlign.center),
         ],
       ),
     );
@@ -1106,7 +1148,6 @@ class _CatalogPageState extends State<CatalogPage> {
     required Color stripe,
     required Color divider,
   }) {
-    
     const cellStyle = TextStyle(fontSize: 12.5);
     final qty = _stock[m.id];
     final statusLabel = m.status == 'available'
@@ -1723,7 +1764,8 @@ class _MedicationDetailState extends State<_MedicationDetail> {
             Row(
               children: [
                 Icon(Icons.medication,
-                    color: isDark ? AppColors.sageGreen : AppColors.sageGreenInk,
+                    color:
+                        isDark ? AppColors.sageGreen : AppColors.sageGreenInk,
                     size: 28),
                 const SizedBox(width: 8),
                 Expanded(

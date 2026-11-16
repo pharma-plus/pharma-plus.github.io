@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import 'dart:math' as math;
 
@@ -239,9 +239,8 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
         byHour: _periodIndex <= 1,
       );
 
-  List<Map<String, dynamic>> get _cancelled => _sales
-      .where((s) => (s['status'] ?? '') != 'completed')
-      .toList();
+  List<Map<String, dynamic>> get _cancelled =>
+      _sales.where((s) => (s['status'] ?? '') != 'completed').toList();
 
   String _hour(dynamic createdAt) {
     final s = createdAt?.toString();
@@ -313,7 +312,10 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text('Ventes du jour',
-              style: TextStyle(color: AppColors.textPrimary, fontSize: 17, fontWeight: FontWeight.w800)),
+              style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800)),
           Text(
             pharmacyName != null && pharmacyName.isNotEmpty
                 ? '$pharmacyName · $dateLabel'
@@ -343,7 +345,10 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
                         ? AppColors.danger
                         : AppColors.success,
                 boxShadow: [
-                  BoxShadow(color: (_loading ? AppColors.gold : AppColors.success).withValues(alpha: 0.5), blurRadius: 6),
+                  BoxShadow(
+                      color: (_loading ? AppColors.gold : AppColors.success)
+                          .withValues(alpha: 0.5),
+                      blurRadius: 6),
                 ],
               ),
             ),
@@ -356,7 +361,8 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
         ),
         IconButton(
           tooltip: 'Exporter en CSV',
-          icon: const Icon(Icons.file_download_outlined, color: AppColors.textPrimary),
+          icon: const Icon(Icons.file_download_outlined,
+              color: AppColors.textPrimary),
           onPressed: _loading ? null : _exportCsv,
         ),
       ],
@@ -414,11 +420,15 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
             const SizedBox(height: 12),
             Text(error.userMessage,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w700)),
+                style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
             SelectableText('Code technique : ${error.technical}',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textTertiary, fontSize: 11)),
+                style: const TextStyle(
+                    color: AppColors.textTertiary, fontSize: 11)),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: _loadFirst,
@@ -442,15 +452,20 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
           padding: const EdgeInsets.only(top: 64),
           child: Column(
             children: [
-              const Icon(Icons.receipt_long_outlined, size: 72, color: Colors.white24),
+              const Icon(Icons.receipt_long_outlined,
+                  size: 72, color: Colors.white24),
               const SizedBox(height: 16),
               Text('Aucune vente sur la période sélectionnée',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 15, fontWeight: FontWeight.w600)),
+                  style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600)),
               const SizedBox(height: 6),
               Text(_periodDateLabel,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.textTertiary, fontSize: 12)),
+                  style: const TextStyle(
+                      color: AppColors.textTertiary, fontSize: 12)),
               const SizedBox(height: 20),
               OutlinedButton.icon(
                 onPressed: _loadFirst,
@@ -496,8 +511,7 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
             const SizedBox(height: 12),
             _buildKpiGrid(isPhone: isPhone),
             const SizedBox(height: 12),
-            if (agg.coverageLoaded < agg.coverageTotal)
-              _buildCoverageNote(),
+            if (agg.coverageLoaded < agg.coverageTotal) _buildCoverageNote(),
             if (isPhone) ...transactions,
             ...charts,
             if (!isPhone) ...transactions,
@@ -543,7 +557,8 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
             ),
             backgroundColor: AppColors.pharmaSurface.withValues(alpha: 0.7),
             side: BorderSide(
-                color: _periodIndex == i ? AppColors.gold : AppColors.goldBorder),
+                color:
+                    _periodIndex == i ? AppColors.gold : AppColors.goldBorder),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           ),
         if (_periodIndex == 4) _buildCustomRangeButton(),
@@ -695,8 +710,7 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
       mainAxisSpacing: 10,
       childAspectRatio: isPhone ? 1.15 : 0.95,
       children: [
-        for (final c in cards)
-          _Kpi3dCard(def: c),
+        for (final c in cards) _Kpi3dCard(def: c),
       ],
     );
   }
@@ -777,7 +791,9 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
         children: [
           Text(title,
               style: const TextStyle(
-                  color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w700)),
+                  color: Colors.white70,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           SizedBox(height: 100, child: child),
         ],
@@ -794,7 +810,9 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
           children: [
             Text(title,
                 style: const TextStyle(
-                    color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w700)),
+                    color: Colors.white70,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700)),
             const Spacer(),
             const Center(
               child: Padding(
@@ -822,7 +840,10 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
         Icon(Icons.receipt_long_rounded, color: AppColors.gold, size: 20),
         SizedBox(width: 8),
         Text('Transactions',
-            style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w800)),
+            style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w800)),
       ],
     );
   }
@@ -837,7 +858,8 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
             hintText: 'Rechercher (numéro, ID, statut)…',
             prefixIcon: const Icon(Icons.search_rounded, size: 20),
             isDense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
@@ -934,10 +956,35 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
       ),
       child: const Row(
         children: [
-          Expanded(flex: 3, child: Text('Ticket', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.pharmaGold))),
-          Expanded(flex: 2, child: Text('Heure', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.pharmaGold))),
-          Expanded(flex: 3, child: Text('Statut', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.pharmaGold))),
-          Expanded(flex: 2, child: Text('Montant', textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.pharmaGold))),
+          Expanded(
+              flex: 3,
+              child: Text('Ticket',
+                  style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.pharmaGold))),
+          Expanded(
+              flex: 2,
+              child: Text('Heure',
+                  style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.pharmaGold))),
+          Expanded(
+              flex: 3,
+              child: Text('Statut',
+                  style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.pharmaGold))),
+          Expanded(
+              flex: 2,
+              child: Text('Montant',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.pharmaGold))),
           SizedBox(width: 44),
         ],
       ),
@@ -958,7 +1005,10 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
               child: Text('${s['number'] ?? s['id'] ?? '—'}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w700)),
+                  style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700)),
             ),
             Expanded(
               flex: 2,
@@ -967,7 +1017,8 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
             ),
             Expanded(
               flex: 3,
-              child: StatusChip(label: _saleLabel(status), color: _statusColor(status)),
+              child: StatusChip(
+                  label: _saleLabel(status), color: _statusColor(status)),
             ),
             Expanded(
               flex: 2,
@@ -983,7 +1034,8 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
               ),
             ),
             const SizedBox(width: 44),
-            const Icon(Icons.chevron_right_rounded, color: AppColors.pharmaMuted, size: 18),
+            const Icon(Icons.chevron_right_rounded,
+                color: AppColors.pharmaMuted, size: 18),
           ],
         ),
       ),
@@ -1008,18 +1060,25 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
                   color: AppColors.gold.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.point_of_sale_rounded, color: AppColors.gold, size: 20),
+                child: const Icon(Icons.point_of_sale_rounded,
+                    color: AppColors.gold, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('${s['number'] ?? s['id'] ?? '—'} · ${_hour(s['created_at'])}',
-                        style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
+                    Text(
+                        '${s['number'] ?? s['id'] ?? '—'} · ${_hour(s['created_at'])}',
+                        style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13)),
                     const SizedBox(height: 2),
-                    Text('${_saleLabel(status)} · ${s['branch_id'] != null ? 'Branche ${s['branch_id']}' : 'Pharmacie'}',
-                        style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                    Text(
+                        '${_saleLabel(status)} · ${s['branch_id'] != null ? 'Branche ${s['branch_id']}' : 'Pharmacie'}',
+                        style: const TextStyle(
+                            color: Colors.white54, fontSize: 11)),
                   ],
                 ),
               ),
@@ -1034,7 +1093,8 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
                         decoration: isVoid ? TextDecoration.lineThrough : null,
                       )),
                   const SizedBox(height: 4),
-                  StatusChip(label: _saleLabel(status), color: _statusColor(status)),
+                  StatusChip(
+                      label: _saleLabel(status), color: _statusColor(status)),
                 ],
               ),
             ],
@@ -1073,12 +1133,18 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(children: [
-                const Icon(Icons.receipt_long_rounded, color: AppColors.gold, size: 22),
+                const Icon(Icons.receipt_long_rounded,
+                    color: AppColors.gold, size: 22),
                 const SizedBox(width: 10),
                 Text('Détail — ${s['number'] ?? s['id'] ?? '—'}',
-                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800)),
                 const Spacer(),
-                IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close_rounded)),
+                IconButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    icon: const Icon(Icons.close_rounded)),
               ]),
               const SizedBox(height: 12),
               _detailRow('Date / heure', _fullDate(s['created_at'])),
@@ -1113,11 +1179,15 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
           SizedBox(
             width: 110,
             child: Text(label,
-                style: const TextStyle(color: AppColors.pharmaMuted, fontSize: 12)),
+                style: const TextStyle(
+                    color: AppColors.pharmaMuted, fontSize: 12)),
           ),
           Expanded(
             child: Text(value,
-                style: const TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
+                style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -1140,7 +1210,8 @@ class _SalesOfDayPageState extends State<SalesOfDayPage> {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${_sales.length} transaction(s) exportées (CSV).')),
+      SnackBar(
+          content: Text('${_sales.length} transaction(s) exportées (CSV).')),
     );
   }
 }
@@ -1179,7 +1250,8 @@ class _Kpi3dCard extends StatelessWidget {
           colors: [Color(0xFF232B31), Color(0xFF171D22), Color(0xFF12171B)],
         ),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.goldBorderStrong.withValues(alpha: 0.5)),
+        border: Border.all(
+            color: AppColors.goldBorderStrong.withValues(alpha: 0.5)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.45),
@@ -1247,7 +1319,9 @@ class _Kpi3dCard extends StatelessWidget {
             Text(
               def.trend!,
               style: TextStyle(
-                color: def.trend!.startsWith('-') ? AppColors.danger : AppColors.success,
+                color: def.trend!.startsWith('-')
+                    ? AppColors.danger
+                    : AppColors.success,
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
               ),
@@ -1276,8 +1350,9 @@ class _BarsChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final values =
-        buckets.map((b) => useRevenue ? b.revenue : b.count.toDouble()).toList();
+    final values = buckets
+        .map((b) => useRevenue ? b.revenue : b.count.toDouble())
+        .toList();
     final maxV = values.isEmpty ? 0.0 : values.reduce(math.max);
     return CustomPaint(
       painter: _BarsPainter(values, maxV),
@@ -1304,8 +1379,8 @@ class _BarsPainter extends CustomPainter {
     final basePaint = Paint()
       ..color = AppColors.goldBorder.withValues(alpha: 0.8)
       ..strokeWidth = 1;
-    canvas.drawLine(
-        Offset(0, size.height - 0.5), Offset(size.width, size.height - 0.5), basePaint);
+    canvas.drawLine(Offset(0, size.height - 0.5),
+        Offset(size.width, size.height - 0.5), basePaint);
     final startX = (size.width - (n * barW + (n - 1) * gap)) / 2;
     for (var i = 0; i < n; i++) {
       final h = (values[i] / maxV) * (size.height - 10);

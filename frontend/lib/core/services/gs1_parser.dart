@@ -30,7 +30,10 @@ class Gs1Data {
   });
 
   bool get isEmpty =>
-      gtin == null && lot == null && expiry == null && serial == null &&
+      gtin == null &&
+      lot == null &&
+      expiry == null &&
+      serial == null &&
       productionDate == null;
 
   Map<String, dynamic> toJson() => {
@@ -77,17 +80,20 @@ class Gs1Parser {
       final rest = code.substring(i + 2);
       switch (ai) {
         case 01: // GTIN — fixe 14
-          if (rest.length < 14) return _partial(gtin, lot, expiry, serial, prodDate);
+          if (rest.length < 14)
+            return _partial(gtin, lot, expiry, serial, prodDate);
           gtin = _normalizeGtin(rest.substring(0, 14));
           i += 2 + 14;
           break;
         case 11: // date fabrication — fixe 6
-          if (rest.length < 6) return _partial(gtin, lot, expiry, serial, prodDate);
+          if (rest.length < 6)
+            return _partial(gtin, lot, expiry, serial, prodDate);
           prodDate = _date(rest.substring(0, 6));
           i += 2 + 6;
           break;
         case 17: // péremption — fixe 6
-          if (rest.length < 6) return _partial(gtin, lot, expiry, serial, prodDate);
+          if (rest.length < 6)
+            return _partial(gtin, lot, expiry, serial, prodDate);
           expiry = _date(rest.substring(0, 6));
           i += 2 + 6;
           break;
@@ -113,7 +119,8 @@ class Gs1Parser {
     return _partial(gtin, lot, expiry, serial, prodDate);
   }
 
-  static Gs1Data _partial(String? g, String? l, String? e, String? s, String? p) =>
+  static Gs1Data _partial(
+          String? g, String? l, String? e, String? s, String? p) =>
       Gs1Data(gtin: g, lot: l, expiry: e, serial: s, productionDate: p);
 
   /// Champ variable : s'arrête au premier GS ou à la fin.

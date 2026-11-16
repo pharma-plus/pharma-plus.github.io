@@ -90,8 +90,7 @@ class _SortableHeader extends StatelessWidget {
     // En-tête clair = pastille vert clair (charte) → texte encre foncée ;
     // en-tête sombre = graphite → texte clair conservé.
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final headerInk =
-        isDark ? tokens.textPrimary : AppColors.sageGreenInk;
+    final headerInk = isDark ? tokens.textPrimary : AppColors.sageGreenInk;
 
     if (!sortable) {
       return Text(
@@ -618,8 +617,7 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
     final checkboxW = (widget.config.showCheckboxColumn || hasSelection)
         ? widget.config.checkboxColumnWidth
         : 0.0;
-    final contentW =
-        rowNumberW + checkboxW + widths.fold(0.0, (a, b) => a + b);
+    final contentW = rowNumberW + checkboxW + widths.fold(0.0, (a, b) => a + b);
     // Marges internes (horizontalMargin × 2) s'ajoutent aux colonnes :
     // sans elles, le Row déborderait exactement de cette valeur.
     final minTotalW = contentW + 2 * widget.config.horizontalMargin;
@@ -630,8 +628,7 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
         : minTotalW;
     final verticalController =
         widget.scrollController ?? _internalVerticalController;
-    final headerColor =
-        isDark ? AppColors.graphiteLight : AppColors.sageGreen;
+    final headerColor = isDark ? AppColors.graphiteLight : AppColors.sageGreen;
     final divider = widget.config.dividerColor ??
         (isDark ? tokens.borderDark : tokens.borderLight);
 
@@ -877,8 +874,8 @@ class _AppDataTableState<T> extends State<AppDataTable<T>> {
         : rawSortIndex + (widget.showRowNumbers ? 1 : 0);
 
     return DataTable(
-      headingRowColor: WidgetStateProperty.resolveWith((states) =>
-          isDark ? AppColors.graphiteLight : AppColors.sageGreen),
+      headingRowColor: WidgetStateProperty.resolveWith(
+          (states) => isDark ? AppColors.graphiteLight : AppColors.sageGreen),
       headingRowHeight: widget.config.headerHeight,
       dataRowMinHeight: widget.config.rowHeight,
       dataRowMaxHeight: widget.config.rowHeight * 2,

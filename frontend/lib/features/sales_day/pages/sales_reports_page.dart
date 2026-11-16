@@ -27,7 +27,8 @@ class _SalesReportsPageState extends State<SalesReportsPage> {
   void initState() {
     super.initState();
     _listener = () {
-      if (mounted) setState(() {});};
+      if (mounted) setState(() {});
+    };
     widget.analytics.addListener(_listener);
   }
 

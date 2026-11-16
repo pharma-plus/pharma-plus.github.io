@@ -479,14 +479,14 @@ class PharmaTokensHelper {
       _context.isDark ? AppColors.graphiteLight : AppColors.silverLight;
   Color get bgSurfaceRaised =>
       _context.isDark ? AppColors.graphiteLight : AppColors.silver;
-  Color get bgPanel =>
-      _context.isDark ? AppColors.graphite : AppColors.silver;
+  Color get bgPanel => _context.isDark ? AppColors.graphite : AppColors.silver;
   Color get bgSidebar =>
       _context.isDark ? AppColors.graphite : AppColors.silver;
   Color get bgCard =>
       _context.isDark ? AppColors.graphiteLight : AppColors.silverLight;
-  Color get textPrimary =>
-      _context.isDark ? AppColors.textPrimary /* porcelain */ : AppColors.inkDark;
+  Color get textPrimary => _context.isDark
+      ? AppColors.textPrimary /* porcelain */
+      : AppColors.inkDark;
   Color get textSecondary =>
       _context.isDark ? const Color(0xFFB9C2C9) : AppColors.inkDarkLight;
   Color get textTertiary =>
@@ -617,13 +617,17 @@ class PharmaTokensHelper {
   TextStyle get labelLarge => PharmaTokens.labelLarge;
   TextStyle get labelMedium => PharmaTokens.labelMedium;
   TextStyle get labelSmall => PharmaTokens.labelSmall;
-  TextStyle get fieldLabel => PharmaTokens.fieldLabel.copyWith(color: textSecondary);
-  TextStyle get fieldInput => PharmaTokens.bodyMedium.copyWith(color: textPrimary);
-  TextStyle get fieldHelper => PharmaTokens.bodySmall.copyWith(color: textSecondary);
+  TextStyle get fieldLabel =>
+      PharmaTokens.fieldLabel.copyWith(color: textSecondary);
+  TextStyle get fieldInput =>
+      PharmaTokens.bodyMedium.copyWith(color: textPrimary);
+  TextStyle get fieldHelper =>
+      PharmaTokens.bodySmall.copyWith(color: textSecondary);
   TextStyle get fieldError => PharmaTokens.bodySmall.copyWith(color: danger);
-  TextStyle get tableHeader =>
-      PharmaTokens.labelMedium.copyWith(color: textSecondary, fontFamily: PharmaTokens.fontFamily);
-  TextStyle get tableCell => PharmaTokens.bodyMedium.copyWith(color: textPrimary);
+  TextStyle get tableHeader => PharmaTokens.labelMedium
+      .copyWith(color: textSecondary, fontFamily: PharmaTokens.fontFamily);
+  TextStyle get tableCell =>
+      PharmaTokens.bodyMedium.copyWith(color: textPrimary);
   TextStyle get tableCellNumeric => PharmaTokens.bodyMedium.copyWith(
         color: textPrimary,
         fontFeatures: const [FontFeature.tabularFigures()],

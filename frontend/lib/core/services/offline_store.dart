@@ -97,7 +97,8 @@ class OfflineStore {
 
   Future<List<Map<String, Object?>>> pending({int limit = 50}) async {
     final items = await _readList(_kOutbox);
-    items.sort((a, b) => ((a['id'] as int?) ?? 0).compareTo((b['id'] as int?) ?? 0));
+    items.sort(
+        (a, b) => ((a['id'] as int?) ?? 0).compareTo((b['id'] as int?) ?? 0));
     final sliced = items.take(limit).toList();
     return sliced.map((e) => Map<String, Object?>.from(e)).toList();
   }
@@ -204,8 +205,7 @@ class OfflineStore {
   }
 
   /// Nombre de produits en cache (bornage mémoire / diagnostics).
-  Future<int> cachedCatalogCount() async =>
-      (await cachedCatalog()).length;
+  Future<int> cachedCatalogCount() async => (await cachedCatalog()).length;
 
   /// Supprime le cache catalogue + son horodatage. Appelé au logout et à tout
   /// changement de pharmacie pour empêcher toute fuite de données entre

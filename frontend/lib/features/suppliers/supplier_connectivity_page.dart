@@ -17,7 +17,8 @@ class SupplierConnectivityPage extends StatefulWidget {
   const SupplierConnectivityPage({super.key});
 
   @override
-  State<SupplierConnectivityPage> createState() => _SupplierConnectivityPageState();
+  State<SupplierConnectivityPage> createState() =>
+      _SupplierConnectivityPageState();
 }
 
 class _SupplierConnectivityPageState extends State<SupplierConnectivityPage> {
@@ -33,7 +34,10 @@ class _SupplierConnectivityPageState extends State<SupplierConnectivityPage> {
   }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     // Charger depuis la base / SharedPreferences
     // Pour l'instant, on utilise des configs par défaut
     setState(() {
@@ -45,29 +49,32 @@ class _SupplierConnectivityPageState extends State<SupplierConnectivityPage> {
   Future<void> _testConnection(String supplierCode) async {
     final adapter = _hub.get(supplierCode);
     if (adapter == null) return;
-    
+
     final config = _configs.firstWhere((c) => c.supplierCode == supplierCode);
     final originalEnabled = config.enabled;
     setState(() {
       final idx = _configs.indexWhere((c) => c.supplierCode == supplierCode);
       if (idx >= 0) _configs[idx] = config.copyWith(enabled: false);
     });
-    
+
     try {
       final result = await adapter.testConnection();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(result.success 
+          content: Text(result.success
               ? 'Connexion OK (${result.latency?.inMilliseconds}ms)'
               : 'Échec: ${result.error}'),
-          backgroundColor: result.success ? AppColors.success : AppColors.danger,
+          backgroundColor:
+              result.success ? AppColors.success : AppColors.danger,
         ));
       }
     } finally {
       if (mounted) {
         setState(() {
-          final idx = _configs.indexWhere((c) => c.supplierCode == supplierCode);
-          if (idx >= 0) _configs[idx] = config.copyWith(enabled: originalEnabled);
+          final idx =
+              _configs.indexWhere((c) => c.supplierCode == supplierCode);
+          if (idx >= 0)
+            _configs[idx] = config.copyWith(enabled: originalEnabled);
         });
       }
     }
@@ -85,7 +92,8 @@ class _SupplierConnectivityPageState extends State<SupplierConnectivityPage> {
           content: Text(result.success
               ? 'Sync OK: +${result.productsAdded} ~${result.productsUpdated} !${result.conflicts} (${result.duration.inSeconds}s)'
               : 'Échec sync: ${result.error}'),
-          backgroundColor: result.success ? AppColors.success : AppColors.danger,
+          backgroundColor:
+              result.success ? AppColors.success : AppColors.danger,
           duration: const Duration(seconds: 8),
         ));
         _load();
@@ -111,7 +119,8 @@ class _SupplierConnectivityPageState extends State<SupplierConnectivityPage> {
 
   void _toggleEnabled(SupplierAdapterConfig config) {
     setState(() {
-      final idx = _configs.indexWhere((c) => c.supplierCode == config.supplierCode);
+      final idx =
+          _configs.indexWhere((c) => c.supplierCode == config.supplierCode);
       if (idx >= 0) _configs[idx] = config.copyWith(enabled: !config.enabled);
     });
     // Persister...
@@ -124,8 +133,12 @@ class _SupplierConnectivityPageState extends State<SupplierConnectivityPage> {
         title: const Text('Supprimer la connexion'),
         content: Text('Supprimer "${config.displayName}" ?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuler')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Supprimer')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Annuler')),
+          FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Supprimer')),
         ],
       ),
     );
@@ -138,7 +151,7 @@ class _SupplierConnectivityPageState extends State<SupplierConnectivityPage> {
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
-    
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
@@ -170,30 +183,37 @@ class _SupplierConnectivityPageState extends State<SupplierConnectivityPage> {
                     padding: const EdgeInsets.all(12),
                     color: AppColors.warning.withValues(alpha: 0.1),
                     child: Row(children: [
-                      const Icon(Icons.info_outline, size: 20, color: AppColors.warning),
+                      const Icon(Icons.info_outline,
+                          size: 20, color: AppColors.warning),
                       const SizedBox(width: 8),
-                      Expanded(child: Text('Aucun fournisseur connecte par defaut. Les connexions temps reel necessitent des identifiants partenaires (API, portail, Excel/CSV). Les donnees de disponibilite, prix et stock ne sont jamais inventees.', style: const TextStyle(fontSize: 12)))
+                      Expanded(
+                          child: Text(
+                              'Aucun fournisseur connecte par defaut. Les connexions temps reel necessitent des identifiants partenaires (API, portail, Excel/CSV). Les donnees de disponibilite, prix et stock ne sont jamais inventees.',
+                              style: const TextStyle(fontSize: 12)))
                     ]),
                   ),
-                  Expanded(child: _configs.isEmpty
-                      ? _EmptyState(onAdd: _showAddDialog, locale: locale)
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _configs.length,
-                          itemBuilder: (context, i) {
-                            final config = _configs[i];
-                            final adapter = _hub.get(config.supplierCode);
-                            return _SupplierCard(
-                              config: config,
-                              adapter: adapter,
-                              onTest: () => _testConnection(config.supplierCode),
-                              onSync: () => _syncCatalog(config.supplierCode),
-                              onEdit: () => _editConfig(config),
-                              onToggle: () => _toggleEnabled(config),
-                              onDelete: () => _deleteConfig(config),
-                            );
-                          },
-                        )),
+                  Expanded(
+                      child: _configs.isEmpty
+                          ? _EmptyState(onAdd: _showAddDialog, locale: locale)
+                          : ListView.builder(
+                              padding: const EdgeInsets.all(16),
+                              itemCount: _configs.length,
+                              itemBuilder: (context, i) {
+                                final config = _configs[i];
+                                final adapter = _hub.get(config.supplierCode);
+                                return _SupplierCard(
+                                  config: config,
+                                  adapter: adapter,
+                                  onTest: () =>
+                                      _testConnection(config.supplierCode),
+                                  onSync: () =>
+                                      _syncCatalog(config.supplierCode),
+                                  onEdit: () => _editConfig(config),
+                                  onToggle: () => _toggleEnabled(config),
+                                  onDelete: () => _deleteConfig(config),
+                                );
+                              },
+                            )),
                 ]),
     );
   }
@@ -224,28 +244,40 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
+    return LayoutBuilder(builder: (context, constraints) {
+      // Le contenu (icône + titre + textes + bouton) peut dépasser la hauteur
+      // disponible sur un petit smartphone : on rend la zone défilable au
+      // lieu de laisser un RenderFlex déborder.
+      final minH = constraints.maxHeight.isFinite
+          ? (constraints.maxHeight - 64).clamp(0.0, double.infinity)
+          : 0.0;
+      return SingleChildScrollView(
         padding: const EdgeInsets.all(32),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.link_off, size: 64, color: AppColors.warning),
-          const SizedBox(height: 16),
-          Text(S.t('noSupplierConnections', locale),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          Text(S.t('addFirstConnection', locale),
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.textMuted)),
-          const SizedBox(height: 24),
-          GradientButton(
-            label: S.t('addConnection', locale),
-            icon: Icons.add,
-            onPressed: onAdd,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: minH),
+          child: Center(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.link_off, size: 64, color: AppColors.warning),
+              const SizedBox(height: 16),
+              Text(S.t('noSupplierConnections', locale),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              Text(S.t('addFirstConnection', locale),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.textMuted)),
+              const SizedBox(height: 24),
+              GradientButton(
+                label: S.t('addConnection', locale),
+                icon: Icons.add,
+                onPressed: onAdd,
+              ),
+            ]),
           ),
-        ]),
-      ),
-    );
+        ),
+      );
+    });
   }
 }
 
@@ -271,85 +303,102 @@ class _SupplierCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: GlassCard(
-        padding: const EdgeInsets.all(16),
-        child: Row(children: [
-        Container(
-          width: 48, height: 48,
-          decoration: BoxDecoration(
-            gradient: config.enabled ? AppColors.goldGradient : null,
-            color: config.enabled ? null : AppColors.textMuted,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(
-            config.supplierCode == 'csv' ? Icons.file_upload : Icons.cloud_sync,
-            color: config.enabled ? const Color(0xFF3E2A00) : Colors.white,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Expanded(child: Text(config.displayName,
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
-              StatusChip(
-                label: config.enabled ? 'Actif' : 'Inactif',
-                color: config.enabled ? AppColors.success : AppColors.textMuted,
+        padding: const EdgeInsets.only(bottom: 12),
+        child: GlassCard(
+          padding: const EdgeInsets.all(16),
+          child: Row(children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                gradient: config.enabled ? AppColors.goldGradient : null,
+                color: config.enabled ? null : AppColors.textMuted,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                config.supplierCode == 'csv'
+                    ? Icons.file_upload
+                    : Icons.cloud_sync,
+                color: config.enabled ? const Color(0xFF3E2A00) : Colors.white,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      Expanded(
+                          child: Text(config.displayName,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w800, fontSize: 16))),
+                      StatusChip(
+                        label: config.enabled ? 'Actif' : 'Inactif',
+                        color: config.enabled
+                            ? AppColors.success
+                            : AppColors.textMuted,
+                      ),
+                    ]),
+                    const SizedBox(height: 4),
+                    Text(config.supplierCode.toUpperCase(),
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.textMuted)),
+                    if (config.lastSync != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                          'Dernière sync: ${DateFormat('dd/MM/yyyy HH:mm').format(config.lastSync!)}',
+                          style: const TextStyle(
+                              fontSize: 11, color: AppColors.textMuted)),
+                    ],
+                  ]),
+            ),
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              IconButton(
+                tooltip: 'Tester la connexion',
+                icon: const Icon(Icons.wifi_find,
+                    size: 20, color: AppColors.pharmaGold),
+                onPressed: onTest,
+              ),
+              IconButton(
+                tooltip: 'Synchroniser',
+                icon:
+                    const Icon(Icons.sync, size: 20, color: AppColors.emerald),
+                onPressed: onSync,
+              ),
+              IconButton(
+                tooltip: 'Modifier',
+                icon: const Icon(Icons.edit, size: 20, color: AppColors.info),
+                onPressed: onEdit,
+              ),
+              PopupMenuButton(
+                icon: const Icon(Icons.more_vert, color: AppColors.textMuted),
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                    value: 'toggle',
+                    onTap: onToggle,
+                    child: Row(children: [
+                      Icon(config.enabled ? Icons.pause : Icons.play_arrow,
+                          size: 18, color: AppColors.pharmaGold),
+                      const SizedBox(width: 10),
+                      Text(config.enabled ? 'Désactiver' : 'Activer'),
+                    ]),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    onTap: onDelete,
+                    child: Row(children: [
+                      const Icon(Icons.delete,
+                          size: 18, color: AppColors.danger),
+                      const SizedBox(width: 10),
+                      const Text('Supprimer',
+                          style: TextStyle(color: AppColors.danger)),
+                    ]),
+                  ),
+                ],
               ),
             ]),
-            const SizedBox(height: 4),
-            Text(config.supplierCode.toUpperCase(),
-                style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-            if (config.lastSync != null) ...[
-              const SizedBox(height: 4),
-              Text('Dernière sync: ${DateFormat('dd/MM/yyyy HH:mm').format(config.lastSync!)}',
-                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
-            ],
           ]),
-        ),
-        Row(mainAxisSize: MainAxisSize.min, children: [
-          IconButton(
-            tooltip: 'Tester la connexion',
-            icon: const Icon(Icons.wifi_find, size: 20, color: AppColors.pharmaGold),
-            onPressed: onTest,
-          ),
-          IconButton(
-            tooltip: 'Synchroniser',
-            icon: const Icon(Icons.sync, size: 20, color: AppColors.emerald),
-            onPressed: onSync,
-          ),
-          IconButton(
-            tooltip: 'Modifier',
-            icon: const Icon(Icons.edit, size: 20, color: AppColors.info),
-            onPressed: onEdit,
-          ),
-          PopupMenuButton(
-            icon: const Icon(Icons.more_vert, color: AppColors.textMuted),
-            itemBuilder: (_) => [
-              PopupMenuItem(
-                value: 'toggle',
-                onTap: onToggle,
-                child: Row(children: [
-                  Icon(config.enabled ? Icons.pause : Icons.play_arrow, size: 18, color: AppColors.pharmaGold),
-                  const SizedBox(width: 10),
-                  Text(config.enabled ? 'Désactiver' : 'Activer'),
-                ]),
-              ),
-              PopupMenuItem(
-                value: 'delete',
-                onTap: onDelete,
-                child: Row(children: [
-                  const Icon(Icons.delete, size: 18, color: AppColors.danger),
-                  const SizedBox(width: 10),
-                  const Text('Supprimer', style: TextStyle(color: AppColors.danger)),
-                ]),
-              ),
-            ],
-          ),
-        ]),
-      ]),
-    ));
+        ));
   }
 }
 
@@ -378,41 +427,56 @@ class _AddSupplierDialogState extends State<_AddSupplierDialog> {
           padding: const EdgeInsets.all(20),
           child: Form(
             key: _formKey,
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Text(S.t('newSupplierConnection', locale),
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _code,
-                decoration: InputDecoration(labelText: S.t('code', locale)),
-                validator: (v) => v?.isEmpty == true ? S.t('requiredField', locale) : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _name,
-                decoration: InputDecoration(labelText: S.t('name', locale)),
-                validator: (v) => v?.isEmpty == true ? S.t('requiredField', locale) : null,
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _type,
-                decoration: InputDecoration(labelText: S.t('connectionType', locale)),
-                items: ['rest', 'oauth', 'csv', 'xml', 'edi']
-                    .map((t) => DropdownMenuItem(value: t, child: Text(t.toUpperCase())))
-                    .toList(),
-                onChanged: (v) => setState(() => _type = v ?? 'rest'),
-              ),
-              const SizedBox(height: 20),
-              Row(children: [
-                Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context), child: Text(S.t('cancel', locale)))),
-                const SizedBox(width: 12),
-                Expanded(child: GradientButton(label: S.t('save', locale), icon: Icons.save, loading: _saving, onPressed: _save)),
-              ]),
-            ],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(S.t('newSupplierConnection', locale),
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _code,
+                  decoration: InputDecoration(labelText: S.t('code', locale)),
+                  validator: (v) =>
+                      v?.isEmpty == true ? S.t('requiredField', locale) : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _name,
+                  decoration: InputDecoration(labelText: S.t('name', locale)),
+                  validator: (v) =>
+                      v?.isEmpty == true ? S.t('requiredField', locale) : null,
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: _type,
+                  decoration:
+                      InputDecoration(labelText: S.t('connectionType', locale)),
+                  items: ['rest', 'oauth', 'csv', 'xml', 'edi']
+                      .map((t) => DropdownMenuItem(
+                          value: t, child: Text(t.toUpperCase())))
+                      .toList(),
+                  onChanged: (v) => setState(() => _type = v ?? 'rest'),
+                ),
+                const SizedBox(height: 20),
+                Row(children: [
+                  Expanded(
+                      child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(S.t('cancel', locale)))),
+                  const SizedBox(width: 12),
+                  Expanded(
+                      child: GradientButton(
+                          label: S.t('save', locale),
+                          icon: Icons.save,
+                          loading: _saving,
+                          onPressed: _save)),
+                ]),
+              ],
+            ),
           ),
         ),
       ),
-    ),
     );
   }
 
@@ -450,29 +514,45 @@ class _EditSupplierDialogState extends State<_EditSupplierDialog> {
         constraints: const BoxConstraints(maxWidth: 500),
         child: Padding(
           padding: const EdgeInsets.all(20),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(S.t('editConnection', locale),
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 16),
-            TextFormField(controller: _code, enabled: false, decoration: InputDecoration(labelText: S.t('code', locale))),
-            const SizedBox(height: 12),
-            TextFormField(controller: _name, decoration: InputDecoration(labelText: S.t('name', locale))),
-            const SizedBox(height: 12),
-            SwitchListTile(
-              title: Text(S.t('enabled', locale)),
-              value: _enabled,
-              onChanged: (v) => setState(() => _enabled = v),
-            ),
-            const SizedBox(height: 20),
-            Row(children: [
-              Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context), child: Text(S.t('cancel', locale)))),
-              const SizedBox(width: 12),
-              Expanded(child: GradientButton(label: S.t('save', locale), icon: Icons.save, loading: false, onPressed: _save)),
-            ]),
-          ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(S.t('editConnection', locale),
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 16),
+              TextFormField(
+                  controller: _code,
+                  enabled: false,
+                  decoration: InputDecoration(labelText: S.t('code', locale))),
+              const SizedBox(height: 12),
+              TextFormField(
+                  controller: _name,
+                  decoration: InputDecoration(labelText: S.t('name', locale))),
+              const SizedBox(height: 12),
+              SwitchListTile(
+                title: Text(S.t('enabled', locale)),
+                value: _enabled,
+                onChanged: (v) => setState(() => _enabled = v),
+              ),
+              const SizedBox(height: 20),
+              Row(children: [
+                Expanded(
+                    child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(S.t('cancel', locale)))),
+                const SizedBox(width: 12),
+                Expanded(
+                    child: GradientButton(
+                        label: S.t('save', locale),
+                        icon: Icons.save,
+                        loading: false,
+                        onPressed: _save)),
+              ]),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 

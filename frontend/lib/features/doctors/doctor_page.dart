@@ -33,7 +33,8 @@ class _DoctorPageState extends State<DoctorPage> {
     try {
       final params = <String, String>{};
       if (dci != null && dci.isNotEmpty) params['dci'] = dci;
-      if (laboratory != null && laboratory.isNotEmpty) params['laboratory'] = laboratory;
+      if (laboratory != null && laboratory.isNotEmpty)
+        params['laboratory'] = laboratory;
       if (q != null && q.isNotEmpty) params['q'] = q;
 
       final result = await ApiClient.instance.get(
@@ -120,7 +121,8 @@ class _DoctorPageState extends State<DoctorPage> {
                   const SizedBox(height: 24),
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
-                    child: Text(S.t('fermer', context.read<AuthStore>().locale)),
+                    child:
+                        Text(S.t('fermer', context.read<AuthStore>().locale)),
                   ),
                 ],
               ),
@@ -248,17 +250,20 @@ class _DoctorPageState extends State<DoctorPage> {
                       const SizedBox(height: 4),
                       Text(
                         'DCI : ${m['dci'] ?? 'Non renseigné'}',
-                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.textMuted),
                       ),
                       Text(
                         'Laboratoire : ${m['laboratory'] ?? 'Non renseigné'}',
-                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.textMuted),
                       ),
                       if (m['presentation'] != null) ...[
                         const SizedBox(height: 4),
                         Text(
                           'Présentation : ${m['presentation']}',
-                          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                          style: const TextStyle(
+                              fontSize: 11, color: AppColors.textMuted),
                         ),
                       ],
                     ],

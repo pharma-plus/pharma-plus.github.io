@@ -89,19 +89,24 @@ class _SalesPaymentsPageState extends State<SalesPaymentsPage> {
                   children: [
                     Expanded(
                       child: _kpiItem(
-                        'Encaissé', Fmt.number(totalPaid, decimals: 2),
+                        'Encaissé',
+                        Fmt.number(totalPaid, decimals: 2),
                         AppColors.sageGreenInk,
                       ),
                     ),
                     Expanded(
                       child: _kpiItem(
-                        'Reste à encaisser', Fmt.number(outstanding, decimals: 2),
-                        outstanding > 0 ? AppColors.pharmaWarning : AppColors.sageGreenInk,
+                        'Reste à encaisser',
+                        Fmt.number(outstanding, decimals: 2),
+                        outstanding > 0
+                            ? AppColors.pharmaWarning
+                            : AppColors.sageGreenInk,
                       ),
                     ),
                     Expanded(
                       child: _kpiItem(
-                        'Moyens détectés', '${slices.length}',
+                        'Moyens détectés',
+                        '${slices.length}',
                         AppColors.cardBlue,
                       ),
                     ),
@@ -125,8 +130,8 @@ class _SalesPaymentsPageState extends State<SalesPaymentsPage> {
                         'CAISSE THÉORIQUE',
                         _theoreticalCash?.toStringAsFixed(2),
                         AppColors.champagneInk,
-                        (v) => setState(() => _theoreticalCash =
-                            double.tryParse(v)),
+                        (v) => setState(
+                            () => _theoreticalCash = double.tryParse(v)),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -135,8 +140,8 @@ class _SalesPaymentsPageState extends State<SalesPaymentsPage> {
                         'CAISSE COMPTÉE',
                         _countedCash?.toStringAsFixed(2),
                         AppColors.sageGreenInk,
-                        (v) => setState(() => _countedCash =
-                            double.tryParse(v)),
+                        (v) =>
+                            setState(() => _countedCash = double.tryParse(v)),
                       ),
                     ),
                   ],

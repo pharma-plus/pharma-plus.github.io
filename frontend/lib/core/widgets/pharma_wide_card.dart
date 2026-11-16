@@ -41,7 +41,9 @@ class _PharmaWideCardState extends State<PharmaWideCard> {
         _hovered = false;
         _pressed = false;
       }),
-      cursor: widget.onTap != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      cursor: widget.onTap != null
+          ? SystemMouseCursors.click
+          : SystemMouseCursors.basic,
       child: GestureDetector(
         onTapDown: (_) => setState(() => _pressed = true),
         onTapUp: (_) => setState(() => _pressed = false),
@@ -74,8 +76,8 @@ class _PharmaWideCardState extends State<PharmaWideCard> {
               child: Container(
                 decoration: BoxDecoration(
                   gradient: widget.gradient,
-                  border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.25)),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.25)),
                 ),
                 child: Stack(
                   children: [
@@ -130,8 +132,8 @@ class _PharmaWideCardState extends State<PharmaWideCard> {
                                     ],
                                   ),
                                   border: Border.all(
-                                      color: Colors.white
-                                          .withValues(alpha: 0.45)),
+                                      color:
+                                          Colors.white.withValues(alpha: 0.45)),
                                   boxShadow: [
                                     BoxShadow(
                                       color:
@@ -140,8 +142,7 @@ class _PharmaWideCardState extends State<PharmaWideCard> {
                                       offset: const Offset(0, 5),
                                     ),
                                     BoxShadow(
-                                      color: widget.glow
-                                          .withValues(alpha: 0.5),
+                                      color: widget.glow.withValues(alpha: 0.5),
                                       blurRadius: 14,
                                     ),
                                   ],
@@ -211,11 +212,10 @@ class _PharmaWideCardState extends State<PharmaWideCard> {
                                 height: 40,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color:
-                                      Colors.white.withValues(alpha: 0.18),
+                                  color: Colors.white.withValues(alpha: 0.18),
                                   border: Border.all(
-                                      color: Colors.white
-                                          .withValues(alpha: 0.35)),
+                                      color:
+                                          Colors.white.withValues(alpha: 0.35)),
                                 ),
                                 child: const Icon(Icons.arrow_forward_rounded,
                                     color: Colors.white, size: 20),

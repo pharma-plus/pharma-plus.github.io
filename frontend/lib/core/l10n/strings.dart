@@ -9,7 +9,8 @@ class S {
       'connectToSpace': 'Connectez-vous à votre espace',
       'slogan': 'Gérez votre pharmacie avec intelligence et simplicité',
       'forgotPassword': 'Mot de passe oublié ?',
-      'forgotPasswordHint': 'Pour réinitialiser votre mot de passe, contactez votre administrateur.',
+      'forgotPasswordHint':
+          'Pour réinitialiser votre mot de passe, contactez votre administrateur.',
       'rememberMe': 'Se souvenir de moi',
       'support': 'Support',
       'versionLabel': 'Version',
@@ -249,7 +250,8 @@ class S {
       'annualCeiling': 'Plafond annuel',
       'organism': 'Organisme',
       'affiliations': 'Affiliations',
-      'noPathologyData': 'Aucune indication fournie par la source — données non disponibles',
+      'noPathologyData':
+          'Aucune indication fournie par la source — données non disponibles',
       'pathology': 'Pathologie',
       'noDataFiltered': 'Aucune donnée pour ces filtres',
       'suppliers': 'Fournisseurs',
@@ -269,7 +271,8 @@ class S {
       'supplierCreated': 'Fournisseur créé',
       'paymentRecorded': 'Paiement enregistré',
       'supplierConnectivity': 'Connexions fournisseurs',
-      'supplierConnectivitySub': 'Gestion des connexions API/EDI/CSV fournisseurs',
+      'supplierConnectivitySub':
+          'Gestion des connexions API/EDI/CSV fournisseurs',
       'syncAll': 'Tout synchroniser',
       'addConnection': 'Ajouter connexion',
       'noSupplierConnections': 'Aucune connexion fournisseur',
@@ -1248,5 +1251,3 @@ class S {
 
   static bool isRtl(String locale) => _rtl.containsKey(locale);
 }
-
-

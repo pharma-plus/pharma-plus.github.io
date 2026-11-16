@@ -177,32 +177,49 @@ class _EmployeesPageState extends State<EmployeesPage> {
           if (s != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: StatsChip(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final narrow = constraints.maxWidth < 520;
+                  final chips = [
+                    StatsChip(
                         icon: Icons.groups,
                         label: S.t('activeCount', locale),
                         value: Fmt.number(
                             (s['active_count'] as num?)?.toDouble() ?? 0)),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: StatsChip(
+                    StatsChip(
                         icon: Icons.badge_outlined,
                         label: S.t('totalEmployees', locale),
                         value: Fmt.number(
                             (s['total_count'] as num?)?.toDouble() ?? 0)),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: StatsChip(
+                    StatsChip(
                         icon: Icons.payments_outlined,
                         label: S.t('monthlyMass', locale),
                         value: Fmt.money(
                             (s['monthly_mass'] as num?)?.toDouble() ?? 0)),
-                  ),
-                ],
+                  ];
+                  if (narrow) {
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          for (var i = 0; i < chips.length; i++) ...[
+                            SizedBox(width: 170, child: chips[i]),
+                            if (i < chips.length - 1) const SizedBox(width: 8),
+                          ],
+                        ],
+                      ),
+                    );
+                  }
+                  return Row(
+                    children: [
+                      Expanded(child: chips[0]),
+                      const SizedBox(width: 8),
+                      Expanded(child: chips[1]),
+                      const SizedBox(width: 8),
+                      Expanded(child: chips[2]),
+                    ],
+                  );
+                },
               ),
             ),
           Padding(
@@ -217,7 +234,11 @@ class _EmployeesPageState extends State<EmployeesPage> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
+            // Wrap : sur 320 px, trois ChoiceChip côte à côte débordaient
+            // de 96 px à droite. Les filtres passent à la ligne.
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 ChoiceChip(
                   label: const Text('Actifs'),
@@ -307,7 +328,8 @@ class _EmployeesPageState extends State<EmployeesPage> {
                                                       TextOverflow.ellipsis,
                                                   style: const TextStyle(
                                                       fontSize: 12,
-                                                      color: AppColors.textMuted)),
+                                                      color:
+                                                          AppColors.textMuted)),
                                             ],
                                           ),
                                         ),
@@ -413,7 +435,8 @@ class StatsChip extends StatelessWidget {
                 Text(label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
+                    style: const TextStyle(
+                        fontSize: 10, color: AppColors.textMuted)),
                 Text(value,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -614,14 +637,18 @@ class EmployeeFormState extends State<EmployeeForm> {
     final wide = MediaQuery.of(context).size.width >= 700;
     return Dialog(
       backgroundColor: AppColors.pharmaSurface,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560),
+        constraints: BoxConstraints(
+          maxWidth: 560,
+          maxHeight: MediaQuery.sizeOf(context).height * 0.92,
+        ),
         child: Padding(
           padding:
               EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(20),
             child: Form(
               key: _formKey,
               child: Column(

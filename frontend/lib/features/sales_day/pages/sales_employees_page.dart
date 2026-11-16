@@ -86,17 +86,17 @@ class _SalesEmployeesPageState extends State<SalesEmployeesPage> {
     final empSales = e.value;
     final completed = empSales.where((t) => t.isCompleted).toList();
     final grossRevenue = empSales.fold<double>(0, (s, t) => s + t.total);
-    final netRevenue = empSales.fold<double>(
-        0, (s, t) => s + (t.subtotal - t.discountTotal));
+    final netRevenue =
+        empSales.fold<double>(0, (s, t) => s + (t.subtotal - t.discountTotal));
     final discounts = empSales.fold<double>(0, (s, t) => s + t.discountTotal);
     final paid = empSales.fold<double>(0, (s, t) => s + t.paidAmount);
-    final cancelled = empSales.where((t) =>
-        t.status == 'voided' || t.status == 'cancelled').length;
-    final returned = empSales.where((t) =>
-        t.status == 'returned' || t.status == 'refunded').length;
-    final basket = completed.isNotEmpty
-        ? grossRevenue / completed.length
-        : 0.0;
+    final cancelled = empSales
+        .where((t) => t.status == 'voided' || t.status == 'cancelled')
+        .length;
+    final returned = empSales
+        .where((t) => t.status == 'returned' || t.status == 'refunded')
+        .length;
+    final basket = completed.isNotEmpty ? grossRevenue / completed.length : 0.0;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -141,8 +141,8 @@ class _SalesEmployeesPageState extends State<SalesEmployeesPage> {
                         AppColors.sageGreenInk),
                   ),
                   Expanded(
-                    child: _empMetric(
-                        'CA net', Fmt.money(netRevenue), AppColors.champagneInk),
+                    child: _empMetric('CA net', Fmt.money(netRevenue),
+                        AppColors.champagneInk),
                   ),
                   Expanded(
                     child: _empMetric(

@@ -80,8 +80,12 @@ class _CustomersPageState extends State<CustomersPage> {
     final saved = await showDialog<bool>(
       context: context,
       builder: (_) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
+          constraints: BoxConstraints(
+            maxWidth: 560,
+            maxHeight: MediaQuery.sizeOf(context).height * 0.92,
+          ),
           child: CustomerForm(customer: customer),
         ),
       ),
@@ -206,17 +210,18 @@ class _CustomersPageState extends State<CustomersPage> {
                                                 CrossAxisAlignment.start,
                                             children: [
                                               Text('${c['name']}',
-                                                  maxLines: 1,
+                                                  maxLines: 2,
                                                   overflow:
                                                       TextOverflow.ellipsis,
                                                   style: const TextStyle(
                                                       fontWeight:
                                                           FontWeight.w700)),
+                                              const SizedBox(height: 2),
                                               Text(
                                                 '${c['phone'] ?? ''}'.isNotEmpty
                                                     ? '${c['phone']}'
                                                     : '${c['email'] ?? ''}',
-                                                maxLines: 1,
+                                                maxLines: 2,
                                                 overflow: TextOverflow.ellipsis,
                                                 style: const TextStyle(
                                                     fontSize: 12,
@@ -225,27 +230,36 @@ class _CustomersPageState extends State<CustomersPage> {
                                             ],
                                           ),
                                         ),
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.end,
-                                          children: [
-                                            if (credit > 0)
-                                              StatusChip(
-                                                  label: Fmt.money(credit),
-                                                  color: AppColors.danger)
-                                            else
-                                              StatusChip(
-                                                  label: S.t('active', locale),
-                                                  color: AppColors.success),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              '${S.t('totalSpent', locale)}: '
-                                              '${Fmt.money(double.tryParse('${c['total_spent'] ?? 0}') ?? 0)}',
-                                              style: const TextStyle(
-                                                  fontSize: 11,
-                                                  color: AppColors.textMuted),
-                                            ),
-                                          ],
+                                        const SizedBox(width: 8),
+                                        ConstrainedBox(
+                                          constraints: const BoxConstraints(
+                                              maxWidth: 140),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.end,
+                                            children: [
+                                              if (credit > 0)
+                                                StatusChip(
+                                                    label: Fmt.money(credit),
+                                                    color: AppColors.danger)
+                                              else
+                                                StatusChip(
+                                                    label:
+                                                        S.t('active', locale),
+                                                    color: AppColors.success),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                '${S.t('totalSpent', locale)}: '
+                                                '${Fmt.money(double.tryParse('${c['total_spent'] ?? 0}') ?? 0)}',
+                                                textAlign: TextAlign.end,
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                    fontSize: 11,
+                                                    color: AppColors.textMuted),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ],
                                     ),

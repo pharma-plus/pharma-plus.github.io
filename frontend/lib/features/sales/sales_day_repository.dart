@@ -111,7 +111,8 @@ class HourBucket {
   final double revenue;
   final int count;
 
-  const HourBucket({required this.label, required this.revenue, required this.count});
+  const HourBucket(
+      {required this.label, required this.revenue, required this.count});
 }
 
 /// Repository indépendant de l'écran Ventes du jour.
@@ -155,7 +156,8 @@ class SalesDayRepository {
   /// signature : il sert uniquement à décider d'un renouvellement proactif
   /// avant le premier appel, pour ne pas dépendre d'un 401 que la
   /// passerelle peut renvoyer sans CORS (bloqué par le navigateur).
-  static bool isTokenExpiringSoon(String? token, {Duration within = const Duration(seconds: 60), DateTime? now}) {
+  static bool isTokenExpiringSoon(String? token,
+      {Duration within = const Duration(seconds: 60), DateTime? now}) {
     if (token == null || token.isEmpty) return false;
     try {
       final parts = token.split('.');
@@ -164,7 +166,8 @@ class SalesDayRepository {
       final decoded = jsonDecode(utf8.decode(payload)) as Map<String, dynamic>;
       final exp = decoded['exp'];
       if (exp is! num) return false;
-      final expiry = DateTime.fromMillisecondsSinceEpoch((exp * 1000).toInt(), isUtc: true);
+      final expiry = DateTime.fromMillisecondsSinceEpoch((exp * 1000).toInt(),
+          isUtc: true);
       final reference = now ?? DateTime.now().toUtc();
       return expiry.isBefore(reference.add(within));
     } catch (_) {
@@ -186,18 +189,22 @@ class SalesDayRepository {
     // Best-effort : un échec ici ne bloque pas l'appel (erreur affichée).
     try {
       final token = AuthStore.instance.accessToken;
-      if (token != null && AuthStore.instance.refreshToken != null && isTokenExpiringSoon(token)) {
+      if (token != null &&
+          AuthStore.instance.refreshToken != null &&
+          isTokenExpiringSoon(token)) {
         await AuthStore.instance.tryRefresh();
       }
     } catch (_) {
       // Ignore : l'appel ci-dessous affichera l'erreur éventuelle.
     }
-    var res = await _loadPageOnce(fromIso: fromIso, toIso: toIso, page: page, limit: limit);
+    var res = await _loadPageOnce(
+        fromIso: fromIso, toIso: toIso, page: page, limit: limit);
     // Sur NETWORK_ERROR seulement : on retente UNE fois après un court délai.
     // Aucun retry sur 401/403/500 pour éviter les boucles de session/RBAC.
     if (res.error != null && res.error!.kind == SalesDayErrorKind.network) {
       await Future.delayed(const Duration(milliseconds: 800));
-      res = await _loadPageOnce(fromIso: fromIso, toIso: toIso, page: page, limit: limit);
+      res = await _loadPageOnce(
+          fromIso: fromIso, toIso: toIso, page: page, limit: limit);
     }
     return res;
   }
@@ -217,7 +224,11 @@ class SalesDayRepository {
     final tech = status > 0
         ? '$code HTTP $status$detail'
         : '$code$detail | cause=$cleanMsg';
-    if (status == 401 || status == 423 || code == 'SESSION_EXPIRED' || code == 'UNAUTHORIZED' || code == 'SESSION_LOCKED') {
+    if (status == 401 ||
+        status == 423 ||
+        code == 'SESSION_EXPIRED' ||
+        code == 'UNAUTHORIZED' ||
+        code == 'SESSION_LOCKED') {
       return SalesDayError(
         kind: SalesDayErrorKind.sessionExpired,
         message: e?.message ?? 'Session expirée',
@@ -268,7 +279,8 @@ class SalesDayRepository {
     required int totalServer,
     required bool byHour,
   }) {
-    final completed = rows.where((s) => (s['status'] ?? '') == 'completed').toList();
+    final completed =
+        rows.where((s) => (s['status'] ?? '') == 'completed').toList();
     final revenue = completed.fold(0.0, (sum, s) => sum + _amount(s['total']));
     final count = completed.length;
     final average = count == 0 ? 0.0 : revenue / count;
@@ -289,7 +301,8 @@ class SalesDayRepository {
         count: (prev?.count ?? 0) + 1,
       );
     }
-    final sorted = buckets.values.toList()..sort((a, b) => a.label.compareTo(b.label));
+    final sorted = buckets.values.toList()
+      ..sort((a, b) => a.label.compareTo(b.label));
 
     return SalesDayAggregates(
       revenue: revenue,

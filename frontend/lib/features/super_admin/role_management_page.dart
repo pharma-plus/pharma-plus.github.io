@@ -85,14 +85,20 @@ class RoleManagementBodyState extends State<RoleManagementBody> {
   void reload() => _load(reset: true);
 
   Future<void> _load({bool reset = false}) async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     final r = await ApiClient.instance.get('/superadmin/roles', query: {
       'limit': 50,
       if (_searchQuery != null && _searchQuery!.isNotEmpty) 'q': _searchQuery!,
     });
     if (!mounted) return;
     if (!r.success) {
-      setState(() { _loading = false; _error = r.error?.readableMessage ?? 'Erreur'; });
+      setState(() {
+        _loading = false;
+        _error = r.error?.readableMessage ?? 'Erreur';
+      });
       return;
     }
     setState(() {
@@ -119,7 +125,9 @@ class RoleManagementBodyState extends State<RoleManagementBody> {
         ),
       ),
     );
-    if (saved == true) { _load(reset: true); }
+    if (saved == true) {
+      _load(reset: true);
+    }
   }
 
   Future<void> _editRole(Map<String, dynamic> role) async {
@@ -143,19 +151,27 @@ class RoleManagementBodyState extends State<RoleManagementBody> {
         title: Text(S.t('deleteRole', locale)),
         content: Text('Supprimer le rôle "${role['name']}" ?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(S.t('cancel', locale))),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(S.t('delete', locale), style: TextStyle(color: AppColors.danger))),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(S.t('cancel', locale))),
+          FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(S.t('delete', locale),
+                  style: TextStyle(color: AppColors.danger))),
         ],
       ),
     );
     if (confirm != true) return;
-    final r = await ApiClient.instance.delete('/superadmin/roles/${role['id']}');
+    final r =
+        await ApiClient.instance.delete('/superadmin/roles/${role['id']}');
     if (mounted) {
       if (r.success) {
         _load(reset: true);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(S.t('roleDeleted', locale))));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(S.t('roleDeleted', locale))));
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(r.error?.readableMessage ?? 'Erreur')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(r.error?.readableMessage ?? 'Erreur')));
       }
     }
   }
@@ -166,7 +182,8 @@ class RoleManagementBodyState extends State<RoleManagementBody> {
       builder: (_) => Dialog(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 900, maxHeight: 600),
-          child: PermissionMatrixDialog(role: role, onSaved: () => _load(reset: true)),
+          child: PermissionMatrixDialog(
+              role: role, onSaved: () => _load(reset: true)),
         ),
       ),
     );
@@ -214,8 +231,8 @@ class RoleManagementBodyState extends State<RoleManagementBody> {
                             children: [
                               Padding(
                                 padding: const EdgeInsets.all(32),
-                                child: Center(
-                                    child: Text(S.t('noRoles', locale))),
+                                child:
+                                    Center(child: Text(S.t('noRoles', locale))),
                               ),
                             ],
                           ),
@@ -223,18 +240,18 @@ class RoleManagementBodyState extends State<RoleManagementBody> {
                       : RefreshIndicator(
                           onRefresh: () => _load(reset: true),
                           child: ListView.builder(
-                              padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
-                              itemCount: _roles.length,
-                              itemBuilder: (context, i) {
-                                final r = _roles[i];
-                                return _RoleCard(
-                                  role: r,
-                                  onEdit: () => _editRole(r),
-                                  onPermissions: () => _managePermissions(r),
-                                  onDelete: () => _deleteRole(r),
-                                );
-                              },
-                            ),
+                            padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+                            itemCount: _roles.length,
+                            itemBuilder: (context, i) {
+                              final r = _roles[i];
+                              return _RoleCard(
+                                role: r,
+                                onEdit: () => _editRole(r),
+                                onPermissions: () => _managePermissions(r),
+                                onDelete: () => _deleteRole(r),
+                              );
+                            },
+                          ),
                         ),
         ),
       ],
@@ -269,40 +286,73 @@ class _RoleCard extends StatelessWidget {
         onTap: null,
         child: Row(children: [
           Container(
-            width: 48, height: 48,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               gradient: AppColors.goldGradient,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.admin_panel_settings, color: Color(0xFF3E2A00)),
+            child: const Icon(Icons.admin_panel_settings,
+                color: Color(0xFF3E2A00)),
           ),
           const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Expanded(child: Text(roleName, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15))),
-              if (isSystem) StatusChip(label: 'Système', color: AppColors.info),
-            ]),
-            const SizedBox(height: 2),
-            Text(roleDesc, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-            const SizedBox(height: 4),
-            Wrap(spacing: 6, children: [
-              if (permissions is Map)
-                for (final m in permissions.keys.take(3))
-                  StatusChip(label: m.toString(), color: AppColors.info),
-            ]),
-          ])),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Row(children: [
+                  Expanded(
+                      child: Text(roleName,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w800, fontSize: 15))),
+                  if (isSystem)
+                    StatusChip(label: 'Système', color: AppColors.info),
+                ]),
+                const SizedBox(height: 2),
+                Text(roleDesc,
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.textMuted)),
+                const SizedBox(height: 4),
+                Wrap(spacing: 6, children: [
+                  if (permissions is Map)
+                    for (final m in permissions.keys.take(3))
+                      StatusChip(label: m.toString(), color: AppColors.info),
+                ]),
+              ])),
           PopupMenuButton(
             icon: const Icon(Icons.more_vert, color: AppColors.textMuted),
             itemBuilder: (_) => [
               PopupMenuItem(
-                onTap: () { Navigator.pop(context); onEdit(); },
-                child: Row(children: [const Icon(Icons.edit, size: 18, color: AppColors.pharmaGold), const SizedBox(width: 10), Text('Modifier')])),
+                  onTap: () {
+                    Navigator.pop(context);
+                    onEdit();
+                  },
+                  child: Row(children: [
+                    const Icon(Icons.edit,
+                        size: 18, color: AppColors.pharmaGold),
+                    const SizedBox(width: 10),
+                    Text('Modifier')
+                  ])),
               PopupMenuItem(
-                onTap: () { Navigator.pop(context); onPermissions(); },
-                child: Row(children: [const Icon(Icons.security, size: 18, color: AppColors.info), const SizedBox(width: 10), Text('Permissions')])),
+                  onTap: () {
+                    Navigator.pop(context);
+                    onPermissions();
+                  },
+                  child: Row(children: [
+                    const Icon(Icons.security, size: 18, color: AppColors.info),
+                    const SizedBox(width: 10),
+                    Text('Permissions')
+                  ])),
               PopupMenuItem(
-                onTap: () { Navigator.pop(context); onDelete(); },
-                child: Row(children: [const Icon(Icons.delete, size: 18, color: AppColors.danger), const SizedBox(width: 10), Text('Supprimer', style: TextStyle(color: AppColors.danger))])),
+                  onTap: () {
+                    Navigator.pop(context);
+                    onDelete();
+                  },
+                  child: Row(children: [
+                    const Icon(Icons.delete, size: 18, color: AppColors.danger),
+                    const SizedBox(width: 10),
+                    Text('Supprimer', style: TextStyle(color: AppColors.danger))
+                  ])),
             ],
           ),
         ]),
@@ -315,13 +365,16 @@ class _RoleCard extends StatelessWidget {
 class RoleForm extends StatefulWidget {
   final Map<String, dynamic>? role;
   const RoleForm({this.role});
-  @override State<RoleForm> createState() => _RoleFormState();
+  @override
+  State<RoleForm> createState() => _RoleFormState();
 }
 
 class _RoleFormState extends State<RoleForm> {
   final _formKey = GlobalKey<FormState>();
-  late final _name = TextEditingController(text: (widget.role?['name'] as String?) ?? '');
-  late final _code = TextEditingController(text: (widget.role?['code'] as String?) ?? '');
+  late final _name =
+      TextEditingController(text: (widget.role?['name'] as String?) ?? '');
+  late final _code =
+      TextEditingController(text: (widget.role?['code'] as String?) ?? '');
   bool _saving = false;
 
   @override
@@ -329,7 +382,12 @@ class _RoleFormState extends State<RoleForm> {
     super.initState();
   }
 
-  @override void dispose() { _name.dispose(); _code.dispose(); super.dispose(); }
+  @override
+  void dispose() {
+    _name.dispose();
+    _code.dispose();
+    super.dispose();
+  }
 
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -343,13 +401,16 @@ class _RoleFormState extends State<RoleForm> {
     };
     final result = widget.role == null
         ? await ApiClient.instance.post('/superadmin/roles', body: body)
-        : await ApiClient.instance.put('/superadmin/roles/${(widget.role!['id'] as String?)}', body: body);
+        : await ApiClient.instance.put(
+            '/superadmin/roles/${(widget.role!['id'] as String?)}',
+            body: body);
     if (!mounted) return;
     if (result.success) {
       Navigator.pop(context, true);
     } else {
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.error?.readableMessage ?? 'Erreur')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result.error?.readableMessage ?? 'Erreur')));
     }
   }
 
@@ -357,22 +418,53 @@ class _RoleFormState extends State<RoleForm> {
   Widget build(BuildContext context) {
     final locale = context.read<AuthStore>().locale;
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: SafeArea(child: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Form(
-        key: _formKey,
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text(widget.role == null ? 'Nouveau rôle' : 'Modifier rôle', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 16),
-          TextFormField(controller: _code, autovalidateMode: AutovalidateMode.onUserInteraction, validator: (v) => v?.isEmpty == true ? 'Code requis' : null, decoration: InputDecoration(labelText: 'Code (unique)'), enabled: widget.role == null),
-          const SizedBox(height: 12),
-          TextFormField(controller: _name, autovalidateMode: AutovalidateMode.onUserInteraction, validator: (v) => v?.isEmpty == true ? 'Nom requis' : null, decoration: InputDecoration(labelText: S.t('name', locale))),
-          const SizedBox(height: 20),
-          Row(children: [
-            Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close), label: Text(S.t('cancel', locale)))),
-            const SizedBox(width: 12),
-            Expanded(child: GradientButton(label: S.t('save', locale), icon: Icons.check, loading: _saving, onPressed: _save)),
-          ]),
-        ])))));
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: SafeArea(
+            child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                    key: _formKey,
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Text(
+                          widget.role == null
+                              ? 'Nouveau rôle'
+                              : 'Modifier rôle',
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                          controller: _code,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          validator: (v) =>
+                              v?.isEmpty == true ? 'Code requis' : null,
+                          decoration:
+                              InputDecoration(labelText: 'Code (unique)'),
+                          enabled: widget.role == null),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                          controller: _name,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          validator: (v) =>
+                              v?.isEmpty == true ? 'Nom requis' : null,
+                          decoration:
+                              InputDecoration(labelText: S.t('name', locale))),
+                      const SizedBox(height: 20),
+                      Row(children: [
+                        Expanded(
+                            child: OutlinedButton.icon(
+                                onPressed: () => Navigator.pop(context),
+                                icon: const Icon(Icons.close),
+                                label: Text(S.t('cancel', locale)))),
+                        const SizedBox(width: 12),
+                        Expanded(
+                            child: GradientButton(
+                                label: S.t('save', locale),
+                                icon: Icons.check,
+                                loading: _saving,
+                                onPressed: _save)),
+                      ]),
+                    ])))));
   }
 }
 
@@ -381,7 +473,8 @@ class PermissionMatrixDialog extends StatefulWidget {
   final Map<String, dynamic> role;
   final VoidCallback onSaved;
   const PermissionMatrixDialog({required this.role, required this.onSaved});
-  @override State<PermissionMatrixDialog> createState() => _PermissionMatrixDialogState();
+  @override
+  State<PermissionMatrixDialog> createState() => _PermissionMatrixDialogState();
 }
 
 class _PermissionMatrixDialogState extends State<PermissionMatrixDialog> {
@@ -395,31 +488,38 @@ class _PermissionMatrixDialogState extends State<PermissionMatrixDialog> {
     final perms = widget.role['permissions'] as Map?;
     if (perms != null) {
       perms.forEach((k, v) {
-        _permissions[k as String] = (v as List<dynamic>).map((e) => PermissionAction.values.byName(e as String)).toSet();
+        _permissions[k as String] = (v as List<dynamic>)
+            .map((e) => PermissionAction.values.byName(e as String))
+            .toSet();
       });
     }
     // Initialiser avec les permissions par défaut du rôle si aucune
     if (_permissions.isEmpty) {
       final roleStr = (widget.role['code'] as String?) ?? '';
-      final role = Role.values.firstWhere((r) => r.name == roleStr, orElse: () => Role.viewer);
+      final role = Role.values
+          .firstWhere((r) => r.name == roleStr, orElse: () => Role.viewer);
       for (final m in Module.values) {
-        _permissions[m.name] = PermissionChecker.getPermissions(role, Module.values.byName(m.name));
+        _permissions[m.name] = PermissionChecker.getPermissions(
+            role, Module.values.byName(m.name));
       }
     }
   }
 
   Future<void> _save() async {
     setState(() => _saving = true);
-    final permsJson = _permissions.map((k, v) => MapEntry(k, v.map((e) => e.name).toList()));
+    final permsJson =
+        _permissions.map((k, v) => MapEntry(k, v.map((e) => e.name).toList()));
     final roleId = (widget.role['id'] as String?);
     if (roleId == null) return;
-    final r = await ApiClient.instance.put('/superadmin/roles/$roleId', body: {'permissions': permsJson});
+    final r = await ApiClient.instance
+        .put('/superadmin/roles/$roleId', body: {'permissions': permsJson});
     if (!mounted) return;
     if (r.success) {
       Navigator.pop(context, true);
     } else {
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(r.error?.readableMessage ?? 'Erreur')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(r.error?.readableMessage ?? 'Erreur')));
     }
   }
 
@@ -427,57 +527,101 @@ class _PermissionMatrixDialogState extends State<PermissionMatrixDialog> {
   Widget build(BuildContext context) {
     final locale = context.read<AuthStore>().locale;
     final roleName = (widget.role['name'] as String?) ?? '';
+    final size = MediaQuery.sizeOf(context);
+    final viewInsets = MediaQuery.viewInsetsOf(context);
+    final maxH = (size.height - viewInsets.bottom - 32).clamp(280.0, 600.0);
+    final maxW = (size.width - 24).clamp(280.0, 900.0);
     return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 900, maxHeight: 600),
+        constraints: BoxConstraints(maxWidth: maxW, maxHeight: maxH),
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Row(children: [
-              Expanded(child: Text('Permissions: $roleName', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800))),
-              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
-            ]),
-            const SizedBox(height: 16),
-            Expanded(child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columns: [
-                  DataColumn(label: Text(S.t('module', context.read<AuthStore>().locale), style: const TextStyle(fontWeight: FontWeight.w800))),
-                  for (final a in PermissionAction.values) DataColumn(label: Text(a.name, style: const TextStyle(fontSize: 10)), numeric: true),
-                ],
-                rows: Module.values.map((m) {
-                  return DataRow(cells: [
-                    DataCell(Text(S.t(m.name, context.read<AuthStore>().locale), style: const TextStyle(fontWeight: FontWeight.w600))),
-                    for (final a in PermissionAction.values)
-                      DataCell(Checkbox(
-                        value: _permissions[m.name]?.contains(a) ?? false,
-                        onChanged: (v) => setState(() {
-                          final set = _permissions[m.name] ?? {};
-                          if (v ?? false) {
-                            set.add(a);
-                          } else {
-                            set.remove(a);
-                          }
-                          _permissions[m.name] = set;
-                        }),
-                      )),
-                  ]);
-                }).toList(),
+              Expanded(
+                child: Text(
+                  'Permissions: $roleName',
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.w800),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            )),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton(onPressed: () => Navigator.pop(context), child: Text(S.t('cancel', locale))),
-              const SizedBox(width: 12),
-              FilledButton(onPressed: _saving ? null : () { _save(); widget.onSaved(); }, child: Text(S.t('save', locale))),
-            ],
-          ),
-        ],
+              IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close)),
+            ]),
+            const SizedBox(height: 12),
+            Expanded(
+              child: SingleChildScrollView(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    columns: [
+                      DataColumn(
+                        label: Text(
+                          S.t('module', context.read<AuthStore>().locale),
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      for (final a in PermissionAction.values)
+                        DataColumn(
+                          label: Text(a.name,
+                              style: const TextStyle(fontSize: 10)),
+                          numeric: true,
+                        ),
+                    ],
+                    rows: Module.values.map((m) {
+                      return DataRow(cells: [
+                        DataCell(Text(
+                          S.t(m.name, context.read<AuthStore>().locale),
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        )),
+                        for (final a in PermissionAction.values)
+                          DataCell(Checkbox(
+                            value: _permissions[m.name]?.contains(a) ?? false,
+                            onChanged: (v) => setState(() {
+                              final set =
+                                  _permissions[m.name] ?? <PermissionAction>{};
+                              if (v ?? false) {
+                                set.add(a);
+                              } else {
+                                set.remove(a);
+                              }
+                              _permissions[m.name] = set;
+                            }),
+                          )),
+                      ]);
+                    }).toList(),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(S.t('cancel', locale)),
+                ),
+                FilledButton(
+                  onPressed: _saving
+                      ? null
+                      : () {
+                          _save();
+                          widget.onSaved();
+                        },
+                  child: Text(S.t('save', locale)),
+                ),
+              ],
+            ),
+          ]),
+        ),
       ),
-    ),
-  ),
-);
-}
+    );
+  }
 }

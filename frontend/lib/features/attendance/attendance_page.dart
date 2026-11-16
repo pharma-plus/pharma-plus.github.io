@@ -49,12 +49,9 @@ class _AttendancePageState extends State<AttendancePage>
     final now = DateTime.now();
     final month = now.toIso8601String().split('T').first.substring(0, 7);
     final results = await Future.wait([
-      ApiClient.instance
-          .get('/attendance', query: {'limit': 100}),
-      ApiClient.instance.get('/attendance/leaves',
-          query: {'limit': 100}),
-      ApiClient.instance.get('/attendance/summary',
-          query: {'month': month}),
+      ApiClient.instance.get('/attendance', query: {'limit': 100}),
+      ApiClient.instance.get('/attendance/leaves', query: {'limit': 100}),
+      ApiClient.instance.get('/attendance/summary', query: {'month': month}),
     ]);
     if (!mounted) return;
     final records = results[0];
@@ -280,24 +277,24 @@ class _AttendancePageState extends State<AttendancePage>
       body: PharmaBackground(
         assetImage: 'assets/images/background.webp',
         child: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(child: Text(_error!))
-              : TabBarView(
-                  controller: _tabs,
-                  children: [
-                    _RecordsTab(
-                      records: _records,
-                      onClockIn: () => _clock(in_: true),
-                      onClockOut: () => _clock(in_: false),
-                    ),
-                    _LeavesTab(
-                        leaves: _leaves,
-                        onRequest: _requestLeave,
-                        onDecide: _decideLeave),
-                    _SummaryTab(rows: _summary),
-                  ],
-                ),
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+                ? Center(child: Text(_error!))
+                : TabBarView(
+                    controller: _tabs,
+                    children: [
+                      _RecordsTab(
+                        records: _records,
+                        onClockIn: () => _clock(in_: true),
+                        onClockOut: () => _clock(in_: false),
+                      ),
+                      _LeavesTab(
+                          leaves: _leaves,
+                          onRequest: _requestLeave,
+                          onDecide: _decideLeave),
+                      _SummaryTab(rows: _summary),
+                    ],
+                  ),
       ),
     );
   }
@@ -369,7 +366,8 @@ class _RecordsTab extends StatelessWidget {
                                           fontWeight: FontWeight.w700)),
                                   Text('${a['position']}',
                                       style: const TextStyle(
-                                          fontSize: 12, color: AppColors.textMuted)),
+                                          fontSize: 12,
+                                          color: AppColors.textMuted)),
                                 ],
                               ),
                             ),

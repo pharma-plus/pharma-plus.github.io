@@ -47,7 +47,8 @@ class AppColors {
   static const Color inkDarkLight = Color(0xFF4A5A65);
 
   // Texte clair — pour les surfaces sombres
-  static const Color porcelain = Color(0xFFF5F6F5); // Blanc porcelaine / texte clair
+  static const Color porcelain =
+      Color(0xFFF5F6F5); // Blanc porcelaine / texte clair
 
   // Gris argent — surfaces principales (thème clair / marbre)
   static const Color silver = Color(0xFFE8EAEC); // Gris argent / marbre
@@ -58,10 +59,10 @@ class AppColors {
   // COULEURS SÉMANTIQUES (préservées — succès, erreur, avertissement)
   // ============================================================
 
-  static const Color success = Color(0xFFA8C8B5);      // Vert sauge pour succès
-  static const Color danger = Color(0xFFEF4444);       // Rouge (inchangé)
-  static const Color warning = Color(0xFFF59E0B);      // Ambre (inchangé)
-  static const Color info = Color(0xFF5BB8E8);         // Bleu (inchangé)
+  static const Color success = Color(0xFFA8C8B5); // Vert sauge pour succès
+  static const Color danger = Color(0xFFEF4444); // Rouge (inchangé)
+  static const Color warning = Color(0xFFF59E0B); // Ambre (inchangé)
+  static const Color info = Color(0xFF5BB8E8); // Bleu (inchangé)
 
   // ============================================================
   // COULEURS MÉTIER SUPPLÉMENTAIRES (préservées)

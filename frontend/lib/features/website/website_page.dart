@@ -51,8 +51,7 @@ class _WebsitePageState extends State<WebsitePage> {
     });
     final results = await Future.wait([
       ApiClient.instance.get('/website/settings'),
-      ApiClient.instance
-          .get('/website/blog/posts', query: {'limit': '100'}),
+      ApiClient.instance.get('/website/blog/posts', query: {'limit': '100'}),
     ]);
     if (!mounted) return;
     if (!results[0].success) {
@@ -64,7 +63,9 @@ class _WebsitePageState extends State<WebsitePage> {
     }
     setState(() {
       final s0 = results[0].data;
-      final s = s0 is Map<String, dynamic> ? s0 : (s0 is Map ? Map<String, dynamic>.from(s0) : <String, dynamic>{});
+      final s = s0 is Map<String, dynamic>
+          ? s0
+          : (s0 is Map ? Map<String, dynamic>.from(s0) : <String, dynamic>{});
       _heroTitle.text = '${s['hero_title'] ?? ''}';
       _heroSubtitle.text = '${s['hero_subtitle'] ?? ''}';
       _about.text = '${s['about'] ?? ''}';
@@ -99,25 +100,25 @@ class _WebsitePageState extends State<WebsitePage> {
            déborder sur les petites hauteurs / clavier ouvert. */
         content: SingleChildScrollView(
           child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-            TextField(
-                controller: title,
-                decoration:
-                    InputDecoration(labelText: S.t('postTitle', locale))),
-            const SizedBox(height: 12),
-            TextField(
-                controller: excerpt,
-                maxLines: 2,
-                decoration:
-                    InputDecoration(labelText: S.t('postExcerpt', locale))),
-            const SizedBox(height: 12),
-            TextField(
-                controller: content,
-                maxLines: 4,
-                decoration:
-                    InputDecoration(labelText: S.t('postContent', locale))),
-        ],
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                  controller: title,
+                  decoration:
+                      InputDecoration(labelText: S.t('postTitle', locale))),
+              const SizedBox(height: 12),
+              TextField(
+                  controller: excerpt,
+                  maxLines: 2,
+                  decoration:
+                      InputDecoration(labelText: S.t('postExcerpt', locale))),
+              const SizedBox(height: 12),
+              TextField(
+                  controller: content,
+                  maxLines: 4,
+                  decoration:
+                      InputDecoration(labelText: S.t('postContent', locale))),
+            ],
           ),
         ),
         actions: [
@@ -159,115 +160,115 @@ class _WebsitePageState extends State<WebsitePage> {
       body: PharmaBackground(
         assetImage: 'assets/images/background.webp',
         child: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(child: Text(_error!))
-              : ListView(
-                  padding: const EdgeInsets.all(12),
-                  children: [
-                    GlassCard(
-                      radius: BorderRadius.circular(18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(S.t('websiteSettings', locale),
-                              style: const TextStyle(
-                                  fontSize: 15, fontWeight: FontWeight.w800)),
-                          const SizedBox(height: 12),
-                          TextField(
-                              controller: _heroTitle,
-                              decoration: InputDecoration(
-                                  labelText: S.t('heroTitle', locale))),
-                          const SizedBox(height: 12),
-                          TextField(
-                              controller: _heroSubtitle,
-                              maxLines: 2,
-                              decoration: InputDecoration(
-                                  labelText: S.t('heroSubtitle', locale))),
-                          const SizedBox(height: 12),
-                          TextField(
-                              controller: _about,
-                              maxLines: 4,
-                              decoration: InputDecoration(
-                                  labelText: S.t('about', locale))),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            width: double.infinity,
-                            child: FilledButton.icon(
-                              onPressed: _saving ? null : _saveSettings,
-                              icon: const Icon(Icons.save_outlined),
-                              label: Text(S.t('save', locale)),
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+                ? Center(child: Text(_error!))
+                : ListView(
+                    padding: const EdgeInsets.all(12),
+                    children: [
+                      GlassCard(
+                        radius: BorderRadius.circular(18),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(S.t('websiteSettings', locale),
+                                style: const TextStyle(
+                                    fontSize: 15, fontWeight: FontWeight.w800)),
+                            const SizedBox(height: 12),
+                            TextField(
+                                controller: _heroTitle,
+                                decoration: InputDecoration(
+                                    labelText: S.t('heroTitle', locale))),
+                            const SizedBox(height: 12),
+                            TextField(
+                                controller: _heroSubtitle,
+                                maxLines: 2,
+                                decoration: InputDecoration(
+                                    labelText: S.t('heroSubtitle', locale))),
+                            const SizedBox(height: 12),
+                            TextField(
+                                controller: _about,
+                                maxLines: 4,
+                                decoration: InputDecoration(
+                                    labelText: S.t('about', locale))),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilledButton.icon(
+                                onPressed: _saving ? null : _saveSettings,
+                                icon: const Icon(Icons.save_outlined),
+                                label: Text(S.t('save', locale)),
+                              ),
                             ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                                '${S.t('posts', locale)} (${_posts.length})',
+                                style: const TextStyle(
+                                    fontSize: 15, fontWeight: FontWeight.w800)),
+                          ),
+                          FilledButton.icon(
+                            onPressed: _createPost,
+                            icon: const Icon(Icons.add),
+                            label: Text(S.t('newPost', locale)),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                              '${S.t('posts', locale)} (${_posts.length})',
-                              style: const TextStyle(
-                                  fontSize: 15, fontWeight: FontWeight.w800)),
-                        ),
-                        FilledButton.icon(
-                          onPressed: _createPost,
-                          icon: const Icon(Icons.add),
-                          label: Text(S.t('newPost', locale)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    if (_posts.isEmpty)
-                      Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Text(S.t('noPosts', locale)),
-                        ),
-                      )
-                    else
-                      ..._posts.map((p) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: GlassCard(
-                              radius: BorderRadius.circular(16),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 12),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text('${p['title']}',
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.w800)),
-                                        Text(
-                                            '${Fmt.shortDate(DateTime.tryParse('${p['created_at']}'))}'
-                                            ' · ${p['is_published'] == true ? S.t('published', locale) : S.t('draft', locale)}',
-                                            style: const TextStyle(
-                                                fontSize: 12,
-                                                color: AppColors.textMuted)),
-                                      ],
+                      const SizedBox(height: 8),
+                      if (_posts.isEmpty)
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Text(S.t('noPosts', locale)),
+                          ),
+                        )
+                      else
+                        ..._posts.map((p) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: GlassCard(
+                                radius: BorderRadius.circular(16),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 12),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text('${p['title']}',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.w800)),
+                                          Text(
+                                              '${Fmt.shortDate(DateTime.tryParse('${p['created_at']}'))}'
+                                              ' · ${p['is_published'] == true ? S.t('published', locale) : S.t('draft', locale)}',
+                                              style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color: AppColors.textMuted)),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  StatusChip(
-                                    label: p['is_published'] == true
-                                        ? S.t('published', locale)
-                                        : S.t('draft', locale),
-                                    color: p['is_published'] == true
-                                        ? const Color(0xFF2E7D32)
-                                        : AppColors.textMuted,
-                                  ),
-                                ],
+                                    StatusChip(
+                                      label: p['is_published'] == true
+                                          ? S.t('published', locale)
+                                          : S.t('draft', locale),
+                                      color: p['is_published'] == true
+                                          ? const Color(0xFF2E7D32)
+                                          : AppColors.textMuted,
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          )),
-                  ],
-                ),
+                            )),
+                    ],
+                  ),
       ),
     );
   }

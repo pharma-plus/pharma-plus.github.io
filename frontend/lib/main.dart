@@ -48,7 +48,7 @@ void _forceSuperAdminRetention() {
   final returnToPharma = superAdminReturnToPharma;
   final confirmLogout = superAdminConfirmLogout;
   final refs = superAdminFunctionRefs;
-  
+
   // Use in a way that could theoretically affect program behavior
   // The tree-shaker can't prove this is never true
   if (returnToPharma == null && confirmLogout == null && refs == null) {
@@ -80,7 +80,7 @@ void _callSuperAdminFunctions() {
   // This is a hack to prevent tree-shaking by actually calling the functions
   final navigatorKey = GlobalKey<NavigatorState>();
   final context = navigatorKey.currentContext;
-  
+
   if (context != null) {
     superAdminReturnToPharma(context);
     superAdminConfirmLogout(context);
@@ -99,7 +99,7 @@ void _instantiateRetentionWidget() {
   // Instantiate the retention widget in a way that the tree-shaker can't optimize away
   // by using it in a conditional that could theoretically affect program behavior
   final widget = _SuperAdminRetentionWidget();
-  
+
   // Use in a way that could theoretically affect program behavior
   // The tree-shaker can't prove this is never true
   if (widget == null) {
@@ -236,8 +236,7 @@ class PharmaGoldApp extends StatelessWidget {
     // d'authentification (login → dashboard) sont gérés par le Consumer
     // interne de RootGate, et évitent un rebuild complet de l'arbre.
     return Selector<AuthStore, ({ThemeMode themeMode, String locale})>(
-      selector: (_, auth) =>
-          (themeMode: auth.themeMode, locale: auth.locale),
+      selector: (_, auth) => (themeMode: auth.themeMode, locale: auth.locale),
       builder: (context, values, _) {
         final themeMode = values.themeMode;
         final locale = values.locale;

@@ -156,9 +156,7 @@ class _InvoiceTile extends StatelessWidget {
     final locale = context.watch<AuthStore>().locale;
     final status = '${invoice['status'] ?? ''}';
     final customers = invoice['customers'];
-    final customerName = customers is Map
-        ? '${customers['name'] ?? ''}'
-        : '';
+    final customerName = customers is Map ? '${customers['name'] ?? ''}' : '';
     final total = double.tryParse('${invoice['total'] ?? 0}') ?? 0;
     final due = InvoiceUi.dueOf(invoice);
     final date = InvoiceUi.issueDate(invoice);
@@ -196,7 +194,8 @@ class _InvoiceTile extends StatelessWidget {
                     ].join(' · '),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.textMuted),
                   ),
                 ],
               ),
@@ -215,8 +214,8 @@ class _InvoiceTile extends StatelessWidget {
                 if (status != 'paid' && due > 0)
                   Text(
                     '${S.t('invoiceDue', locale)}: ${Fmt.money(due)}',
-                    style: const TextStyle(
-                        fontSize: 11, color: AppColors.danger),
+                    style:
+                        const TextStyle(fontSize: 11, color: AppColors.danger),
                   ),
               ],
             ),
@@ -286,12 +285,11 @@ class _InvoiceDetailState extends State<_InvoiceDetail> {
     }
     final payload = result.data;
     final invoiceMap = payload is Map ? payload['invoice'] : null;
-    final number = invoiceMap is Map
-        ? '${invoiceMap['number'] ?? 'facture'}'
-        : 'facture';
+    final number =
+        invoiceMap is Map ? '${invoiceMap['number'] ?? 'facture'}' : 'facture';
     final safeName = number.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
-    final bytes = utf8.encode(
-        const JsonEncoder.withIndent('  ').convert(payload));
+    final bytes =
+        utf8.encode(const JsonEncoder.withIndent('  ').convert(payload));
     downloadBytes('$safeName.json', bytes, 'application/json');
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -456,8 +454,7 @@ class _DetailBody extends StatelessWidget {
         totalRow(S.t('total', locale), Fmt.money(total), bold: true),
         totalRow(S.t('invoiceReceived', locale), Fmt.money(paid)),
         totalRow(S.t('invoiceDue', locale), Fmt.money(due),
-            color: due > 0 ? AppColors.danger : AppColors.success,
-            bold: true),
+            color: due > 0 ? AppColors.danger : AppColors.success, bold: true),
         const SizedBox(height: 12),
         SizedBox(
           width: double.infinity,

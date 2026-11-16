@@ -105,6 +105,70 @@ class AppSideNavItem {
   });
 }
 
+/// ============================================================
+/// SOURCE UNIQUE des entrées de navigation (sidebar PC, drawer mobile,
+/// barre inférieure) : filtrées par permissions réelles de l'utilisateur
+/// connecté (AuthStore.user.permissions, renvoyées par le backend à la
+/// connexion) ET par les modules visibles (AuthStore.canSeeModule).
+/// Cacher un bouton ne suffit pas : le backend refuse aussi la requête
+/// (enforcePathPermission, matrice ROUTE_MODULE).
+/// ============================================================
+List<AppSideNavItem> visibleAppSideNavItems({AuthStore? auth}) {
+  final store = auth ?? AuthStore.instance;
+  final user = store.user;
+  bool p(String code) => user?.hasPermission(code) ?? true;
+  bool m(String? key) => key == null || store.canSeeModule(key);
+  return <AppSideNavItem>[
+    const AppSideNavItem(Icons.home_outlined, 'Tableau de bord', shellIndex: 0),
+    const AppSideNavItem(Icons.shopping_cart_outlined, 'Point de vente',
+        permission: 'sales:view', module: 'pos', shellIndex: 2),
+    const AppSideNavItem(Icons.medication_outlined, 'Catalogue',
+        permission: 'catalog:view', module: 'catalog', shellIndex: 3),
+    const AppSideNavItem(Icons.menu_book_outlined, 'Référence',
+        permission: 'catalog:view', module: 'reference', shellIndex: 12),
+    const AppSideNavItem(Icons.link_outlined, 'Connexions fournisseurs',
+        permission: 'suppliers:view',
+        module: 'supplier_connectivity',
+        shellIndex: 13),
+    const AppSideNavItem(Icons.smart_toy_outlined, 'Assistant IA',
+        permission: 'ai:view', module: 'ai', shellIndex: 15),
+    const AppSideNavItem(Icons.chat_outlined, 'WhatsApp',
+        permission: 'whatsapp:view', module: 'whatsapp', shellIndex: 16),
+    const AppSideNavItem(Icons.local_shipping_outlined, 'Réapprovisionnement',
+        permission: 'purchases:view', module: 'reorder', shellIndex: 14),
+    const AppSideNavItem(Icons.inventory_2_outlined, 'Stock',
+        permission: 'stock:view', module: 'stock', shellIndex: 4),
+    const AppSideNavItem(Icons.local_shipping_outlined, 'Fournisseurs',
+        permission: 'suppliers:view', module: 'suppliers', shellIndex: 5),
+    const AppSideNavItem(Icons.assignment_outlined, 'Commandes',
+        permission: 'purchases:view', module: 'purchases', shellIndex: 6),
+    const AppSideNavItem(Icons.people_alt_outlined, 'Clients',
+        permission: 'customers:view', module: 'customers', shellIndex: 7),
+    const AppSideNavItem(Icons.badge_outlined, 'Employés',
+        permission: 'employees:view', module: 'employees', shellIndex: 8),
+    const AppSideNavItem(Icons.insert_chart_outlined, 'Rapports',
+        permission: 'reports:view', module: 'reports', shellIndex: 9),
+    AppSideNavItem(Icons.receipt_long_outlined, 'Factures',
+        permission: 'sales:view', pageBuilder: () => const InvoicesPage()),
+    const AppSideNavItem(Icons.view_in_ar_outlined, 'Plan 3D',
+        module: 'plan', shellIndex: 10),
+    AppSideNavItem(Icons.videocam_outlined, 'Caméras',
+        permission: 'cameras:view', pageBuilder: () => const CamerasPage()),
+    AppSideNavItem(Icons.qr_code_scanner, 'Scanner',
+        permission: 'catalog:view', pageBuilder: () => const ScannerPage()),
+    const AppSideNavItem(Icons.apps_rounded, 'Autres modules',
+        opensMoreModules: true),
+    const AppSideNavItem(Icons.settings_outlined, 'Tableau de contrôle',
+        permission: 'settings:view', module: 'settings', shellIndex: 11),
+    const AppSideNavItem(Icons.business_outlined, 'superAdminCRM',
+        permission: 'superadmin:view',
+        module: 'superadmin_crm',
+        shellIndex: 17),
+  ]
+      .where((i) => (i.permission == null || p(i.permission!)) && m(i.module))
+      .toList();
+}
+
 class AppSideMenu extends StatefulWidget {
   final ValueChanged<AppSideNavItem> onNavigate;
   final VoidCallback onLogout;
@@ -132,60 +196,8 @@ class _AppSideMenuState extends State<AppSideMenu> {
   Timer? _timer;
   DateTime _now = DateTime.now();
 
-  /// Entrées visibles : filtrées par permissions réelles de l'utilisateur
-  /// (AuthStore.user.permissions, renvoyées par le backend à la connexion)
-  /// ET par les modules visibles (AuthStore.canSeeModule).
-  List<AppSideNavItem> get _visibleItems {
-    final user = AuthStore.instance.user;
-    bool p(String code) => user?.hasPermission(code) ?? true;
-    bool m(String? key) => key == null || AuthStore.instance.canSeeModule(key);
-    return <AppSideNavItem>[
-      const AppSideNavItem(Icons.home_outlined, 'Tableau de bord',
-          shellIndex: 0),
-      const AppSideNavItem(Icons.shopping_cart_outlined, 'Point de vente',
-          permission: 'sales:view', module: 'pos', shellIndex: 2),
-      const AppSideNavItem(Icons.medication_outlined, 'Catalogue',
-          permission: 'catalog:view', module: 'catalog', shellIndex: 3),
-      const AppSideNavItem(Icons.menu_book_outlined, 'Référence',
-          permission: 'catalog:view', module: 'reference', shellIndex: 12),
-      const AppSideNavItem(Icons.link_outlined, 'Connexions fournisseurs',
-          permission: 'suppliers:view', module: 'supplier_connectivity', shellIndex: 13),
-      const AppSideNavItem(Icons.smart_toy_outlined, 'Assistant IA',
-          permission: 'ai:view', module: 'ai', shellIndex: 15),
-      const AppSideNavItem(Icons.chat_outlined, 'WhatsApp',
-          permission: 'whatsapp:view', module: 'whatsapp', shellIndex: 16),
-      const AppSideNavItem(Icons.local_shipping_outlined, 'Réapprovisionnement',
-          permission: 'purchases:view', module: 'reorder', shellIndex: 14),
-      const AppSideNavItem(Icons.inventory_2_outlined, 'Stock',
-          permission: 'stock:view', module: 'stock', shellIndex: 4),
-      const AppSideNavItem(Icons.local_shipping_outlined, 'Fournisseurs',
-          permission: 'suppliers:view', module: 'suppliers', shellIndex: 5),
-      const AppSideNavItem(Icons.assignment_outlined, 'Commandes',
-          permission: 'purchases:view', module: 'purchases', shellIndex: 6),
-      const AppSideNavItem(Icons.people_alt_outlined, 'Clients',
-          permission: 'customers:view', module: 'customers', shellIndex: 7),
-      const AppSideNavItem(Icons.badge_outlined, 'Employés',
-          permission: 'employees:view', module: 'employees', shellIndex: 8),
-      const AppSideNavItem(Icons.insert_chart_outlined, 'Rapports',
-          permission: 'reports:view', module: 'reports', shellIndex: 9),
-      AppSideNavItem(Icons.receipt_long_outlined, 'Factures',
-          permission: 'sales:view', pageBuilder: () => const InvoicesPage()),
-      const AppSideNavItem(Icons.view_in_ar_outlined, 'Plan 3D',
-          module: 'plan', shellIndex: 10),
-      AppSideNavItem(Icons.videocam_outlined, 'Caméras',
-          permission: 'cameras:view', pageBuilder: () => const CamerasPage()),
-      AppSideNavItem(Icons.qr_code_scanner, 'Scanner',
-          permission: 'catalog:view', pageBuilder: () => const ScannerPage()),
-      const AppSideNavItem(Icons.apps_rounded, 'Autres modules',
-          opensMoreModules: true),
-      const AppSideNavItem(Icons.settings_outlined, 'Tableau de contrôle',
-          permission: 'settings:view', module: 'settings', shellIndex: 11),
-      const AppSideNavItem(Icons.business_outlined, 'superAdminCRM',
-          permission: 'superadmin:view', module: 'superadmin_crm', shellIndex: 17),
-    ]
-        .where((i) => (i.permission == null || p(i.permission!)) && m(i.module))
-        .toList();
-  }
+  /// Entrées visibles : source unique partagée (permissions + modules).
+  List<AppSideNavItem> get _visibleItems => visibleAppSideNavItems();
 
   /// Entrée active = onglet shell réellement affiché (plus du premier
   /// item en dur) : le menu indique toujours la page courante, y compris
@@ -244,121 +256,122 @@ class _AppSideMenuState extends State<AppSideMenu> {
     return MarbleBackground(
       dark: isDark,
       child: Container(
-      color: Colors.transparent,
-      child: Column(children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(0, 14, 0, 10),
-          decoration: BoxDecoration(
-              border: Border(
-                  bottom: BorderSide(
-                      color: AppColors.dividerDark.withValues(alpha: 0.7)))),
-          child: const Center(child: PharmaPlusLogo(size: 30)),
-        ),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            itemCount: _visibleItems.length,
-            itemBuilder: (context, i) {
-              final item = _visibleItems[i];
-              final active = _isActive(item);
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Center(
-                  child: Tooltip(
-                    message: S.t(item.label, context.watch<AuthStore>().locale),
-                    waitDuration: const Duration(milliseconds: 300),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(10),
-                      onTap: () => _onItemTap(item),
+        color: Colors.transparent,
+        child: Column(children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(0, 14, 0, 10),
+            decoration: BoxDecoration(
+                border: Border(
+                    bottom: BorderSide(
+                        color: AppColors.dividerDark.withValues(alpha: 0.7)))),
+            child: const Center(child: PharmaPlusLogo(size: 30)),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              itemCount: _visibleItems.length,
+              itemBuilder: (context, i) {
+                final item = _visibleItems[i];
+                final active = _isActive(item);
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Center(
+                    child: Tooltip(
+                      message:
+                          S.t(item.label, context.watch<AuthStore>().locale),
+                      waitDuration: const Duration(milliseconds: 300),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(10),
+                        onTap: () => _onItemTap(item),
                         child: Container(
-                        width: 44,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: active
-                              ? (isDark
-                                  ? AppColors.graphiteDark
-                                  : AppColors.sageGreen.withValues(alpha: 0.35))
-                              : null,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                              color: active
-                                  ? (isDark
-                                      ? AppColors.champagne
-                                          .withValues(alpha: 0.55)
-                                      : AppColors.sageGreenDark
-                                          .withValues(alpha: 0.65))
-                                  : Colors.transparent),
-                        ),
-                        child: Icon(item.icon,
-                            size: 20,
+                          width: 44,
+                          height: 40,
+                          decoration: BoxDecoration(
                             color: active
                                 ? (isDark
-                                    ? Colors.white
-                                    : AppColors.sageGreenInk)
-                                : (isDark
-                                    ? AppColors.champagne
-                                    : AppColors.sageGreenInk)),
+                                    ? AppColors.graphiteDark
+                                    : AppColors.sageGreen
+                                        .withValues(alpha: 0.35))
+                                : null,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                                color: active
+                                    ? (isDark
+                                        ? AppColors.champagne
+                                            .withValues(alpha: 0.55)
+                                        : AppColors.sageGreenDark
+                                            .withValues(alpha: 0.65))
+                                    : Colors.transparent),
+                          ),
+                          child: Icon(item.icon,
+                              size: 20,
+                              color: active
+                                  ? (isDark
+                                      ? Colors.white
+                                      : AppColors.sageGreenInk)
+                                  : (isDark
+                                      ? AppColors.champagne
+                                      : AppColors.sageGreenInk)),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        // PIN + Déconnexion côte à côte dans le rail.
-        // Les boutons sont volontairement plus étroits que les entrées
-        // principales afin de ne jamais déborder dans le dashboard (rail 64).
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (widget.onLock != null) ...[
+          const SizedBox(height: 8),
+          // PIN + Déconnexion côte à côte dans le rail.
+          // Les boutons sont volontairement plus étroits que les entrées
+          // principales afin de ne jamais déborder dans le dashboard (rail 64).
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (widget.onLock != null) ...[
+                Tooltip(
+                  message: 'Verrouiller avec le PIN',
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: widget.onLock,
+                    child: Container(
+                      width: 26,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: AppColors.champagne.withValues(alpha: 0.55)),
+                      ),
+                      child: const Icon(Icons.lock_open_outlined,
+                          color: _sideGold, size: 18),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              // Déconnexion — toujours à droite du PIN dans le rail.
               Tooltip(
-                message: 'Verrouiller avec le PIN',
+                message: 'Se déconnecter',
+                waitDuration: const Duration(milliseconds: 300),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(10),
-                  onTap: widget.onLock,
+                  onTap: widget.onLogout,
                   child: Container(
                     width: 26,
                     height: 40,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                          color:
-                              AppColors.champagne.withValues(alpha: 0.55)),
+                          color: AppColors.champagne.withValues(alpha: 0.55)),
                     ),
-                    child: const Icon(Icons.lock_open_outlined,
-                        color: _sideGold, size: 18),
+                    child: const Icon(Icons.logout, color: _sideGold, size: 18),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
             ],
-            // Déconnexion — toujours à droite du PIN dans le rail.
-            Tooltip(
-              message: 'Se déconnecter',
-              waitDuration: const Duration(milliseconds: 300),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(10),
-                onTap: widget.onLogout,
-                child: Container(
-                  width: 26,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                        color: AppColors.champagne.withValues(alpha: 0.55)),
-                  ),
-                  child: const Icon(Icons.logout, color: _sideGold, size: 18),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-      ]),
+          ),
+          const SizedBox(height: 12),
+        ]),
       ),
     );
   }
@@ -369,191 +382,219 @@ class _AppSideMenuState extends State<AppSideMenu> {
     return MarbleBackground(
       dark: isDark,
       child: Container(
-      color: Colors.transparent,
-      child: Column(children: [
-        // ---- Marque : logo officiel complet (textes inclus dans l'asset) ----
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
-          decoration: BoxDecoration(
-              border: Border(
-                  bottom: BorderSide(
-                      color: AppColors.dividerDark.withValues(alpha: 0.7)))),
-          child: const Center(
-            child: PharmaFullLogo(width: 152),
+        color: Colors.transparent,
+        child: Column(children: [
+          // ---- Marque : logo officiel complet (textes inclus dans l'asset) ----
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
+            decoration: BoxDecoration(
+                border: Border(
+                    bottom: BorderSide(
+                        color: AppColors.dividerDark.withValues(alpha: 0.7)))),
+            child: const Center(
+              child: PharmaFullLogo(width: 152),
+            ),
           ),
-        ),
-        // ---- Menu modules (filtré par permissions) ----
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-            itemCount: visibleItems.length,
-            itemBuilder: (context, i) {
-              final item = visibleItems[i];
-              final active = _isActive(item);
-              final menuItem = Padding(
-                padding: const EdgeInsets.only(bottom: 2),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(10),
-                  onTap: () => _onItemTap(item),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10.5),
-                    decoration: BoxDecoration(
-                      color: active
-                          ? (isDark
-                              ? AppColors.graphiteDark
-                              : AppColors.sageGreen.withValues(alpha: 0.35))
-                          : null,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                          color: active
-                              ? (isDark
-                                  ? AppColors.champagne
-                                      .withValues(alpha: 0.55)
-                                  : AppColors.sageGreenDark
-                                      .withValues(alpha: 0.65))
-                              : Colors.transparent),
-                    ),
-                    child: Row(children: [
-                      Icon(item.icon,
-                          size: 19,
-                          color: isDark
-                              ? AppColors.champagne
-                              : AppColors.sageGreenInk),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(S.t(item.label, context.watch<AuthStore>().locale),
-                            style: TextStyle(
-                                fontSize: 13.5,
-                                // Sombre : même couleur que les icônes (champagne)
-                                // + gras, pour que chaque titre reste lisible.
-                                color: isDark
-                                    ? AppColors.champagne
-                                    : (active
-                                        ? AppColors.sageGreenInk
-                                        : AppColors.inkDark),
-                                fontWeight: isDark
-                                    ? FontWeight.w700
-                                    : (active
-                                        ? FontWeight.w700
-                                        : FontWeight.w500))),
-                      ),
-                    ]),
-                  ),
-                ),
-              );
-              return item.module == 'settings'
-                  ? menuItem
-                  : menuItem;
-            },
-          ),
-        ),
-        // ---- Carte Admin ----
-        Container(
-          margin: const EdgeInsets.fromLTRB(12, 6, 12, 0),
-          padding: const EdgeInsets.all(11),
-          decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.035)
-                  : AppColors.sageGreen.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: isDark
-                  ? AppColors.goldBorder
-                  : AppColors.sageGreenDark.withValues(alpha: 0.35))),
-          child: Row(children: [
-            Stack(clipBehavior: Clip.none, children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isDark
-                        ? AppColors.graphiteDark
-                        : AppColors.sageGreenLight,
-                    border: Border.all(
-                        color: isDark
-                            ? AppColors.champagne.withValues(alpha: 0.5)
-                            : AppColors.sageGreenDark
-                                .withValues(alpha: 0.55))),
-                child: Icon(Icons.person,
-                    color: isDark ? Colors.white70 : AppColors.sageGreenInk,
-                    size: 24),
-              ),
-              Positioned(
-                right: -1,
-                bottom: -1,
-                child: Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.success,
+          // ---- Menu modules (filtré par permissions) ----
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+              itemCount: visibleItems.length,
+              itemBuilder: (context, i) {
+                final item = visibleItems[i];
+                final active = _isActive(item);
+                final menuItem = Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () => _onItemTap(item),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10.5),
+                      decoration: BoxDecoration(
+                        color: active
+                            ? (isDark
+                                ? AppColors.graphiteDark
+                                : AppColors.sageGreen.withValues(alpha: 0.35))
+                            : null,
+                        borderRadius: BorderRadius.circular(10),
                         border: Border.all(
+                            color: active
+                                ? (isDark
+                                    ? AppColors.champagne
+                                        .withValues(alpha: 0.55)
+                                    : AppColors.sageGreenDark
+                                        .withValues(alpha: 0.65))
+                                : Colors.transparent),
+                      ),
+                      child: Row(children: [
+                        Icon(item.icon,
+                            size: 19,
                             color: isDark
-                                ? AppColors.surfaceSidebar
-                                : AppColors.silver,
-                            width: 2))),
+                                ? AppColors.champagne
+                                : AppColors.sageGreenInk),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                              S.t(item.label,
+                                  context.watch<AuthStore>().locale),
+                              style: TextStyle(
+                                  fontSize: 13.5,
+                                  // Sombre : même couleur que les icônes (champagne)
+                                  // + gras, pour que chaque titre reste lisible.
+                                  color: isDark
+                                      ? AppColors.champagne
+                                      : (active
+                                          ? AppColors.sageGreenInk
+                                          : AppColors.inkDark),
+                                  fontWeight: isDark
+                                      ? FontWeight.w700
+                                      : (active
+                                          ? FontWeight.w700
+                                          : FontWeight.w500))),
+                        ),
+                      ]),
+                    ),
+                  ),
+                );
+                return item.module == 'settings' ? menuItem : menuItem;
+              },
+            ),
+          ),
+          // ---- Carte Admin ----
+          Container(
+            margin: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+            padding: const EdgeInsets.all(11),
+            decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.035)
+                    : AppColors.sageGreen.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                    color: isDark
+                        ? AppColors.goldBorder
+                        : AppColors.sageGreenDark.withValues(alpha: 0.35))),
+            child: Row(children: [
+              Stack(clipBehavior: Clip.none, children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isDark
+                          ? AppColors.graphiteDark
+                          : AppColors.sageGreenLight,
+                      border: Border.all(
+                          color: isDark
+                              ? AppColors.champagne.withValues(alpha: 0.5)
+                              : AppColors.sageGreenDark
+                                  .withValues(alpha: 0.55))),
+                  child: Icon(Icons.person,
+                      color: isDark ? Colors.white70 : AppColors.sageGreenInk,
+                      size: 24),
+                ),
+                Positioned(
+                  right: -1,
+                  bottom: -1,
+                  child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.success,
+                          border: Border.all(
+                              color: isDark
+                                  ? AppColors.surfaceSidebar
+                                  : AppColors.silver,
+                              width: 2))),
+                ),
+              ]),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Builder(builder: (context) {
+                  // Identité RÉELLE de la session (aucun nom inventé) :
+                  // nom affiché = prénom + nom, rôle et pharmacie renvoyés
+                  // par l'API de connexion.
+                  final user = context.watch<AuthStore>().user;
+                  final role = user?.roleName;
+                  final pharmacy = user?.pharmacyName;
+                  return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                            (user?.fullName.trim().isNotEmpty ?? false)
+                                ? user!.fullName
+                                : 'Admin',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color:
+                                    isDark ? Colors.white : AppColors.inkDark,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800)),
+                        if (role != null && role.isNotEmpty)
+                          Text(role,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: isDark
+                                      ? AppColors.textSecondary
+                                      : AppColors.inkDarkLight,
+                                  fontSize: 10.5)),
+                        if (pharmacy != null && pharmacy.isNotEmpty)
+                          Text(pharmacy,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: isDark
+                                      ? AppColors.emeraldLight
+                                      : AppColors.sageGreenInk,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600)),
+                      ]);
+                }),
               ),
             ]),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Builder(builder: (context) {
-                // Identité RÉELLE de la session (aucun nom inventé) :
-                // nom affiché = prénom + nom, rôle et pharmacie renvoyés
-                // par l'API de connexion.
-                final user = context.watch<AuthStore>().user;
-                final role = user?.roleName;
-                final pharmacy = user?.pharmacyName;
-                return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                          (user?.fullName.trim().isNotEmpty ?? false)
-                              ? user!.fullName
-                              : 'Admin',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
+          ),
+          // ---- PIN + Déconnexion côte à côte (PIN puis Déconnexion) ----
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+            child: Row(
+              children: [
+                if (widget.onLock != null) ...[
+                  Expanded(
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: widget.onLock,
+                      child: Container(
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? AppColors.graphiteDark
+                              : AppColors.sageGreenLight,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
                               color: isDark
-                                  ? Colors.white
-                                  : AppColors.inkDark,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800)),
-                      if (role != null && role.isNotEmpty)
-                        Text(role,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: isDark
-                                    ? AppColors.textSecondary
-                                    : AppColors.inkDarkLight,
-                                fontSize: 10.5)),
-                      if (pharmacy != null && pharmacy.isNotEmpty)
-                        Text(pharmacy,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: isDark
-                                    ? AppColors.emeraldLight
-                                    : AppColors.sageGreenInk,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600)),
-                    ]);
-              }),
-            ),
-          ]),
-        ),
-        // ---- PIN + Déconnexion côte à côte (PIN puis Déconnexion) ----
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-          child: Row(
-            children: [
-              if (widget.onLock != null) ...[
+                                  ? AppColors.champagne.withValues(alpha: 0.55)
+                                  : AppColors.sageGreenDark
+                                      .withValues(alpha: 0.55)),
+                        ),
+                        child: Center(
+                            child: Icon(Icons.lock_open_outlined,
+                                color:
+                                    isDark ? _sideGold : AppColors.sageGreenInk,
+                                size: 19)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                // Déconnexion — immédiatement à droite du PIN.
                 Expanded(
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
-                    onTap: widget.onLock,
+                    onTap: widget.onLogout,
                     child: Container(
                       height: 42,
                       decoration: BoxDecoration(
@@ -563,111 +604,78 @@ class _AppSideMenuState extends State<AppSideMenu> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                             color: isDark
-                                ? AppColors.champagne
-                                    .withValues(alpha: 0.55)
+                                ? AppColors.champagne.withValues(alpha: 0.55)
                                 : AppColors.sageGreenDark
                                     .withValues(alpha: 0.55)),
                       ),
                       child: Center(
-                          child: Icon(Icons.lock_open_outlined,
-                              color: isDark
-                                  ? _sideGold
-                                  : AppColors.sageGreenInk,
+                          child: Icon(Icons.logout,
+                              color:
+                                  isDark ? _sideGold : AppColors.sageGreenInk,
                               size: 19)),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
               ],
-              // Déconnexion — immédiatement à droite du PIN.
-              Expanded(
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: widget.onLogout,
-                  child: Container(
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.graphiteDark
-                          : AppColors.sageGreenLight,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: isDark
-                              ? AppColors.champagne
-                                  .withValues(alpha: 0.55)
-                              : AppColors.sageGreenDark
-                                  .withValues(alpha: 0.55)),
-                    ),
-                    child: Center(
-                        child: Icon(Icons.logout,
-                            color: isDark
-                                ? _sideGold
-                                : AppColors.sageGreenInk,
-                            size: 19)),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-        // ---- Horloge + date ----
-        Container(
-          margin: const EdgeInsets.all(12),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-          decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.03)
-                  : AppColors.sageGreen.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : AppColors.sageGreenDark.withValues(alpha: 0.35))),
-          child: Row(children: [
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(DateFormat('HH:mm').format(_now),
-                        style: TextStyle(
-                            color: isDark
-                                ? Colors.white
-                                : AppColors.inkDark,
-                            fontSize: 19,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.5)),
-                    const SizedBox(height: 3),
-                    Text(_dateLabel(),
-                        style: TextStyle(
-                            color: isDark
-                                ? AppColors.textSecondary
-                                : AppColors.inkDarkLight,
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w600)),
-                  ]),
-            ),
-            Tooltip(
-              message: 'Ouvrir l’agenda des jours fériés',
-              child: Material(
-                color: AppColors.surfaceDark,
-                shape: RoundedRectangleBorder(
+          // ---- Horloge + date ----
+          Container(
+            margin: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.03)
+                    : AppColors.sageGreen.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : AppColors.sageGreenDark.withValues(alpha: 0.35))),
+            child: Row(children: [
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(DateFormat('HH:mm').format(_now),
+                          style: TextStyle(
+                              color: isDark ? Colors.white : AppColors.inkDark,
+                              fontSize: 19,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5)),
+                      const SizedBox(height: 3),
+                      Text(_dateLabel(),
+                          style: TextStyle(
+                              color: isDark
+                                  ? AppColors.textSecondary
+                                  : AppColors.inkDarkLight,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w600)),
+                    ]),
+              ),
+              Tooltip(
+                message: 'Ouvrir l’agenda des jours fériés',
+                child: Material(
+                  color: AppColors.surfaceDark,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      side: BorderSide(
+                          color: AppColors.champagne.withValues(alpha: 0.7))),
+                  child: InkWell(
                     borderRadius: BorderRadius.circular(10),
-                    side: BorderSide(
-                        color: AppColors.champagne.withValues(alpha: 0.7))),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(10),
-                  onTap: () => _showMoroccanCalendar(context),
-                  child: const SizedBox(
-                    width: 42,
-                    height: 42,
-                    child: Icon(Icons.calendar_today_outlined,
-                        color: _sideGold, size: 19),
+                    onTap: () => _showMoroccanCalendar(context),
+                    child: const SizedBox(
+                      width: 42,
+                      height: 42,
+                      child: Icon(Icons.calendar_today_outlined,
+                          color: _sideGold, size: 19),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ]),
-        ),
-      ]),
+            ]),
+          ),
+        ]),
       ),
     );
   }
@@ -723,7 +731,8 @@ class _MoroccanCalendarDialogState extends State<_MoroccanCalendarDialog> {
     // Dates religieuses calculées dynamiquement selon le calendrier hégirien
     final religious = HijriCalendar.religiousHolidaysForGregorianYear(year);
     for (final entry in religious.entries) {
-      final dateKey = '${entry.value.year}-${entry.value.month.toString().padLeft(2, '0')}-${entry.value.day.toString().padLeft(2, '0')}';
+      final dateKey =
+          '${entry.value.year}-${entry.value.month.toString().padLeft(2, '0')}-${entry.value.day.toString().padLeft(2, '0')}';
       final data = HijriCalendar.fixedReligiousHolidays[entry.key];
       if (data != null) {
         fixed[dateKey] = data.nameFr;
@@ -834,11 +843,14 @@ class _MoroccanCalendarDialogState extends State<_MoroccanCalendarDialog> {
                         color: Colors.white, fontWeight: FontWeight.w800)),
                 // Date hégirienne correspondante au 1er du mois
                 Builder(builder: (context) {
-                  final hijri = HijriCalendar.gregorianToHijri(DateTime(_month.year, _month.month, 1));
+                  final hijri = HijriCalendar.gregorianToHijri(
+                      DateTime(_month.year, _month.month, 1));
                   return Text(
                     '${HijriCalendar.monthNameFr(hijri.month)} ${hijri.year} هـ',
                     style: const TextStyle(
-                        color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w700),
+                        color: AppColors.gold,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700),
                   );
                 }),
               ],
@@ -1036,8 +1048,7 @@ class ModulesMenuDialog extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       color: AppColors.graphiteDark,
                       border: Border.all(
-                          color:
-                              AppColors.champagne.withValues(alpha: 0.5))),
+                          color: AppColors.champagne.withValues(alpha: 0.5))),
                   child: const Icon(Icons.apps_rounded,
                       color: _sideGold, size: 21),
                 ),
@@ -1123,8 +1134,8 @@ class ModuleMenuTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.035),
             borderRadius: BorderRadius.circular(13),
-            border: Border.all(
-                color: AppColors.champagne.withValues(alpha: 0.45)),
+            border:
+                Border.all(color: AppColors.champagne.withValues(alpha: 0.45)),
           ),
           child: Row(children: [
             Container(

@@ -59,8 +59,10 @@ const List<Function> superAdminFunctionRefs = [
 class SuperAdminService {
   const SuperAdminService._();
 
-  static void returnToPharma(BuildContext context) => superAdminReturnToPharma(context);
-  static Future<void> confirmLogout(BuildContext context) => superAdminConfirmLogout(context);
+  static void returnToPharma(BuildContext context) =>
+      superAdminReturnToPharma(context);
+  static Future<void> confirmLogout(BuildContext context) =>
+      superAdminConfirmLogout(context);
 }
 
 /// Global instance to prevent tree-shaking

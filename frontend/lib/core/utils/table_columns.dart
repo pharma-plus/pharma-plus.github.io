@@ -1,12 +1,12 @@
 /// Système de largeurs de colonnes standardisées pour PHARMA+.
-/// 
+///
 /// Règles :
 /// - Codes, quantités, pourcentages, statuts, petites valeurs → COMPACT (60-100px)
 /// - Dates → DATE (100-120px)
 /// - Noms, descriptions → FLEXIBLE (min 180px, flex 1-3)
 /// - Prix, montants → MONEY (90-120px, align right)
 /// - Actions → ACTIONS (48-64px fixe)
-/// 
+///
 /// Breakpoints responsive :
 /// - Mobile (<600px) : cartes (ListView/GridView), pas de tableau
 /// - Tablette (600-1024px) : tableau avec colonnes compactes, scroll horizontal
@@ -23,48 +23,60 @@ enum TableColumnType {
   // === COMPACTES (contenu court, ≤ 4-6 caractères) ===
   /// Code court, identifiant, référence (ex: EAN-13, code interne)
   code,
+
   /// Quantité entière (ex: 12, 0, 999)
   quantity,
+
   /// Pourcentage (ex: 20%, 70%)
   percent,
+
   /// Statut court (ex: "Actif", "Rupture", "En cours")
   status,
+
   /// Note/évaluation (ex: 4.5, ★★★★☆)
   rating,
+
   /// Booléen / icône (ex: ✓, ✗, icône)
   flag,
 
   // === DATES ===
   /// Date courte (JJ/MM/AAAA)
   date,
+
   /// Date + heure (JJ/MM/AAAA HH:MM)
   datetime,
 
   // === MONTANTS ===
   /// Prix unitaire, montant (aligné à droite)
   money,
+
   /// Montant petit (ex: remise, taxe)
   smallMoney,
 
   // === TEXTES ===
   /// Nom principal (médicament, client, fournisseur) — flexible, min 180px
   name,
+
   /// Description, détail, présentation — flexible, min 140px
   description,
+
   /// Texte libre moyen (adresse, note)
   text,
+
   /// Texte long (composition, notice) — flexible, min 200px
   longText,
 
   // === ACTIONS ===
   /// Colonne actions (boutons voir/éditer/supprimer) — fixe compacte
   actions,
+
   /// Colonne actions étendue (plus de boutons)
   actionsWide,
 
   // === SPÉCIAUX ===
   /// Numéro de ligne / index
   rowNumber,
+
   /// Case à cocher sélection
   checkbox,
 }
@@ -89,7 +101,7 @@ class ColumnWidthConfig {
 }
 
 /// Registre des configurations par type de colonne.
-/// 
+///
 /// Les valeurs sont optimisées pour :
 /// - Lisibilité : contenu non tronqué dans 95% des cas
 /// - Compacité : pas d'espace gaspillé
@@ -205,9 +217,11 @@ class TableColumnWidths {
       alignment: TextAlign.center,
     ),
     TableColumnType.actionsWide: ColumnWidthConfig(
-      defaultWidth: 80,
-      minWidth: 72,
-      maxWidth: 100,
+      // 96 px : deux IconButton (40 px chacun en densité compacte) + le
+      // padding droit de 8 px de la cellule. 80 px débordait de 8 px.
+      defaultWidth: 96,
+      minWidth: 88,
+      maxWidth: 112,
       alignment: TextAlign.center,
     ),
 
@@ -249,7 +263,7 @@ class TableColumnWidths {
   static bool isNumeric(TableColumnType type) => _configs[type]!.numeric;
 
   /// Crée un `AppDataColumn` préconfiguré pour le type.
-  /// 
+  ///
   /// Exemple :
   /// ```dart
   /// AppDataColumn<Map<String, dynamic>> col = TableColumnWidths.column(
@@ -290,7 +304,8 @@ class TableColumnWidths {
 /// Helper pour créer plusieurs colonnes d'un coup.
 class TableColumns {
   /// Colonnes standards pour liste médicaments/catalogue.
-  static List<AppDataColumn<Map<String, dynamic>>> medications(String locale) => [
+  static List<AppDataColumn<Map<String, dynamic>>> medications(String locale) =>
+      [
         TableColumnWidths.column(
           key: 'name',
           label: 'Médicament',
@@ -410,7 +425,9 @@ class TableColumns {
       ];
 
   /// Colonnes standards pour commandes d'achat.
-  static List<AppDataColumn<Map<String, dynamic>>> purchaseOrders(String locale) => [
+  static List<AppDataColumn<Map<String, dynamic>>> purchaseOrders(
+          String locale) =>
+      [
         TableColumnWidths.column(
           key: 'number',
           label: 'N° commande',
@@ -538,13 +555,15 @@ class TableResponsiveConfig {
   }
 
   /// Retourne les largeurs adaptées au mode.
-  static ColumnWidthConfig adapt(ColumnWidthConfig base, TableDisplayMode mode) {
+  static ColumnWidthConfig adapt(
+      ColumnWidthConfig base, TableDisplayMode mode) {
     switch (mode) {
       case TableDisplayMode.cards:
         return base; // Non utilisé (cartes)
       case TableDisplayMode.compactTable:
         return ColumnWidthConfig(
-          defaultWidth: (base.defaultWidth * 0.85).clamp(base.minWidth, base.maxWidth),
+          defaultWidth:
+              (base.defaultWidth * 0.85).clamp(base.minWidth, base.maxWidth),
           minWidth: base.minWidth,
           maxWidth: base.maxWidth,
           flex: base.flex,
@@ -559,7 +578,7 @@ class TableResponsiveConfig {
 
 /// Modes d'affichage responsive.
 enum TableDisplayMode {
-  cards,          // Mobile : ListView/GridView de cartes
-  compactTable,   // Tablette : tableau avec largeurs réduites, scroll horizontal
-  fullTable,      // Desktop : tableau complet, colonnes flexibles
+  cards, // Mobile : ListView/GridView de cartes
+  compactTable, // Tablette : tableau avec largeurs réduites, scroll horizontal
+  fullTable, // Desktop : tableau complet, colonnes flexibles
 }

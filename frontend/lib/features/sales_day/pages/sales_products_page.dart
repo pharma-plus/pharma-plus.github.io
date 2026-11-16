@@ -43,7 +43,8 @@ class _SalesProductsPageState extends State<SalesProductsPage> {
     final c = widget.analytics;
     final topQty = c.analytics?.topProductsQty ?? const <SalesProductRank>[];
     final topRev = c.analytics?.topProductsRev ?? const <SalesProductRank>[];
-    final topProfit = c.analytics?.topProductsProfit ?? const <SalesProductRank>[];
+    final topProfit =
+        c.analytics?.topProductsProfit ?? const <SalesProductRank>[];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 30),

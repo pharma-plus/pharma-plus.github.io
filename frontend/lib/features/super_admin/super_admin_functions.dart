@@ -111,7 +111,7 @@ void forceSuperAdminFunctionsRetention() {
   final method1 = instance.returnToPharma;
   final method2 = instance.confirmLogout;
   final hash = instance.hashCode;
-  
+
   if (method1 == null && method2 == null && hash == 0) {
     debugPrint('SuperAdmin functions retention check');
   }

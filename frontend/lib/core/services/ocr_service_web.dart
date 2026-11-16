@@ -8,7 +8,8 @@ import 'ocr_service.dart';
 /// uniquement au premier usage. Le document reste LOCAL : l'image est
 /// traitée dans le navigateur (WASM/Worker), rien n'est envoyé au backend
 /// ni à un service tiers (confidentialité, section 17).
-const _cdn = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+const _cdn =
+    'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
 
 bool get ocrSupported => true;
 

@@ -54,7 +54,9 @@ class _SettingsSecurityPageState extends State<SettingsSecurityPage> {
         title: Text(title),
         content: Text(message),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuler')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Annuler')),
           GradientButton(
             label: 'Confirmer',
             icon: Icons.check,
@@ -79,10 +81,12 @@ class _SettingsSecurityPageState extends State<SettingsSecurityPage> {
         backgroundColor: _kSuperAdminDark.withValues(alpha: 0.95),
         elevation: 0,
         leading: const ShellBackButton(),
-        title: const Text('Parametres & Securite', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+        title: const Text('Parametres & Securite',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _kSuperAdminGold))
+          ? const Center(
+              child: CircularProgressIndicator(color: _kSuperAdminGold))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -143,7 +147,8 @@ class _SettingsSecurityPageState extends State<SettingsSecurityPage> {
                       _SettingRow(
                         icon: Icons.refresh,
                         title: 'Uptime systeme',
-                        subtitle: '${_systemInfo?['uptime']?.toStringAsFixed(0) ?? '--'} secondes',
+                        subtitle:
+                            '${_systemInfo?['uptime']?.toStringAsFixed(0) ?? '--'} secondes',
                         onTap: () {},
                       ),
                     ],
@@ -160,19 +165,22 @@ class _SettingsSecurityPageState extends State<SettingsSecurityPage> {
                         icon: Icons.backup,
                         title: 'Sauvegarde systeme',
                         subtitle: 'Sauvegarde complete de la base de donnees',
-                        onTap: () => _confirmAction('Sauvegarde', 'Lancer une sauvegarde complete ?'),
+                        onTap: () => _confirmAction(
+                            'Sauvegarde', 'Lancer une sauvegarde complete ?'),
                       ),
                       _SettingRow(
                         icon: Icons.restore,
                         title: 'Restauration',
                         subtitle: 'Restaurer depuis une sauvegarde existante',
-                        onTap: () => _confirmAction('Restauration', 'Lancer une restauration ?'),
+                        onTap: () => _confirmAction(
+                            'Restauration', 'Lancer une restauration ?'),
                       ),
                       _SettingRow(
                         icon: Icons.clean_hands,
                         title: 'Nettoyage des logs',
                         subtitle: 'Archiver les logs de plus de 90 jours',
-                        onTap: () => _confirmAction('Nettoyage', 'Nettoyer les anciens logs ?'),
+                        onTap: () => _confirmAction(
+                            'Nettoyage', 'Nettoyer les anciens logs ?'),
                       ),
                     ],
                   ),
@@ -220,7 +228,11 @@ class _SectionCard extends StatelessWidget {
   final Color color;
   final List<Widget> children;
 
-  const _SectionCard({required this.title, required this.icon, required this.color, required this.children});
+  const _SectionCard(
+      {required this.title,
+      required this.icon,
+      required this.color,
+      required this.children});
 
   @override
   Widget build(BuildContext context) {
@@ -233,9 +245,19 @@ class _SectionCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(width: 32, height: 32, decoration: BoxDecoration(color: color.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: color, size: 18)),
+              Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8)),
+                  child: Icon(icon, color: color, size: 18)),
               const SizedBox(width: 10),
-              Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+              Text(title,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16)),
             ],
           ),
           const SizedBox(height: 16),
@@ -255,7 +277,11 @@ class _SettingRow extends StatelessWidget {
   final String subtitle;
   final VoidCallback onTap;
 
-  const _SettingRow({required this.icon, required this.title, required this.subtitle, required this.onTap});
+  const _SettingRow(
+      {required this.icon,
+      required this.title,
+      required this.subtitle,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -263,14 +289,25 @@ class _SettingRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Container(width: 36, height: 36, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: Colors.white70, size: 18)),
+          Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8)),
+              child: Icon(icon, color: Colors.white70, size: 18)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
-                Text(subtitle, style: TextStyle(color: Colors.white60, fontSize: 11)),
+                Text(title,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14)),
+                Text(subtitle,
+                    style: TextStyle(color: Colors.white60, fontSize: 11)),
               ],
             ),
           ),
@@ -293,6 +330,8 @@ class ShellBackButton extends StatelessWidget {
   const ShellBackButton({super.key});
   @override
   Widget build(BuildContext context) {
-    return IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white70), onPressed: () => Navigator.of(context).pop());
+    return IconButton(
+        icon: const Icon(Icons.arrow_back, color: Colors.white70),
+        onPressed: () => Navigator.of(context).pop());
   }
 }

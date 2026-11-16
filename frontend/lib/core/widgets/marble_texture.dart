@@ -149,9 +149,11 @@ class _SilverMarblePainter extends CustomPainter {
         final angle =
             (-math.pi / 4 + dir * 0.4) + (rng.nextDouble() - 0.5) * 0.9;
         final mid = Offset(
-          cur.dx + len * 0.5 * math.cos(angle) +
+          cur.dx +
+              len * 0.5 * math.cos(angle) +
               (rng.nextDouble() - 0.5) * len * 0.35,
-          cur.dy + len * 0.5 * math.sin(angle) +
+          cur.dy +
+              len * 0.5 * math.sin(angle) +
               (rng.nextDouble() - 0.5) * len * 0.35,
         );
         cur = Offset(
@@ -170,9 +172,8 @@ class _SilverMarblePainter extends CustomPainter {
           ..color = Colors.white.withValues(alpha: 0.35 * opacity)
           ..strokeCap = StrokeCap.round,
       );
-      final shade = i % 5 == 0
-          ? const Color(0xFF9AA3A9)
-          : const Color(0xFFB9C1C7);
+      final shade =
+          i % 5 == 0 ? const Color(0xFF9AA3A9) : const Color(0xFFB9C1C7);
       canvas.drawPath(
         path,
         Paint()
@@ -232,8 +233,7 @@ class _GraphiteBrushedPainter extends CustomPainter {
       final y = rng.nextDouble() * size.height;
       final h = 0.5 + rng.nextDouble() * 1.2;
       final bright = rng.nextBool();
-      final a = (bright ? 0.020 : 0.030) * opacity *
-          (0.5 + rng.nextDouble());
+      final a = (bright ? 0.020 : 0.030) * opacity * (0.5 + rng.nextDouble());
       canvas.drawRect(
         Rect.fromLTWH(0, y, size.width, h),
         Paint()

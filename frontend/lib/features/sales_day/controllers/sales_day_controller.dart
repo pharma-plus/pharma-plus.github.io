@@ -140,7 +140,8 @@ class SalesDayController extends ChangeNotifier {
   Future<void> _loadPrevious(SalesDateRange r, int offsetMinutes) async {
     try {
       final prev = SalesAnalyticsService.previousOf(r);
-      final (a, _) = await _repo.loadAnalytics(prev, offsetMinutes: offsetMinutes);
+      final (a, _) =
+          await _repo.loadAnalytics(prev, offsetMinutes: offsetMinutes);
       if (a != null && !_disposed) {
         previousKpis = a.kpis;
         _notify();

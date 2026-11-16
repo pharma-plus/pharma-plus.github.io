@@ -281,8 +281,7 @@ class _InventoryPageState extends State<InventoryPage> {
       pageFormat: PdfPageFormat.a4,
       build: (context) => [
         pw.Text('INVENTAIRE PHYSIQUE — ${d['branch_name'] ?? ''}',
-            style: pw.TextStyle(
-                fontSize: 16, fontWeight: pw.FontWeight.bold)),
+            style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
         pw.Text('Session ${d['id']} · ${d['started_at']} · ${d['status']}',
             style: pw.TextStyle(fontSize: 10)),
         pw.SizedBox(height: 10),

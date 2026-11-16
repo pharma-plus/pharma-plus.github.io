@@ -22,8 +22,9 @@ const Color _kSuperAdminSurface = AppColors.graphiteDark;
 
 // Helpers écritures adaptatives (blanc sur graphite / encre sur marbre),
 // partagés par toutes les classes de ce fichier.
-Color _txt(BuildContext c) =>
-    Theme.of(c).brightness == Brightness.dark ? Colors.white : AppColors.inkDark;
+Color _txt(BuildContext c) => Theme.of(c).brightness == Brightness.dark
+    ? Colors.white
+    : AppColors.inkDark;
 Color _txtSoft(BuildContext c) => Theme.of(c).brightness == Brightness.dark
     ? Colors.white70
     : AppColors.inkDarkLight;
@@ -38,7 +39,8 @@ class SuperAdminDashboardPage extends StatefulWidget {
   const SuperAdminDashboardPage({super.key});
 
   @override
-  State<SuperAdminDashboardPage> createState() => _SuperAdminDashboardPageState();
+  State<SuperAdminDashboardPage> createState() =>
+      _SuperAdminDashboardPageState();
 }
 
 class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
@@ -64,12 +66,17 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
     try {
       final results = await Future.wait([
         ApiClient.instance.get('/superadmin/dashboard-stats'),
-        ApiClient.instance.get('/superadmin/dashboard-activity', query: {'limit': 10}),
+        ApiClient.instance
+            .get('/superadmin/dashboard-activity', query: {'limit': 10}),
         ApiClient.instance.get('/superadmin/dashboard-alerts'),
-        ApiClient.instance.get('/superadmin/dashboard-subscription-trend', query: {'months': 6}),
-        ApiClient.instance.get('/superadmin/dashboard-revenue-trend', query: {'months': 6}),
-        ApiClient.instance.get('/superadmin/dashboard-top-pharmacies', query: {'limit': 8}),
-        ApiClient.instance.get('/superadmin/dashboard-recent-payments', query: {'limit': 10}),
+        ApiClient.instance.get('/superadmin/dashboard-subscription-trend',
+            query: {'months': 6}),
+        ApiClient.instance
+            .get('/superadmin/dashboard-revenue-trend', query: {'months': 6}),
+        ApiClient.instance
+            .get('/superadmin/dashboard-top-pharmacies', query: {'limit': 8}),
+        ApiClient.instance
+            .get('/superadmin/dashboard-recent-payments', query: {'limit': 10}),
       ]);
       if (!mounted) return;
       // NOTE (P0-2, 07/11) : les routes superadmin/dashboard-* renvoient un
@@ -78,34 +85,36 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
       // Map lançait « NoSuchMethodError … Arguments: ['activeUsers', 5] »
       // (Map.map passe (clé, valeur) à la closure). On normalise ici.
       setState(() {
-        _stats = (results[0].success ? results[0].data : null) as Map<String, dynamic>?;
+        _stats = (results[0].success ? results[0].data : null)
+            as Map<String, dynamic>?;
         _recentActivity = _extractList(results[1], 'recentSales',
             transform: (e) => {
-              ...e,
-              'type': e['type'] ?? 'sale',
-              'subject': e['subject'] ?? 'Vente #${e['id']}',
-            });
-        _alerts = (results[2].success ? results[2].data : null) as Map<String, dynamic>?;
+                  ...e,
+                  'type': e['type'] ?? 'sale',
+                  'subject': e['subject'] ?? 'Vente #${e['id']}',
+                });
+        _alerts = (results[2].success ? results[2].data : null)
+            as Map<String, dynamic>?;
         _subscriptionTrend = _extractList(results[3], 'trend',
             transform: (e) => {
-              'month': e['month'],
-              'count': e['count'] ?? e['new_subscriptions'] ?? 0,
-            });
+                  'month': e['month'],
+                  'count': e['count'] ?? e['new_subscriptions'] ?? 0,
+                });
         _revenueTrend = _extractList(results[4], 'trend');
         _topPharmacies = _extractList(results[5], 'top_pharmacies',
             transform: (e) => {
-              ...e,
-              'name': e['name'] ?? e['pharmacy_name'],
-              'city': e['city'] ?? '',
-              'license_type': e['license_type'] ?? '',
-            });
+                  ...e,
+                  'name': e['name'] ?? e['pharmacy_name'],
+                  'city': e['city'] ?? '',
+                  'license_type': e['license_type'] ?? '',
+                });
         _recentPayments = _extractList(results[6], 'recent_payments',
             transform: (e) => {
-              ...e,
-              'type': e['type'] ?? 'sale',
-              'total': e['total'] ?? e['amount'] ?? 0,
-              'pharmacy_name': e['pharmacy_name'] ?? e['pharmacy_id'] ?? '',
-            });
+                  ...e,
+                  'type': e['type'] ?? 'sale',
+                  'total': e['total'] ?? e['amount'] ?? 0,
+                  'pharmacy_name': e['pharmacy_name'] ?? e['pharmacy_id'] ?? '',
+                });
         _loading = false;
       });
     } catch (e) {
@@ -156,49 +165,55 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
                 fontSize: 18)),
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadAll),
-          IconButton(icon: const Icon(Icons.logout), onPressed: () => context.read<AuthStore>().signOut()),
+          IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: () => context.read<AuthStore>().signOut()),
         ],
       ),
       body: MarbleBackground(
         dark: isDark,
         child: _loading
-          ? const Center(child: CircularProgressIndicator(color: _kSuperAdminGold))
-          : _error != null
-              ? Center(child: Text(_error!, style: TextStyle(color: _txtSoft(context))))
-              : RefreshIndicator(
-                  color: _kSuperAdminGold,
-                  onRefresh: _loadAll,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildHeader(locale),
-                        const SizedBox(height: 24),
-                        _buildKPIRow(locale),
-                        const SizedBox(height: 24),
-                        _buildChartsRow(locale),
-                        const SizedBox(height: 24),
-                        _buildSectionHeader('Pharmacies les plus actives', locale),
-                        const SizedBox(height: 12),
-                        _buildTopPharmaciesTable(locale),
-                        const SizedBox(height: 24),
-                        _buildSectionHeader('Alertes importantes', locale),
-                        const SizedBox(height: 12),
-                        _buildAlertsCard(locale),
-                        const SizedBox(height: 24),
-                        _buildSectionHeader('Activité récente', locale),
-                        const SizedBox(height: 12),
-                        _buildRecentActivityList(locale),
-                        const SizedBox(height: 24),
-                        _buildSectionHeader('Paiements récents', locale),
-                        const SizedBox(height: 12),
-                        _buildRecentPaymentsTable(locale),
-                      ],
+            ? const Center(
+                child: CircularProgressIndicator(color: _kSuperAdminGold))
+            : _error != null
+                ? Center(
+                    child: Text(_error!,
+                        style: TextStyle(color: _txtSoft(context))))
+                : RefreshIndicator(
+                    color: _kSuperAdminGold,
+                    onRefresh: _loadAll,
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildHeader(locale),
+                          const SizedBox(height: 24),
+                          _buildKPIRow(locale),
+                          const SizedBox(height: 24),
+                          _buildChartsRow(locale),
+                          const SizedBox(height: 24),
+                          _buildSectionHeader(
+                              'Pharmacies les plus actives', locale),
+                          const SizedBox(height: 12),
+                          _buildTopPharmaciesTable(locale),
+                          const SizedBox(height: 24),
+                          _buildSectionHeader('Alertes importantes', locale),
+                          const SizedBox(height: 12),
+                          _buildAlertsCard(locale),
+                          const SizedBox(height: 24),
+                          _buildSectionHeader('Activité récente', locale),
+                          const SizedBox(height: 12),
+                          _buildRecentActivityList(locale),
+                          const SizedBox(height: 24),
+                          _buildSectionHeader('Paiements récents', locale),
+                          const SizedBox(height: 12),
+                          _buildRecentPaymentsTable(locale),
+                        ],
+                      ),
                     ),
                   ),
-                ),
       ),
     );
   }
@@ -211,7 +226,11 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
     return Padding(
       padding: const EdgeInsets.only(right: 6),
       child: ChoiceChip(
-        label: Text(p, style: TextStyle(color: selected ? Colors.black : _txtSoft(context), fontWeight: FontWeight.w600, fontSize: 11)),
+        label: Text(p,
+            style: TextStyle(
+                color: selected ? Colors.black : _txtSoft(context),
+                fontWeight: FontWeight.w600,
+                fontSize: 11)),
         selected: selected,
         onSelected: (_) => setState(() => _selectedPeriod = p),
         selectedColor: _kSuperAdminGold,
@@ -227,9 +246,14 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text('Tableau de bord Super Admin', style: TextStyle(color: _txt(context), fontSize: 22, fontWeight: FontWeight.w900)),
+        Text('Tableau de bord Super Admin',
+            style: TextStyle(
+                color: _txt(context),
+                fontSize: 22,
+                fontWeight: FontWeight.w900)),
         Row(
-          children: ['7j', '30j', '90j', '1a'].map((p) => _periodChip(p)).toList(),
+          children:
+              ['7j', '30j', '90j', '1a'].map((p) => _periodChip(p)).toList(),
         ),
       ],
     );
@@ -259,20 +283,76 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
     final rev30d = (_stats?['revenue30d'] as num?) ?? rev;
 
     final kpis = [
-      _KPIData(key: 'pharmacies_total', label: S.t('totalPharmacies', locale), value: '${ph['total'] ?? 0}', icon: Icons.local_pharmacy, color: Colors.white, image: 'assets/images/kpi_bg_1.webp'),
-      _KPIData(key: 'pharmacies_active', label: S.t('pharmacyActive', locale), value: '${ph['active'] ?? 0}', icon: Icons.check_circle, color: _kSuperAdminAccent, image: 'assets/images/kpi_bg_2.webp'),
-      _KPIData(key: 'pharmacies_suspended', label: S.t('suspended', locale), value: '${ph['suspended'] ?? 0}', icon: Icons.block, color: Colors.orange, image: 'assets/images/kpi_bg_3.webp'),
-      _KPIData(key: 'licenses_active', label: S.t('active', locale), value: '$actLic', icon: Icons.verified, color: Colors.green, image: 'assets/images/kpi_bg_4.webp'),
-      _KPIData(key: 'licenses_expiring', label: 'Expirant 30j', value: '${ph['trial'] ?? 0}', icon: Icons.schedule, color: Colors.orange, image: 'assets/images/kpi_bg_5.webp'),
-      _KPIData(key: 'users_total', label: S.t('totalUsers', locale), value: '$usr', icon: Icons.people, color: Colors.white, image: 'assets/images/kpi_bg_6.webp'),
-      _KPIData(key: 'sales_total', label: S.t('totalSales', locale), value: '$sal', icon: Icons.shopping_cart, color: Colors.white, image: 'assets/images/kpi_bg_7.webp'),
-      _KPIData(key: 'revenue_total', label: S.t('totalRevenue', locale), value: '${_formatMoney(rev)} MAD', icon: Icons.attach_money, color: _kSuperAdminGold, image: 'assets/images/kpi_bg_8.webp'),
-      _KPIData(key: 'revenue_30d', label: 'Revenu 30j', value: '${_formatMoney(rev30d)} MAD', icon: Icons.trending_up, color: Colors.green, image: 'assets/images/kpi_bg_8.webp'),
+      _KPIData(
+          key: 'pharmacies_total',
+          label: S.t('totalPharmacies', locale),
+          value: '${ph['total'] ?? 0}',
+          icon: Icons.local_pharmacy,
+          color: Colors.white,
+          image: 'assets/images/kpi_bg_1.webp'),
+      _KPIData(
+          key: 'pharmacies_active',
+          label: S.t('pharmacyActive', locale),
+          value: '${ph['active'] ?? 0}',
+          icon: Icons.check_circle,
+          color: _kSuperAdminAccent,
+          image: 'assets/images/kpi_bg_2.webp'),
+      _KPIData(
+          key: 'pharmacies_suspended',
+          label: S.t('suspended', locale),
+          value: '${ph['suspended'] ?? 0}',
+          icon: Icons.block,
+          color: Colors.orange,
+          image: 'assets/images/kpi_bg_3.webp'),
+      _KPIData(
+          key: 'licenses_active',
+          label: S.t('active', locale),
+          value: '$actLic',
+          icon: Icons.verified,
+          color: Colors.green,
+          image: 'assets/images/kpi_bg_4.webp'),
+      _KPIData(
+          key: 'licenses_expiring',
+          label: 'Expirant 30j',
+          value: '${ph['trial'] ?? 0}',
+          icon: Icons.schedule,
+          color: Colors.orange,
+          image: 'assets/images/kpi_bg_5.webp'),
+      _KPIData(
+          key: 'users_total',
+          label: S.t('totalUsers', locale),
+          value: '$usr',
+          icon: Icons.people,
+          color: Colors.white,
+          image: 'assets/images/kpi_bg_6.webp'),
+      _KPIData(
+          key: 'sales_total',
+          label: S.t('totalSales', locale),
+          value: '$sal',
+          icon: Icons.shopping_cart,
+          color: Colors.white,
+          image: 'assets/images/kpi_bg_7.webp'),
+      _KPIData(
+          key: 'revenue_total',
+          label: S.t('totalRevenue', locale),
+          value: '${_formatMoney(rev)} MAD',
+          icon: Icons.attach_money,
+          color: _kSuperAdminGold,
+          image: 'assets/images/kpi_bg_8.webp'),
+      _KPIData(
+          key: 'revenue_30d',
+          label: 'Revenu 30j',
+          value: '${_formatMoney(rev30d)} MAD',
+          icon: Icons.trending_up,
+          color: Colors.green,
+          image: 'assets/images/kpi_bg_8.webp'),
     ];
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final cols = constraints.maxWidth > 1200 ? 4 : (constraints.maxWidth > 768 ? 3 : 2);
+        final cols = constraints.maxWidth > 1200
+            ? 4
+            : (constraints.maxWidth > 768 ? 3 : 2);
         // NOTE (P0-2 UI fin, 07/11) : childAspectRatio 1.55 donnait une
         // hauteur insuffisante (label 11px + icône 32px + valeur 26px +
         // paddings > hauteur) → cartes coupées en bas. mainAxisExtent fixe
@@ -297,7 +377,8 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
   String _formatMoney(dynamic v) {
     if (v == null) return '0';
     final n = (v is num) ? v.toDouble() : double.tryParse(v.toString()) ?? 0;
-    return n.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]} ');
+    return n.toStringAsFixed(0).replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]} ');
   }
 
   Widget _KPICard({required _KPIData kpi}) {
@@ -357,12 +438,36 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Flexible(child: Text(kpi.label, style: TextStyle(color: _txt(context), fontSize: 11, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                      Container(width: 32, height: 32, decoration: BoxDecoration(color: kpi.color.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)), child: Icon(kpi.icon, color: dark ? kpi.color : (kpi.color == Colors.white ? AppColors.inkDark : kpi.color), size: 18)),
+                      Flexible(
+                          child: Text(kpi.label,
+                              style: TextStyle(
+                                  color: _txt(context),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis)),
+                      Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                              color: kpi.color.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8)),
+                          child: Icon(kpi.icon,
+                              color: dark
+                                  ? kpi.color
+                                  : (kpi.color == Colors.white
+                                      ? AppColors.inkDark
+                                      : kpi.color),
+                              size: 18)),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  Text(kpi.value, style: TextStyle(color: _txt(context), fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                  Text(kpi.value,
+                      style: TextStyle(
+                          color: _txt(context),
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.5)),
                 ],
               ),
             ),
@@ -376,8 +481,17 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: TextStyle(color: _txt(context), fontSize: 18, fontWeight: FontWeight.w800)),
-        Container(width: 4, height: 20, decoration: BoxDecoration(gradient: AppColors.goldGradient, borderRadius: BorderRadius.circular(2))),
+        Text(title,
+            style: TextStyle(
+                color: _txt(context),
+                fontSize: 18,
+                fontWeight: FontWeight.w800)),
+        Container(
+            width: 4,
+            height: 20,
+            decoration: BoxDecoration(
+                gradient: AppColors.goldGradient,
+                borderRadius: BorderRadius.circular(2))),
       ],
     );
   }
@@ -389,11 +503,17 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(S.t('subscriptionTrendTitle', locale), style: TextStyle(color: _txt(context), fontSize: 16, fontWeight: FontWeight.w800)),
+          Text(S.t('subscriptionTrendTitle', locale),
+              style: TextStyle(
+                  color: _txt(context),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800)),
           const SizedBox(height: 16),
           Expanded(
             child: _subscriptionTrend.isEmpty
-                ? Center(child: Text('Aucune donnée', style: TextStyle(color: _txtSoft(context))))
+                ? Center(
+                    child: Text('Aucune donnée',
+                        style: TextStyle(color: _txtSoft(context))))
                 : _SubscriptionChart(data: _subscriptionTrend),
           ),
         ],
@@ -408,11 +528,17 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Évolution des revenus', style: TextStyle(color: _txt(context), fontSize: 16, fontWeight: FontWeight.w800)),
+          Text('Évolution des revenus',
+              style: TextStyle(
+                  color: _txt(context),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800)),
           const SizedBox(height: 16),
           Expanded(
             child: _revenueTrend.isEmpty
-                ? Center(child: Text('Aucune donnée', style: TextStyle(color: _txtSoft(context))))
+                ? Center(
+                    child: Text('Aucune donnée',
+                        style: TextStyle(color: _txtSoft(context))))
                 : _RevenueChart(data: _revenueTrend),
           ),
         ],
@@ -430,8 +556,12 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Top 8', style: TextStyle(color: _txtSoft(context), fontSize: 12)),
-              TextButton(onPressed: () {}, child: Text('Voir tout', style: TextStyle(color: _kSuperAdminGold, fontSize: 12))),
+              Text('Top 8',
+                  style: TextStyle(color: _txtSoft(context), fontSize: 12)),
+              TextButton(
+                  onPressed: () {},
+                  child: Text('Voir tout',
+                      style: TextStyle(color: _kSuperAdminGold, fontSize: 12))),
             ],
           ),
           const SizedBox(height: 12),
@@ -443,33 +573,53 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
               child: Row(
                 children: [
                   Container(
-                    width: 28, height: 28,
+                    width: 28,
+                    height: 28,
                     decoration: BoxDecoration(
                       gradient: rank == 1 ? AppColors.goldGradient : null,
                       color: rank > 1
-            ? (Theme.of(context).brightness == Brightness.dark
-                ? Colors.white.withValues(alpha: 0.1)
-                : Colors.black.withValues(alpha: 0.06))
-            : null,
+                          ? (Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white.withValues(alpha: 0.1)
+                              : Colors.black.withValues(alpha: 0.06))
+                          : null,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Center(child: Text('$rank', style: TextStyle(color: rank == 1 ? AppColors.graphite : _txtSoft(context), fontWeight: FontWeight.w900, fontSize: 12))),
+                    child: Center(
+                        child: Text('$rank',
+                            style: TextStyle(
+                                color: rank == 1
+                                    ? AppColors.graphite
+                                    : _txtSoft(context),
+                                fontWeight: FontWeight.w900,
+                                fontSize: 12))),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('${p['name'] ?? '—'}', style: TextStyle(color: _txt(context), fontWeight: FontWeight.w700, fontSize: 13)),
-                        Text('${p['city'] ?? ''} · ${p['license_type'] ?? '—'}', style: TextStyle(color: _txtMuted(context), fontSize: 11)),
+                        Text('${p['name'] ?? '—'}',
+                            style: TextStyle(
+                                color: _txt(context),
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13)),
+                        Text('${p['city'] ?? ''} · ${p['license_type'] ?? '—'}',
+                            style: TextStyle(
+                                color: _txtMuted(context), fontSize: 11)),
                       ],
                     ),
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(_formatMoney(p['total_revenue'] ?? 0), style: TextStyle(color: _txt(context), fontWeight: FontWeight.w800, fontSize: 13)),
-                      Text('${p['nb_sales'] ?? 0} ventes', style: TextStyle(color: _txtMuted(context), fontSize: 11)),
+                      Text(_formatMoney(p['total_revenue'] ?? 0),
+                          style: TextStyle(
+                              color: _txt(context),
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13)),
+                      Text('${p['nb_sales'] ?? 0} ventes',
+                          style: TextStyle(
+                              color: _txtMuted(context), fontSize: 11)),
                     ],
                   ),
                 ],
@@ -498,25 +648,47 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
             children: [
               Row(
                 children: [
-                  Container(width: 10, height: 10, decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(5))),
+                  Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                          color: Colors.orange,
+                          borderRadius: BorderRadius.circular(5))),
                   const SizedBox(width: 8),
-                  Text('Alertes actives', style: TextStyle(color: _txt(context), fontWeight: FontWeight.w800)),
+                  Text('Alertes actives',
+                      style: TextStyle(
+                          color: _txt(context), fontWeight: FontWeight.w800)),
                 ],
               ),
-              Text('${expired.length + suspended.length}', style: const TextStyle(color: _kSuperAdminGold, fontSize: 16, fontWeight: FontWeight.w900)),
+              Text('${expired.length + suspended.length}',
+                  style: const TextStyle(
+                      color: _kSuperAdminGold,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900)),
             ],
           ),
           const SizedBox(height: 16),
           if (expired.isNotEmpty) ...[
-            _AlertItem(icon: Icons.warning, color: Colors.orange, title: 'Licence expirée', subtitle: '${expired[0]['pharmacy_name'] ?? ''} — ${expired[0]['type']}'),
+            _AlertItem(
+                icon: Icons.warning,
+                color: Colors.orange,
+                title: 'Licence expirée',
+                subtitle:
+                    '${expired[0]['pharmacy_name'] ?? ''} — ${expired[0]['type']}'),
             const SizedBox(height: 8),
           ],
           if (suspended.isNotEmpty) ...[
-            _AlertItem(icon: Icons.block, color: Colors.red, title: 'Pharmacie suspendue', subtitle: '${suspended[0]['name'] ?? ''}'),
+            _AlertItem(
+                icon: Icons.block,
+                color: Colors.red,
+                title: 'Pharmacie suspendue',
+                subtitle: '${suspended[0]['name'] ?? ''}'),
             const SizedBox(height: 8),
           ],
           if (expired.isEmpty && suspended.isEmpty)
-            Center(child: Text('Aucune alerte', style: TextStyle(color: _txtSoft(context)))),
+            Center(
+                child: Text('Aucune alerte',
+                    style: TextStyle(color: _txtSoft(context)))),
         ],
       ),
     );
@@ -529,30 +701,58 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ..._recentActivity.take(8).map((a) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Row(
-              children: [
-                Container(width: 32, height: 32, decoration: BoxDecoration(color: _kSuperAdminAccent.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)), child: Icon(_activityIcon(a['type'] as String?), color: _kSuperAdminAccent, size: 16)),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('${a['name'] ?? a['subject'] ?? a['id']}', style: TextStyle(color: _txt(context), fontWeight: FontWeight.w600, fontSize: 13)),
-                      Text('${a['pharmacy_name'] ?? ''} · ${_formatDate(a['created_at'])}', style: TextStyle(color: _txtMuted(context), fontSize: 11)),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: _kSuperAdminGold.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
-                  child: Text(_typeLabel(a['type'] as String?, locale), style: TextStyle(color: _kSuperAdminGold, fontSize: 9, fontWeight: FontWeight.w800)),
-                ),
-              ],
-            ),
-          )).toList(),
-          if (_recentActivity.isEmpty) Center(child: Text('Aucune activité', style: TextStyle(color: _txtSoft(context)))),
+          ..._recentActivity
+              .take(8)
+              .map((a) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Row(
+                      children: [
+                        Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                                color:
+                                    _kSuperAdminAccent.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(8)),
+                            child: Icon(_activityIcon(a['type'] as String?),
+                                color: _kSuperAdminAccent, size: 16)),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('${a['name'] ?? a['subject'] ?? a['id']}',
+                                  style: TextStyle(
+                                      color: _txt(context),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13)),
+                              Text(
+                                  '${a['pharmacy_name'] ?? ''} · ${_formatDate(a['created_at'])}',
+                                  style: TextStyle(
+                                      color: _txtMuted(context), fontSize: 11)),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                              color: _kSuperAdminGold.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(12)),
+                          child: Text(_typeLabel(a['type'] as String?, locale),
+                              style: TextStyle(
+                                  color: _kSuperAdminGold,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800)),
+                        ),
+                      ],
+                    ),
+                  ))
+              .toList(),
+          if (_recentActivity.isEmpty)
+            Center(
+                child: Text('Aucune activité',
+                    style: TextStyle(color: _txtSoft(context)))),
         ],
       ),
     );
@@ -565,30 +765,54 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ..._recentPayments.take(8).map((p) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('${p['type'] == 'sale' ? 'Vente #' : 'Achats #'}${p['id']?.toString().substring(0, 8) ?? ''}', style: TextStyle(color: _txt(context), fontWeight: FontWeight.w600, fontSize: 13)),
-                      Text('${p['pharmacy_name'] ?? ''} · ${_formatDate(p['created_at'])}', style: TextStyle(color: _txtMuted(context), fontSize: 11)),
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(_formatMoney(p['total'] ?? 0), style: TextStyle(color: _txt(context), fontWeight: FontWeight.w800, fontSize: 13)),
-                    Text(p['type'] == 'sale' ? 'Vente' : 'Achat', style: TextStyle(color: p['type'] == 'sale' ? _kSuperAdminAccent : Colors.orange, fontSize: 11, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-              ],
-            ),
-          )).toList(),
-          if (_recentPayments.isEmpty) Center(child: Text('Aucun paiement récent', style: TextStyle(color: _txtSoft(context)))),
+          ..._recentPayments
+              .take(8)
+              .map((p) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                  '${p['type'] == 'sale' ? 'Vente #' : 'Achats #'}${p['id']?.toString().substring(0, 8) ?? ''}',
+                                  style: TextStyle(
+                                      color: _txt(context),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13)),
+                              Text(
+                                  '${p['pharmacy_name'] ?? ''} · ${_formatDate(p['created_at'])}',
+                                  style: TextStyle(
+                                      color: _txtMuted(context), fontSize: 11)),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(_formatMoney(p['total'] ?? 0),
+                                style: TextStyle(
+                                    color: _txt(context),
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 13)),
+                            Text(p['type'] == 'sale' ? 'Vente' : 'Achat',
+                                style: TextStyle(
+                                    color: p['type'] == 'sale'
+                                        ? _kSuperAdminAccent
+                                        : Colors.orange,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ))
+              .toList(),
+          if (_recentPayments.isEmpty)
+            Center(
+                child: Text('Aucun paiement récent',
+                    style: TextStyle(color: _txtSoft(context)))),
         ],
       ),
     );
@@ -596,28 +820,39 @@ class _SuperAdminDashboardPageState extends State<SuperAdminDashboardPage> {
 
   IconData _activityIcon(String? type) {
     switch (type) {
-      case 'pharmacy': return Icons.local_pharmacy;
-      case 'user': return Icons.person_add;
-      case 'sale': return Icons.attach_money;
-      case 'ticket': return Icons.support_agent;
-      default: return Icons.info;
+      case 'pharmacy':
+        return Icons.local_pharmacy;
+      case 'user':
+        return Icons.person_add;
+      case 'sale':
+        return Icons.attach_money;
+      case 'ticket':
+        return Icons.support_agent;
+      default:
+        return Icons.info;
     }
   }
 
   String _typeLabel(String? type, String locale) {
     switch (type) {
-      case 'pharmacy': return 'Nouvelle';
-      case 'sale': return 'Vente';
-      case 'user': return 'Utilisateur';
-      case 'ticket': return 'Ticket';
-      default: return type ?? '';
+      case 'pharmacy':
+        return 'Nouvelle';
+      case 'sale':
+        return 'Vente';
+      case 'user':
+        return 'Utilisateur';
+      case 'ticket':
+        return 'Ticket';
+      default:
+        return type ?? '';
     }
   }
 
   String _formatDate(dynamic d) {
     if (d == null) return '';
     try {
-      return DateFormat('dd/MM/yyyy HH:mm', 'fr').format(DateTime.parse(d.toString()));
+      return DateFormat('dd/MM/yyyy HH:mm', 'fr')
+          .format(DateTime.parse(d.toString()));
     } catch (_) {
       return d.toString();
     }
@@ -633,7 +868,13 @@ class _KPIData {
 
   /// Illustration 3D d'arrière-plan (mêmes assets que le dashboard pharmacie).
   final String image;
-  const _KPIData({required this.key, required this.label, required this.value, required this.icon, required this.color, required this.image});
+  const _KPIData(
+      {required this.key,
+      required this.label,
+      required this.value,
+      required this.icon,
+      required this.color,
+      required this.image});
 }
 
 class _SubscriptionChart extends StatelessWidget {
@@ -642,7 +883,11 @@ class _SubscriptionChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final max = data.isNotEmpty ? data.map((e) => (e['count'] as num? ?? 0).toInt()).reduce((a, b) => a > b ? a : b) : 1;
+    final max = data.isNotEmpty
+        ? data
+            .map((e) => (e['count'] as num? ?? 0).toInt())
+            .reduce((a, b) => a > b ? a : b)
+        : 1;
     return LayoutBuilder(
       builder: (context, constraints) {
         final barWidth = constraints.maxWidth / (data.length * 2);
@@ -656,18 +901,22 @@ class _SubscriptionChart extends StatelessWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Expanded(child: Container(
+                  Expanded(
+                      child: Container(
                     width: barWidth * 0.6,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [_kSuperAdminAccent, _kSuperAdminGold]),
+                      gradient: LinearGradient(
+                          colors: [_kSuperAdminAccent, _kSuperAdminGold]),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: count > 0 ? const Center() : null,
                   )),
                   const SizedBox(height: 6),
-                  Text(count.toString(), style: TextStyle(color: _txtSoft(context), fontSize: 10)),
+                  Text(count.toString(),
+                      style: TextStyle(color: _txtSoft(context), fontSize: 10)),
                   const SizedBox(height: 4),
-                  Text(d['month']?.toString().substring(5, 7) ?? '', style: TextStyle(color: _txtMuted(context), fontSize: 9)),
+                  Text(d['month']?.toString().substring(5, 7) ?? '',
+                      style: TextStyle(color: _txtMuted(context), fontSize: 9)),
                 ],
               );
             }).toList(),
@@ -684,13 +933,19 @@ class _RevenueChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final values = data.map((e) => (e['revenue'] as num? ?? 0).toDouble()).toList();
-    final max = values.isNotEmpty ? values.reduce((a, b) => a > b ? a : b) : 1.0;
+    final values =
+        data.map((e) => (e['revenue'] as num? ?? 0).toDouble()).toList();
+    final max =
+        values.isNotEmpty ? values.reduce((a, b) => a > b ? a : b) : 1.0;
     return LayoutBuilder(
       builder: (context, constraints) {
         return CustomPaint(
           size: Size(constraints.maxWidth, constraints.maxHeight),
-          painter: _RevenueCurvePainter(values: values, max: max, width: constraints.maxWidth.toDouble(), height: constraints.maxHeight.toDouble()),
+          painter: _RevenueCurvePainter(
+              values: values,
+              max: max,
+              width: constraints.maxWidth.toDouble(),
+              height: constraints.maxHeight.toDouble()),
         );
       },
     );
@@ -702,20 +957,35 @@ class _AlertItem extends StatelessWidget {
   final Color color;
   final String title;
   final String subtitle;
-  const _AlertItem({required this.icon, required this.color, required this.title, required this.subtitle});
+  const _AlertItem(
+      {required this.icon,
+      required this.color,
+      required this.title,
+      required this.subtitle});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(width: 28, height: 28, decoration: BoxDecoration(color: color.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: color, size: 14)),
+        Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8)),
+            child: Icon(icon, color: color, size: 14)),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: TextStyle(color: _txt(context), fontWeight: FontWeight.w700, fontSize: 13)),
-              Text(subtitle, style: TextStyle(color: _txtMuted(context), fontSize: 11)),
+              Text(title,
+                  style: TextStyle(
+                      color: _txt(context),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13)),
+              Text(subtitle,
+                  style: TextStyle(color: _txtMuted(context), fontSize: 11)),
             ],
           ),
         ),
@@ -729,7 +999,11 @@ class _RevenueCurvePainter extends CustomPainter {
   final double max;
   final double width;
   final double height;
-  _RevenueCurvePainter({required this.values, required this.max, required this.width, required this.height});
+  _RevenueCurvePainter(
+      {required this.values,
+      required this.max,
+      required this.width,
+      required this.height});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -745,8 +1019,10 @@ class _RevenueCurvePainter extends CustomPainter {
     for (int i = 0; i < values.length; i++) {
       final x = i * stepX;
       final y = height - (values[i] / max) * (height - 20) - 10;
-      if (i == 0) path.moveTo(x, y);
-      else path.lineTo(x, y);
+      if (i == 0)
+        path.moveTo(x, y);
+      else
+        path.lineTo(x, y);
     }
     canvas.drawPath(path, paint);
 

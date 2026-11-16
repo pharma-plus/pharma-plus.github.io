@@ -42,10 +42,12 @@ class _SalesReturnsPageState extends State<SalesReturnsPage> {
     final c = widget.analytics;
     final k = c.analytics?.kpis;
     final tx = c.txRows;
-    final cancelled = tx.where((t) =>
-        t.status == 'voided' || t.status == 'cancelled').toList();
-    final returned = tx.where((t) =>
-        t.status == 'returned' || t.status == 'refunded').toList();
+    final cancelled = tx
+        .where((t) => t.status == 'voided' || t.status == 'cancelled')
+        .toList();
+    final returned = tx
+        .where((t) => t.status == 'returned' || t.status == 'refunded')
+        .toList();
 
     final returnRows = <Widget>[];
     if (cancelled.isEmpty && returned.isEmpty) {
@@ -94,7 +96,8 @@ class _SalesReturnsPageState extends State<SalesReturnsPage> {
                   children: [
                     Expanded(
                       child: _kpiItem(
-                        'Annulées', '${k?.cancelledCount ?? 0}',
+                        'Annulées',
+                        '${k?.cancelledCount ?? 0}',
                         AppColors.pharmaDanger,
                       ),
                     ),

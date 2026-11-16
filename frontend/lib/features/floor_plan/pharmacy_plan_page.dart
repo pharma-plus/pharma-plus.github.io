@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -208,108 +208,111 @@ class _PharmacyPlanPageState extends State<PharmacyPlanPage> {
                     onZoomOut: () =>
                         setState(() => _zoom = math.max(0.5, _zoom / 1.15)),
                     onReset: _reset,
-                onFullscreen: _openFullscreen,
-                // Combobox zones : fil la liste + la sélection courante.
-                zones: _zones,
-                selectedZoneId: _selected,
-                onZoneSelected: (v) => setState(() => _selected = v),
-              ),
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (ctx, constraints) {
-                    final size =
-                        Size(constraints.maxWidth, constraints.maxHeight);
-                    final proj = PlanProjector(rot: _rot, zoom: _zoom, size: size);
-                    return Stack(
-                      children: [
-                        GestureDetector(
-                          onPanUpdate: (d) =>
-                              setState(() => _rot += d.delta.dx * 0.01),
-                          child: CustomPaint(
-                            size: size,
-                            painter: PlanPainter(
-                              zones: _zones,
-                              rot: _rot,
-                              zoom: _zoom,
-                              locale: locale,
-                              size: size,
-                              selectedId: _selected,
-                            ),
-                          ),
-                        ),
-                        for (final z in _zones) _zoneHit(proj, z),
-                        if (_selected == null)
-                          Positioned(
-                            top: 12,
-                            left: 0,
-                            right: 0,
-                            child: Center(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.45),
-                                  borderRadius: BorderRadius.circular(30),
-                                ),
-                                child: Text(
-                                  S.t('selectZoneHint', locale),
-                                  style: const TextStyle(
-                                      color: Colors.white70, fontSize: 12),
+                    onFullscreen: _openFullscreen,
+                    // Combobox zones : fil la liste + la sélection courante.
+                    zones: _zones,
+                    selectedZoneId: _selected,
+                    onZoneSelected: (v) => setState(() => _selected = v),
+                  ),
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (ctx, constraints) {
+                        final size =
+                            Size(constraints.maxWidth, constraints.maxHeight);
+                        final proj =
+                            PlanProjector(rot: _rot, zoom: _zoom, size: size);
+                        return Stack(
+                          children: [
+                            GestureDetector(
+                              onPanUpdate: (d) =>
+                                  setState(() => _rot += d.delta.dx * 0.01),
+                              child: CustomPaint(
+                                size: size,
+                                painter: PlanPainter(
+                                  zones: _zones,
+                                  rot: _rot,
+                                  zoom: _zoom,
+                                  locale: locale,
+                                  size: size,
+                                  selectedId: _selected,
                                 ),
                               ),
                             ),
-                          ),
-                        if (sel != null)
-                          _DetailPanel(
-                            zone: sel,
-                            locale: locale,
-                            // Fermer = deselectionner TOUTE zone : le panneau
-                            // doit disparaitre (avant: re-selectionnait 'meds'
-                            // et semblait ne jamais se fermer).
-                            onClose: () => setState(() => _selected = null),
-                            onProductTap: (product) async {
-                              final nav = Navigator.of(context);
-                              final messenger =
-                                  ScaffoldMessenger.of(context);
-                              final locale = this.locale;
-                              // Vérifie qu'un produit correspond AVANT de
-                              // pousser le catalogue : les libellés de meuble
-                              // ('Caisse', 'TPE', 'Ordonnances'…) ne doivent
-                              // pas ouvrir une recherche qui retombe sur vide.
-                              final r = await ApiClient.instance.get(
-                                '/catalog/medications',
-                                query: {'q': product, 'limit': 1},
-                              );
-                              final body = r.data;
-                              final items = (body is Map && body['items'] is List)
-                                  ? body['items'] as List
-                                  : (body is List ? body : const []);
-                              if (items.isNotEmpty) {
-                                nav.push(MaterialPageRoute(
-                                  builder: (_) =>
-                                      CatalogPage(initialQuery: product),
-                                ));
-                              } else {
-                                messenger.showSnackBar(SnackBar(
-                                  content: Text(
-                                      '${S.t('noResults', locale)} : $product'),
-                                ));
-                              }
-                            },
-                          ),
-                       ],
-                     );
-                   },
-                 ),
-               ),
-               ],
-             ),
-           ),
-           ),
-         ],
-       ),
-     );
-   }
+                            for (final z in _zones) _zoneHit(proj, z),
+                            if (_selected == null)
+                              Positioned(
+                                top: 12,
+                                left: 0,
+                                right: 0,
+                                child: Center(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          Colors.black.withValues(alpha: 0.45),
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                    child: Text(
+                                      S.t('selectZoneHint', locale),
+                                      style: const TextStyle(
+                                          color: Colors.white70, fontSize: 12),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            if (sel != null)
+                              _DetailPanel(
+                                zone: sel,
+                                locale: locale,
+                                // Fermer = deselectionner TOUTE zone : le panneau
+                                // doit disparaitre (avant: re-selectionnait 'meds'
+                                // et semblait ne jamais se fermer).
+                                onClose: () => setState(() => _selected = null),
+                                onProductTap: (product) async {
+                                  final nav = Navigator.of(context);
+                                  final messenger =
+                                      ScaffoldMessenger.of(context);
+                                  final locale = this.locale;
+                                  // Vérifie qu'un produit correspond AVANT de
+                                  // pousser le catalogue : les libellés de meuble
+                                  // ('Caisse', 'TPE', 'Ordonnances'…) ne doivent
+                                  // pas ouvrir une recherche qui retombe sur vide.
+                                  final r = await ApiClient.instance.get(
+                                    '/catalog/medications',
+                                    query: {'q': product, 'limit': 1},
+                                  );
+                                  final body = r.data;
+                                  final items =
+                                      (body is Map && body['items'] is List)
+                                          ? body['items'] as List
+                                          : (body is List ? body : const []);
+                                  if (items.isNotEmpty) {
+                                    nav.push(MaterialPageRoute(
+                                      builder: (_) =>
+                                          CatalogPage(initialQuery: product),
+                                    ));
+                                  } else {
+                                    messenger.showSnackBar(SnackBar(
+                                      content: Text(
+                                          '${S.t('noResults', locale)} : $product'),
+                                    ));
+                                  }
+                                },
+                              ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _zoneHit(PlanProjector proj, PlanZoneHit z) {
     final corners = [
@@ -436,8 +439,9 @@ class _ControlsState extends State<_Controls> {
   /// aucun état « bloqué ». Un item « Ne rien afficher » permet de fermer.
   Future<void> _openZoneMenu() async {
     final box = _zoneButtonKey.currentContext?.findRenderObject() as RenderBox?;
-    final overlay =
-        Overlay.of(context, rootOverlay: true).context.findRenderObject() as RenderBox;
+    final overlay = Overlay.of(context, rootOverlay: true)
+        .context
+        .findRenderObject() as RenderBox;
     if (box == null) return;
     final pos = box.localToGlobal(Offset.zero);
     final result = await showMenu<String>(
@@ -455,7 +459,8 @@ class _ControlsState extends State<_Controls> {
           value: '__none__',
           child: Row(
             children: [
-              Icon(Icons.close, size: 16,
+              Icon(Icons.close,
+                  size: 16,
                   color: widget.selectedZoneId != null
                       ? Colors.white70
                       : Colors.white38),
@@ -478,8 +483,8 @@ class _ControlsState extends State<_Controls> {
                 Container(
                   width: 12,
                   height: 12,
-                  decoration: BoxDecoration(
-                      color: z.color, shape: BoxShape.circle),
+                  decoration:
+                      BoxDecoration(color: z.color, shape: BoxShape.circle),
                 ),
                 const SizedBox(width: 10),
                 Text(
@@ -532,8 +537,10 @@ class _ControlsState extends State<_Controls> {
               widget.onRotateLeft),
           _btn(Icons.rotate_right, S.t('rotateRight', widget.locale), fg,
               widget.onRotateRight),
-          _btn(widget.auto ? Icons.pause : Icons.play_arrow,
-              widget.auto ? 'Pause' : S.t('rotateLeft', widget.locale), fg,
+          _btn(
+              widget.auto ? Icons.pause : Icons.play_arrow,
+              widget.auto ? 'Pause' : S.t('rotateLeft', widget.locale),
+              fg,
               widget.onAuto),
           _btn(Icons.remove, S.t('zoomOut', widget.locale), fg,
               widget.onZoomOut),
@@ -553,8 +560,7 @@ class _ControlsState extends State<_Controls> {
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.12)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -766,8 +772,9 @@ class PlanFace {
   final Color color;
   final double depth;
   PlanFace(this.pts, this.color)
-      : depth = pts.fold(0.0, (double s, PlanPt p) => s + (p.x + p.y) - p.z * 0.5) /
-            pts.length;
+      : depth =
+            pts.fold(0.0, (double s, PlanPt p) => s + (p.x + p.y) - p.z * 0.5) /
+                pts.length;
 }
 
 class PlanZoneHit {
@@ -919,7 +926,8 @@ class PlanPainter extends CustomPainter {
     required this.selectedId,
   });
 
-  late final PlanProjector _proj = PlanProjector(rot: rot, zoom: zoom, size: size);
+  late final PlanProjector _proj =
+      PlanProjector(rot: rot, zoom: zoom, size: size);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1044,25 +1052,41 @@ class PlanPainter extends CustomPainter {
   /// Boîte 3D complète entre z0 et z1 (5 faces : dessus + 4 côtés).
   void _addBox(List<PlanFace> faces, double x0, double y0, double x1, double y1,
       double z0, double z1, Color base) {
-    faces.add(PlanFace(
-        [PlanPt(x0, y0, z1), PlanPt(x1, y0, z1), PlanPt(x1, y1, z1), PlanPt(x0, y1, z1)],
-        _lighten(base, 0.16)));
-    faces.add(PlanFace(
-        [PlanPt(x1, y0, z0), PlanPt(x1, y1, z0), PlanPt(x1, y1, z1), PlanPt(x1, y0, z1)],
-        _darken(base, 0.30)));
-    faces.add(PlanFace(
-        [PlanPt(x0, y0, z0), PlanPt(x0, y1, z0), PlanPt(x0, y1, z1), PlanPt(x0, y0, z1)],
-        _darken(base, 0.46)));
-    faces.add(PlanFace(
-        [PlanPt(x0, y1, z0), PlanPt(x1, y1, z0), PlanPt(x1, y1, z1), PlanPt(x0, y1, z1)],
-        _darken(base, 0.22)));
-    faces.add(PlanFace(
-        [PlanPt(x0, y0, z0), PlanPt(x1, y0, z0), PlanPt(x1, y0, z1), PlanPt(x0, y0, z1)],
-        _darken(base, 0.38)));
+    faces.add(PlanFace([
+      PlanPt(x0, y0, z1),
+      PlanPt(x1, y0, z1),
+      PlanPt(x1, y1, z1),
+      PlanPt(x0, y1, z1)
+    ], _lighten(base, 0.16)));
+    faces.add(PlanFace([
+      PlanPt(x1, y0, z0),
+      PlanPt(x1, y1, z0),
+      PlanPt(x1, y1, z1),
+      PlanPt(x1, y0, z1)
+    ], _darken(base, 0.30)));
+    faces.add(PlanFace([
+      PlanPt(x0, y0, z0),
+      PlanPt(x0, y1, z0),
+      PlanPt(x0, y1, z1),
+      PlanPt(x0, y0, z1)
+    ], _darken(base, 0.46)));
+    faces.add(PlanFace([
+      PlanPt(x0, y1, z0),
+      PlanPt(x1, y1, z0),
+      PlanPt(x1, y1, z1),
+      PlanPt(x0, y1, z1)
+    ], _darken(base, 0.22)));
+    faces.add(PlanFace([
+      PlanPt(x0, y0, z0),
+      PlanPt(x1, y0, z0),
+      PlanPt(x1, y0, z1),
+      PlanPt(x0, y0, z1)
+    ], _darken(base, 0.38)));
   }
 
   /// Face unique quad (vitrine, écran, enseigne...).
-  void _addQuad(List<PlanFace> faces, PlanPt a, PlanPt b, PlanPt c, PlanPt d, Color color) {
+  void _addQuad(List<PlanFace> faces, PlanPt a, PlanPt b, PlanPt c, PlanPt d,
+      Color color) {
     faces.add(PlanFace([a, b, c, d], color));
   }
 
@@ -1210,37 +1234,107 @@ class PlanPainter extends CustomPainter {
   void _addWalls(List<PlanFace> faces) {
     const h = 2.7;
     // Mur nord (plan y = -4) + frise claire.
-    _addQuad(faces, const PlanPt(-5, -4, h), const PlanPt(5, -4, h), const PlanPt(5, -4, 0), const PlanPt(-5, -4, 0),
+    _addQuad(
+        faces,
+        const PlanPt(-5, -4, h),
+        const PlanPt(5, -4, h),
+        const PlanPt(5, -4, 0),
+        const PlanPt(-5, -4, 0),
         const Color(0xFFBFB9A8));
-    _addQuad(faces, const PlanPt(-5, -4, h), const PlanPt(5, -4, h), const PlanPt(5, -4, h - 0.14),
-        const PlanPt(-5, -4, h - 0.14), const Color(0xFFD8D3C4));
-    _addQuad(faces, const PlanPt(-5, -4, 0.14), const PlanPt(5, -4, 0.14), const PlanPt(5, -4, 0),
-        const PlanPt(-5, -4, 0), const Color(0xFF3E423B));
+    _addQuad(
+        faces,
+        const PlanPt(-5, -4, h),
+        const PlanPt(5, -4, h),
+        const PlanPt(5, -4, h - 0.14),
+        const PlanPt(-5, -4, h - 0.14),
+        const Color(0xFFD8D3C4));
+    _addQuad(
+        faces,
+        const PlanPt(-5, -4, 0.14),
+        const PlanPt(5, -4, 0.14),
+        const PlanPt(5, -4, 0),
+        const PlanPt(-5, -4, 0),
+        const Color(0xFF3E423B));
     // Mur ouest (plan x = -5) + frise claire.
-    _addQuad(faces, const PlanPt(-5, -4, h), const PlanPt(-5, 4, h), const PlanPt(-5, 4, 0), const PlanPt(-5, -4, 0),
+    _addQuad(
+        faces,
+        const PlanPt(-5, -4, h),
+        const PlanPt(-5, 4, h),
+        const PlanPt(-5, 4, 0),
+        const PlanPt(-5, -4, 0),
         const Color(0xFFA9A395));
-    _addQuad(faces, const PlanPt(-5, -4, h), const PlanPt(-5, 4, h), const PlanPt(-5, 4, h - 0.14),
-        const PlanPt(-5, -4, h - 0.14), const Color(0xFFC6C1B2));
-    _addQuad(faces, const PlanPt(-5, -4, 0.14), const PlanPt(-5, 4, 0.14), const PlanPt(-5, 4, 0),
-        const PlanPt(-5, -4, 0), const Color(0xFF383C36));
+    _addQuad(
+        faces,
+        const PlanPt(-5, -4, h),
+        const PlanPt(-5, 4, h),
+        const PlanPt(-5, 4, h - 0.14),
+        const PlanPt(-5, -4, h - 0.14),
+        const Color(0xFFC6C1B2));
+    _addQuad(
+        faces,
+        const PlanPt(-5, -4, 0.14),
+        const PlanPt(-5, 4, 0.14),
+        const PlanPt(-5, 4, 0),
+        const PlanPt(-5, -4, 0),
+        const Color(0xFF383C36));
     // Porte verte a croix + affiche murale sur le mur nord (maquette),
     // legerement en retrait (y = -3.96) pour rester devant le mur.
-    _addQuad(faces, const PlanPt(3.06, -3.965, 2.16), const PlanPt(4.34, -3.965, 2.16),
-        const PlanPt(4.34, -3.965, 0), const PlanPt(3.06, -3.965, 0), const Color(0xFF14261C));
-    _addQuad(faces, const PlanPt(3.14, -3.96, 2.08), const PlanPt(4.26, -3.96, 2.08),
-        const PlanPt(4.26, -3.96, 0.06), const PlanPt(3.14, -3.96, 0.06), const Color(0xFF1E7A4A));
-    _addQuad(faces, const PlanPt(3.63, -3.955, 1.78), const PlanPt(3.77, -3.955, 1.78),
-        const PlanPt(3.77, -3.955, 0.92), const PlanPt(3.63, -3.955, 0.92), const Color(0xFFF2F6F0));
-    _addQuad(faces, const PlanPt(3.36, -3.955, 1.455), const PlanPt(4.04, -3.955, 1.455),
-        const PlanPt(4.04, -3.955, 1.245), const PlanPt(3.36, -3.955, 1.245), const Color(0xFFF2F6F0));
-    _addQuad(faces, const PlanPt(4.11, -3.955, 1.08), const PlanPt(4.18, -3.955, 1.08),
-        const PlanPt(4.18, -3.955, 0.98), const PlanPt(4.11, -3.955, 0.98), const Color(0xFFD9BC8C));
-    _addQuad(faces, const PlanPt(1.5, -3.965, 2.28), const PlanPt(2.7, -3.965, 2.28),
-        const PlanPt(2.7, -3.965, 1.38), const PlanPt(1.5, -3.965, 1.38), const Color(0xFF2A2E28));
-    _addQuad(faces, const PlanPt(1.58, -3.96, 2.2), const PlanPt(2.62, -3.96, 2.2),
-        const PlanPt(2.62, -3.96, 1.46), const PlanPt(1.58, -3.96, 1.46), const Color(0xFFE8E2D4));
-    _addQuad(faces, const PlanPt(1.58, -3.96, 2.2), const PlanPt(2.62, -3.96, 2.2),
-        const PlanPt(2.62, -3.96, 2.02), const PlanPt(1.58, -3.96, 2.02), const Color(0xFF1E7A4A));
+    _addQuad(
+        faces,
+        const PlanPt(3.06, -3.965, 2.16),
+        const PlanPt(4.34, -3.965, 2.16),
+        const PlanPt(4.34, -3.965, 0),
+        const PlanPt(3.06, -3.965, 0),
+        const Color(0xFF14261C));
+    _addQuad(
+        faces,
+        const PlanPt(3.14, -3.96, 2.08),
+        const PlanPt(4.26, -3.96, 2.08),
+        const PlanPt(4.26, -3.96, 0.06),
+        const PlanPt(3.14, -3.96, 0.06),
+        const Color(0xFF1E7A4A));
+    _addQuad(
+        faces,
+        const PlanPt(3.63, -3.955, 1.78),
+        const PlanPt(3.77, -3.955, 1.78),
+        const PlanPt(3.77, -3.955, 0.92),
+        const PlanPt(3.63, -3.955, 0.92),
+        const Color(0xFFF2F6F0));
+    _addQuad(
+        faces,
+        const PlanPt(3.36, -3.955, 1.455),
+        const PlanPt(4.04, -3.955, 1.455),
+        const PlanPt(4.04, -3.955, 1.245),
+        const PlanPt(3.36, -3.955, 1.245),
+        const Color(0xFFF2F6F0));
+    _addQuad(
+        faces,
+        const PlanPt(4.11, -3.955, 1.08),
+        const PlanPt(4.18, -3.955, 1.08),
+        const PlanPt(4.18, -3.955, 0.98),
+        const PlanPt(4.11, -3.955, 0.98),
+        const Color(0xFFD9BC8C));
+    _addQuad(
+        faces,
+        const PlanPt(1.5, -3.965, 2.28),
+        const PlanPt(2.7, -3.965, 2.28),
+        const PlanPt(2.7, -3.965, 1.38),
+        const PlanPt(1.5, -3.965, 1.38),
+        const Color(0xFF2A2E28));
+    _addQuad(
+        faces,
+        const PlanPt(1.58, -3.96, 2.2),
+        const PlanPt(2.62, -3.96, 2.2),
+        const PlanPt(2.62, -3.96, 1.46),
+        const PlanPt(1.58, -3.96, 1.46),
+        const Color(0xFFE8E2D4));
+    _addQuad(
+        faces,
+        const PlanPt(1.58, -3.96, 2.2),
+        const PlanPt(2.62, -3.96, 2.2),
+        const PlanPt(2.62, -3.96, 2.02),
+        const PlanPt(1.58, -3.96, 2.02),
+        const Color(0xFF1E7A4A));
   }
 
   List<PlanFace> _buildFaces() {
@@ -1339,15 +1433,11 @@ class PlanPainter extends CustomPainter {
       // Pastille sombre + badge vert a la lettre (style maquette).
       final badgeD = tp.height + 4.0;
       final r = Rect.fromCenter(
-          center: c,
-          width: tp.width + badgeD + 26,
-          height: tp.height + 12);
+          center: c, width: tp.width + badgeD + 26, height: tp.height + 12);
       canvas.drawRRect(
         RRect.fromRectAndRadius(r, const Radius.circular(10)),
         Paint()
-          ..color = active
-              ? const Color(0xF20A0E0B)
-              : const Color(0xE00D1210),
+          ..color = active ? const Color(0xF20A0E0B) : const Color(0xE00D1210),
       );
       if (active) {
         canvas.drawRRect(

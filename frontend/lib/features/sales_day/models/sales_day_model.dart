@@ -125,9 +125,8 @@ class SalesDayKpis {
       returnedCount: n(j['returned_count']).round(),
       paidAmount: n(j['paid_amount']),
       outstandingAmount: n(j['outstanding_amount']),
-      refundedAmount: j['refunded_amount'] == null
-          ? null
-          : n(j['refunded_amount']),
+      refundedAmount:
+          j['refunded_amount'] == null ? null : n(j['refunded_amount']),
       costTotal: n(j['cost_total']),
       totalRows: n(j['total_rows']).round(),
     );
@@ -225,8 +224,7 @@ class SalesProductRank {
     required this.sortBy,
   });
 
-  String get displayName =>
-      name.isEmpty ? 'Référence inconnue' : name;
+  String get displayName => name.isEmpty ? 'Référence inconnue' : name;
 
   /// Libellé du critère de classement affiché.
   String get sortLabel {
@@ -262,10 +260,13 @@ class SalesDayAnalytics {
   final SalesDayKpis kpis;
   final List<SalesHourBucket> hourly;
   final List<SalesPaymentSlice> payments;
+
   /// Top 10 par quantité vendue.
   final List<SalesProductRank> topProductsQty;
+
   /// Top 10 par chiffre d'affaires.
   final List<SalesProductRank> topProductsRev;
+
   /// Top 10 par bénéfice brut.
   final List<SalesProductRank> topProductsProfit;
 
@@ -307,12 +308,15 @@ class SalesDayAnalytics {
       payments: listOf(j['payment_breakdown'])
           .map(SalesPaymentSlice.fromJson)
           .toList(),
-      topProductsQty:
-          listOf(j['top_products_by_qty']).map(SalesProductRank.fromJson).toList(),
-      topProductsRev:
-          listOf(j['top_products_by_rev']).map(SalesProductRank.fromJson).toList(),
-      topProductsProfit:
-          listOf(j['top_products_by_profit']).map(SalesProductRank.fromJson).toList(),
+      topProductsQty: listOf(j['top_products_by_qty'])
+          .map(SalesProductRank.fromJson)
+          .toList(),
+      topProductsRev: listOf(j['top_products_by_rev'])
+          .map(SalesProductRank.fromJson)
+          .toList(),
+      topProductsProfit: listOf(j['top_products_by_profit'])
+          .map(SalesProductRank.fromJson)
+          .toList(),
     );
   }
 }
@@ -331,10 +335,10 @@ class SalesTransaction {
   final double paidAmount;
   final double changeAmount;
   final String? paymentMethod;
-  final String? customer;   // absent si indéchiffrable
+  final String? customer; // absent si indéchiffrable
   final double? itemsCount; // absent si enrichissement indisponible
-  final String? userId;     // absent si enrichissement indisponible
-  final String? userName;   // absent si enrichissement indisponible
+  final String? userId; // absent si enrichissement indisponible
+  final String? userName; // absent si enrichissement indisponible
 
   const SalesTransaction({
     required this.id,
@@ -379,9 +383,7 @@ class SalesTransaction {
       changeAmount: n(j['change_amount']),
       paymentMethod: j['payment_method']?.toString(),
       customer: j['_customer']?.toString(),
-      itemsCount: j['_items_count'] == null
-          ? null
-          : n(j['_items_count']),
+      itemsCount: j['_items_count'] == null ? null : n(j['_items_count']),
       userId: j['user_id']?.toString(),
       userName: j['_user']?.toString(),
     );
@@ -432,7 +434,9 @@ class SalesTransactionsPage {
         .whereType<Map>()
         .map((m) => SalesTransaction.fromJson(Map<String, dynamic>.from(m)))
         .toList();
-    final meta = j['meta'] is Map ? Map<String, dynamic>.from(j['meta'] as Map) : const {};
+    final meta = j['meta'] is Map
+        ? Map<String, dynamic>.from(j['meta'] as Map)
+        : const {};
     final total = num.tryParse('${meta['total'] ?? 0}')?.toInt() ?? rows.length;
     return SalesTransactionsPage(
       rows: rows,

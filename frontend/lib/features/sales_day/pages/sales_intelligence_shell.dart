@@ -175,22 +175,24 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
 
   void _previous() {
     _nav.goBack().then((_) {
-      if (mounted) setState(() {
-        _current = SalesIntelligencePage.values.firstWhere(
-          (p) => p.id == _nav.currentId,
-          orElse: () => SalesIntelligencePage.overview,
-        );
-      });
+      if (mounted)
+        setState(() {
+          _current = SalesIntelligencePage.values.firstWhere(
+            (p) => p.id == _nav.currentId,
+            orElse: () => SalesIntelligencePage.overview,
+          );
+        });
     });
   }
 
   void _next() {
     final nextId = SalesPageOrder.nextId(_nav.currentId);
     _nav.navigateTo(nextId).then((_) {
-      if (mounted) setState(() => _current = SalesIntelligencePage.values.firstWhere(
-        (p) => p.id == nextId,
-        orElse: () => SalesIntelligencePage.overview,
-      ));
+      if (mounted)
+        setState(() => _current = SalesIntelligencePage.values.firstWhere(
+              (p) => p.id == nextId,
+              orElse: () => SalesIntelligencePage.overview,
+            ));
     });
   }
 
@@ -216,99 +218,99 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
     return Theme(
       data: AppTheme.light(),
       child: Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(
         backgroundColor: Colors.transparent,
-        foregroundColor: AppColors.inkDark,
-        elevation: 0,
-        leading: isWide
-            ? null
-            : SalesMenuToggle(
-                onPressed: () => _nav.menu.toggle(),
-              ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: AppColors.sageGreenInk.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(7),
-                    border: Border.all(
-                      color: AppColors.sageGreenInk.withValues(alpha: 0.5),
-                      width: 1,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          foregroundColor: AppColors.inkDark,
+          elevation: 0,
+          leading: isWide
+              ? null
+              : SalesMenuToggle(
+                  onPressed: () => _nav.menu.toggle(),
+                ),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: AppColors.sageGreenInk.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(7),
+                      border: Border.all(
+                        color: AppColors.sageGreenInk.withValues(alpha: 0.5),
+                        width: 1,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.point_of_sale,
+                      color: AppColors.sageGreenInk,
+                      size: 16,
                     ),
                   ),
-                  child: const Icon(
-                    Icons.point_of_sale,
-                    color: AppColors.sageGreenInk,
-                    size: 16,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'PHARMA+ SALES INTELLIGENCE',
-                        style: TextStyle(
-                          color: AppColors.champagneInk,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 15,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'PHARMA+ SALES INTELLIGENCE',
+                          style: TextStyle(
+                            color: AppColors.champagneInk,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
                         ),
-                      ),
-                      Text(
-                        _current.title,
-                        style: const TextStyle(
-                          color: AppColors.inkDark,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
+                        Text(
+                          _current.title,
+                          style: const TextStyle(
+                            color: AppColors.inkDark,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-            Text(
-              'Période : ${SalesAnalyticsService.periodLabel(_period, SalesAnalyticsService.rangeFor(_period, custom: _customRange))}',
-              style: const TextStyle(
-                color: AppColors.pharmaMuted,
-                fontSize: 10,
+                ],
               ),
+              Text(
+                'Période : ${SalesAnalyticsService.periodLabel(_period, SalesAnalyticsService.rangeFor(_period, custom: _customRange))}',
+                style: const TextStyle(
+                  color: AppColors.pharmaMuted,
+                  fontSize: 10,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            if (isWide) ...[
+              IconButton(
+                onPressed: () => _nav.menu.toggle(),
+                icon: Icon(
+                  menuOpen ? Icons.close : Icons.menu,
+                  color: AppColors.champagneInk,
+                  size: 20,
+                ),
+                tooltip: menuOpen ? 'Fermer le menu' : 'Menu',
+              ),
+            ],
+            IconButton(
+              onPressed: () => _analytics.reload(),
+              icon: const Icon(Icons.refresh, size: 20),
+              color: AppColors.champagneInk,
+              tooltip: 'Actualiser',
             ),
+            const SizedBox(width: 4),
           ],
         ),
-        actions: [
-          if (isWide) ...[
-            IconButton(
-              onPressed: () => _nav.menu.toggle(),
-              icon: Icon(
-                menuOpen ? Icons.close : Icons.menu,
-                color: AppColors.champagneInk,
-                size: 20,
-              ),
-              tooltip: menuOpen ? 'Fermer le menu' : 'Menu',
-            ),
-          ],
-          IconButton(
-            onPressed: () => _analytics.reload(),
-            icon: const Icon(Icons.refresh, size: 20),
-            color: AppColors.champagneInk,
-            tooltip: 'Actualiser',
-          ),
-          const SizedBox(width: 4),
-        ],
-      ),
-      body: MarbleBackground(
-        dark: false,
-        child: _buildBody(context, isWide),
-      ),
+        body: MarbleBackground(
+          dark: false,
+          child: _buildBody(context, isWide),
+        ),
       ),
     );
   }
@@ -382,18 +384,18 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
           child: MarbleBackground(
             dark: false,
             child: Container(
-            color: AppColors.silver,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _nav.buildPreviousButton(context, _previous, compact: true),
-                _nav.buildHomeButton(context, _home, compact: true),
-                _nav.buildDashboardButton(context, _dashboard, compact: true),
-                _nav.buildNextButton(context, _next, compact: true),
-              ],
+              color: AppColors.silver,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _nav.buildPreviousButton(context, _previous, compact: true),
+                  _nav.buildHomeButton(context, _home, compact: true),
+                  _nav.buildDashboardButton(context, _dashboard, compact: true),
+                  _nav.buildNextButton(context, _next, compact: true),
+                ],
+              ),
             ),
-          ),
           ),
         ),
       ],
@@ -481,7 +483,8 @@ class _SalesDayOverviewPageState extends State<SalesDayOverviewPage> {
     final payments = c.analytics?.payments ?? const <SalesPaymentSlice>[];
     final topQty = c.analytics?.topProductsQty ?? const <SalesProductRank>[];
     final topRev = c.analytics?.topProductsRev ?? const <SalesProductRank>[];
-    final topProfit = c.analytics?.topProductsProfit ?? const <SalesProductRank>[];
+    final topProfit =
+        c.analytics?.topProductsProfit ?? const <SalesProductRank>[];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 30),
@@ -495,13 +498,22 @@ class _SalesDayOverviewPageState extends State<SalesDayOverviewPage> {
         ),
         const SizedBox(height: 14),
         SalesKpiSection(
-          kpis: kpis ?? const SalesDayKpis(
-            grossRevenue: 0, netRevenue: 0, taxTotal: 0,
-            discountsTotal: 0, salesCount: 0, averageBasket: 0,
-            cancelledCount: 0, returnedCount: 0, paidAmount: 0,
-            outstandingAmount: 0, refundedAmount: null, costTotal: 0,
-            totalRows: 0,
-          ),
+          kpis: kpis ??
+              const SalesDayKpis(
+                grossRevenue: 0,
+                netRevenue: 0,
+                taxTotal: 0,
+                discountsTotal: 0,
+                salesCount: 0,
+                averageBasket: 0,
+                cancelledCount: 0,
+                returnedCount: 0,
+                paidAmount: 0,
+                outstandingAmount: 0,
+                refundedAmount: null,
+                costTotal: 0,
+                totalRows: 0,
+              ),
           grossDeltaPct: c.grossDelta.pct,
           countDeltaPct: c.countDelta.pct,
         ),
@@ -530,13 +542,15 @@ class _SalesDayOverviewPageState extends State<SalesDayOverviewPage> {
           final charts = <Widget>[
             GlassCard(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                 child: SalesPaymentChart(slices: payments),
               ),
             ),
             GlassCard(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -667,21 +681,22 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
                   children: [
                     Expanded(
                       child: _kpiItem(
-                        'Tickets', '${kpis?.salesCount ?? 0}',
+                        'Tickets',
+                        '${kpis?.salesCount ?? 0}',
                         AppColors.sageGreenInk,
                       ),
                     ),
                     Expanded(
                       child: _kpiItem(
-                        'CA TTC', Fmt.number(kpis?.grossRevenue ?? 0,
-                            decimals: 2),
+                        'CA TTC',
+                        Fmt.number(kpis?.grossRevenue ?? 0, decimals: 2),
                         AppColors.champagneInk,
                       ),
                     ),
                     Expanded(
                       child: _kpiItem(
-                        'Panier moyen', Fmt.number(
-                          kpis?.averageBasket ?? 0, decimals: 2),
+                        'Panier moyen',
+                        Fmt.number(kpis?.averageBasket ?? 0, decimals: 2),
                         AppColors.cardBlue,
                       ),
                     ),
@@ -692,22 +707,22 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
                   children: [
                     Expanded(
                       child: _kpiItem(
-                        'Quantités', '${tx.fold<int>(0, (s, t) =>
-                            s + (t.itemsCount?.toInt() ?? 0))}',
+                        'Quantités',
+                        '${tx.fold<int>(0, (s, t) => s + (t.itemsCount?.toInt() ?? 0))}',
                         AppColors.cardPurple,
                       ),
                     ),
                     Expanded(
                       child: _kpiItem(
-                        'CA HT', Fmt.number(kpis?.netRevenue ?? 0,
-                            decimals: 2),
+                        'CA HT',
+                        Fmt.number(kpis?.netRevenue ?? 0, decimals: 2),
                         AppColors.cardAmber,
                       ),
                     ),
                     Expanded(
                       child: _kpiItem(
-                        'Remises', Fmt.number(kpis?.discountsTotal ?? 0,
-                            decimals: 2),
+                        'Remises',
+                        Fmt.number(kpis?.discountsTotal ?? 0, decimals: 2),
                         AppColors.pharmaWarning,
                       ),
                     ),
@@ -744,60 +759,59 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
               ),
             ),
           )
-        else
-          ...[
-            for (final t in tx.take(10))
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: AppColors.pharmaSurface.withValues(alpha: 0.55),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.goldBorder, width: 1),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                t.number.isEmpty ? '—' : t.number,
-                                style: const TextStyle(
-                                  color: AppColors.inkDark,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 12,
-                                ),
+        else ...[
+          for (final t in tx.take(10))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: AppColors.pharmaSurface.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.goldBorder, width: 1),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              t.number.isEmpty ? '—' : t.number,
+                              style: const TextStyle(
+                                color: AppColors.inkDark,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
                               ),
-                              const SizedBox(height: 3),
-                              Text(
-                                t.createdAt == null
-                                    ? '—'
-                                    : '${SalesAnalyticsService.hourMinute(t.createdAt)} · ${t.statusLabel}',
-                                style: const TextStyle(
-                                  color: AppColors.pharmaMuted,
-                                  fontSize: 10.5,
-                                ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              t.createdAt == null
+                                  ? '—'
+                                  : '${SalesAnalyticsService.hourMinute(t.createdAt)} · ${t.statusLabel}',
+                              style: const TextStyle(
+                                color: AppColors.pharmaMuted,
+                                fontSize: 10.5,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          Fmt.number(t.total, decimals: 2),
-                          style: const TextStyle(
-                            color: AppColors.champagneInkLight,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                          ),
+                      ),
+                      Text(
+                        Fmt.number(t.total, decimals: 2),
+                        style: const TextStyle(
+                          color: AppColors.champagneInkLight,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-          ],
+            ),
+        ],
       ],
     );
   }

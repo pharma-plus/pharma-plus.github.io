@@ -27,16 +27,40 @@ class SalesPageInfo {
 /// Ordre de navigation des 10 sous-pages.
 class SalesPageOrder {
   static final List<SalesPageInfo> pages = [
-    SalesPageInfo(id: 'overview', title: 'Vue générale', icon: Icons.dashboard_outlined),
-    SalesPageInfo(id: 'analysis', title: 'Analyse des ventes', icon: Icons.bar_chart_outlined),
-    SalesPageInfo(id: 'profits', title: 'Bénéfices & marges', icon: Icons.trending_up_outlined),
-    SalesPageInfo(id: 'products', title: 'Produits vendus', icon: Icons.local_pharmacy),
-    SalesPageInfo(id: 'employees', title: 'Performance employés', icon: Icons.people_outlined),
-    SalesPageInfo(id: 'payments', title: 'Paiements & caisse', icon: Icons.account_balance_wallet_outlined),
-    SalesPageInfo(id: 'returns', title: 'Annulations & retours', icon: Icons.cancel_outlined),
-    SalesPageInfo(id: 'comparisons', title: 'Comparaisons', icon: Icons.compare_outlined),
-    SalesPageInfo(id: 'reports', title: 'Rapports & exports', icon: Icons.description_outlined),
-    SalesPageInfo(id: 'alerts', title: 'Alertes intelligentes', icon: Icons.notifications_outlined),
+    SalesPageInfo(
+        id: 'overview', title: 'Vue générale', icon: Icons.dashboard_outlined),
+    SalesPageInfo(
+        id: 'analysis',
+        title: 'Analyse des ventes',
+        icon: Icons.bar_chart_outlined),
+    SalesPageInfo(
+        id: 'profits',
+        title: 'Bénéfices & marges',
+        icon: Icons.trending_up_outlined),
+    SalesPageInfo(
+        id: 'products', title: 'Produits vendus', icon: Icons.local_pharmacy),
+    SalesPageInfo(
+        id: 'employees',
+        title: 'Performance employés',
+        icon: Icons.people_outlined),
+    SalesPageInfo(
+        id: 'payments',
+        title: 'Paiements & caisse',
+        icon: Icons.account_balance_wallet_outlined),
+    SalesPageInfo(
+        id: 'returns',
+        title: 'Annulations & retours',
+        icon: Icons.cancel_outlined),
+    SalesPageInfo(
+        id: 'comparisons', title: 'Comparaisons', icon: Icons.compare_outlined),
+    SalesPageInfo(
+        id: 'reports',
+        title: 'Rapports & exports',
+        icon: Icons.description_outlined),
+    SalesPageInfo(
+        id: 'alerts',
+        title: 'Alertes intelligentes',
+        icon: Icons.notifications_outlined),
   ];
 
   static int indexOf(String id) {
@@ -118,8 +142,7 @@ class SalesNavigationController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Map<String, dynamic>? getFilters(String pageId) =>
-      _pageFilters[pageId];
+  Map<String, dynamic>? getFilters(String pageId) => _pageFilters[pageId];
 
   /// Bouton « Maison » : retourne à la vue générale.
   Widget buildHomeButton(BuildContext context, VoidCallback onPressed,
@@ -220,11 +243,14 @@ class SalesNavigationController extends ChangeNotifier {
               ),
             ),
             child: compact
-                ? Icon(icon, size: 17, color: enabled ? color : AppColors.textDisabled)
+                ? Icon(icon,
+                    size: 17, color: enabled ? color : AppColors.textDisabled)
                 : Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(icon, size: 17, color: enabled ? color : AppColors.textDisabled),
+                      Icon(icon,
+                          size: 17,
+                          color: enabled ? color : AppColors.textDisabled),
                       const SizedBox(width: 6),
                       Text(
                         label,

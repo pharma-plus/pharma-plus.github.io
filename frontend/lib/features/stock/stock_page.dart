@@ -481,13 +481,13 @@ class _StockPageState extends State<StockPage> {
               tooltip: 'Historique des mouvements',
               onPressed: () => Navigator.of(context).push(MaterialPageRoute(
                   builder: (_) => const StockMovementsPage())),
-              icon:
-                  const Icon(Icons.history_rounded, color: AppColors.champagneLight)),
+              icon: const Icon(Icons.history_rounded,
+                  color: AppColors.champagneLight)),
           IconButton(
               tooltip: 'Scanner',
               onPressed: _scanAndFind,
-              icon:
-                  const Icon(Icons.qr_code_scanner, color: AppColors.champagneLight)),
+              icon: const Icon(Icons.qr_code_scanner,
+                  color: AppColors.champagneLight)),
           IconButton(
               onPressed: _load,
               icon: const Icon(Icons.refresh, color: AppColors.pharmaGold)),
@@ -508,85 +508,95 @@ class _StockPageState extends State<StockPage> {
           if (!_loading && _error == null && _items.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-              child: Row(children: [
-                // Carte KPI 1 — Valeur du stock (icône pro, MAD).
-                Expanded(
-                  child: GlassCard(
-                    radius: BorderRadius.circular(14),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
-                    child: Row(children: [
-                      const Icon(Icons.sell_outlined,
-                          size: 18, color: AppColors.pharmaGold),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(S.t('stockValue', locale),
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    color: Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.white60
-                                        : AppColors.pharmaMuted)),
-                            Text('${Fmt.money(_totalValue)} MAD',
-                                style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w800,
-                                    color: Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.white
-                                        : AppColors.inkDark)),
-                          ],
-                        ),
-                      ),
-                    ]),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Carte KPI 2 — Quantité totale (icône distincte, unité).
-                Expanded(
-                  child: GlassCard(
-                    radius: BorderRadius.circular(14),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
-                    child: Row(children: [
-                      Icon(Icons.inventory_2_outlined,
-                          size: 18,
-                          color: Theme.of(context).brightness ==
-                                  Brightness.dark
-                              ? AppColors.sageGreen
-                              : AppColors.sageGreenInk),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(S.t('stockQtyTotal', locale),
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    color: Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.white60
-                                        : AppColors.pharmaMuted)),
-                            Text('${Fmt.number(_totalQty)} u.',
-                                style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w800,
-                                    color: Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.white
-                                        : AppColors.inkDark)),
-                          ],
-                        ),
-                      ),
-                    ]),
-                  ),
-                ),
-              ]),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final narrow = constraints.maxWidth < 360;
+                  Widget kpiValue() => GlassCard(
+                        radius: BorderRadius.circular(14),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        child: Row(children: [
+                          const Icon(Icons.sell_outlined,
+                              size: 18, color: AppColors.pharmaGold),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(S.t('stockValue', locale),
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.white60
+                                            : AppColors.pharmaMuted)),
+                                Text('${Fmt.money(_totalValue)} MAD',
+                                    style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w800,
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.white
+                                            : AppColors.inkDark)),
+                              ],
+                            ),
+                          ),
+                        ]),
+                      );
+                  Widget kpiQty() => GlassCard(
+                        radius: BorderRadius.circular(14),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        child: Row(children: [
+                          Icon(Icons.inventory_2_outlined,
+                              size: 18,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? AppColors.sageGreen
+                                  : AppColors.sageGreenInk),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(S.t('stockQtyTotal', locale),
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.white60
+                                            : AppColors.pharmaMuted)),
+                                Text('${Fmt.number(_totalQty)} u.',
+                                    style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w800,
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.white
+                                            : AppColors.inkDark)),
+                              ],
+                            ),
+                          ),
+                        ]),
+                      );
+                  if (narrow) {
+                    return Column(
+                      children: [
+                        kpiValue(),
+                        const SizedBox(height: 8),
+                        kpiQty(),
+                      ],
+                    );
+                  }
+                  return Row(children: [
+                    Expanded(child: kpiValue()),
+                    const SizedBox(width: 8),
+                    Expanded(child: kpiQty()),
+                  ]);
+                },
+              ),
             ),
           SizedBox(
             height: 48,
@@ -676,16 +686,16 @@ class _StockPageState extends State<StockPage> {
 
   Widget _buildStickyTable() {
     final rows = _filtered;
-    
-    final fixedNonMed = 
-        TableColumnWidths.width(TableColumnType.description) +  // Détail
-        TableColumnWidths.width(TableColumnType.code) +         // Lot
-        TableColumnWidths.width(TableColumnType.date) +         // Péremption
-        TableColumnWidths.width(TableColumnType.quantity) +     // Quantité
-        TableColumnWidths.width(TableColumnType.quantity) +     // Seuil
-        TableColumnWidths.width(TableColumnType.money) +        // Prix
-        TableColumnWidths.width(TableColumnType.status) +       // Statut
-        TableColumnWidths.width(TableColumnType.actions);       // Actions
+
+    final fixedNonMed =
+        TableColumnWidths.width(TableColumnType.description) + // Détail
+            TableColumnWidths.width(TableColumnType.code) + // Lot
+            TableColumnWidths.width(TableColumnType.date) + // Péremption
+            TableColumnWidths.width(TableColumnType.quantity) + // Quantité
+            TableColumnWidths.width(TableColumnType.quantity) + // Seuil
+            TableColumnWidths.width(TableColumnType.money) + // Prix
+            TableColumnWidths.width(TableColumnType.status) + // Statut
+            TableColumnWidths.width(TableColumnType.actions); // Actions
     const medMin = 200.0;
 
     // Fond de zone 100 % opaque (palette solide, aucun alpha) : le fond
@@ -772,7 +782,6 @@ class _StockPageState extends State<StockPage> {
   }
 
   Widget _tableHeader({required double medW}) {
-    
     // Fond d'en-tête SOLIDE (0xFF006B43) : opaque en toute situation.
     return Container(
       key: const ValueKey('stock_table_header'),
@@ -782,13 +791,21 @@ class _StockPageState extends State<StockPage> {
       child: Row(
         children: [
           _headerCell(medW, 'Médicament'),
-          _headerCell(TableColumnWidths.width(TableColumnType.description), 'Détail'),
+          _headerCell(
+              TableColumnWidths.width(TableColumnType.description), 'Détail'),
           _headerCell(TableColumnWidths.width(TableColumnType.code), 'Lot'),
-          _headerCell(TableColumnWidths.width(TableColumnType.date), 'Péremption'),
-          _headerCell(TableColumnWidths.width(TableColumnType.quantity), 'Quantité', align: TextAlign.right),
-          _headerCell(TableColumnWidths.width(TableColumnType.quantity), 'Seuil', align: TextAlign.right),
-          _headerCell(TableColumnWidths.width(TableColumnType.money), 'Prix', align: TextAlign.right),
-          _headerCell(TableColumnWidths.width(TableColumnType.status), 'Statut'),
+          _headerCell(
+              TableColumnWidths.width(TableColumnType.date), 'Péremption'),
+          _headerCell(
+              TableColumnWidths.width(TableColumnType.quantity), 'Quantité',
+              align: TextAlign.right),
+          _headerCell(
+              TableColumnWidths.width(TableColumnType.quantity), 'Seuil',
+              align: TextAlign.right),
+          _headerCell(TableColumnWidths.width(TableColumnType.money), 'Prix',
+              align: TextAlign.right),
+          _headerCell(
+              TableColumnWidths.width(TableColumnType.status), 'Statut'),
           _headerCell(TableColumnWidths.width(TableColumnType.actions), ''),
         ],
       ),
@@ -814,7 +831,6 @@ class _StockPageState extends State<StockPage> {
   }
 
   Widget _tableRow(Map<String, dynamic> item, int i, {required double medW}) {
-    
     final status = _statusOf(item);
     final available = _number(item['available']);
     // Ligne 100 % opaque (jamais Colors.transparent) : le fond d'application
@@ -906,7 +922,8 @@ class _StockPageState extends State<StockPage> {
                     style: cellStyle.copyWith(color: AppColors.pharmaGold)),
                 align: TextAlign.right,
               ),
-              _cell(TableColumnWidths.width(TableColumnType.status), _StatusChip(status: status)),
+              _cell(TableColumnWidths.width(TableColumnType.status),
+                  _StatusChip(status: status)),
               _cell(
                 TableColumnWidths.width(TableColumnType.actions),
                 _canCreate

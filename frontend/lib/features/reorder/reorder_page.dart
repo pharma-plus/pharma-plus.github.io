@@ -31,12 +31,12 @@ class _ReorderPageState extends State<ReorderPage> {
   bool _loading = true;
   String? _error;
   String _activeTab = 'plan';
-  
+
   // Filtres
   String? _filterSupplier;
   String? _filterPriority;
   RangeValues? _costRange;
-  
+
   static const _tabs = [
     ('plan', Icons.local_shipping_outlined, 'reorderPlan'),
     ('insights', Icons.lightbulb_outline, 'insights'),
@@ -50,7 +50,10 @@ class _ReorderPageState extends State<ReorderPage> {
   }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     final results = await Future.wait([
       ApiClient.instance.get('/ai/reorder-plan'),
       ApiClient.instance.get('/ai/insights'),
@@ -80,7 +83,7 @@ class _ReorderPageState extends State<ReorderPage> {
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
-    
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
@@ -115,14 +118,15 @@ class _ReorderPageState extends State<ReorderPage> {
                           ),
                       ],
                       selected: {_activeTab},
-                      onSelectionChanged: (sel) => setState(() => _activeTab = sel.first),
+                      onSelectionChanged: (sel) =>
+                          setState(() => _activeTab = sel.first),
                     ),
                   ),
                   // Résumé global
                   if (_plan != null) _buildSummary(locale),
                   // Liste / Tableau
                   Expanded(
-                    child: _activeTab == 'plan' 
+                    child: _activeTab == 'plan'
                         ? _buildPlanTable(locale)
                         : _activeTab == 'insights'
                             ? _buildInsights(locale)
@@ -135,7 +139,8 @@ class _ReorderPageState extends State<ReorderPage> {
   Widget _buildSummary(String locale) {
     if (_plan == null) return const SizedBox.shrink();
     final items = _plan!['items'] as List? ?? [];
-    final totalCost = double.tryParse('${_plan!['total_estimated_cost'] ?? 0}') ?? 0;
+    final totalCost =
+        double.tryParse('${_plan!['total_estimated_cost'] ?? 0}') ?? 0;
     final bySupplier = _plan!['by_supplier'] as List? ?? [];
 
     return Padding(
@@ -144,19 +149,32 @@ class _ReorderPageState extends State<ReorderPage> {
         padding: const EdgeInsets.all(16),
         child: Column(children: [
           Row(children: [
-            Expanded(child: _KpiTile(S.t('productsToOrder', locale), items.length.toString(),
-                Icons.local_shipping_outlined, AppColors.emerald)),
+            Expanded(
+                child: _KpiTile(
+                    S.t('productsToOrder', locale),
+                    items.length.toString(),
+                    Icons.local_shipping_outlined,
+                    AppColors.emerald)),
             const SizedBox(width: 8),
-            Expanded(child: _KpiTile(S.t('totalEstCost', locale), Fmt.money(totalCost),
-                Icons.attach_money_outlined, AppColors.pharmaGold)),
+            Expanded(
+                child: _KpiTile(
+                    S.t('totalEstCost', locale),
+                    Fmt.money(totalCost),
+                    Icons.attach_money_outlined,
+                    AppColors.pharmaGold)),
             const SizedBox(width: 8),
-            Expanded(child: _KpiTile(S.t('suppliers', locale), bySupplier.length.toString(),
-                Icons.local_shipping_outlined, AppColors.info)),
+            Expanded(
+                child: _KpiTile(
+                    S.t('suppliers', locale),
+                    bySupplier.length.toString(),
+                    Icons.local_shipping_outlined,
+                    AppColors.info)),
           ]),
           if (bySupplier.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(S.t('bySupplier', locale),
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                style:
+                    const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
             const SizedBox(height: 8),
             Wrap(spacing: 8, runSpacing: 8, children: [
               for (final s in bySupplier)
@@ -164,7 +182,8 @@ class _ReorderPageState extends State<ReorderPage> {
                   name: s['supplier_name']?.toString() ?? '—',
                   count: s['items_count']?.toString() ?? '0',
                   qty: s['total_qty']?.toString() ?? '0',
-                  cost: Fmt.money(double.tryParse('${s['total_cost'] ?? 0}') ?? 0),
+                  cost: Fmt.money(
+                      double.tryParse('${s['total_cost'] ?? 0}') ?? 0),
                 ),
             ]),
           ],
@@ -185,15 +204,20 @@ class _ReorderPageState extends State<ReorderPage> {
     // Appliquer filtres
     var filtered = items;
     if (_filterSupplier != null && _filterSupplier!.isNotEmpty) {
-      filtered = filtered.where((i) => i['supplier_name'] == _filterSupplier).toList();
+      filtered =
+          filtered.where((i) => i['supplier_name'] == _filterSupplier).toList();
     }
     if (_filterPriority != null && _filterPriority!.isNotEmpty) {
-      filtered = filtered.where((i) => i['priority'] == _filterPriority).toList();
+      filtered =
+          filtered.where((i) => i['priority'] == _filterPriority).toList();
     }
     if (_costRange != null) {
-      final estCost = (i) => double.tryParse('${i['estimated_cost'] ?? 0}') ?? 0;
-      filtered = filtered.where((i) => 
-          estCost(i) >= _costRange!.start && estCost(i) <= _costRange!.end).toList();
+      final estCost =
+          (i) => double.tryParse('${i['estimated_cost'] ?? 0}') ?? 0;
+      filtered = filtered
+          .where((i) =>
+              estCost(i) >= _costRange!.start && estCost(i) <= _costRange!.end)
+          .toList();
     }
 
     if (filtered.isEmpty) {
@@ -205,27 +229,48 @@ class _ReorderPageState extends State<ReorderPage> {
       child: AppDataTable<Map<String, dynamic>>(
         columns: [
           TableColumnWidths.column(
-            key: 'name', label: S.t('product', locale), type: TableColumnType.name),
+              key: 'name',
+              label: S.t('product', locale),
+              type: TableColumnType.name),
           TableColumnWidths.column(
-            key: 'supplier_name', label: S.t('supplier', locale), type: TableColumnType.description),
+              key: 'supplier_name',
+              label: S.t('supplier', locale),
+              type: TableColumnType.description),
           TableColumnWidths.column(
-            key: 'priority', label: S.t('priority', locale), type: TableColumnType.status,
-            cellBuilder: (ctx, item, idx) => _PriorityChip(item['priority']?.toString() ?? '')),
+              key: 'priority',
+              label: S.t('priority', locale),
+              type: TableColumnType.status,
+              cellBuilder: (ctx, item, idx) =>
+                  _PriorityChip(item['priority']?.toString() ?? '')),
           TableColumnWidths.column(
-            key: 'suggested_qty', label: S.t('suggestedQty', locale), type: TableColumnType.quantity),
+              key: 'suggested_qty',
+              label: S.t('suggestedQty', locale),
+              type: TableColumnType.quantity),
           TableColumnWidths.column(
-            key: 'stock', label: S.t('stock', locale), type: TableColumnType.quantity),
+              key: 'stock',
+              label: S.t('stock', locale),
+              type: TableColumnType.quantity),
           TableColumnWidths.column(
-            key: 'days_of_cover', label: S.t('daysCover', locale), type: TableColumnType.code),
+              key: 'days_of_cover',
+              label: S.t('daysCover', locale),
+              type: TableColumnType.code),
           TableColumnWidths.column(
-            key: 'estimated_cost', label: S.t('estimatedCost', locale), type: TableColumnType.money,
-            cellBuilder: (ctx, item, idx) {
-              final c = double.tryParse('${item['estimated_cost'] ?? 0}') ?? 0;
-              return Text(Fmt.money(c), style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.pharmaGold));
-            }),
+              key: 'estimated_cost',
+              label: S.t('estimatedCost', locale),
+              type: TableColumnType.money,
+              cellBuilder: (ctx, item, idx) {
+                final c =
+                    double.tryParse('${item['estimated_cost'] ?? 0}') ?? 0;
+                return Text(Fmt.money(c),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.pharmaGold));
+              }),
           TableColumnWidths.column(
-            key: 'actions', label: S.t('actions', locale), type: TableColumnType.actionsWide,
-            cellBuilder: (ctx, item, idx) => _ActionButtons(item: item)),
+              key: 'actions',
+              label: S.t('actions', locale),
+              type: TableColumnType.actionsWide,
+              cellBuilder: (ctx, item, idx) => _ActionButtons(item: item)),
         ],
         data: filtered,
         fixedHeader: true,
@@ -265,8 +310,12 @@ class _KpiTile extends StatelessWidget {
       child: Column(children: [
         Icon(icon, color: color, size: 24),
         const SizedBox(height: 4),
-        Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: color)),
-        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textMuted), textAlign: TextAlign.center),
+        Text(value,
+            style: TextStyle(
+                fontSize: 18, fontWeight: FontWeight.w800, color: color)),
+        Text(label,
+            style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
+            textAlign: TextAlign.center),
       ]),
     );
   }
@@ -279,7 +328,10 @@ class _SupplierCostChip extends StatelessWidget {
   final String cost;
 
   const _SupplierCostChip({
-    required this.name, required this.count, required this.qty, required this.cost,
+    required this.name,
+    required this.count,
+    required this.qty,
+    required this.cost,
   });
 
   @override
@@ -287,8 +339,12 @@ class _SupplierCostChip extends StatelessWidget {
     return GlassCard(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
-        Text('$count art. · $qty u. · $cost', style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
+        Text(name,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis),
+        Text('$count art. · $qty u. · $cost',
+            style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
       ]),
     );
   }
@@ -303,15 +359,31 @@ class _PriorityChip extends StatelessWidget {
     Color color;
     String label;
     switch (priority) {
-      case 'rupture': color = AppColors.danger; label = 'Rupture'; break;
-      case 'critique': color = AppColors.warning; label = 'Critique'; break;
-      case 'haute': color = AppColors.pharmaGold; label = 'Haute'; break;
-      default: color = AppColors.success; label = 'Normale';
+      case 'rupture':
+        color = AppColors.danger;
+        label = 'Rupture';
+        break;
+      case 'critique':
+        color = AppColors.warning;
+        label = 'Critique';
+        break;
+      case 'haute':
+        color = AppColors.pharmaGold;
+        label = 'Haute';
+        break;
+      default:
+        color = AppColors.success;
+        label = 'Normale';
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12), border: Border.all(color: color)),
-      child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700)),
+      decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color)),
+      child: Text(label,
+          style: TextStyle(
+              color: color, fontSize: 10, fontWeight: FontWeight.w700)),
     );
   }
 }
@@ -323,10 +395,18 @@ class _ActionButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(mainAxisSize: MainAxisSize.min, children: [
-      IconButton(tooltip: 'Détail', icon: const Icon(Icons.visibility, size: 18), onPressed: () {}),
-      IconButton(tooltip: 'Modifier qté', icon: const Icon(Icons.edit, size: 18), onPressed: () {}),
-      IconButton(tooltip: 'Ignorer', icon: const Icon(Icons.skip_next, size: 18), onPressed: () {}),
+      IconButton(
+          tooltip: 'Détail',
+          icon: const Icon(Icons.visibility, size: 18),
+          onPressed: () {}),
+      IconButton(
+          tooltip: 'Modifier qté',
+          icon: const Icon(Icons.edit, size: 18),
+          onPressed: () {}),
+      IconButton(
+          tooltip: 'Ignorer',
+          icon: const Icon(Icons.skip_next, size: 18),
+          onPressed: () {}),
     ]);
   }
 }
-

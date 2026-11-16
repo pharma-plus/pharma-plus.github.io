@@ -37,13 +37,13 @@ class CashSessionService {
     String method = 'cash',
     String? note,
   }) async {
-    final r = await ApiClient.instance.post('/cash-sessions/$sessionId/events',
-        body: {
-          'eventType': eventType,
-          'amount': amount,
-          'method': method,
-          if (note != null) 'note': note,
-        });
+    final r = await ApiClient.instance
+        .post('/cash-sessions/$sessionId/events', body: {
+      'eventType': eventType,
+      'amount': amount,
+      'method': method,
+      if (note != null) 'note': note,
+    });
     return r.success;
   }
 
@@ -52,11 +52,11 @@ class CashSessionService {
     required double countedCash,
     String? notes,
   }) async {
-    final r = await ApiClient.instance.post('/cash-sessions/$sessionId/close',
-        body: {
-          'countedCash': countedCash,
-          if (notes != null) 'notes': notes,
-        });
+    final r =
+        await ApiClient.instance.post('/cash-sessions/$sessionId/close', body: {
+      'countedCash': countedCash,
+      if (notes != null) 'notes': notes,
+    });
     if (!r.success) return null;
     return r.data as Map<String, dynamic>?;
   }

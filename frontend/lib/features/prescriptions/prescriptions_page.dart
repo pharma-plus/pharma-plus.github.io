@@ -64,7 +64,7 @@ class _PrescriptionsPageState extends State<PrescriptionsPage> {
     final locale = context.read<AuthStore>().locale;
     final created = await showDialog<bool>(
       context: context,
-        builder: (_) => const PrescriptionForm(),
+      builder: (_) => const PrescriptionForm(),
     );
     if (created == true) {
       _load();
@@ -112,147 +112,157 @@ class _PrescriptionsPageState extends State<PrescriptionsPage> {
       body: PharmaBackground(
         assetImage: 'assets/images/background.webp',
         child: Column(
-        children: [
-          SizedBox(
-            height: 48,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              children: [
-                ChoiceChip(
-                  label: Text(S.t('all', locale)),
-                  selected: _statusFilter == null,
-                  onSelected: (_) => setState(() {
-                    _statusFilter = null;
-                    _load();
-                  }),
-                ),
-                for (final s in statuses)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: ChoiceChip(
-                      label: Text(s),
-                      selected: _statusFilter == s,
-                      onSelected: (_) => setState(() {
-                        _statusFilter = s;
-                        _load();
-                      }),
-                    ),
+          children: [
+            SizedBox(
+              height: 48,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: [
+                  ChoiceChip(
+                    label: Text(S.t('all', locale)),
+                    selected: _statusFilter == null,
+                    onSelected: (_) => setState(() {
+                      _statusFilter = null;
+                      _load();
+                    }),
                   ),
-              ],
+                  for (final s in statuses)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: ChoiceChip(
+                        label: Text(s),
+                        selected: _statusFilter == s,
+                        onSelected: (_) => setState(() {
+                          _statusFilter = s;
+                          _load();
+                        }),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _error != null
-                    ? Center(child: Text(_error!))
-                    : _items.isEmpty
-                        ? Center(child: Text(S.t('noPrescriptions', locale)))
-                        : RefreshIndicator(
-                            onRefresh: _load,
-                            child: ListView.builder(
-                              padding: const EdgeInsets.fromLTRB(12, 4, 12, 90),
-                              itemCount: _items.length,
-                              itemBuilder: (context, i) {
-                                final p = _items[i];
-                                final pending =
-                                    (p['pending_items'] as num?)?.toInt() ?? 0;
-                                final patient = '${p['patient_name'] ?? ''}'
-                                        .isNotEmpty
-                                    ? '${p['patient_name']}'
-                                    : [p['customer_first'], p['customer_last']]
-                                        .whereType<String>()
-                                        .where((s) => s.isNotEmpty)
-                                        .join(' ');
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: GlassCard(
-                                    radius: BorderRadius.circular(16),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 14, vertical: 12),
-                                    onTap: () => _showDetail(p),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          width: 44,
-                                          height: 44,
-                                          decoration: BoxDecoration(
-                                            gradient: AppColors.greenGradient,
-                                            borderRadius:
-                                                BorderRadius.circular(12),
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                      ? Center(child: Text(_error!))
+                      : _items.isEmpty
+                          ? Center(child: Text(S.t('noPrescriptions', locale)))
+                          : RefreshIndicator(
+                              onRefresh: _load,
+                              child: ListView.builder(
+                                padding:
+                                    const EdgeInsets.fromLTRB(12, 4, 12, 90),
+                                itemCount: _items.length,
+                                itemBuilder: (context, i) {
+                                  final p = _items[i];
+                                  final pending =
+                                      (p['pending_items'] as num?)?.toInt() ??
+                                          0;
+                                  final patient =
+                                      '${p['patient_name'] ?? ''}'.isNotEmpty
+                                          ? '${p['patient_name']}'
+                                          : [
+                                              p['customer_first'],
+                                              p['customer_last']
+                                            ]
+                                              .whereType<String>()
+                                              .where((s) => s.isNotEmpty)
+                                              .join(' ');
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: GlassCard(
+                                      radius: BorderRadius.circular(16),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 14, vertical: 12),
+                                      onTap: () => _showDetail(p),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 44,
+                                            height: 44,
+                                            decoration: BoxDecoration(
+                                              gradient: AppColors.greenGradient,
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: const Icon(
+                                                Icons.description_outlined,
+                                                color: Colors.white),
                                           ),
-                                          child: const Icon(
-                                              Icons.description_outlined,
-                                              color: Colors.white),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                  patient.isEmpty
-                                                      ? '—'
-                                                      : patient,
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                    patient.isEmpty
+                                                        ? '—'
+                                                        : patient,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w700)),
+                                                Text(
+                                                  [
+                                                    p['doctor_name'],
+                                                    '${p['source']}'
+                                                  ]
+                                                      .whereType<String>()
+                                                      .where(
+                                                          (s) => s.isNotEmpty)
+                                                      .join(' · '),
                                                   maxLines: 1,
                                                   overflow:
                                                       TextOverflow.ellipsis,
                                                   style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w700)),
-                                              Text(
-                                                [
-                                                  p['doctor_name'],
-                                                  '${p['source']}'
-                                                ]
-                                                    .whereType<String>()
-                                                    .where((s) => s.isNotEmpty)
-                                                    .join(' · '),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
-                                                    fontSize: 12,
-                                                    color: AppColors.textMuted),
+                                                      fontSize: 12,
+                                                      color:
+                                                          AppColors.textMuted),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.end,
+                                            children: [
+                                              StatusChip(
+                                                label: '${p['status']}',
+                                                color: statusColor(
+                                                    '${p['status']}'),
                                               ),
+                                              if (pending > 0)
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          top: 4),
+                                                  child: Text(
+                                                    '${S.t('pendingItems', locale)}: $pending',
+                                                    style: const TextStyle(
+                                                        fontSize: 11,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        color:
+                                                            AppColors.warning),
+                                                  ),
+                                                ),
                                             ],
                                           ),
-                                        ),
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.end,
-                                          children: [
-                                            StatusChip(
-                                              label: '${p['status']}',
-                                              color:
-                                                  statusColor('${p['status']}'),
-                                            ),
-                                            if (pending > 0)
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                    top: 4),
-                                                child: Text(
-                                                  '${S.t('pendingItems', locale)}: $pending',
-                                                  style: const TextStyle(
-                                                      fontSize: 11,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                      color: AppColors.warning),
-                                                ),
-                                              ),
-                                          ],
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                );
-                              },
+                                  );
+                                },
+                              ),
                             ),
-                          ),
-          ),
-        ],
-      ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -279,6 +289,7 @@ class PrescriptionFormState extends State<PrescriptionForm> {
     _notes.dispose();
     super.dispose();
   }
+
   // Provenance de l'ordonnance (section 13) : manuelle, photo caméra, PDF.
   // Le fichier lui-même n'est pas envoyé sans moteur OCR configuré :
   // seule la PROVENANCE est historisée (traçabilité, source réel de l'API).
@@ -310,7 +321,8 @@ class PrescriptionFormState extends State<PrescriptionForm> {
   /// modifiable, correspondances catalogue confirmées une à une par le
   /// pharmacien. Aucune ligne n'est ajoutée automatiquement.
   Future<void> _runOcr() async {
-    final picked = await openPrescriptionOcr(context, medications: _medications);
+    final picked =
+        await openPrescriptionOcr(context, medications: _medications);
     if (!mounted || picked == null || picked.isEmpty) return;
     setState(() {
       for (final med in picked) {
@@ -329,8 +341,8 @@ class PrescriptionFormState extends State<PrescriptionForm> {
     if (_lines.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(S.t(
-                'itemsRequired', context.read<AuthStore>().locale))));
+            content:
+                Text(S.t('itemsRequired', context.read<AuthStore>().locale))));
       }
       return;
     }
@@ -382,110 +394,112 @@ class PrescriptionFormState extends State<PrescriptionForm> {
                 child: Form(
                   key: _formKey,
                   child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextFormField(
-                      controller: _patient,
-                      textInputAction: TextInputAction.next,
-                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                      decoration: InputDecoration(
-                          labelText: S.t('patientName', locale)),
-                      validator: (v) =>
-                          validateRequired(v, S.t('requiredField', locale)),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _doctor,
-                      decoration:
-                          InputDecoration(labelText: S.t('doctorName', locale)),
-                    ),
-                    const SizedBox(height: 12),
-                    // ── Provenance de l'ordonnance ──
-                    SegmentedButton<String>(
-                      segments: const [
-                        ButtonSegment(
-                            value: 'manual',
-                            icon: Icon(Icons.edit_outlined, size: 18),
-                            label: Text('Manuelle')),
-                        ButtonSegment(
-                            value: 'camera',
-                            icon: Icon(Icons.photo_camera_outlined, size: 18),
-                            label: Text('Photo')),
-                        ButtonSegment(
-                            value: 'pdf',
-                            icon: Icon(Icons.picture_as_pdf_outlined, size: 18),
-                            label: Text('PDF')),
-                      ],
-                      selected: {_source},
-                      onSelectionChanged: (s) =>
-                          setState(() => _source = s.first),
-                    ),
-                    if (_source != 'manual')
-                      const Padding(
-                        padding: EdgeInsets.only(top: 6),
-                        child: Text(
-                          'Ordonnance document scanné/importé : vérifiez '
-                          'chaque médicament ci-dessous avant validation — '
-                          'la saisie reste manuelle tant qu\u2019aucun moteur '
-                          'OCR n\u2019est configuré.',
-                          style: TextStyle(fontSize: 11, color: Colors.orange)),
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextFormField(
+                        controller: _patient,
+                        textInputAction: TextInputAction.next,
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
+                        decoration: InputDecoration(
+                            labelText: S.t('patientName', locale)),
+                        validator: (v) =>
+                            validateRequired(v, S.t('requiredField', locale)),
                       ),
-                    const SizedBox(height: 8),
-                    OutlinedButton.icon(
-                      onPressed: _runOcr,
-                      icon: const Icon(Icons.document_scanner_outlined,
-                          size: 18, color: AppColors.pharmaGold),
-                      label: const Text('Lecture OCR de l\u2019ordonnance '
-                          '(photo/import, traitement local)'),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _notes,
-                      maxLines: 2,
-                      decoration:
-                          InputDecoration(labelText: S.t('notes', locale)),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        const Spacer(),
-                        TextButton.icon(
-                          onPressed: () =>
-                              setState(() => _lines.add(_RxLine())),
-                          icon: const Icon(Icons.add),
-                          label: Text(S.t('addItem', locale)),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _doctor,
+                        decoration: InputDecoration(
+                            labelText: S.t('doctorName', locale)),
+                      ),
+                      const SizedBox(height: 12),
+                      // ── Provenance de l'ordonnance ──
+                      SegmentedButton<String>(
+                        segments: const [
+                          ButtonSegment(
+                              value: 'manual',
+                              icon: Icon(Icons.edit_outlined, size: 18),
+                              label: Text('Manuelle')),
+                          ButtonSegment(
+                              value: 'camera',
+                              icon: Icon(Icons.photo_camera_outlined, size: 18),
+                              label: Text('Photo')),
+                          ButtonSegment(
+                              value: 'pdf',
+                              icon:
+                                  Icon(Icons.picture_as_pdf_outlined, size: 18),
+                              label: Text('PDF')),
+                        ],
+                        selected: {_source},
+                        onSelectionChanged: (s) =>
+                            setState(() => _source = s.first),
+                      ),
+                      if (_source != 'manual')
+                        const Padding(
+                          padding: EdgeInsets.only(top: 6),
+                          child: Text(
+                              'Ordonnance document scanné/importé : vérifiez '
+                              'chaque médicament ci-dessous avant validation — '
+                              'la saisie reste manuelle tant qu\u2019aucun moteur '
+                              'OCR n\u2019est configuré.',
+                              style: TextStyle(
+                                  fontSize: 11, color: Colors.orange)),
                         ),
-                      ],
-                    ),
-                    for (var i = 0; i < _lines.length; i++)
-                      _RxLineEditor(
-                        key: ValueKey(i),
-                        medications: _medications,
-                        line: _lines[i],
-                        onChanged: () => setState(() {}),
-                        onRemove: () => setState(() => _lines.removeAt(i)),
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        onPressed: _runOcr,
+                        icon: const Icon(Icons.document_scanner_outlined,
+                            size: 18, color: AppColors.pharmaGold),
+                        label: const Text('Lecture OCR de l\u2019ordonnance '
+                            '(photo/import, traitement local)'),
                       ),
-                    const SizedBox(height: 20),
-                    Row(children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.close),
-                          label: Text(S.t('cancel', locale)),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _notes,
+                        maxLines: 2,
+                        decoration:
+                            InputDecoration(labelText: S.t('notes', locale)),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          const Spacer(),
+                          TextButton.icon(
+                            onPressed: () =>
+                                setState(() => _lines.add(_RxLine())),
+                            icon: const Icon(Icons.add),
+                            label: Text(S.t('addItem', locale)),
+                          ),
+                        ],
+                      ),
+                      for (var i = 0; i < _lines.length; i++)
+                        _RxLineEditor(
+                          key: ValueKey(i),
+                          medications: _medications,
+                          line: _lines[i],
+                          onChanged: () => setState(() {}),
+                          onRemove: () => setState(() => _lines.removeAt(i)),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: GradientButton(
-                          label: S.t('create', locale),
-                          icon: Icons.check,
-                          loading: _saving,
-                          onPressed: _save,
+                      const SizedBox(height: 20),
+                      Row(children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close),
+                            label: Text(S.t('cancel', locale)),
+                          ),
                         ),
-                      ),
-                    ]),
-                  ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: GradientButton(
+                            label: S.t('create', locale),
+                            icon: Icons.check,
+                            loading: _saving,
+                            onPressed: _save,
+                          ),
+                        ),
+                      ]),
+                    ],
                   ),
                 ),
               ),
@@ -619,12 +633,13 @@ class _PrescriptionDetailState extends State<_PrescriptionDetail> {
   }
 
   Future<void> _load() async {
-    final result = await ApiClient.instance
-        .get('/prescriptions/${widget.prescriptionId}');
+    final result =
+        await ApiClient.instance.get('/prescriptions/${widget.prescriptionId}');
     if (!mounted) return;
     if (result.success) {
       final d = result.data;
-      setState(() => _prescription = d is Map ? Map<String, dynamic>.from(d) : null);
+      setState(
+          () => _prescription = d is Map ? Map<String, dynamic>.from(d) : null);
     } else {
       setState(() => _error = result.error?.message);
     }

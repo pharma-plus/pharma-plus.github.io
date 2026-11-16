@@ -29,14 +29,14 @@ class _ReferencePageState extends State<ReferencePage> {
   bool _loading = true;
   String? _error;
   String _activeTab = 'medicaments';
-  
+
   // Filtres
   String? _filterForm;
   String? _filterLabo;
   String? _filterStatus;
   String? _filterPathologie;
   RangeValues? _priceRange;
-  
+
   // Données de référence
   List<Map<String, dynamic>> _forms = [];
   List<Map<String, dynamic>> _labs = [];
@@ -69,12 +69,17 @@ class _ReferencePageState extends State<ReferencePage> {
     if (!mounted || !f.success || f.data is! Map) return;
     final d = Map<String, dynamic>.from(f.data as Map);
     setState(() {
-      _forms = (d['forms'] as List? ?? []).whereType<Map<String, dynamic>>().toList();
-      _labs = (d['laboratories'] as List? ?? []).whereType<Map<String, dynamic>>().toList();
+      _forms = (d['forms'] as List? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .toList();
+      _labs = (d['laboratories'] as List? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .toList();
       _indicationsTotal = (d['indications_total'] as num?)?.toInt() ?? 0;
     });
     if (_indicationsTotal > 0) {
-      final p = await ApiClient.instance.get('/catalog/medications/pathologies');
+      final p =
+          await ApiClient.instance.get('/catalog/medications/pathologies');
       if (mounted && p.success) {
         setState(() => _pathologies = ApiList.of(p.data));
       }
@@ -87,23 +92,35 @@ class _ReferencePageState extends State<ReferencePage> {
   }
 
   Future<void> _load({String? query}) async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     final params = <String, dynamic>{
       'limit': 200,
       if (query != null && query.isNotEmpty) 'q': query,
       if (_activeTab == 'parapharmacie') 'is_parapharmacie': true,
       if (_activeTab == 'veterinaire') 'is_veterinaire': true,
       if (_activeTab == 'dispositifs') 'is_dispositif': true,
-      if (_filterForm != null && _filterForm!.isNotEmpty) 'form': 'eq.$_filterForm',
-      if (_filterLabo != null && _filterLabo!.isNotEmpty) 'laboratory_name': 'eq.$_filterLabo',
-      if (_filterStatus != null && _filterStatus!.isNotEmpty) 'status': 'eq.$_filterStatus',
-      if (_filterPathologie != null && _filterPathologie!.isNotEmpty) 'pathologie': _filterPathologie,
-      if (_priceRange != null) 'price_sale': 'gte.${_priceRange!.start},lte.${_priceRange!.end}',
+      if (_filterForm != null && _filterForm!.isNotEmpty)
+        'form': 'eq.$_filterForm',
+      if (_filterLabo != null && _filterLabo!.isNotEmpty)
+        'laboratory_name': 'eq.$_filterLabo',
+      if (_filterStatus != null && _filterStatus!.isNotEmpty)
+        'status': 'eq.$_filterStatus',
+      if (_filterPathologie != null && _filterPathologie!.isNotEmpty)
+        'pathologie': _filterPathologie,
+      if (_priceRange != null)
+        'price_sale': 'gte.${_priceRange!.start},lte.${_priceRange!.end}',
     };
-    final r = await ApiClient.instance.get('/catalog/medications', query: params);
+    final r =
+        await ApiClient.instance.get('/catalog/medications', query: params);
     if (!mounted) return;
     if (!r.success) {
-      setState(() { _loading = false; _error = r.error?.message ?? 'Erreur'; });
+      setState(() {
+        _loading = false;
+        _error = r.error?.message ?? 'Erreur';
+      });
       return;
     }
     setState(() {
@@ -113,15 +130,18 @@ class _ReferencePageState extends State<ReferencePage> {
   }
 
   void _clearFilters() => setState(() {
-    _filterForm = null; _filterLabo = null; _filterStatus = null; 
-    _filterPathologie = null; _priceRange = null;
-    _load(query: _search.text);
-  });
+        _filterForm = null;
+        _filterLabo = null;
+        _filterStatus = null;
+        _filterPathologie = null;
+        _priceRange = null;
+        _load(query: _search.text);
+      });
 
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
-    
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
@@ -176,8 +196,10 @@ class _ReferencePageState extends State<ReferencePage> {
           _ActiveFilterBar(
             onClear: _clearFilters,
             locale: locale,
-            form: _filterForm, labo: _filterLabo,
-            status: _filterStatus, patho: _filterPathologie,
+            form: _filterForm,
+            labo: _filterLabo,
+            status: _filterStatus,
+            patho: _filterPathologie,
             priceRange: _priceRange,
           ),
         // Liste / Tableau
@@ -203,8 +225,11 @@ class _ReferencePageState extends State<ReferencePage> {
   }
 
   bool get _hasActiveFilters =>
-      _filterForm != null || _filterLabo != null || _filterStatus != null ||
-      _filterPathologie != null || _priceRange != null;
+      _filterForm != null ||
+      _filterLabo != null ||
+      _filterStatus != null ||
+      _filterPathologie != null ||
+      _priceRange != null;
 
   Widget _buildMobileCards(String locale) {
     return ListView.builder(
@@ -220,7 +245,8 @@ class _ReferencePageState extends State<ReferencePage> {
             onTap: () => _showDetail(p),
             child: Row(children: [
               Container(
-                width: 48, height: 48,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   gradient: AppColors.goldGradient,
                   borderRadius: BorderRadius.circular(12),
@@ -236,14 +262,17 @@ class _ReferencePageState extends State<ReferencePage> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontWeight: FontWeight.w700)),
-                    Text([
-                      p['dci'], p['dosage'], p['form'], p['laboratory_name']
-                    ].where((e) => e != null && e.toString().isNotEmpty).join(' · '),
+                    Text(
+                        [p['dci'], p['dosage'], p['form'], p['laboratory_name']]
+                            .where((e) => e != null && e.toString().isNotEmpty)
+                            .join(' · '),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.textMuted)),
                     if (p['price_sale'] != null && (p['price_sale'] as num) > 0)
-                      Text('${Fmt.money((p['price_sale'] as num).toDouble())} DH',
+                      Text(
+                          '${Fmt.money((p['price_sale'] as num).toDouble())} DH',
                           style: const TextStyle(
                               color: AppColors.pharmaGold,
                               fontWeight: FontWeight.w800,
@@ -279,74 +308,93 @@ class _ReferencePageState extends State<ReferencePage> {
 
     showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setState) => AlertDialog(
-        title: Text(S.t('filters', locale)),
-        content: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _filterDropdown(ctx, S.t('form', locale), _forms, tmpForm,
-                (v) => setState(() => tmpForm = v)),
-            _filterDropdown(ctx, S.t('laboratory', locale), _labs, tmpLabo,
-                (v) => setState(() => tmpLabo = v)),
-            _filterDropdown(ctx, S.t('status', locale), [
-              {'label': 'Disponible', 'value': 'available'},
-              {'label': 'Rupture', 'value': 'out_of_stock'},
-              {'label': 'Retiré', 'value': 'retired'},
-            ], tmpStatus, (v) => setState(() => tmpStatus = v)),
-            if (_indicationsTotal > 0)
-              _filterDropdown(ctx, S.t('pathology', locale), _pathologies, tmpPatho,
-                  (v) => setState(() => tmpPatho = v))
-            else
-              ListTile(
-                leading: const Icon(Icons.filter_alt_off, color: AppColors.textMuted),
-                title: Text(S.t('pathology', locale)),
-                subtitle: Text(S.t('noPathologyData', locale)),
-              ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.attach_money, color: AppColors.pharmaGold),
-              title: Text(S.t('priceRange', locale)),
-              subtitle: tmpPrice != null
-                  ? Text('${tmpPrice!.start.round()} - ${tmpPrice!.end.round()} DH')
-                  : Text(S.t('all', locale)),
-              trailing: IconButton(
-                icon: const Icon(Icons.clear),
-                onPressed: () => setState(() => tmpPrice = null),
-              ),
-              onTap: () async {
-                final range = await showRangeSliderDialog(
-                  context: ctx,
-                  min: 0,
-                  max: 5000,
-                  current: tmpPrice,
-                );
-                if (range != null) setState(() => tmpPrice = range);
-              },
-            ),
-          ]),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(S.t('cancel', locale))),
-          FilledButton(
-            onPressed: () {
-              setState(() {
-                _filterForm = tmpForm;
-                _filterLabo = tmpLabo;
-                _filterStatus = tmpStatus;
-                _filterPathologie = tmpPatho;
-                _priceRange = tmpPrice;
-              });
-              _load(query: _search.text);
-              Navigator.pop(ctx);
-            },
-            child: Text(S.t('apply', locale)),
-          ),
-        ],
-      )),
+      builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setState) => AlertDialog(
+                title: Text(S.t('filters', locale)),
+                content: SingleChildScrollView(
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    _filterDropdown(ctx, S.t('form', locale), _forms, tmpForm,
+                        (v) => setState(() => tmpForm = v)),
+                    _filterDropdown(ctx, S.t('laboratory', locale), _labs,
+                        tmpLabo, (v) => setState(() => tmpLabo = v)),
+                    _filterDropdown(
+                        ctx,
+                        S.t('status', locale),
+                        [
+                          {'label': 'Disponible', 'value': 'available'},
+                          {'label': 'Rupture', 'value': 'out_of_stock'},
+                          {'label': 'Retiré', 'value': 'retired'},
+                        ],
+                        tmpStatus,
+                        (v) => setState(() => tmpStatus = v)),
+                    if (_indicationsTotal > 0)
+                      _filterDropdown(
+                          ctx,
+                          S.t('pathology', locale),
+                          _pathologies,
+                          tmpPatho,
+                          (v) => setState(() => tmpPatho = v))
+                    else
+                      ListTile(
+                        leading: const Icon(Icons.filter_alt_off,
+                            color: AppColors.textMuted),
+                        title: Text(S.t('pathology', locale)),
+                        subtitle: Text(S.t('noPathologyData', locale)),
+                      ),
+                    const Divider(),
+                    ListTile(
+                      leading: const Icon(Icons.attach_money,
+                          color: AppColors.pharmaGold),
+                      title: Text(S.t('priceRange', locale)),
+                      subtitle: tmpPrice != null
+                          ? Text(
+                              '${tmpPrice!.start.round()} - ${tmpPrice!.end.round()} DH')
+                          : Text(S.t('all', locale)),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => setState(() => tmpPrice = null),
+                      ),
+                      onTap: () async {
+                        final range = await showRangeSliderDialog(
+                          context: ctx,
+                          min: 0,
+                          max: 5000,
+                          current: tmpPrice,
+                        );
+                        if (range != null) setState(() => tmpPrice = range);
+                      },
+                    ),
+                  ]),
+                ),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: Text(S.t('cancel', locale))),
+                  FilledButton(
+                    onPressed: () {
+                      setState(() {
+                        _filterForm = tmpForm;
+                        _filterLabo = tmpLabo;
+                        _filterStatus = tmpStatus;
+                        _filterPathologie = tmpPatho;
+                        _priceRange = tmpPrice;
+                      });
+                      _load(query: _search.text);
+                      Navigator.pop(ctx);
+                    },
+                    child: Text(S.t('apply', locale)),
+                  ),
+                ],
+              )),
     );
   }
 
-  Widget _filterDropdown(BuildContext ctx, String label, List<Map<String, dynamic>> options,
-      String? value, ValueChanged<String?> onChanged) {
+  Widget _filterDropdown(
+      BuildContext ctx,
+      String label,
+      List<Map<String, dynamic>> options,
+      String? value,
+      ValueChanged<String?> onChanged) {
     final enabled = options.isNotEmpty;
     return DropdownButtonFormField<String>(
       initialValue: enabled ? value : null,
@@ -358,8 +406,11 @@ class _ReferencePageState extends State<ReferencePage> {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       ),
       items: [
-        DropdownMenuItem(value: null, child: Text(S.t('all', ctx.read<AuthStore>().locale))),
-        for (final o in options.where((o) => o['label'].toString().isNotEmpty && o['value'].toString().isNotEmpty))
+        DropdownMenuItem(
+            value: null, child: Text(S.t('all', ctx.read<AuthStore>().locale))),
+        for (final o in options.where((o) =>
+            o['label'].toString().isNotEmpty &&
+            o['value'].toString().isNotEmpty))
           DropdownMenuItem(
             value: o['value'].toString(),
             child: Text('${o['label']} (${o['total'] ?? 0})',
@@ -379,25 +430,31 @@ class _ReferencePageState extends State<ReferencePage> {
     RangeValues? result = current;
     await showDialog<RangeValues>(
       context: context,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setState) => AlertDialog(
-        title: const Text('Fourchette de prix'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          RangeSlider(
-            values: result ?? RangeValues(min, max),
-            min: min, max: max,
-            divisions: 100,
-            labels: RangeLabels(
-              '${(result ?? RangeValues(min, max)).start.round()} DH',
-              '${(result ?? RangeValues(min, max)).end.round()} DH',
-            ),
-            onChanged: (v) => setState(() => result = v),
-          ),
-        ]),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, result), child: const Text('OK')),
-        ],
-      )),
+      builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setState) => AlertDialog(
+                title: const Text('Fourchette de prix'),
+                content: Column(mainAxisSize: MainAxisSize.min, children: [
+                  RangeSlider(
+                    values: result ?? RangeValues(min, max),
+                    min: min,
+                    max: max,
+                    divisions: 100,
+                    labels: RangeLabels(
+                      '${(result ?? RangeValues(min, max)).start.round()} DH',
+                      '${(result ?? RangeValues(min, max)).end.round()} DH',
+                    ),
+                    onChanged: (v) => setState(() => result = v),
+                  ),
+                ]),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Annuler')),
+                  FilledButton(
+                      onPressed: () => Navigator.pop(ctx, result),
+                      child: const Text('OK')),
+                ],
+              )),
     );
     return result;
   }
@@ -405,7 +462,8 @@ class _ReferencePageState extends State<ReferencePage> {
   void _exportCsv() {
     final csv = StringBuffer();
     // En-têtes
-    csv.writeln('EAN-13,Nom,DCI,Dosage,Forme,Présentation,Labo,PPV,PH,PPC,Statut,Princeps/Gen');
+    csv.writeln(
+        'EAN-13,Nom,DCI,Dosage,Forme,Présentation,Labo,PPV,PH,PPC,Statut,Princeps/Gen');
     for (final p in _items) {
       csv.writeln([
         p['barcode_ean13'] ?? '',
@@ -435,8 +493,12 @@ class _ReferencePageState extends State<ReferencePage> {
         title: const Text('Import contrôlé'),
         content: const Text('Sélectionnez un fichier CSV/Excel validé.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
-          FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Choisir fichier')),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annuler')),
+          FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Choisir fichier')),
         ],
       ),
     );
@@ -453,11 +515,16 @@ class _ReferencePageState extends State<ReferencePage> {
         builder: (_, controller) => SingleChildScrollView(
           controller: controller,
           padding: const EdgeInsets.all(20),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              Expanded(child: Text(p['name']?.toString() ?? '',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800))),
-              IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+              Expanded(
+                  child: Text(p['name']?.toString() ?? '',
+                      style: const TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.w800))),
+              IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context)),
             ]),
             const SizedBox(height: 12),
             _detailRow('EAN-13', p['barcode_ean13']?.toString()),
@@ -466,13 +533,31 @@ class _ReferencePageState extends State<ReferencePage> {
             _detailRow('Forme', p['form']?.toString()),
             _detailRow('Présentation', p['presentation']?.toString()),
             _detailRow('Laboratoire', p['laboratory_name']?.toString()),
-            _detailRow('Classe thérapeutique', p['therapeutic_class']?.toString()),
+            _detailRow(
+                'Classe thérapeutique', p['therapeutic_class']?.toString()),
             _detailRow('Substance active', p['substance_active']?.toString()),
-            _detailRow('PPV', p['price_sale'] != null ? '${Fmt.money((p['price_sale'] as num).toDouble())} DH' : null),
-            _detailRow('PH', p['ph'] != null ? '${Fmt.money((p['ph'] as num).toDouble())} DH' : null),
-            _detailRow('PPC', p['ppc'] != null ? '${Fmt.money((p['ppc'] as num).toDouble())} DH' : null),
-            _detailRow('Taux remboursement', p['reimbursement_rate'] != null ? '${p['reimbursement_rate']}%' : null),
-            _detailRow('Princeps/Générique', p['princeps_generique']?.toString()),
+            _detailRow(
+                'PPV',
+                p['price_sale'] != null
+                    ? '${Fmt.money((p['price_sale'] as num).toDouble())} DH'
+                    : null),
+            _detailRow(
+                'PH',
+                p['ph'] != null
+                    ? '${Fmt.money((p['ph'] as num).toDouble())} DH'
+                    : null),
+            _detailRow(
+                'PPC',
+                p['ppc'] != null
+                    ? '${Fmt.money((p['ppc'] as num).toDouble())} DH'
+                    : null),
+            _detailRow(
+                'Taux remboursement',
+                p['reimbursement_rate'] != null
+                    ? '${p['reimbursement_rate']}%'
+                    : null),
+            _detailRow(
+                'Princeps/Générique', p['princeps_generique']?.toString()),
             _detailRow('Statut', p['status']?.toString()),
             _detailRow('AMM', p['amm_number']?.toString()),
             _detailRow('Code-barres', p['barcode_ean13']?.toString()),
@@ -487,8 +572,14 @@ class _ReferencePageState extends State<ReferencePage> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(width: 120, child: Text(label, style: const TextStyle(color: AppColors.textMuted, fontWeight: FontWeight.w600))),
-        Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600))),
+        SizedBox(
+            width: 120,
+            child: Text(label,
+                style: const TextStyle(
+                    color: AppColors.textMuted, fontWeight: FontWeight.w600))),
+        Expanded(
+            child: Text(value,
+                style: const TextStyle(fontWeight: FontWeight.w600))),
       ]),
     );
   }
@@ -503,7 +594,11 @@ class _ActiveFilterBar extends StatelessWidget {
   const _ActiveFilterBar({
     required this.onClear,
     required this.locale,
-    this.form, this.labo, this.status, this.patho, this.priceRange,
+    this.form,
+    this.labo,
+    this.status,
+    this.patho,
+    this.priceRange,
   });
 
   @override
@@ -511,9 +606,15 @@ class _ActiveFilterBar extends StatelessWidget {
     final chips = <Widget>[
       if (form != null) _FilterChip(label: 'Forme: $form', onRemoved: () {}),
       if (labo != null) _FilterChip(label: 'Labo: $labo', onRemoved: () {}),
-      if (status != null) _FilterChip(label: 'Statut: $status', onRemoved: () {}),
-      if (patho != null) _FilterChip(label: 'Pathologie: $patho', onRemoved: () {}),
-      if (priceRange != null) _FilterChip(label: 'Prix: ${priceRange!.start.round()}-${priceRange!.end.round()} DH', onRemoved: () {}),
+      if (status != null)
+        _FilterChip(label: 'Statut: $status', onRemoved: () {}),
+      if (patho != null)
+        _FilterChip(label: 'Pathologie: $patho', onRemoved: () {}),
+      if (priceRange != null)
+        _FilterChip(
+            label:
+                'Prix: ${priceRange!.start.round()}-${priceRange!.end.round()} DH',
+            onRemoved: () {}),
     ];
 
     return Padding(
@@ -557,10 +658,21 @@ class _StatusChip extends StatelessWidget {
     Color color;
     String label;
     switch (s) {
-      case 'available': color = AppColors.success; label = 'Disponible'; break;
-      case 'out_of_stock': color = AppColors.danger; label = 'Rupture'; break;
-      case 'retired': color = AppColors.textMuted; label = 'Retiré'; break;
-      default: color = AppColors.textMuted; label = s;
+      case 'available':
+        color = AppColors.success;
+        label = 'Disponible';
+        break;
+      case 'out_of_stock':
+        color = AppColors.danger;
+        label = 'Rupture';
+        break;
+      case 'retired':
+        color = AppColors.textMuted;
+        label = 'Retiré';
+        break;
+      default:
+        color = AppColors.textMuted;
+        label = s;
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -569,7 +681,9 @@ class _StatusChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color, width: 1),
       ),
-      child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700)),
+      child: Text(label,
+          style: TextStyle(
+              color: color, fontSize: 10, fontWeight: FontWeight.w700)),
     );
   }
 }

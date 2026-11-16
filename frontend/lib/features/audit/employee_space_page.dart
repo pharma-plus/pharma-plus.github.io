@@ -48,39 +48,32 @@ class EmployeeSpacePage extends StatelessWidget {
     };
 
     final modules = <_EmployeeModule>[
-      _EmployeeModule(Icons.qr_code_scanner_rounded, 'Scanner',
-          'Scanner un produit', page: (_) => const ScannerPage()),
       _EmployeeModule(
-          Icons.point_of_sale_rounded, S.t('pos', locale),
+          Icons.qr_code_scanner_rounded, 'Scanner', 'Scanner un produit',
+          page: (_) => const ScannerPage()),
+      _EmployeeModule(Icons.point_of_sale_rounded, S.t('pos', locale),
           'Vente et encaissement',
           page: (c) => c['sales:create'] == true ? const PosPage() : null,
           visible: (c) => c['sales:create'] == true),
       _EmployeeModule(
-          Icons.people_alt_rounded, S.t('customers', locale),
-          'Fiches clients',
-          page: (c) => c['customers:view'] == true ? const CustomersPage() : null,
+          Icons.people_alt_rounded, S.t('customers', locale), 'Fiches clients',
+          page: (c) =>
+              c['customers:view'] == true ? const CustomersPage() : null,
           visible: (c) => c['customers:view'] == true),
-      _EmployeeModule(
-          Icons.inventory_2_rounded, S.t('stock', locale),
+      _EmployeeModule(Icons.inventory_2_rounded, S.t('stock', locale),
           'Consultation du stock',
           page: (c) => c['stock:view'] == true ? const StockPage() : null,
           visible: (c) => c['stock:view'] == true),
-      _EmployeeModule(
-          Icons.medication_rounded, S.t('catalog', locale),
+      _EmployeeModule(Icons.medication_rounded, S.t('catalog', locale),
           'Consultation du catalogue',
           page: (c) => c['catalog:view'] == true ? const CatalogPage() : null,
           visible: (c) => c['catalog:view'] == true),
-      _EmployeeModule(
-          Icons.insert_chart_rounded, S.t('reports', locale),
+      _EmployeeModule(Icons.insert_chart_rounded, S.t('reports', locale),
           'Ventes et performance',
           page: (c) => c['reports:view'] == true ? const ReportsPage() : null,
           visible: (c) => c['reports:view'] == true),
     ].where((m) => m.visible(can)).toList();
-    return _Scaffold(
-        modules: modules,
-        user: user,
-        locale: locale,
-        can: can);
+    return _Scaffold(modules: modules, user: user, locale: locale, can: can);
   }
 }
 
@@ -129,18 +122,19 @@ class _Scaffold extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('${user?.fullName ?? ''}',
-                        style: TextStyle(color: AppColors.inkDark,
+                        style: TextStyle(
+                            color: AppColors.inkDark,
                             fontSize: 20,
                             fontWeight: FontWeight.w900)),
                     if ('${user?.roleName ?? ''}'.isNotEmpty)
-                      Text('${user?.roleName ?? ''} · ${user?.pharmacyName ?? ''}',
+                      Text(
+                          '${user?.roleName ?? ''} · ${user?.pharmacyName ?? ''}',
                           style: const TextStyle(
                               color: AppColors.pharmaGold, fontSize: 12.5)),
                     const SizedBox(height: 4),
                     Text('Espace Employé — modules autorisés uniquement',
                         style: TextStyle(
-                            color: AppColors.inkDarkLight,
-                            fontSize: 12.5)),
+                            color: AppColors.inkDarkLight, fontSize: 12.5)),
                   ],
                 ),
               ),
@@ -209,4 +203,3 @@ class _Scaffold extends StatelessWidget {
     );
   }
 }
-

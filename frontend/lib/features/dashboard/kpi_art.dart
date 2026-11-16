@@ -10,7 +10,16 @@ import 'package:flutter/material.dart';
 /// 7 employ├® blouse blanche croix verte ┬À 8 barres + fl├¿che + or.
 /// Espace logique : 100 ├ù 80 ┬À socle vert lumineux (podium).
 /// ============================================================
-enum KpiArt { register, bottle, boxes, clipboard, truck, people, pharmacist, bars }
+enum KpiArt {
+  register,
+  bottle,
+  boxes,
+  clipboard,
+  truck,
+  people,
+  pharmacist,
+  bars
+}
 
 class KpiArtPainter extends CustomPainter {
   final KpiArt art;
@@ -30,7 +39,8 @@ class KpiArtPainter extends CustomPainter {
       ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 4);
 
     Paint vgrad(Rect rc, Color top, Color bottom) => Paint()
-      ..shader = ui.Gradient.linear(rc.topCenter, rc.bottomCenter, [top, bottom]);
+      ..shader =
+          ui.Gradient.linear(rc.topCenter, rc.bottomCenter, [top, bottom]);
 
     void text(String s, Offset c, double fs, Color color,
         {FontWeight fw = FontWeight.w900, double ls = 0}) {
@@ -57,8 +67,7 @@ class KpiArtPainter extends CustomPainter {
             height: podRy * 2),
         Paint()..color = const Color(0xFF06150E));
     canvas.drawOval(
-        Rect.fromCenter(
-            center: podC, width: podRx * 2.2, height: podRy * 2.6),
+        Rect.fromCenter(center: podC, width: podRx * 2.2, height: podRy * 2.6),
         Paint()
           ..color = const Color(0xFF00C96B).withValues(alpha: 0.14)
           ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 6));
@@ -67,9 +76,7 @@ class KpiArtPainter extends CustomPainter {
     canvas.drawOval(
         podRect,
         Paint()
-          ..shader = ui.Gradient.linear(
-              podRect.topCenter,
-              podRect.bottomCenter,
+          ..shader = ui.Gradient.linear(podRect.topCenter, podRect.bottomCenter,
               [const Color(0xFF1D5238), const Color(0xFF0E2C1D)]));
     canvas.drawOval(
         podRect.deflate(1.2),
@@ -91,11 +98,15 @@ class KpiArtPainter extends CustomPainter {
         canvas.drawOval(rc, Paint()..color = const Color(0xFFC79A2E));
         canvas.drawOval(
             Rect.fromCenter(
-                center: P(cx, cy - 0.8), width: rw * 0.86 * ux, height: 4.2 * uy),
+                center: P(cx, cy - 0.8),
+                width: rw * 0.86 * ux,
+                height: 4.2 * uy),
             Paint()..color = const Color(0xFFEFCB6C));
         canvas.drawOval(
             Rect.fromCenter(
-                center: P(cx, cy - 0.8), width: rw * 0.5 * ux, height: 2.6 * uy),
+                center: P(cx, cy - 0.8),
+                width: rw * 0.5 * ux,
+                height: 2.6 * uy),
             Paint()..color = const Color(0xFFF7E2A0));
       }
     }
@@ -118,7 +129,9 @@ class KpiArtPainter extends CustomPainter {
         canvas.drawPath(receipt, shadow);
         canvas.drawPath(receipt, Paint()..color = const Color(0xFFF8F6EE));
         for (var i = 0; i < 3; i++) {
-          canvas.drawLine(P(44, 13.5 + i * 3.4), P(50, 13.5 + i * 3.4),
+          canvas.drawLine(
+              P(44, 13.5 + i * 3.4),
+              P(50, 13.5 + i * 3.4),
               Paint()
                 ..color = const Color(0xFFB9B4A6)
                 ..strokeWidth = 1.1);
@@ -142,8 +155,7 @@ class KpiArtPainter extends CustomPainter {
                 const Color(0xFF25E08A),
                 const Color(0xFF00A651),
               ]));
-        canvas.drawRRect(
-            rr(31.4, 30.4, 12, 3, 1),
+        canvas.drawRRect(rr(31.4, 30.4, 12, 3, 1),
             Paint()..color = Colors.white.withValues(alpha: 0.35));
         text('12,50', P(45, 34), 4.4, const Color(0xFF04351D),
             fw: FontWeight.w900);
@@ -152,8 +164,7 @@ class KpiArtPainter extends CustomPainter {
           for (var c = 0; c < 4; c++) {
             final kx = 29.5 + c * 7.6, ky = 42.5 + r * 5.4;
             final isFunc = r == 0;
-            canvas.drawRRect(
-                rr(kx + 0.7, ky + 1.1, 6, 3.6, 1),
+            canvas.drawRRect(rr(kx + 0.7, ky + 1.1, 6, 3.6, 1),
                 Paint()..color = const Color(0xFF0D1210));
             canvas.drawRRect(
                 rr(kx, ky, 6, 3.6, 1),
@@ -162,23 +173,20 @@ class KpiArtPainter extends CustomPainter {
                       ? const Color(0xFF00A651)
                       : const Color(0xFFE9E7E0));
             if (!isFunc) {
-              canvas.drawRRect(
-                  rr(kx + 1, ky + 0.7, 4, 1.4, 0.6),
+              canvas.drawRRect(rr(kx + 1, ky + 0.7, 4, 1.4, 0.6),
                   Paint()..color = const Color(0xFFC7C4BA));
             }
           }
         }
         // Fente carte à droite.
-        canvas.drawRRect(
-            rr(56.5, 43.5, 5.4, 1.6, 0.8),
+        canvas.drawRRect(rr(56.5, 43.5, 5.4, 1.6, 0.8),
             Paint()..color = const Color(0xFF0D1210));
         // Billet vert derrière les pièces.
         canvas.drawRRect(
             rr(63, 40, 30, 13, 2),
             vgrad(R(63, 40, 30, 13), const Color(0xFF2FBF78),
                 const Color(0xFF0B7A44)));
-        canvas.drawRRect(
-            rr(65.5, 43, 25, 7, 1.2),
+        canvas.drawRRect(rr(65.5, 43, 25, 7, 1.2),
             Paint()..color = Colors.white.withValues(alpha: 0.22));
         canvas.drawRRect(
             RRect.fromRectAndRadius(
@@ -204,8 +212,8 @@ class KpiArtPainter extends CustomPainter {
         canvas.drawRRect(rr(32, 32, 27, 33, 5), shadow);
         canvas.drawRRect(
             rr(30, 30, 27, 33, 5),
-            vgrad(bottleBody, const Color(0xFFFEFEFC),
-                const Color(0xFFD5D5CC)));
+            vgrad(
+                bottleBody, const Color(0xFFFEFEFC), const Color(0xFFD5D5CC)));
         // Épaule du flacon.
         canvas.drawRRect(
             rr(31.5, 27, 24, 7, 3),
@@ -218,20 +226,18 @@ class KpiArtPainter extends CustomPainter {
                 const Color(0xFF008A4C)));
         for (var i = 0; i < 5; i++) {
           canvas.drawLine(
-              P(34.4 + i * 4.6, 16.4), P(34.4 + i * 4.6, 26.6),
+              P(34.4 + i * 4.6, 16.4),
+              P(34.4 + i * 4.6, 26.6),
               Paint()
                 ..color = const Color(0xFF006B3C).withValues(alpha: 0.55)
                 ..strokeWidth = 1.1);
         }
-        canvas.drawRRect(
-            rr(31, 15, 25, 3.2, 1.6),
+        canvas.drawRRect(rr(31, 15, 25, 3.2, 1.6),
             Paint()..color = Colors.white.withValues(alpha: 0.28));
         // Étiquette claire à croix verte + bande verte.
-        canvas.drawRRect(
-            rr(33.5, 38, 20, 20, 1.6),
+        canvas.drawRRect(rr(33.5, 38, 20, 20, 1.6),
             Paint()..color = const Color(0xFFF7FBF7));
-        canvas.drawRRect(
-            rr(33.5, 53.4, 20, 4.6, 1.4),
+        canvas.drawRRect(rr(33.5, 53.4, 20, 4.6, 1.4),
             Paint()..color = const Color(0xFF00A651));
         final cg = Paint()..color = const Color(0xFF00A651);
         canvas.drawRRect(
@@ -243,13 +249,13 @@ class KpiArtPainter extends CustomPainter {
                 R(38.5, 43.9, 10, 5.2), const Radius.circular(1.2)),
             cg);
         canvas.drawLine(
-            P(36, 48.2), P(38, 48.2),
+            P(36, 48.2),
+            P(38, 48.2),
             Paint()
               ..color = const Color(0xFFC9CFC9)
               ..strokeWidth = 1);
         // Reflet vertical.
-        canvas.drawRRect(
-            rr(33, 31, 3.4, 30, 1.7),
+        canvas.drawRRect(rr(33, 31, 3.4, 30, 1.7),
             Paint()..color = Colors.white.withValues(alpha: 0.5));
         // Blister blanc à pilules (avant, à droite).
         canvas.save();
@@ -258,16 +264,15 @@ class KpiArtPainter extends CustomPainter {
         final bl = R(-19, -10, 38, 20);
         canvas.drawRRect(
             RRect.fromRectAndRadius(bl, const Radius.circular(3)), shadow);
-        canvas.drawRRect(
-            RRect.fromRectAndRadius(bl, const Radius.circular(3)),
+        canvas.drawRRect(RRect.fromRectAndRadius(bl, const Radius.circular(3)),
             Paint()..color = const Color(0xFFF4F6F2));
         for (var r = 0; r < 2; r++) {
           for (var c = 0; c < 4; c++) {
             final px = -13.5 + c * 9.0, py = -4.6 + r * 9.0;
             canvas.drawCircle(P(px + 1, py + 1), 3.4 * ux,
                 Paint()..color = const Color(0xFFC9CCC4));
-            canvas.drawCircle(P(px, py), 3.4 * ux,
-                Paint()..color = const Color(0xFFFFFFFF));
+            canvas.drawCircle(
+                P(px, py), 3.4 * ux, Paint()..color = const Color(0xFFFFFFFF));
             canvas.drawCircle(P(px - 0.8, py - 0.8), 1.3 * ux,
                 Paint()..color = const Color(0xFFE4E8E2));
           }
@@ -291,11 +296,11 @@ class KpiArtPainter extends CustomPainter {
             rr(22, 33, 26, 19, 1.6),
             vgrad(R(22, 33, 26, 19), const Color(0xFFC89B5F),
                 const Color(0xFF9C7440)));
-        canvas.drawRRect(
-            rr(22, 26, 26, 7, 1.6),
+        canvas.drawRRect(rr(22, 26, 26, 7, 1.6),
             vgrad(backTop, const Color(0xFFDDB277), const Color(0xFFC29255)));
         canvas.drawLine(
-            P(35, 27), P(35, 33),
+            P(35, 27),
+            P(35, 33),
             Paint()
               ..color = const Color(0xFF7A5A30).withValues(alpha: 0.7)
               ..strokeWidth = 1.1);
@@ -306,29 +311,31 @@ class KpiArtPainter extends CustomPainter {
             rr(34, 48, 32, 20, 1.6),
             vgrad(R(34, 48, 32, 20), const Color(0xFFB98A4E),
                 const Color(0xFF8A6435)));
-        canvas.drawRRect(
-            rr(34, 40, 32, 8, 1.6),
+        canvas.drawRRect(rr(34, 40, 32, 8, 1.6),
             vgrad(frontTop, const Color(0xFFD9AE72), const Color(0xFFBB8E51)));
-        canvas.drawRRect(
-            rr(46.5, 41, 7, 27, 0.8),
+        canvas.drawRRect(rr(46.5, 41, 7, 27, 0.8),
             Paint()..color = const Color(0xFFE4C98F).withValues(alpha: 0.9));
         canvas.drawLine(
-            P(50, 41.4), P(50, 68),
+            P(50, 41.4),
+            P(50, 68),
             Paint()
               ..color = const Color(0xFF7A5A30).withValues(alpha: 0.5)
               ..strokeWidth = 1);
         // Triangle d'alerte rouge-orangé avec glow.
         canvas.drawCircle(
-            P(76, 36), 15 * ux,
+            P(76, 36),
+            15 * ux,
             Paint()
               ..color = const Color(0xFFF2542D).withValues(alpha: 0.22)
               ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 8));
         final triRounded = Path();
         triRounded.moveTo(P(76, 21).dx, P(76, 21).dy);
         triRounded.lineTo(P(90.6, 47.5).dx, P(90.6, 47.5).dy);
-        triRounded.quadraticBezierTo(P(91.8, 49.6).dx, P(91.8, 49.6).dy, P(89.4, 49.6).dx, P(89.4, 49.6).dy);
+        triRounded.quadraticBezierTo(P(91.8, 49.6).dx, P(91.8, 49.6).dy,
+            P(89.4, 49.6).dx, P(89.4, 49.6).dy);
         triRounded.lineTo(P(62.6, 49.6).dx, P(62.6, 49.6).dy);
-        triRounded.quadraticBezierTo(P(60.2, 49.6).dx, P(60.2, 49.6).dy, P(61.4, 47.5).dx, P(61.4, 47.5).dy);
+        triRounded.quadraticBezierTo(P(60.2, 49.6).dx, P(60.2, 49.6).dy,
+            P(61.4, 47.5).dx, P(61.4, 47.5).dy);
         triRounded.close();
         canvas.drawPath(triRounded, shadow);
         canvas.drawPath(
@@ -344,8 +351,7 @@ class KpiArtPainter extends CustomPainter {
               ..color = Colors.white.withValues(alpha: 0.35));
         // « ! » blanc.
         canvas.drawRRect(
-            rr(74.4, 30.5, 3.2, 10, 1.6),
-            Paint()..color = Colors.white);
+            rr(74.4, 30.5, 3.2, 10, 1.6), Paint()..color = Colors.white);
         canvas.drawCircle(P(76, 44.6), 1.9 * ux, Paint()..color = Colors.white);
 
       // ==============================================
@@ -372,7 +378,8 @@ class KpiArtPainter extends CustomPainter {
             fw: FontWeight.w900);
         for (var i = 0; i < 4; i++) {
           canvas.drawLine(
-              P(32, 35 + i * 4.6), P(46 - (i % 2) * 4, 35 + i * 4.6),
+              P(32, 35 + i * 4.6),
+              P(46 - (i % 2) * 4, 35 + i * 4.6),
               Paint()
                 ..color = const Color(0xFFC4C0B2)
                 ..strokeWidth = 1.2);
@@ -380,7 +387,8 @@ class KpiArtPainter extends CustomPainter {
         canvas.drawCircle(
             P(35, 57), 3.4 * ux, Paint()..color = const Color(0xFFC43C3C));
         canvas.drawCircle(
-            P(35, 57), 2.2 * ux,
+            P(35, 57),
+            2.2 * ux,
             Paint()
               ..style = PaintingStyle.stroke
               ..strokeWidth = 1
@@ -390,8 +398,7 @@ class KpiArtPainter extends CustomPainter {
             rr(33, 11, 12, 8, 2),
             vgrad(R(33, 11, 12, 8), const Color(0xFFD4D8DC),
                 const Color(0xFF8E979E)));
-        canvas.drawRRect(
-            rr(36, 13.5, 6, 2.6, 1.3),
+        canvas.drawRRect(rr(36, 13.5, 6, 2.6, 1.3),
             Paint()..color = const Color(0xFF6B7378));
         // Carton kraft à droite.
         canvas.drawRRect(rr(58, 46, 30, 22, 2), shadow);
@@ -400,11 +407,9 @@ class KpiArtPainter extends CustomPainter {
             rr(56, 51, 30, 17, 1.6),
             vgrad(R(56, 51, 30, 17), const Color(0xFFB98A4E),
                 const Color(0xFF8A6435)));
-        canvas.drawRRect(
-            rr(56, 44, 30, 7, 1.6),
+        canvas.drawRRect(rr(56, 44, 30, 7, 1.6),
             vgrad(boxTop, const Color(0xFFD9AE72), const Color(0xFFBB8E51)));
-        canvas.drawRRect(
-            rr(68.5, 45, 6, 23, 0.8),
+        canvas.drawRRect(rr(68.5, 45, 6, 23, 0.8),
             Paint()..color = const Color(0xFFE4C98F).withValues(alpha: 0.9));
 
       // ==============================================
@@ -413,8 +418,7 @@ class KpiArtPainter extends CustomPainter {
       case KpiArt.truck:
         // Ombre au sol.
         canvas.drawOval(
-            Rect.fromCenter(
-                center: P(50, 66), width: 84 * ux, height: 7 * uy),
+            Rect.fromCenter(center: P(50, 66), width: 84 * ux, height: 7 * uy),
             Paint()..color = const Color(0xFF020E08).withValues(alpha: 0.4));
         // Cartons à l'arrière (gauche).
         canvas.drawRRect(
@@ -422,16 +426,13 @@ class KpiArtPainter extends CustomPainter {
             vgrad(R(6, 46, 15, 16), const Color(0xFFC89B5F),
                 const Color(0xFF96703E)));
         canvas.drawRRect(
-            rr(6, 42, 15, 5.5, 1.4),
-            Paint()..color = const Color(0xFFDDB277));
-        canvas.drawRRect(
-            rr(10.5, 47, 5.5, 15, 0.8),
+            rr(6, 42, 15, 5.5, 1.4), Paint()..color = const Color(0xFFDDB277));
+        canvas.drawRRect(rr(10.5, 47, 5.5, 15, 0.8),
             Paint()..color = const Color(0xFFE4C98F).withValues(alpha: 0.85));
         // Caisse du camion (blanche à bande verte PHARMADE).
         final cargo = R(20, 22, 44, 32);
         canvas.drawRRect(rr(22, 24, 44, 32, 2), shadow);
-        canvas.drawRRect(
-            rr(20, 22, 44, 32, 2.4),
+        canvas.drawRRect(rr(20, 22, 44, 32, 2.4),
             vgrad(cargo, const Color(0xFFFDFDFB), const Color(0xFFE2E0D6)));
         canvas.drawRRect(
             rr(20, 22, 44, 32, 2.4),
@@ -443,19 +444,16 @@ class KpiArtPainter extends CustomPainter {
         canvas.drawRRect(
             rr(20, 32, 44, 11, 0),
             Paint()
-              ..shader = ui.Gradient.linear(
-                  P(20, 32), P(20, 43),
+              ..shader = ui.Gradient.linear(P(20, 32), P(20, 43),
                   [const Color(0xFF17C97E), const Color(0xFF067A44)]));
         text('PHARMADE', P(42, 37.5), 5.4, Colors.white, ls: 0.4);
         // Liseré supérieur de la caisse.
-        canvas.drawRRect(
-            rr(20, 22, 44, 2.6, 1.3),
+        canvas.drawRRect(rr(20, 22, 44, 2.6, 1.3),
             Paint()..color = Colors.white.withValues(alpha: 0.6));
         // Cabine (à droite).
         final cab = R(64, 28, 24, 28);
         canvas.drawRRect(rr(66, 30, 24, 28, 2), shadow);
-        canvas.drawRRect(
-            rr(64, 28, 24, 28, 3),
+        canvas.drawRRect(rr(64, 28, 24, 28, 3),
             vgrad(cab, const Color(0xFFFDFDFB), const Color(0xFFDCDAD0)));
         // Pare-brise + bas de caisse vert.
         canvas.drawRRect(
@@ -474,14 +472,15 @@ class KpiArtPainter extends CustomPainter {
         canvas.drawRRect(
             rr(85.5, 44, 2.5, 4, 1), Paint()..color = const Color(0xFFF2C94C));
         canvas.drawLine(
-            P(64, 30), P(61.5, 28),
+            P(64, 30),
+            P(61.5, 28),
             Paint()
               ..color = const Color(0xFF9AA29B)
               ..strokeWidth = 2);
         // Roues.
         void wheel(double cx, double cy, double rr2) {
-          canvas.drawCircle(P(cx, cy), rr2 * ux,
-              Paint()..color = const Color(0xFF1C211D));
+          canvas.drawCircle(
+              P(cx, cy), rr2 * ux, Paint()..color = const Color(0xFF1C211D));
           canvas.drawCircle(P(cx, cy), rr2 * 0.52 * ux,
               Paint()..color = const Color(0xFF8E948D));
           canvas.drawCircle(P(cx, cy), rr2 * 0.22 * ux,
@@ -525,8 +524,7 @@ class KpiArtPainter extends CustomPainter {
                 ..shader = ui.Gradient.linear(bodyR.topCenter,
                     bodyR.bottomCenter, [shirt, const Color(0xFF0E5C38)]));
           // Col blanc.
-          canvas.drawRRect(
-              rr(cx - 5 * scale, by, 10 * scale, 3 * scale, 1),
+          canvas.drawRRect(rr(cx - 5 * scale, by, 10 * scale, 3 * scale, 1),
               Paint()..color = Colors.white.withValues(alpha: 0.85));
           // Jambes.
           canvas.drawRRect(
@@ -558,12 +556,8 @@ class KpiArtPainter extends CustomPainter {
         // Blouse blanche.
         final coat = R(30, 34, 40, 32);
         canvas.drawRRect(rr(32, 36, 40, 32, 4), shadow);
-        canvas.drawRRect(
-            rr(30, 34, 40, 32, 4),
-            vgrad(
-                coat,
-                const Color(0xFFFFFFFF),
-                const Color(0xFFDCE3DD)));
+        canvas.drawRRect(rr(30, 34, 40, 32, 4),
+            vgrad(coat, const Color(0xFFFFFFFF), const Color(0xFFDCE3DD)));
         canvas.drawRRect(
             rr(30, 34, 40, 32, 4),
             Paint()
@@ -593,8 +587,8 @@ class KpiArtPainter extends CustomPainter {
         canvas.drawRRect(rr(59.7, 50.9, 5, 1.6, 0.5), bc);
         // Tête + cheveux.
         canvas.drawCircle(P(50, 22), 9 * ux, shadow);
-        canvas.drawCircle(P(50, 20.6), 8.4 * ux,
-            Paint()..color = const Color(0xFFE8B98E));
+        canvas.drawCircle(
+            P(50, 20.6), 8.4 * ux, Paint()..color = const Color(0xFFE8B98E));
         canvas.drawArc(
             Rect.fromCenter(
                 center: P(50, 18.4), width: 19 * ux, height: 19 * uy),
@@ -617,18 +611,22 @@ class KpiArtPainter extends CustomPainter {
               ..style = PaintingStyle.stroke
               ..strokeWidth = 1
               ..color = const Color(0xFF2A3430));
-        canvas.drawLine(P(48.4, 21), P(51.6, 21),
-            Paint()..color = const Color(0xFF2A3430)..strokeWidth = 0.9);
+        canvas.drawLine(
+            P(48.4, 21),
+            P(51.6, 21),
+            Paint()
+              ..color = const Color(0xFF2A3430)
+              ..strokeWidth = 0.9);
         // Presse-papiers dans la main gauche.
         canvas.drawRRect(rr(24, 40, 10, 14, 1.4), shadow);
         canvas.drawRRect(
-            rr(23, 39, 10, 14, 1.4),
-            Paint()..color = const Color(0xFFFBFAF4));
+            rr(23, 39, 10, 14, 1.4), Paint()..color = const Color(0xFFFBFAF4));
         canvas.drawRRect(
             rr(25.5, 37, 5, 3, 1), Paint()..color = const Color(0xFF8E979E));
         for (var i = 0; i < 4; i++) {
           canvas.drawLine(
-              P(25, 42.5 + i * 2.6), P(31, 42.5 + i * 2.6),
+              P(25, 42.5 + i * 2.6),
+              P(31, 42.5 + i * 2.6),
               Paint()
                 ..color = const Color(0xFFC4C0B2)
                 ..strokeWidth = 0.9);
@@ -647,7 +645,8 @@ class KpiArtPainter extends CustomPainter {
         text('Rx', P(0, -4), 7, const Color(0xFF00A651));
         for (var i = 0; i < 3; i++) {
           canvas.drawLine(
-              P(-6, 2 + i * 4), P(6 - (i % 2) * 3, 2 + i * 4),
+              P(-6, 2 + i * 4),
+              P(6 - (i % 2) * 3, 2 + i * 4),
               Paint()
                 ..color = const Color(0xFFC4C0B2)
                 ..strokeWidth = 1);
@@ -672,12 +671,8 @@ class KpiArtPainter extends CustomPainter {
         // Trois barres vertes montantes.
         void bar(double x, double top) {
           final rc = R(x, top, 13, 68 - top);
-          canvas.drawRRect(
-              rr(x, top, 13, 68 - top, 2),
-              vgrad(
-                  rc,
-                  const Color(0xFF7BEBA4),
-                  const Color(0xFF0E7A44)));
+          canvas.drawRRect(rr(x, top, 13, 68 - top, 2),
+              vgrad(rc, const Color(0xFF7BEBA4), const Color(0xFF0E7A44)));
           canvas.drawRRect(
               rr(x, top, 13, 68 - top, 2),
               Paint()

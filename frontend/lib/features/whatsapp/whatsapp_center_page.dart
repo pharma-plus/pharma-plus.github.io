@@ -82,7 +82,8 @@ class _WhatsAppCenterPageState extends State<WhatsAppCenterPage> {
 
   void _onSearchChanged(String q) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 350), () => _loadConversations());
+    _debounce =
+        Timer(const Duration(milliseconds: 350), () => _loadConversations());
   }
 
   @override
@@ -93,15 +94,17 @@ class _WhatsAppCenterPageState extends State<WhatsAppCenterPage> {
   }
 
   void _openChat(WhatsAppConversation conv) {
-    Navigator.push(context, MaterialPageRoute(
-      builder: (_) => WhatsAppChatPage(conversation: conv),
-    ));
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => WhatsAppChatPage(conversation: conv),
+        ));
   }
 
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
-    
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
@@ -154,24 +157,26 @@ class _WhatsAppCenterPageState extends State<WhatsAppCenterPage> {
               ? _ChatbotWidget(locale: locale)
               : _loading
                   ? const Center(child: CircularProgressIndicator())
-              : _error != null
-                  ? Center(child: Text(_error!))
-                  : _conversations.isEmpty
-                      ? _EmptyState(onAdd: _showNewConversationDialog, locale: locale)
-                      : RefreshIndicator(
-                          onRefresh: _loadConversations,
-                          child: ListView.builder(
-                            padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-                            itemCount: _conversations.length,
-                            itemBuilder: (context, i) {
-                              final conv = _conversations[i];
-                              return _ConversationTile(
-                                conversation: conv,
-                                onTap: () => _openChat(conv),
-                              );
-                            },
-                          ),
-                        ),
+                  : _error != null
+                      ? Center(child: Text(_error!))
+                      : _conversations.isEmpty
+                          ? _EmptyState(
+                              onAdd: _showNewConversationDialog, locale: locale)
+                          : RefreshIndicator(
+                              onRefresh: _loadConversations,
+                              child: ListView.builder(
+                                padding:
+                                    const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                                itemCount: _conversations.length,
+                                itemBuilder: (context, i) {
+                                  final conv = _conversations[i];
+                                  return _ConversationTile(
+                                    conversation: conv,
+                                    onTap: () => _openChat(conv),
+                                  );
+                                },
+                              ),
+                            ),
         ),
       ]),
     );
@@ -196,7 +201,9 @@ class _WhatsAppCenterPageState extends State<WhatsAppCenterPage> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annuler')),
         ],
       ),
     );
@@ -214,17 +221,22 @@ class _EmptyState extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.chat_bubble_outline, size: 64, color: AppColors.warning),
+          const Icon(Icons.chat_bubble_outline,
+              size: 64, color: AppColors.warning),
           const SizedBox(height: 16),
           Text(S.t('noConversations', locale),
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           Text(S.t('addFirstConversation', locale),
               textAlign: TextAlign.center,
               style: const TextStyle(color: AppColors.textMuted)),
           const SizedBox(height: 24),
-          GradientButton(label: 'Nouvelle conversation', icon: Icons.add, onPressed: onAdd),
+          GradientButton(
+              label: 'Nouvelle conversation',
+              icon: Icons.add,
+              onPressed: onAdd),
         ]),
       ),
     );
@@ -249,7 +261,9 @@ class _ConversationTile extends StatelessWidget {
             CircleAvatar(
               radius: 24,
               backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-              backgroundImage: conversation.avatarUrl != null ? NetworkImage(conversation.avatarUrl!) : null,
+              backgroundImage: conversation.avatarUrl != null
+                  ? NetworkImage(conversation.avatarUrl!)
+                  : null,
               child: conversation.avatarUrl == null
                   ? Text(
                       conversation.contactName.isNotEmpty
@@ -271,11 +285,11 @@ class _ConversationTile extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w700)),
-                  Text(
-                      conversation.lastMessage ?? 'Aucun message',
+                  Text(conversation.lastMessage ?? 'Aucun message',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.textMuted)),
                 ],
               ),
             ),
@@ -283,19 +297,22 @@ class _ConversationTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 if (conversation.lastMessageTime != null)
-                  Text(
-                    _formatTime(conversation.lastMessageTime!),
-                    style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                  Text(_formatTime(conversation.lastMessageTime!),
+                      style: const TextStyle(
+                          fontSize: 11, color: AppColors.textMuted)),
                 if (conversation.unreadCount > 0)
                   Container(
                     margin: const EdgeInsets.only(top: 4),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       color: AppColors.pharmaGold,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      conversation.unreadCount > 99 ? '99+' : conversation.unreadCount.toString(),
+                      conversation.unreadCount > 99
+                          ? '99+'
+                          : conversation.unreadCount.toString(),
                       style: const TextStyle(
                           color: Colors.white,
                           fontSize: 10,
@@ -352,12 +369,17 @@ class _ChatbotWidgetState extends State<_ChatbotWidget> {
         _sending = false;
         if (r.success && r.data != null) {
           final d = r.data as Map;
-          _messages.add({'role': 'bot', 'text': d['response']?.toString() ?? 'Réponse'});
+          _messages.add(
+              {'role': 'bot', 'text': d['response']?.toString() ?? 'Réponse'});
           if (d['transferToHuman'] == true) {
-            _messages.add({'role': 'bot', 'text': 'Transfert vers un opérateur humain en cours...'});
+            _messages.add({
+              'role': 'bot',
+              'text': 'Transfert vers un opérateur humain en cours...'
+            });
           }
         } else {
-          _messages.add({'role': 'bot', 'text': r.error?.readableMessage ?? 'Erreur'});
+          _messages.add(
+              {'role': 'bot', 'text': r.error?.readableMessage ?? 'Erreur'});
         }
       });
     } catch (e) {
@@ -383,14 +405,18 @@ class _ChatbotWidgetState extends State<_ChatbotWidget> {
               alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
               child: Container(
                 margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isUser ? AppColors.pharmaGold : Colors.grey.withValues(alpha: 0.1),
+                  color: isUser
+                      ? AppColors.pharmaGold
+                      : Colors.grey.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   m['text'] ?? '',
-                  style: TextStyle(color: isUser ? Colors.black : Colors.black87),
+                  style:
+                      TextStyle(color: isUser ? Colors.black : Colors.black87),
                 ),
               ),
             );
@@ -404,9 +430,13 @@ class _ChatbotWidgetState extends State<_ChatbotWidget> {
             child: TextField(
               controller: _controller,
               decoration: InputDecoration(
-                hintText: widget.locale == 'ar' ? 'أكتب رسالتك...' : 'Écrivez votre message...',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                hintText: widget.locale == 'ar'
+                    ? 'أكتب رسالتك...'
+                    : 'Écrivez votre message...',
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
               onSubmitted: (_) => _send(),
             ),

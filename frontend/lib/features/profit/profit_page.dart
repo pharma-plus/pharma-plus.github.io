@@ -319,6 +319,8 @@ class _ProfitPageState extends State<ProfitPage> {
               Expanded(
                 child: Text(
                   label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 12,
                     color: AppColors.textMuted,
@@ -328,12 +330,16 @@ class _ProfitPageState extends State<ProfitPage> {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: isBold ? FontWeight.w900 : FontWeight.w800,
-              color: color,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: isBold ? FontWeight.w900 : FontWeight.w800,
+                color: color,
+              ),
             ),
           ),
         ],
@@ -350,49 +356,63 @@ class _ProfitPageState extends State<ProfitPage> {
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: Column(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final narrow = constraints.maxWidth < 420;
+          final labelCol = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                  fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subLabel,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ],
+          );
+          final valueCol = Column(
+            crossAxisAlignment:
+                narrow ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+            children: [
+              Text(
+                value,
+                textAlign: narrow ? TextAlign.left : TextAlign.right,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                ),
+              ),
+            ],
+          );
+          if (narrow) {
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                    fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subLabel,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textMuted,
-                  ),
-                ),
+                labelCol,
+                const SizedBox(height: 4),
+                valueCol,
               ],
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: color,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(flex: 3, child: labelCol),
+              const SizedBox(width: 12),
+              Expanded(flex: 2, child: valueCol),
+            ],
+          );
+        },
       ),
     );
   }

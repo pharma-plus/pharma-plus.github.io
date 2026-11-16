@@ -20,19 +20,26 @@ class Medication {
   final String? categoryId;
   final String? categoryName;
   final String? parentCategoryName;
+
   /// Emplacement physique : identifiant de zone du Plan 3D (ex: 'meds').
   final String? shelfLocation;
+
   /// Laboratoire / fabricant (texte libre, saisie pharmacien).
   final String? laboratoryName;
+
   /// Classe th�rapeutique (texte libre, saisie pharmacien).
   final String? therapeuticClass;
+
   /// Substance active (colonne additive 933).
   final String? substanceActive;
+
   /// Composition libre (colonne additive 933).
   final String? composition;
+
   /// Prix hors / PPC (colonnes additives 935, copie fidele reference).
   final double? ph;
   final double? ppc;
+
   /// FK vers laboratories (laboratoire rattache au produit).
   final String? laboratoryId;
 

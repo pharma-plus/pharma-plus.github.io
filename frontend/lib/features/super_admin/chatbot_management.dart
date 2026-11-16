@@ -45,13 +45,15 @@ class _ChatbotManagementPageState extends State<ChatbotManagementPage> {
   Future<void> _loadConversations() async {
     setState(() => _loading = true);
     try {
-      final r = await ApiClient.instance.get('/whatsapp/conversations', query: {'limit': 20});
+      final r = await ApiClient.instance
+          .get('/whatsapp/conversations', query: {'limit': 20});
       if (!mounted) return;
       setState(() {
         _conversations = (r.success ? r.data : [])
             .map((e) => Map<String, dynamic>.from(e as Map))
             .toList() as List<Map<String, dynamic>>;
-        if (_conversations.isNotEmpty) _selectedConversationId = _conversations.first['id'] as String?;
+        if (_conversations.isNotEmpty)
+          _selectedConversationId = _conversations.first['id'] as String?;
         _loading = false;
       });
     } catch (e) {
@@ -77,12 +79,17 @@ class _ChatbotManagementPageState extends State<ChatbotManagementPage> {
       setState(() => _sending = false);
       if (r.success && r.data != null) {
         final d = r.data as Map;
-        _messages.add({'role': 'bot', 'text': d['response']?.toString() ?? 'Réponse'});
+        _messages.add(
+            {'role': 'bot', 'text': d['response']?.toString() ?? 'Réponse'});
         if (d['transferToHuman'] == true) {
-          _messages.add({'role': 'bot', 'text': 'Transfert vers un opérateur humain en cours...'});
+          _messages.add({
+            'role': 'bot',
+            'text': 'Transfert vers un opérateur humain en cours...'
+          });
         }
       } else {
-        _messages.add({'role': 'bot', 'text': r.error?.readableMessage ?? 'Erreur'});
+        _messages
+            .add({'role': 'bot', 'text': r.error?.readableMessage ?? 'Erreur'});
       }
     } catch (e) {
       if (!mounted) return;
@@ -119,7 +126,8 @@ class _ChatbotManagementPageState extends State<ChatbotManagementPage> {
         backgroundColor: _kSuperAdminDark.withValues(alpha: 0.95),
         elevation: 0,
         leading: const ShellBackButton(),
-        title: const Text('Chatbot IA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+        title: const Text('Chatbot IA',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
         actions: [
           if (_selectedConversationId != null)
             GradientButton(
@@ -131,7 +139,8 @@ class _ChatbotManagementPageState extends State<ChatbotManagementPage> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _kSuperAdminGold))
+          ? const Center(
+              child: CircularProgressIndicator(color: _kSuperAdminGold))
           : Column(
               children: [
                 // Sélecteur de conversation
@@ -144,14 +153,20 @@ class _ChatbotManagementPageState extends State<ChatbotManagementPage> {
                           value: _selectedConversationId,
                           decoration: InputDecoration(
                             labelText: 'Conversation',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 12),
                           ),
-                          items: _conversations.map((c) => DropdownMenuItem(
-                            value: c['id'] as String?,
-                            child: Text('${c['contactName'] ?? 'Contact'} (${c['contactPhone'] ?? ''})'),
-                          )).toList(),
-                          onChanged: (v) => setState(() => _selectedConversationId = v),
+                          items: _conversations
+                              .map((c) => DropdownMenuItem(
+                                    value: c['id'] as String?,
+                                    child: Text(
+                                        '${c['contactName'] ?? 'Contact'} (${c['contactPhone'] ?? ''})'),
+                                  ))
+                              .toList(),
+                          onChanged: (v) =>
+                              setState(() => _selectedConversationId = v),
                         ),
                       ),
                     ],
@@ -164,9 +179,13 @@ class _ChatbotManagementPageState extends State<ChatbotManagementPage> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.smart_toy, color: _kSuperAdminGold.withValues(alpha: 0.3), size: 64),
+                              Icon(Icons.smart_toy,
+                                  color:
+                                      _kSuperAdminGold.withValues(alpha: 0.3),
+                                  size: 64),
                               const SizedBox(height: 16),
-                              Text('Sélectionnez une conversation pour discuter avec le chatbot',
+                              Text(
+                                  'Sélectionnez une conversation pour discuter avec le chatbot',
                                   style: TextStyle(color: Colors.white60)),
                             ],
                           ),
@@ -178,17 +197,26 @@ class _ChatbotManagementPageState extends State<ChatbotManagementPage> {
                             final m = _messages[i];
                             final isUser = m['role'] == 'user';
                             return Align(
-                              alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                              alignment: isUser
+                                  ? Alignment.centerRight
+                                  : Alignment.centerLeft,
                               child: Container(
-                                margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                margin: const EdgeInsets.symmetric(
+                                    vertical: 4, horizontal: 8),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 10),
                                 decoration: BoxDecoration(
-                                  color: isUser ? _kSuperAdminGold : Colors.white.withValues(alpha: 0.1),
+                                  color: isUser
+                                      ? _kSuperAdminGold
+                                      : Colors.white.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 child: Text(
                                   m['text'] ?? '',
-                                  style: TextStyle(color: isUser ? AppColors.graphite : Colors.white),
+                                  style: TextStyle(
+                                      color: isUser
+                                          ? AppColors.graphite
+                                          : Colors.white),
                                 ),
                               ),
                             );
@@ -205,8 +233,10 @@ class _ChatbotManagementPageState extends State<ChatbotManagementPage> {
                           controller: _controller,
                           decoration: InputDecoration(
                             hintText: 'Écrivez votre message...',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(24)),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 10),
                           ),
                           onSubmitted: (_) => _send(),
                         ),
@@ -239,6 +269,8 @@ class ShellBackButton extends StatelessWidget {
   const ShellBackButton({super.key});
   @override
   Widget build(BuildContext context) {
-    return IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white70), onPressed: () => Navigator.of(context).pop());
+    return IconButton(
+        icon: const Icon(Icons.arrow_back, color: Colors.white70),
+        onPressed: () => Navigator.of(context).pop());
   }
 }

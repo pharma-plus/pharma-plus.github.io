@@ -41,7 +41,8 @@ class AppStatusBadge extends StatelessWidget {
     final borderColor = customBorderColor ?? config.borderColor;
     final iconData = icon ?? config.icon;
     final labelStyle = _getLabelStyle(context, size);
-    final horizontalPadding = padding?.horizontal ?? _getHorizontalPadding(size);
+    final horizontalPadding =
+        padding?.horizontal ?? _getHorizontalPadding(size);
     final verticalPadding = padding?.vertical ?? _getVerticalPadding(size);
     final radius = _getRadius(size);
     final iconSize = _getIconSize(size);
@@ -155,7 +156,8 @@ class AppStatusBadge extends StatelessWidget {
                   ? tokens.brandPrimary.withValues(alpha: 0.15)
                   : tokens.brandPrimary.withValues(alpha: 0.1)),
           textColor: customTextColor ?? tokens.brandPrimary,
-          borderColor: customBorderColor ?? tokens.brandPrimary.withValues(alpha: 0.3),
+          borderColor:
+              customBorderColor ?? tokens.brandPrimary.withValues(alpha: 0.3),
           icon: icon ?? Icons.label_rounded,
         );
     }
@@ -306,7 +308,8 @@ class AppDomainBadge extends StatelessWidget {
       case AppDomain.orders:
         return _DomainConfig(tokens.domainOrders, Icons.shopping_cart_rounded);
       case AppDomain.suppliers:
-        return _DomainConfig(tokens.domainSuppliers, Icons.local_shipping_rounded);
+        return _DomainConfig(
+            tokens.domainSuppliers, Icons.local_shipping_rounded);
       case AppDomain.customers:
         return _DomainConfig(tokens.domainCustomers, Icons.people_rounded);
       case AppDomain.employees:

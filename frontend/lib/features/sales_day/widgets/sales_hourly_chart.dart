@@ -74,7 +74,8 @@ class SalesHourlyChart extends StatelessWidget {
                 ),
                 borderData: FlBorderData(show: false),
                 titlesData: FlTitlesData(
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
@@ -107,7 +108,8 @@ class SalesHourlyChart extends StatelessWidget {
                       },
                     ),
                   ),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
                 ),
                 barTouchData: BarTouchData(
                   touchTooltipData: BarTouchTooltipData(
@@ -137,7 +139,8 @@ class SalesHourlyChart extends StatelessWidget {
                           ),
                           if (bucket != null)
                             TextSpan(
-                              text: '\n${bucket.count} vente${bucket.count > 1 ? 's' : ''}',
+                              text:
+                                  '\n${bucket.count} vente${bucket.count > 1 ? 's' : ''}',
                               style: const TextStyle(
                                 color: AppColors.pharmaMuted,
                                 fontSize: 10,
@@ -161,7 +164,8 @@ class SalesHourlyChart extends StatelessWidget {
                             begin: Alignment.bottomCenter,
                             end: Alignment.topCenter,
                             colors: [
-                              AppColors.sageGreenInkDark.withValues(alpha: 0.95),
+                              AppColors.sageGreenInkDark
+                                  .withValues(alpha: 0.95),
                               AppColors.sageGreenInk.withValues(alpha: 0.95),
                               AppColors.sageGreenInk.withValues(alpha: 0.95),
                             ],
@@ -186,7 +190,21 @@ class SalesHourlyChart extends StatelessWidget {
       if (b.revenue > max) max = b.revenue;
     }
     if (max <= 0) return 1;
-    final steps = [1.0, 2.0, 5.0, 10.0, 20.0, 50.0, 100.0, 200.0, 500.0, 1000.0, 2000.0, 5000.0, 10000.0];
+    final steps = [
+      1.0,
+      2.0,
+      5.0,
+      10.0,
+      20.0,
+      50.0,
+      100.0,
+      200.0,
+      500.0,
+      1000.0,
+      2000.0,
+      5000.0,
+      10000.0
+    ];
     for (final s in steps) {
       if (max / s <= 5) return s;
     }

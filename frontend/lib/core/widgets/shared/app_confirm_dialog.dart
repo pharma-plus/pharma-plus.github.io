@@ -155,7 +155,8 @@ class AppConfirmDialog extends StatelessWidget {
                   onCancel?.call();
                 },
           style: TextButton.styleFrom(
-            foregroundColor: isDark ? tokens.textSecondary : tokens.textSecondary,
+            foregroundColor:
+                isDark ? tokens.textSecondary : tokens.textSecondary,
             padding: EdgeInsets.symmetric(
               horizontal: tokens.sp5,
               vertical: tokens.sp3,
@@ -189,7 +190,8 @@ class AppConfirmDialog extends StatelessWidget {
                   }
                 },
           style: FilledButton.styleFrom(
-            backgroundColor: isDestructive ? tokens.danger : tokens.brandPrimary,
+            backgroundColor:
+                isDestructive ? tokens.danger : tokens.brandPrimary,
             foregroundColor: Colors.white,
             padding: EdgeInsets.symmetric(
               horizontal: tokens.sp5,
@@ -200,15 +202,15 @@ class AppConfirmDialog extends StatelessWidget {
             ),
             elevation: tokens.elevation2,
           ),
-child: confirmLoading
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
+          child: confirmLoading
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
               : Text(
                   confirmActionText ?? confirmText,
                   style: tokens.labelLarge.copyWith(color: Colors.white),
@@ -452,7 +454,8 @@ class AppErrorDialog extends StatelessWidget {
               borderRadius: BorderRadius.circular(tokens.rButton),
             ),
           ),
-          child: Text(dismissText, style: tokens.labelLarge.copyWith(color: Colors.white)),
+          child: Text(dismissText,
+              style: tokens.labelLarge.copyWith(color: Colors.white)),
         ),
       ],
     );
@@ -581,7 +584,8 @@ class AppSuccessDialog extends StatelessWidget {
               borderRadius: BorderRadius.circular(tokens.rButton),
             ),
           ),
-          child: Text(dismissText, style: tokens.labelLarge.copyWith(color: Colors.white)),
+          child: Text(dismissText,
+              style: tokens.labelLarge.copyWith(color: Colors.white)),
         ),
       ],
     );

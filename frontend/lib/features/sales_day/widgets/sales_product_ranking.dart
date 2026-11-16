@@ -32,8 +32,8 @@ class SalesProductRanking extends StatelessWidget {
 
   static const List<Color> _medals = [
     AppColors.champagneInkLight, // 1 (or)
-    AppColors.pharmaMuted,     // 2 (argent)
-    Color(0xFFCD7F32),         // 3 (bronze)
+    AppColors.pharmaMuted, // 2 (argent)
+    Color(0xFFCD7F32), // 3 (bronze)
   ];
 
   /// Couleur de la barre selon le critère de classement.
@@ -100,7 +100,8 @@ class SalesProductRanking extends StatelessWidget {
               decoration: BoxDecoration(
                 color: barColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: barColor.withValues(alpha: 0.5), width: 1),
+                border: Border.all(
+                    color: barColor.withValues(alpha: 0.5), width: 1),
               ),
               child: Text(
                 'Top 10 · ${sortBy == 'qty' ? 'Qté' : sortBy == 'rev' ? 'CA' : 'Bénéfice'}',
@@ -126,22 +127,21 @@ class SalesProductRanking extends StatelessWidget {
               ),
             ),
           )
-        else
-          ...[
-            for (final (i, p) in products.indexed)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 5),
-                child: _rankingRow(
-                  context: context,
-                  rank: i + 1,
-                  product: p,
-                  barColor: barColor,
-                  maxVal: maxVal,
-                  sortBy: sortBy,
-                  onTap: onProductTap != null ? () => onProductTap!(p) : null,
-                ),
+        else ...[
+          for (final (i, p) in products.indexed)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 5),
+              child: _rankingRow(
+                context: context,
+                rank: i + 1,
+                product: p,
+                barColor: barColor,
+                maxVal: maxVal,
+                sortBy: sortBy,
+                onTap: onProductTap != null ? () => onProductTap!(p) : null,
               ),
-          ],
+            ),
+        ],
       ],
     );
   }
@@ -231,10 +231,9 @@ class SalesProductRanking extends StatelessWidget {
                         Text(
                           sortBy == 'qty'
                               ? '${product.quantity.toStringAsFixed(0)} u.'
-                              : Fmt.money(
-                                  sortBy == 'rev'
-                                      ? product.revenue
-                                      : product.profit),
+                              : Fmt.money(sortBy == 'rev'
+                                  ? product.revenue
+                                  : product.profit),
                           style: const TextStyle(
                             color: AppColors.champagneInkLight,
                             fontSize: 12,

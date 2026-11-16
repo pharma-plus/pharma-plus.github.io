@@ -19,7 +19,6 @@ import '../../core/widgets/status_chip.dart';
 import 'role_management_page.dart';
 import 'super_admin_functions.dart';
 
-
 /// Prevent tree-shaking by ensuring SuperAdminCRMPage is referenced
 @pragma('vm:entry-point')
 final _superAdminCRMPageRef = SuperAdminCRMPage;
@@ -193,13 +192,14 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
 
   void _onSearchChanged(String q) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 350), () => _load(reset: true));
+    _debounce =
+        Timer(const Duration(milliseconds: 350), () => _load(reset: true));
   }
 
   void _clearFilters() => setState(() {
-    _search.clear();
-    _load(reset: true);
-  });
+        _search.clear();
+        _load(reset: true);
+      });
 
   bool get _hasActiveFilters => _search.text.trim().isNotEmpty;
 
@@ -207,7 +207,7 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
     final authStore = context.read<AuthStore>();
-    
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
@@ -219,7 +219,8 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
         title: Text(S.t('superAdminCRM', locale)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.analytics_outlined, color: AppColors.pharmaGold),
+            icon: const Icon(Icons.analytics_outlined,
+                color: AppColors.pharmaGold),
             onPressed: () => setState(() => _activeTab = 'analytics'),
             tooltip: S.t('analytics', locale),
           ),
@@ -292,7 +293,8 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
                           // factice bloquant.
                           ? const RoleManagementBody()
                           : _getCurrentList().isEmpty
-                              ? _EmptyState(locale: locale, activeTab: _activeTab)
+                              ? _EmptyState(
+                                  locale: locale, activeTab: _activeTab)
                               : RefreshIndicator(
                                   onRefresh: () => _load(reset: true),
                                   child: _buildListView(locale),
@@ -334,7 +336,10 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
       itemBuilder: (context, i) {
         if (i == items.length) {
           if (!_loadingMore) Future.microtask(() => _load());
-          return const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()));
+          return const Center(
+              child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: CircularProgressIndicator()));
         }
         final item = items[i];
         return _buildItemCard(item, locale);
@@ -345,9 +350,11 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
   Widget _buildItemCard(Map<String, dynamic> item, String locale) {
     switch (_activeTab) {
       case 'pharmacies':
-        return _PharmacyCard(item: item, locale: locale, onTap: () => _showDetail(item));
+        return _PharmacyCard(
+            item: item, locale: locale, onTap: () => _showDetail(item));
       case 'prospects':
-        return _ProspectCard(item: item, locale: locale, onTap: () => _showDetail(item));
+        return _ProspectCard(
+            item: item, locale: locale, onTap: () => _showDetail(item));
       case 'invoices':
         return _InvoiceCard(item: item, locale: locale);
       case 'tickets':
@@ -365,7 +372,10 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
       (S.t('active', locale), '${ph['active'] ?? 0}'),
       (S.t('totalUsers', locale), '${stats['users'] ?? 0}'),
       (S.t('totalSales', locale), '${stats['sales'] ?? 0}'),
-      (S.t('totalRevenue', locale), '${(stats['revenue'] ?? 0).toString()} MAD'),
+      (
+        S.t('totalRevenue', locale),
+        '${(stats['revenue'] ?? 0).toString()} MAD'
+      ),
       (S.t('licenseType', locale), '${stats['activeLicenses'] ?? 0}'),
     ];
     return Padding(
@@ -386,9 +396,13 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(tiles[i].$1, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+              Text(tiles[i].$1,
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.textMuted)),
               const SizedBox(height: 4),
-              Text(tiles[i].$2, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              Text(tiles[i].$2,
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.w800)),
             ],
           ),
         ),
@@ -423,7 +437,10 @@ class _SuperAdminCRMPageState extends State<SuperAdminCRMPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => _DetailSheet(item: item, activeTab: _activeTab, onChanged: () => _load(reset: true)),
+      builder: (_) => _DetailSheet(
+          item: item,
+          activeTab: _activeTab,
+          onChanged: () => _load(reset: true)),
     );
   }
 }
@@ -438,10 +455,14 @@ class _ActiveFilterBar extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Row(children: [
-        Expanded(child: Wrap(spacing: 8, children: [
+        Expanded(
+            child: Wrap(spacing: 8, children: [
           // Filtres actifs affichés ici
         ])),
-        TextButton.icon(onPressed: onClear, icon: const Icon(Icons.filter_alt_off, size: 16), label: Text(S.t('clearFilters', locale))),
+        TextButton.icon(
+            onPressed: onClear,
+            icon: const Icon(Icons.filter_alt_off, size: 16),
+            label: Text(S.t('clearFilters', locale))),
       ]),
     );
   }
@@ -451,7 +472,8 @@ class _PharmacyCard extends StatelessWidget {
   final Map<String, dynamic> item;
   final String locale;
   final VoidCallback onTap;
-  const _PharmacyCard({required this.item, required this.locale, required this.onTap});
+  const _PharmacyCard(
+      {required this.item, required this.locale, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -462,22 +484,50 @@ class _PharmacyCard extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         onTap: onTap,
         child: Row(children: [
-          Container(width: 46, height: 46, decoration: BoxDecoration(gradient: AppColors.goldGradient, borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.local_pharmacy, color: Color(0xFF3E2A00))),
+          Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                  gradient: AppColors.goldGradient,
+                  borderRadius: BorderRadius.circular(12)),
+              child:
+                  const Icon(Icons.local_pharmacy, color: Color(0xFF3E2A00))),
           const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('${item['name']}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-            const SizedBox(height: 2),
-            Text('@${item['slug']} · ${item['city'] ?? ''}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-            const SizedBox(height: 4),
-            Wrap(spacing: 8, children: [
-              StatusChip(label: status == 'active' ? S.t('pharmacyActive', locale) : status == 'suspended' ? S.t('suspended', locale) : S.t('deleted', locale), color: status == 'active' ? AppColors.success : status == 'suspended' ? AppColors.danger : AppColors.textMuted),
-              StatusChip(label: item['license_type']?.toString().capitalize() ?? S.t('trial', locale), color: AppColors.info),
-            ]),
-          ])),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text('${item['name']}',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 15)),
+                const SizedBox(height: 2),
+                Text('@${item['slug']} · ${item['city'] ?? ''}',
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.textMuted)),
+                const SizedBox(height: 4),
+                Wrap(spacing: 8, children: [
+                  StatusChip(
+                      label: status == 'active'
+                          ? S.t('pharmacyActive', locale)
+                          : status == 'suspended'
+                              ? S.t('suspended', locale)
+                              : S.t('deleted', locale),
+                      color: status == 'active'
+                          ? AppColors.success
+                          : status == 'suspended'
+                              ? AppColors.danger
+                              : AppColors.textMuted),
+                  StatusChip(
+                      label: item['license_type']?.toString().capitalize() ??
+                          S.t('trial', locale),
+                      color: AppColors.info),
+                ]),
+              ])),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text('${item['nb_users'] ?? 0} ${S.t('nbUsers', locale)}', style: const TextStyle(fontSize: 12)),
-            Text('${item['nb_branches'] ?? 0} ${S.t('nbBranches', locale)}', style: const TextStyle(fontSize: 12)),
+            Text('${item['nb_users'] ?? 0} ${S.t('nbUsers', locale)}',
+                style: const TextStyle(fontSize: 12)),
+            Text('${item['nb_branches'] ?? 0} ${S.t('nbBranches', locale)}',
+                style: const TextStyle(fontSize: 12)),
             TextButton(onPressed: onTap, child: Text(S.t('manage', locale))),
           ]),
         ]),
@@ -490,28 +540,51 @@ class _ProspectCard extends StatelessWidget {
   final Map<String, dynamic> item;
   final String locale;
   final VoidCallback onTap;
-  const _ProspectCard({required this.item, required this.locale, required this.onTap});
+  const _ProspectCard(
+      {required this.item, required this.locale, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(padding: const EdgeInsets.only(bottom: 10),
-      child: GlassCard(padding: const EdgeInsets.all(14), onTap: onTap, child: Row(children: [
-        Container(width: 46, height: 46, decoration: BoxDecoration(color: AppColors.info.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-          child: const Icon(Icons.person_outline, color: AppColors.info)),
-        const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('${item['name']}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-          const SizedBox(height: 2),
-          Text('${item['company'] ?? ''} · ${item['email'] ?? ''}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-        ])),
-        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          StatusChip(label: item['status']?.toString().capitalize() ?? 'Nouveau', color: AppColors.info),
-          const SizedBox(height: 4),
-          Text('${item['estimated_value'] != null ? '${item['estimated_value']} MAD' : ''}', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
-        ]),
-      ])
-    )
-  );
+    return Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: GlassCard(
+            padding: const EdgeInsets.all(14),
+            onTap: onTap,
+            child: Row(children: [
+              Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                      color: AppColors.info.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12)),
+                  child:
+                      const Icon(Icons.person_outline, color: AppColors.info)),
+              const SizedBox(width: 12),
+              Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    Text('${item['name']}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 15)),
+                    const SizedBox(height: 2),
+                    Text('${item['company'] ?? ''} · ${item['email'] ?? ''}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.textMuted)),
+                  ])),
+              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                StatusChip(
+                    label: item['status']?.toString().capitalize() ?? 'Nouveau',
+                    color: AppColors.info),
+                const SizedBox(height: 4),
+                Text(
+                    '${item['estimated_value'] != null ? '${item['estimated_value']} MAD' : ''}',
+                    style: const TextStyle(
+                        fontSize: 11, color: AppColors.textMuted)),
+              ]),
+            ])));
   }
 }
 
@@ -522,24 +595,44 @@ class _InvoiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(padding: const EdgeInsets.only(bottom: 8),
-      child: GlassCard(radius: BorderRadius.circular(16), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(children: [
-          const Icon(Icons.receipt_long, color: AppColors.pharmaGold, size: 24),
-          const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('${item['number']}', style: const TextStyle(fontWeight: FontWeight.w700)),
-            Text('${item['pharmacy_name'] ?? ''}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-          ])),
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            // Partie D — statuts réels (unpaid est le défaut ; pending
-            // n'existait pas).
-            StatusChip(label: '${item['status']}', color: item['status'] == 'paid' ? AppColors.success : item['status'] == 'overdue' || item['status'] == 'cancelled' ? AppColors.danger : AppColors.warning),
-            Text(Fmt.money(double.tryParse('${item['amount'] ?? 0}') ?? 0), style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.pharmaGold)),
-          ]),
-        ])
-    )
-  );
+    return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: GlassCard(
+            radius: BorderRadius.circular(16),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(children: [
+              const Icon(Icons.receipt_long,
+                  color: AppColors.pharmaGold, size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    Text('${item['number']}',
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                    Text('${item['pharmacy_name'] ?? ''}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.textMuted)),
+                  ])),
+              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                // Partie D — statuts réels (unpaid est le défaut ; pending
+                // n'existait pas).
+                StatusChip(
+                    label: '${item['status']}',
+                    color: item['status'] == 'paid'
+                        ? AppColors.success
+                        : item['status'] == 'overdue' ||
+                                item['status'] == 'cancelled'
+                            ? AppColors.danger
+                            : AppColors.warning),
+                Text(Fmt.money(double.tryParse('${item['amount'] ?? 0}') ?? 0),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.pharmaGold)),
+              ]),
+            ])));
   }
 }
 
@@ -550,20 +643,45 @@ class _TicketCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(padding: const EdgeInsets.only(bottom: 8),
-      child: GlassCard(radius: BorderRadius.circular(16), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), onTap: () {},
-        child: Row(children: [
-          Container(width: 44, height: 44, decoration: BoxDecoration(color: AppColors.info.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.support_agent, color: AppColors.info)),
-          const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('${item['subject']}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
-            Text('${item['pharmacy_name'] ?? ''} · ${item['created_at'] != null ? DateTime.tryParse('${item['created_at']}')?.toString().substring(0, 10) : ''}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-          ])),
-          StatusChip(label: item['status']?.toString().capitalize() ?? 'Open', color: item['status'] == 'resolved' ? AppColors.success : item['status'] == 'in_progress' ? AppColors.warning : AppColors.danger),
-        ])
-    )
-  );
+    return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: GlassCard(
+            radius: BorderRadius.circular(16),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            onTap: () {},
+            child: Row(children: [
+              Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                      color: AppColors.info.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12)),
+                  child:
+                      const Icon(Icons.support_agent, color: AppColors.info)),
+              const SizedBox(width: 12),
+              Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    Text('${item['subject']}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                    Text(
+                        '${item['pharmacy_name'] ?? ''} · ${item['created_at'] != null ? DateTime.tryParse('${item['created_at']}')?.toString().substring(0, 10) : ''}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.textMuted)),
+                  ])),
+              StatusChip(
+                  label: item['status']?.toString().capitalize() ?? 'Open',
+                  color: item['status'] == 'resolved'
+                      ? AppColors.success
+                      : item['status'] == 'in_progress'
+                          ? AppColors.warning
+                          : AppColors.danger),
+            ])));
   }
 }
 
@@ -585,7 +703,8 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 16),
           Text(S.t(emptyTitle, locale),
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           Text(S.t(emptySubtitle, locale),
               textAlign: TextAlign.center,
@@ -604,7 +723,8 @@ class _EmptyState extends StatelessWidget {
 class _PharmacyForm extends StatefulWidget {
   final VoidCallback onSaved;
   const _PharmacyForm({required this.onSaved});
-  @override State<_PharmacyForm> createState() => _PharmacyFormState();
+  @override
+  State<_PharmacyForm> createState() => _PharmacyFormState();
 }
 
 class _PharmacyFormState extends State<_PharmacyForm> {
@@ -617,7 +737,16 @@ class _PharmacyFormState extends State<_PharmacyForm> {
   final _address = TextEditingController();
   bool _saving = false;
 
-  @override void dispose() { _name.dispose(); _slug.dispose(); _city.dispose(); _email.dispose(); _phone.dispose(); _address.dispose(); super.dispose(); }
+  @override
+  void dispose() {
+    _name.dispose();
+    _slug.dispose();
+    _city.dispose();
+    _email.dispose();
+    _phone.dispose();
+    _address.dispose();
+    super.dispose();
+  }
 
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -630,14 +759,16 @@ class _PharmacyFormState extends State<_PharmacyForm> {
       'phone': _phone.text.trim(),
       'address': _address.text.trim(),
     };
-    final result = await ApiClient.instance.post('/superadmin/pharmacies', body: body);
+    final result =
+        await ApiClient.instance.post('/superadmin/pharmacies', body: body);
     if (!mounted) return;
     if (result.success) {
       Navigator.pop(context);
       widget.onSaved();
     } else {
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.error?.readableMessage ?? 'Erreur')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result.error?.readableMessage ?? 'Erreur')));
     }
   }
 
@@ -645,37 +776,80 @@ class _PharmacyFormState extends State<_PharmacyForm> {
   Widget build(BuildContext context) {
     final locale = context.read<AuthStore>().locale;
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: SafeArea(child: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Form(
-        key: _formKey,
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text(S.t('newPharmacy', locale), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 16),
-          TextFormField(controller: _name, validator: (v) => v?.isEmpty == true ? S.t('requiredField', locale) : null, decoration: InputDecoration(labelText: S.t('name', locale))),
-          const SizedBox(height: 12),
-          TextFormField(controller: _slug, validator: (v) => v?.isEmpty == true ? S.t('requiredField', locale) : null, decoration: InputDecoration(labelText: S.t('slug', locale))),
-          const SizedBox(height: 12),
-          TextFormField(controller: _city, decoration: InputDecoration(labelText: S.t('city', locale))),
-          const SizedBox(height: 12),
-          TextFormField(controller: _email, decoration: InputDecoration(labelText: S.t('email', locale)), keyboardType: TextInputType.emailAddress),
-          const SizedBox(height: 12),
-          TextFormField(controller: _phone, decoration: InputDecoration(labelText: S.t('phone', locale)), keyboardType: TextInputType.phone),
-          const SizedBox(height: 12),
-          TextFormField(controller: _address, decoration: InputDecoration(labelText: S.t('address', locale)), maxLines: 2),
-          const SizedBox(height: 20),
-          Row(children: [
-            Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close), label: Text(S.t('cancel', locale)))),
-            const SizedBox(width: 12),
-            Expanded(child: GradientButton(label: S.t('save', locale), icon: Icons.check, loading: _saving, onPressed: _save)),
-          ]),
-        ])))));
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: SafeArea(
+            child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                    key: _formKey,
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Text(S.t('newPharmacy', locale),
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                          controller: _name,
+                          validator: (v) => v?.isEmpty == true
+                              ? S.t('requiredField', locale)
+                              : null,
+                          decoration:
+                              InputDecoration(labelText: S.t('name', locale))),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                          controller: _slug,
+                          validator: (v) => v?.isEmpty == true
+                              ? S.t('requiredField', locale)
+                              : null,
+                          decoration:
+                              InputDecoration(labelText: S.t('slug', locale))),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                          controller: _city,
+                          decoration:
+                              InputDecoration(labelText: S.t('city', locale))),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                          controller: _email,
+                          decoration:
+                              InputDecoration(labelText: S.t('email', locale)),
+                          keyboardType: TextInputType.emailAddress),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                          controller: _phone,
+                          decoration:
+                              InputDecoration(labelText: S.t('phone', locale)),
+                          keyboardType: TextInputType.phone),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                          controller: _address,
+                          decoration: InputDecoration(
+                              labelText: S.t('address', locale)),
+                          maxLines: 2),
+                      const SizedBox(height: 20),
+                      Row(children: [
+                        Expanded(
+                            child: OutlinedButton.icon(
+                                onPressed: () => Navigator.pop(context),
+                                icon: const Icon(Icons.close),
+                                label: Text(S.t('cancel', locale)))),
+                        const SizedBox(width: 12),
+                        Expanded(
+                            child: GradientButton(
+                                label: S.t('save', locale),
+                                icon: Icons.check,
+                                loading: _saving,
+                                onPressed: _save)),
+                      ]),
+                    ])))));
   }
 }
 
 class _ProspectForm extends StatefulWidget {
   final VoidCallback onSaved;
   const _ProspectForm({required this.onSaved});
-  @override State<_ProspectForm> createState() => _ProspectFormState();
+  @override
+  State<_ProspectForm> createState() => _ProspectFormState();
 }
 
 class _ProspectFormState extends State<_ProspectForm> {
@@ -687,7 +861,15 @@ class _ProspectFormState extends State<_ProspectForm> {
   final _estimatedValue = TextEditingController();
   bool _saving = false;
 
-  @override void dispose() { _name.dispose(); _company.dispose(); _email.dispose(); _phone.dispose(); _estimatedValue.dispose(); super.dispose(); }
+  @override
+  void dispose() {
+    _name.dispose();
+    _company.dispose();
+    _email.dispose();
+    _phone.dispose();
+    _estimatedValue.dispose();
+    super.dispose();
+  }
 
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -699,14 +881,16 @@ class _ProspectFormState extends State<_ProspectForm> {
       'phone': _phone.text.trim(),
       'estimated_value': double.tryParse(_estimatedValue.text.trim()) ?? 0,
     };
-    final result = await ApiClient.instance.post('/superadmin/prospects', body: body);
+    final result =
+        await ApiClient.instance.post('/superadmin/prospects', body: body);
     if (!mounted) return;
     if (result.success) {
       Navigator.pop(context);
       widget.onSaved();
     } else {
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.error?.readableMessage ?? 'Erreur')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result.error?.readableMessage ?? 'Erreur')));
     }
   }
 
@@ -714,35 +898,72 @@ class _ProspectFormState extends State<_ProspectForm> {
   Widget build(BuildContext context) {
     final locale = context.read<AuthStore>().locale;
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: SafeArea(child: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Form(
-        key: _formKey,
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text(S.t('newProspect', locale), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 16),
-          TextFormField(controller: _name, validator: (v) => v?.isEmpty == true ? S.t('requiredField', locale) : null, decoration: InputDecoration(labelText: S.t('name', locale))),
-          const SizedBox(height: 12),
-          TextFormField(controller: _company, decoration: InputDecoration(labelText: S.t('company', locale))),
-          const SizedBox(height: 12),
-          TextFormField(controller: _email, decoration: InputDecoration(labelText: S.t('email', locale)), keyboardType: TextInputType.emailAddress),
-          const SizedBox(height: 12),
-          TextFormField(controller: _phone, decoration: InputDecoration(labelText: S.t('phone', locale)), keyboardType: TextInputType.phone),
-          const SizedBox(height: 12),
-          TextFormField(controller: _estimatedValue, decoration: InputDecoration(labelText: S.t('estimatedValue', locale)), keyboardType: TextInputType.number),
-          const SizedBox(height: 20),
-          Row(children: [
-            Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close), label: Text(S.t('cancel', locale)))),
-            const SizedBox(width: 12),
-            Expanded(child: GradientButton(label: S.t('save', locale), icon: Icons.check, loading: _saving, onPressed: _save)),
-          ]),
-        ])))));
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: SafeArea(
+            child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                    key: _formKey,
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Text(S.t('newProspect', locale),
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                          controller: _name,
+                          validator: (v) => v?.isEmpty == true
+                              ? S.t('requiredField', locale)
+                              : null,
+                          decoration:
+                              InputDecoration(labelText: S.t('name', locale))),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                          controller: _company,
+                          decoration: InputDecoration(
+                              labelText: S.t('company', locale))),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                          controller: _email,
+                          decoration:
+                              InputDecoration(labelText: S.t('email', locale)),
+                          keyboardType: TextInputType.emailAddress),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                          controller: _phone,
+                          decoration:
+                              InputDecoration(labelText: S.t('phone', locale)),
+                          keyboardType: TextInputType.phone),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                          controller: _estimatedValue,
+                          decoration: InputDecoration(
+                              labelText: S.t('estimatedValue', locale)),
+                          keyboardType: TextInputType.number),
+                      const SizedBox(height: 20),
+                      Row(children: [
+                        Expanded(
+                            child: OutlinedButton.icon(
+                                onPressed: () => Navigator.pop(context),
+                                icon: const Icon(Icons.close),
+                                label: Text(S.t('cancel', locale)))),
+                        const SizedBox(width: 12),
+                        Expanded(
+                            child: GradientButton(
+                                label: S.t('save', locale),
+                                icon: Icons.check,
+                                loading: _saving,
+                                onPressed: _save)),
+                      ]),
+                    ])))));
   }
 }
 
 class _InvoiceForm extends StatefulWidget {
   final VoidCallback onSaved;
   const _InvoiceForm({required this.onSaved});
-  @override State<_InvoiceForm> createState() => _InvoiceFormState();
+  @override
+  State<_InvoiceForm> createState() => _InvoiceFormState();
 }
 
 class _InvoiceFormState extends State<_InvoiceForm> {
@@ -753,7 +974,13 @@ class _InvoiceFormState extends State<_InvoiceForm> {
   String _status = 'pending';
   bool _saving = false;
 
-  @override void dispose() { _number.dispose(); _pharmacyId.dispose(); _amount.dispose(); super.dispose(); }
+  @override
+  void dispose() {
+    _number.dispose();
+    _pharmacyId.dispose();
+    _amount.dispose();
+    super.dispose();
+  }
 
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -764,14 +991,16 @@ class _InvoiceFormState extends State<_InvoiceForm> {
       'amount': double.tryParse(_amount.text.trim()) ?? 0,
       'status': _status,
     };
-    final result = await ApiClient.instance.post('/superadmin/invoices', body: body);
+    final result =
+        await ApiClient.instance.post('/superadmin/invoices', body: body);
     if (!mounted) return;
     if (result.success) {
       Navigator.pop(context);
       widget.onSaved();
     } else {
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.error?.readableMessage ?? 'Erreur')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result.error?.readableMessage ?? 'Erreur')));
     }
   }
 
@@ -779,39 +1008,78 @@ class _InvoiceFormState extends State<_InvoiceForm> {
   Widget build(BuildContext context) {
     final locale = context.read<AuthStore>().locale;
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: SafeArea(child: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Form(
-        key: _formKey,
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text(S.t('newInvoice', locale), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 16),
-          TextFormField(controller: _number, validator: (v) => v?.isEmpty == true ? S.t('requiredField', locale) : null, decoration: InputDecoration(labelText: S.t('number', locale))),
-          const SizedBox(height: 12),
-          TextFormField(controller: _pharmacyId, validator: (v) => v?.isEmpty == true ? S.t('requiredField', locale) : null, decoration: InputDecoration(labelText: S.t('pharmacyId', locale))),
-          const SizedBox(height: 12),
-          TextFormField(controller: _amount, validator: (v) => v?.isEmpty == true ? S.t('requiredField', locale) : null, decoration: InputDecoration(labelText: S.t('amount', locale)), keyboardType: TextInputType.number),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            value: _status,
-            decoration: InputDecoration(labelText: S.t('status', locale)),
-            // Partie D — statuts réels de la table (défaut 'unpaid').
-            items: ['unpaid', 'paid', 'overdue', 'cancelled'].map((e) => DropdownMenuItem(value: e, child: Text(e.capitalize()))).toList(),
-            onChanged: (v) => setState(() => _status = v!),
-          ),
-          const SizedBox(height: 20),
-          Row(children: [
-            Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close), label: Text(S.t('cancel', locale)))),
-            const SizedBox(width: 12),
-            Expanded(child: GradientButton(label: S.t('save', locale), icon: Icons.check, loading: _saving, onPressed: _save)),
-          ]),
-        ])))));
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: SafeArea(
+            child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                    key: _formKey,
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Text(S.t('newInvoice', locale),
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                          controller: _number,
+                          validator: (v) => v?.isEmpty == true
+                              ? S.t('requiredField', locale)
+                              : null,
+                          decoration: InputDecoration(
+                              labelText: S.t('number', locale))),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                          controller: _pharmacyId,
+                          validator: (v) => v?.isEmpty == true
+                              ? S.t('requiredField', locale)
+                              : null,
+                          decoration: InputDecoration(
+                              labelText: S.t('pharmacyId', locale))),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                          controller: _amount,
+                          validator: (v) => v?.isEmpty == true
+                              ? S.t('requiredField', locale)
+                              : null,
+                          decoration:
+                              InputDecoration(labelText: S.t('amount', locale)),
+                          keyboardType: TextInputType.number),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: _status,
+                        decoration:
+                            InputDecoration(labelText: S.t('status', locale)),
+                        // Partie D — statuts réels de la table (défaut 'unpaid').
+                        items: ['unpaid', 'paid', 'overdue', 'cancelled']
+                            .map((e) => DropdownMenuItem(
+                                value: e, child: Text(e.capitalize())))
+                            .toList(),
+                        onChanged: (v) => setState(() => _status = v!),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(children: [
+                        Expanded(
+                            child: OutlinedButton.icon(
+                                onPressed: () => Navigator.pop(context),
+                                icon: const Icon(Icons.close),
+                                label: Text(S.t('cancel', locale)))),
+                        const SizedBox(width: 12),
+                        Expanded(
+                            child: GradientButton(
+                                label: S.t('save', locale),
+                                icon: Icons.check,
+                                loading: _saving,
+                                onPressed: _save)),
+                      ]),
+                    ])))));
   }
 }
 
 class _TicketForm extends StatefulWidget {
   final VoidCallback onSaved;
   const _TicketForm({required this.onSaved});
-  @override State<_TicketForm> createState() => _TicketFormState();
+  @override
+  State<_TicketForm> createState() => _TicketFormState();
 }
 
 class _TicketFormState extends State<_TicketForm> {
@@ -822,7 +1090,13 @@ class _TicketFormState extends State<_TicketForm> {
   String _priority = 'medium';
   bool _saving = false;
 
-  @override void dispose() { _subject.dispose(); _description.dispose(); _pharmacyId.dispose(); super.dispose(); }
+  @override
+  void dispose() {
+    _subject.dispose();
+    _description.dispose();
+    _pharmacyId.dispose();
+    super.dispose();
+  }
 
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -833,14 +1107,16 @@ class _TicketFormState extends State<_TicketForm> {
       'pharmacy_id': _pharmacyId.text.trim(),
       'priority': _priority,
     };
-    final result = await ApiClient.instance.post('/superadmin/tickets', body: body);
+    final result =
+        await ApiClient.instance.post('/superadmin/tickets', body: body);
     if (!mounted) return;
     if (result.success) {
       Navigator.pop(context);
       widget.onSaved();
     } else {
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.error?.readableMessage ?? 'Erreur')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result.error?.readableMessage ?? 'Erreur')));
     }
   }
 
@@ -848,31 +1124,63 @@ class _TicketFormState extends State<_TicketForm> {
   Widget build(BuildContext context) {
     final locale = context.read<AuthStore>().locale;
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: SafeArea(child: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Form(
-        key: _formKey,
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text(S.t('newTicket', locale), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 16),
-          TextFormField(controller: _subject, validator: (v) => v?.isEmpty == true ? S.t('requiredField', locale) : null, decoration: InputDecoration(labelText: S.t('subject', locale))),
-          const SizedBox(height: 12),
-          TextFormField(controller: _description, decoration: InputDecoration(labelText: S.t('description', locale)), maxLines: 4),
-          const SizedBox(height: 12),
-          TextFormField(controller: _pharmacyId, decoration: InputDecoration(labelText: S.t('pharmacyId', locale))),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            value: _priority,
-            decoration: InputDecoration(labelText: S.t('priority', locale)),
-            items: ['low', 'medium', 'high', 'urgent'].map((e) => DropdownMenuItem(value: e, child: Text(e.capitalize()))).toList(),
-            onChanged: (v) => setState(() => _priority = v!),
-          ),
-          const SizedBox(height: 20),
-          Row(children: [
-            Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close), label: Text(S.t('cancel', locale)))),
-            const SizedBox(width: 12),
-            Expanded(child: GradientButton(label: S.t('save', locale), icon: Icons.check, loading: _saving, onPressed: _save)),
-          ]),
-        ])))));
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: SafeArea(
+            child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                    key: _formKey,
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Text(S.t('newTicket', locale),
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                          controller: _subject,
+                          validator: (v) => v?.isEmpty == true
+                              ? S.t('requiredField', locale)
+                              : null,
+                          decoration: InputDecoration(
+                              labelText: S.t('subject', locale))),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                          controller: _description,
+                          decoration: InputDecoration(
+                              labelText: S.t('description', locale)),
+                          maxLines: 4),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                          controller: _pharmacyId,
+                          decoration: InputDecoration(
+                              labelText: S.t('pharmacyId', locale))),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: _priority,
+                        decoration:
+                            InputDecoration(labelText: S.t('priority', locale)),
+                        items: ['low', 'medium', 'high', 'urgent']
+                            .map((e) => DropdownMenuItem(
+                                value: e, child: Text(e.capitalize())))
+                            .toList(),
+                        onChanged: (v) => setState(() => _priority = v!),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(children: [
+                        Expanded(
+                            child: OutlinedButton.icon(
+                                onPressed: () => Navigator.pop(context),
+                                icon: const Icon(Icons.close),
+                                label: Text(S.t('cancel', locale)))),
+                        const SizedBox(width: 12),
+                        Expanded(
+                            child: GradientButton(
+                                label: S.t('save', locale),
+                                icon: Icons.check,
+                                loading: _saving,
+                                onPressed: _save)),
+                      ]),
+                    ])))));
   }
 }
 
@@ -880,7 +1188,8 @@ class _DetailSheet extends StatelessWidget {
   final Map<String, dynamic> item;
   final String activeTab;
   final VoidCallback onChanged;
-  const _DetailSheet({required this.item, required this.activeTab, required this.onChanged});
+  const _DetailSheet(
+      {required this.item, required this.activeTab, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -897,23 +1206,41 @@ class _DetailSheet extends StatelessWidget {
         child: Column(children: [
           Container(
             margin: const EdgeInsets.only(top: 12),
-            width: 40, height: 4,
-            decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2)),
           ),
           Expanded(
             child: ListView(
               controller: controller,
               padding: const EdgeInsets.all(20),
               children: [
-                Text(item['name']?.toString() ?? item['subject']?.toString() ?? item['number']?.toString() ?? 'Détail', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                Text(
+                    item['name']?.toString() ??
+                        item['subject']?.toString() ??
+                        item['number']?.toString() ??
+                        'Détail',
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 16),
                 ...item.entries.map((e) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    SizedBox(width: 120, child: Text(e.key, style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textMuted))),
-                    Expanded(child: Text('${e.value}', style: const TextStyle(fontSize: 14))),
-                  ]),
-                )),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                                width: 120,
+                                child: Text(e.key,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textMuted))),
+                            Expanded(
+                                child: Text('${e.value}',
+                                    style: const TextStyle(fontSize: 14))),
+                          ]),
+                    )),
               ],
             ),
           ),
@@ -924,5 +1251,6 @@ class _DetailSheet extends StatelessWidget {
 }
 
 extension StringExtension on String {
-  String capitalize() => isEmpty ? this : '${this[0].toUpperCase()}${substring(1)}';
+  String capitalize() =>
+      isEmpty ? this : '${this[0].toUpperCase()}${substring(1)}';
 }

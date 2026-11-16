@@ -12,13 +12,12 @@ import 'package:excel/excel.dart';
 import '../../../core/services/report_export.dart';
 import '../models/sales_day_model.dart';
 
-
-
 class SalesExportService {
   const SalesExportService._();
 
   static String _num(double v) {
-    final rounded = v.roundToDouble() == v ? v.toStringAsFixed(0) : v.toStringAsFixed(2);
+    final rounded =
+        v.roundToDouble() == v ? v.toStringAsFixed(0) : v.toStringAsFixed(2);
     return rounded;
   }
 
@@ -29,7 +28,10 @@ class SalesExportService {
   ) {
     final k = analytics.kpis;
     return <Map<String, dynamic>>[
-      ReportExport.section('Indicateurs de la période', ['Indicateur', 'Valeur'], [
+      ReportExport.section('Indicateurs de la période', [
+        'Indicateur',
+        'Valeur'
+      ], [
         ['Chiffre d\'affaires brut (TTC)', '${_num(k.grossRevenue)} MAD'],
         ['Chiffre d\'affaires net (HT)', '${_num(k.netRevenue)} MAD'],
         ['TVA facturée', '${_num(k.taxTotal)} MAD'],
@@ -45,14 +47,23 @@ class SalesExportService {
         ['Coût des marchandises vendues', '${_num(k.costTotal)} MAD'],
       ]),
       if (analytics.payments.isNotEmpty)
-        ReportExport.section('Répartition des paiements',
-            ['Mode', 'Montant (MAD)', 'Transactions'], [
+        ReportExport.section('Répartition des paiements', [
+          'Mode',
+          'Montant (MAD)',
+          'Transactions'
+        ], [
           for (final p in analytics.payments)
             [p.label, p.amount.toStringAsFixed(2), '${p.count}'],
         ]),
       if (analytics.topProductsRev.isNotEmpty)
-        ReportExport.section('Top 10 produits par CA',
-            ['#', 'Produit', 'Quantité', 'CA (MAD)', 'Bénéfice (MAD)', 'Marge'], [
+        ReportExport.section('Top 10 produits par CA', [
+          '#',
+          'Produit',
+          'Quantité',
+          'CA (MAD)',
+          'Bénéfice (MAD)',
+          'Marge'
+        ], [
           for (final (i, p) in analytics.topProductsRev.indexed)
             [
               '${i + 1}',
@@ -66,8 +77,14 @@ class SalesExportService {
             ],
         ]),
       if (analytics.topProductsQty.isNotEmpty)
-        ReportExport.section('Top 10 produits par quantité',
-            ['#', 'Produit', 'Quantité', 'CA (MAD)', 'Bénéfice (MAD)', 'Marge'], [
+        ReportExport.section('Top 10 produits par quantité', [
+          '#',
+          'Produit',
+          'Quantité',
+          'CA (MAD)',
+          'Bénéfice (MAD)',
+          'Marge'
+        ], [
           for (final (i, p) in analytics.topProductsQty.indexed)
             [
               '${i + 1}',
@@ -81,8 +98,14 @@ class SalesExportService {
             ],
         ]),
       if (analytics.topProductsProfit.isNotEmpty)
-        ReportExport.section('Top 10 produits par bénéfice',
-            ['#', 'Produit', 'Quantité', 'CA (MAD)', 'Bénéfice (MAD)', 'Marge'], [
+        ReportExport.section('Top 10 produits par bénéfice', [
+          '#',
+          'Produit',
+          'Quantité',
+          'CA (MAD)',
+          'Bénéfice (MAD)',
+          'Marge'
+        ], [
           for (final (i, p) in analytics.topProductsProfit.indexed)
             [
               '${i + 1}',
@@ -96,8 +119,14 @@ class SalesExportService {
             ],
         ]),
       if (transactions.isNotEmpty)
-        ReportExport.section('Transactions',
-            ['Référence', 'Date/heure', 'Statut', 'Total (MAD)', 'Encaissé (MAD)', 'Mode'], [
+        ReportExport.section('Transactions', [
+          'Référence',
+          'Date/heure',
+          'Statut',
+          'Total (MAD)',
+          'Encaissé (MAD)',
+          'Mode'
+        ], [
           for (final t in transactions)
             [
               t.number.isEmpty ? '—' : t.number,
@@ -172,10 +201,12 @@ class SalesExportService {
     // --- Feuille : Indicateurs ---
     final sheetKpi = excel['Indicateurs'];
     sheetKpi.insertRow(0);
-    sheetKpi.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0)).value =
-        TextCellValue('Indicateur');
-    sheetKpi.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 0)).value =
-        TextCellValue('Valeur');
+    sheetKpi
+        .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0))
+        .value = TextCellValue('Indicateur');
+    sheetKpi
+        .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 0))
+        .value = TextCellValue('Valeur');
     final kpiRows = <List<Object?>>[
       ['Chiffre d\'affaires brut (TTC)', k.grossRevenue],
       ['Chiffre d\'affaires net (HT)', k.netRevenue],
@@ -196,7 +227,8 @@ class SalesExportService {
       for (int j = 0; j < row.length; j++) {
         final v = row[j];
         setCell(
-          sheetKpi.cell(CellIndex.indexByColumnRow(columnIndex: j, rowIndex: i + 1)),
+          sheetKpi.cell(
+              CellIndex.indexByColumnRow(columnIndex: j, rowIndex: i + 1)),
           v,
         );
       }
@@ -206,32 +238,44 @@ class SalesExportService {
     if (analytics.topProductsRev.isNotEmpty) {
       final sheetTopRev = excel['Top 10 CA'];
       sheetTopRev.insertRow(0);
-      sheetTopRev.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0)).value =
-          TextCellValue('#');
-      sheetTopRev.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 0)).value =
-          TextCellValue('Produit');
-      sheetTopRev.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: 0)).value =
-          TextCellValue('Quantité');
-      sheetTopRev.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: 0)).value =
-          TextCellValue('CA (MAD)');
-      sheetTopRev.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: 0)).value =
-          TextCellValue('Bénéfice (MAD)');
-      sheetTopRev.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: 0)).value =
-          TextCellValue('Marge');
+      sheetTopRev
+          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0))
+          .value = TextCellValue('#');
+      sheetTopRev
+          .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 0))
+          .value = TextCellValue('Produit');
+      sheetTopRev
+          .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: 0))
+          .value = TextCellValue('Quantité');
+      sheetTopRev
+          .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: 0))
+          .value = TextCellValue('CA (MAD)');
+      sheetTopRev
+          .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: 0))
+          .value = TextCellValue('Bénéfice (MAD)');
+      sheetTopRev
+          .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: 0))
+          .value = TextCellValue('Marge');
       for (final (i, p) in analytics.topProductsRev.indexed) {
         sheetTopRev.insertRow(i + 1);
-        sheetTopRev.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 1)).value =
-            IntCellValue(i + 1);
-        sheetTopRev.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 1)).value =
-            TextCellValue(p.displayName);
-        sheetTopRev.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: i + 1)).value =
-            TextCellValue(p.quantity.toStringAsFixed(0));
-        sheetTopRev.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: i + 1)).value =
-            DoubleCellValue(p.revenue);
-        sheetTopRev.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: i + 1)).value =
-            DoubleCellValue(p.profit);
-        sheetTopRev.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: i + 1)).value =
-            TextCellValue('${p.marginPct.toStringAsFixed(0)} %');
+        sheetTopRev
+            .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 1))
+            .value = IntCellValue(i + 1);
+        sheetTopRev
+            .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 1))
+            .value = TextCellValue(p.displayName);
+        sheetTopRev
+            .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: i + 1))
+            .value = TextCellValue(p.quantity.toStringAsFixed(0));
+        sheetTopRev
+            .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: i + 1))
+            .value = DoubleCellValue(p.revenue);
+        sheetTopRev
+            .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: i + 1))
+            .value = DoubleCellValue(p.profit);
+        sheetTopRev
+            .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: i + 1))
+            .value = TextCellValue('${p.marginPct.toStringAsFixed(0)} %');
       }
     }
 
@@ -239,32 +283,44 @@ class SalesExportService {
     if (analytics.topProductsQty.isNotEmpty) {
       final sheetTopQty = excel['Top 10 Qté'];
       sheetTopQty.insertRow(0);
-      sheetTopQty.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0)).value =
-          TextCellValue('#');
-      sheetTopQty.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 0)).value =
-          TextCellValue('Produit');
-      sheetTopQty.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: 0)).value =
-          TextCellValue('Quantité');
-      sheetTopQty.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: 0)).value =
-          TextCellValue('CA (MAD)');
-      sheetTopQty.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: 0)).value =
-          TextCellValue('Bénéfice (MAD)');
-      sheetTopQty.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: 0)).value =
-          TextCellValue('Marge');
+      sheetTopQty
+          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0))
+          .value = TextCellValue('#');
+      sheetTopQty
+          .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 0))
+          .value = TextCellValue('Produit');
+      sheetTopQty
+          .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: 0))
+          .value = TextCellValue('Quantité');
+      sheetTopQty
+          .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: 0))
+          .value = TextCellValue('CA (MAD)');
+      sheetTopQty
+          .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: 0))
+          .value = TextCellValue('Bénéfice (MAD)');
+      sheetTopQty
+          .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: 0))
+          .value = TextCellValue('Marge');
       for (final (i, p) in analytics.topProductsQty.indexed) {
         sheetTopQty.insertRow(i + 1);
-        sheetTopQty.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 1)).value =
-            IntCellValue(i + 1);
-        sheetTopQty.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 1)).value =
-            TextCellValue(p.displayName);
-        sheetTopQty.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: i + 1)).value =
-            TextCellValue(p.quantity.toStringAsFixed(0));
-        sheetTopQty.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: i + 1)).value =
-            DoubleCellValue(p.revenue);
-        sheetTopQty.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: i + 1)).value =
-            DoubleCellValue(p.profit);
-        sheetTopQty.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: i + 1)).value =
-            TextCellValue('${p.marginPct.toStringAsFixed(0)} %');
+        sheetTopQty
+            .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 1))
+            .value = IntCellValue(i + 1);
+        sheetTopQty
+            .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 1))
+            .value = TextCellValue(p.displayName);
+        sheetTopQty
+            .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: i + 1))
+            .value = TextCellValue(p.quantity.toStringAsFixed(0));
+        sheetTopQty
+            .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: i + 1))
+            .value = DoubleCellValue(p.revenue);
+        sheetTopQty
+            .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: i + 1))
+            .value = DoubleCellValue(p.profit);
+        sheetTopQty
+            .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: i + 1))
+            .value = TextCellValue('${p.marginPct.toStringAsFixed(0)} %');
       }
     }
 
@@ -272,32 +328,44 @@ class SalesExportService {
     if (analytics.topProductsProfit.isNotEmpty) {
       final sheetTopProfit = excel['Top 10 Bénéfice'];
       sheetTopProfit.insertRow(0);
-      sheetTopProfit.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0)).value =
-          TextCellValue('#');
-      sheetTopProfit.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 0)).value =
-          TextCellValue('Produit');
-      sheetTopProfit.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: 0)).value =
-          TextCellValue('Quantité');
-      sheetTopProfit.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: 0)).value =
-          TextCellValue('CA (MAD)');
-      sheetTopProfit.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: 0)).value =
-          TextCellValue('Bénéfice (MAD)');
-      sheetTopProfit.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: 0)).value =
-          TextCellValue('Marge');
+      sheetTopProfit
+          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0))
+          .value = TextCellValue('#');
+      sheetTopProfit
+          .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 0))
+          .value = TextCellValue('Produit');
+      sheetTopProfit
+          .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: 0))
+          .value = TextCellValue('Quantité');
+      sheetTopProfit
+          .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: 0))
+          .value = TextCellValue('CA (MAD)');
+      sheetTopProfit
+          .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: 0))
+          .value = TextCellValue('Bénéfice (MAD)');
+      sheetTopProfit
+          .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: 0))
+          .value = TextCellValue('Marge');
       for (final (i, p) in analytics.topProductsProfit.indexed) {
         sheetTopProfit.insertRow(i + 1);
-        sheetTopProfit.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 1)).value =
-            IntCellValue(i + 1);
-        sheetTopProfit.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 1)).value =
-            TextCellValue(p.displayName);
-        sheetTopProfit.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: i + 1)).value =
-            TextCellValue(p.quantity.toStringAsFixed(0));
-        sheetTopProfit.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: i + 1)).value =
-            DoubleCellValue(p.revenue);
-        sheetTopProfit.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: i + 1)).value =
-            DoubleCellValue(p.profit);
-        sheetTopProfit.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: i + 1)).value =
-            TextCellValue('${p.marginPct.toStringAsFixed(0)} %');
+        sheetTopProfit
+            .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 1))
+            .value = IntCellValue(i + 1);
+        sheetTopProfit
+            .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 1))
+            .value = TextCellValue(p.displayName);
+        sheetTopProfit
+            .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: i + 1))
+            .value = TextCellValue(p.quantity.toStringAsFixed(0));
+        sheetTopProfit
+            .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: i + 1))
+            .value = DoubleCellValue(p.revenue);
+        sheetTopProfit
+            .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: i + 1))
+            .value = DoubleCellValue(p.profit);
+        sheetTopProfit
+            .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: i + 1))
+            .value = TextCellValue('${p.marginPct.toStringAsFixed(0)} %');
       }
     }
 
@@ -305,36 +373,50 @@ class SalesExportService {
     if (transactions.isNotEmpty) {
       final sheetTx = excel['Transactions'];
       sheetTx.insertRow(0);
-      sheetTx.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0)).value =
-          TextCellValue('Référence');
-      sheetTx.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 0)).value =
-          TextCellValue('Date/heure');
-      sheetTx.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: 0)).value =
-          TextCellValue('Statut');
-      sheetTx.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: 0)).value =
-          TextCellValue('Total (MAD)');
-      sheetTx.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: 0)).value =
-          TextCellValue('Encaissé (MAD)');
-      sheetTx.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: 0)).value =
-          TextCellValue('Mode');
+      sheetTx
+          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0))
+          .value = TextCellValue('Référence');
+      sheetTx
+          .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 0))
+          .value = TextCellValue('Date/heure');
+      sheetTx
+          .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: 0))
+          .value = TextCellValue('Statut');
+      sheetTx
+          .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: 0))
+          .value = TextCellValue('Total (MAD)');
+      sheetTx
+          .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: 0))
+          .value = TextCellValue('Encaissé (MAD)');
+      sheetTx
+          .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: 0))
+          .value = TextCellValue('Mode');
       for (final (i, t) in transactions.indexed) {
         sheetTx.insertRow(i + 1);
-        sheetTx.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 1)).value =
-            TextCellValue(t.number.isEmpty ? '—' : t.number);
-        sheetTx.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 1)).value =
-            TextCellValue(
-                t.createdAt == null ? '—' : _fmtDateTime(t.createdAt!.toLocal()));
-        sheetTx.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: i + 1)).value =
-            TextCellValue(t.statusLabel);
-        sheetTx.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: i + 1)).value =
-            DoubleCellValue(t.total);
-        sheetTx.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: i + 1)).value =
-            DoubleCellValue(t.paidAmount);
-        sheetTx.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: i + 1)).value =
-            TextCellValue(
-                (t.paymentMethod == null || t.paymentMethod!.isEmpty)
-                    ? '—'
-                    : SalesPaymentSlice.methodLabel(t.paymentMethod!));
+        sheetTx
+            .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 1))
+            .value = TextCellValue(t.number.isEmpty ? '—' : t.number);
+        sheetTx
+            .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 1))
+            .value = TextCellValue(t.createdAt ==
+                null
+            ? '—'
+            : _fmtDateTime(t.createdAt!.toLocal()));
+        sheetTx
+            .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: i + 1))
+            .value = TextCellValue(t.statusLabel);
+        sheetTx
+            .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: i + 1))
+            .value = DoubleCellValue(t.total);
+        sheetTx
+            .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: i + 1))
+            .value = DoubleCellValue(t.paidAmount);
+        sheetTx
+            .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: i + 1))
+            .value = TextCellValue((t.paymentMethod == null ||
+                t.paymentMethod!.isEmpty)
+            ? '—'
+            : SalesPaymentSlice.methodLabel(t.paymentMethod!));
       }
     }
 
@@ -348,7 +430,8 @@ class SalesExportService {
     final savedBytes = excel.save(fileName: fileName);
 
     if (savedBytes == null) {
-      throw Exception('Échec de l\'encodage ou de l\'écriture du fichier .xlsx');
+      throw Exception(
+          'Échec de l\'encodage ou de l\'écriture du fichier .xlsx');
     }
   }
 }

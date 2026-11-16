@@ -56,7 +56,8 @@ class WhatsAppManagementPage extends StatelessWidget {
               ),
               SizedBox(height: 12),
               _etape('1. Créer les routes Edge /whatsapp/* et /chatbot/*'),
-              _etape('2. Déployer l’Edge Function pharma-api (workflow manuel)'),
+              _etape(
+                  '2. Déployer l’Edge Function pharma-api (workflow manuel)'),
               _etape('3. Remplacer cette page par une vraie gestion WhatsApp'),
               SizedBox(height: 24),
               Text(

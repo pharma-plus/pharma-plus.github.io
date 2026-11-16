@@ -140,15 +140,14 @@ class User {
         lastName:
             json['last_name'] as String? ?? json['lastName'] as String? ?? '',
         email: json['email'] as String? ?? '',
-        isSuperAdminFlag: _parseAdminFlag(
-            json['is_super_admin'], json['isSuperAdmin']),
+        isSuperAdminFlag:
+            _parseAdminFlag(json['is_super_admin'], json['isSuperAdmin']),
         permissions: (json['permissions'] as List? ?? const [])
             .whereType<String>()
             .toSet(),
-        pharmacyName: json['pharmacy_name'] as String? ??
-            json['pharmacyName'] as String?,
-        roleName:
-            json['role_name'] as String? ?? json['roleName'] as String?,
+        pharmacyName:
+            json['pharmacy_name'] as String? ?? json['pharmacyName'] as String?,
+        roleName: json['role_name'] as String? ?? json['roleName'] as String?,
         visibleModules: json['visible_modules'] is List
             ? (json['visible_modules'] as List).whereType<String>().toList()
             : json['visibleModules'] is List

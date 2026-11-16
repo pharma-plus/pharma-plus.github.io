@@ -198,7 +198,8 @@ class _SyncStatusPanelState extends State<SyncStatusPanel> {
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: color.withValues(alpha: 0.5), width: 1),
+                border:
+                    Border.all(color: color.withValues(alpha: 0.5), width: 1),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,7 +291,9 @@ class _SyncStatusPanelState extends State<SyncStatusPanel> {
                             ),
                           )
                         : const Icon(Icons.sync, size: 18),
-                    label: Text(_syncing ? 'Synchronisation…' : 'Synchroniser maintenant'),
+                    label: Text(_syncing
+                        ? 'Synchronisation…'
+                        : 'Synchroniser maintenant'),
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
@@ -314,7 +317,10 @@ class _SyncStatusPanelState extends State<SyncStatusPanel> {
               child: _syncing
                   ? const Center(child: CircularProgressIndicator())
                   : _pending.isEmpty
-                      ? _EmptyState(message: _statusMessage.isNotEmpty ? _statusMessage : 'Aucune opération en attente.')
+                      ? _EmptyState(
+                          message: _statusMessage.isNotEmpty
+                              ? _statusMessage
+                              : 'Aucune opération en attente.')
                       : _PendingList(
                           pending: _pending,
                           onRetry: _syncNow,
@@ -402,7 +408,8 @@ class _PendingList extends StatelessWidget {
         final attempts = op['attempts'] ?? 0;
         final lastError = op['last_error'] ?? '';
         final String createdAt = op['created_at'] as String? ?? '';
-        final conflict = lastError != null && lastError.toString().contains('conflit');
+        final conflict =
+            lastError != null && lastError.toString().contains('conflit');
 
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
@@ -411,7 +418,8 @@ class _PendingList extends StatelessWidget {
             color: AppColors.porcelain.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(8),
             border: conflict
-                ? Border.all(color: AppColors.danger.withValues(alpha: 0.5), width: 1)
+                ? Border.all(
+                    color: AppColors.danger.withValues(alpha: 0.5), width: 1)
                 : null,
           ),
           child: Column(
@@ -489,7 +497,8 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.check_circle_outline, size: 64, color: AppColors.sageGreen),
+          const Icon(Icons.check_circle_outline,
+              size: 64, color: AppColors.sageGreen),
           const SizedBox(height: 16),
           Text(
             message,

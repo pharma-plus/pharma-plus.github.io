@@ -31,7 +31,8 @@ class SalesDateFilter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final chips = SalesPeriod.values.map((p) {
-      final active = p == period && !(p == SalesPeriod.custom && customRange == null);
+      final active =
+          p == period && !(p == SalesPeriod.custom && customRange == null);
       return InkWell(
         onTap: () async {
           if (p == SalesPeriod.custom) {

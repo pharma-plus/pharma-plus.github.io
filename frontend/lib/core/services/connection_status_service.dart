@@ -25,11 +25,14 @@ import 'offline_store.dart';
 enum ConnectionStatus {
   /// Serveur joignable, toutes les opérations passent normalement.
   online,
+
   /// Réseau coupé : l'application travaille en local, les opérations sont
   /// mises en file d'attente.
   offline,
+
   /// Synchronisation en cours (replay de la file d'attente + pull catalogue).
   syncing,
+
   /// Certaines opérations n'ont pas pu être envoyées au serveur.
   syncError,
 }
@@ -91,8 +94,7 @@ class ConnectionStatusService {
   int _failedCount = 0;
   Timer? _pollTimer;
 
-  bool get isOnline => _status == ConnectionStatus.online &&
-      _serverReachable;
+  bool get isOnline => _status == ConnectionStatus.online && _serverReachable;
 
   /// Initialise le service : lit les préférences, lance le polling de
   /// reachabilité et s'abonne aux changements d'authentification.
@@ -101,9 +103,8 @@ class ConnectionStatusService {
     _lastSyncAt = _readLastSyncAt();
     _failedCount = _prefs!.getInt(_kSyncFailedCount) ?? 0;
     _refreshPendingCount();
-    _status = _serverReachable
-        ? ConnectionStatus.online
-        : ConnectionStatus.offline;
+    _status =
+        _serverReachable ? ConnectionStatus.online : ConnectionStatus.offline;
 
     // Réévaluer la reachabilité serveur à intervalles réguliers.
     _pollTimer = Timer.periodic(const Duration(seconds: 10), (_) {
@@ -137,8 +138,7 @@ class ConnectionStatusService {
       // On s'appuie sur la dernière réussite connue.
       final lastOk = _readLastServerOk();
       final now = DateTime.now();
-      final reachable = lastOk != null &&
-          now.difference(lastOk).inMinutes < 30;
+      final reachable = lastOk != null && now.difference(lastOk).inMinutes < 30;
       if (_serverReachable != reachable) {
         _serverReachable = reachable;
         _updateStatus();
@@ -154,8 +154,7 @@ class ConnectionStatusService {
       final now = DateTime.now();
       final reachable = result.success;
       if (reachable) {
-        await _prefs?.setString(
-            _kLastServerOk, now.toIso8601String());
+        await _prefs?.setString(_kLastServerOk, now.toIso8601String());
       }
       if (_serverReachable != reachable) {
         _serverReachable = reachable;
@@ -265,12 +264,12 @@ class ConnectionStatusService {
 
   /// État actuel (snapshots).
   ConnState get currentState => ConnState(
-    status: _status,
-    serverReachable: _serverReachable,
-    pendingCount: _pendingCount,
-    lastSyncAt: _lastSyncAt,
-    failedCount: _failedCount,
-  );
+        status: _status,
+        serverReachable: _serverReachable,
+        pendingCount: _pendingCount,
+        lastSyncAt: _lastSyncAt,
+        failedCount: _failedCount,
+      );
 
   void dispose() {
     _pollTimer?.cancel();

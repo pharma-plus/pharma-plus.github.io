@@ -25,6 +25,7 @@ import '../services/sales_analytics_service.dart';
 class SalesTransactionQuery {
   final int page;
   final int limit;
+
   /// '' (toutes) | 'completed' | 'problems' (annulées/retours/en attente)
   final String status;
   final String search;
@@ -56,8 +57,8 @@ class SalesRepository {
       final decoded = jsonDecode(utf8.decode(payload)) as Map<String, dynamic>;
       final exp = decoded['exp'];
       if (exp is! num) return false;
-      final expiry =
-          DateTime.fromMillisecondsSinceEpoch((exp * 1000).toInt(), isUtc: true);
+      final expiry = DateTime.fromMillisecondsSinceEpoch((exp * 1000).toInt(),
+          isUtc: true);
       final reference = now ?? DateTime.now().toUtc();
       return expiry.isBefore(reference.add(within));
     } catch (_) {
@@ -83,7 +84,8 @@ class SalesRepository {
     String path,
     Map<String, String> query,
   ) =>
-      ApiClient.instance.get(path, query: query, timeout: const Duration(seconds: 25));
+      ApiClient.instance
+          .get(path, query: query, timeout: const Duration(seconds: 25));
 
   Future<ApiResult<dynamic>> _get(
     String path,
@@ -170,13 +172,17 @@ class SalesRepository {
     final res = await _get('/sales/day/transactions', query);
     if (!res.success) return (null, _mapError(res));
     // ApiClient expose déjà data (liste) et meta du corps.
-    final List<Map<String, dynamic>> rows = (res.data is List ? res.data as List : const [])
-        .whereType<Map>()
-        .map((m) => Map<String, dynamic>.from(m))
-        .toList();
-    final meta = res.meta is Map ? Map<String, dynamic>.from(res.meta as Map) : const<Map, dynamic>{};
+    final List<Map<String, dynamic>> rows =
+        (res.data is List ? res.data as List : const [])
+            .whereType<Map>()
+            .map((m) => Map<String, dynamic>.from(m))
+            .toList();
+    final meta = res.meta is Map
+        ? Map<String, dynamic>.from(res.meta as Map)
+        : const <Map, dynamic>{};
     final page = meta['page'] is num ? (meta['page'] as num).toInt() : q.page;
-    final limit = meta['limit'] is num ? (meta['limit'] as num).toInt() : q.limit;
+    final limit =
+        meta['limit'] is num ? (meta['limit'] as num).toInt() : q.limit;
     final total =
         meta['total'] is num ? (meta['total'] as num).toInt() : rows.length;
     return (

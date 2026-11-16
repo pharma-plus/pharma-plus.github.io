@@ -41,8 +41,7 @@ mixin UnsavedChangesGuard<T extends StatefulWidget> on State<T> {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Text('Modifications non enregistrées'),
-        content: const Text(
-            'Vous avez des modifications non enregistrées. '
+        content: const Text('Vous avez des modifications non enregistrées. '
             'Voulez-vous quitter sans les sauvegarder ?'),
         actions: [
           TextButton(

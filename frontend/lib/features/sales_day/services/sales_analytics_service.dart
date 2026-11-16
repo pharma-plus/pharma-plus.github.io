@@ -51,7 +51,7 @@ class SalesDelta {
 
 class SalesDateRange {
   final DateTime start; // inclus, heure locale
-  final DateTime end;   // exclus, heure locale
+  final DateTime end; // exclus, heure locale
   const SalesDateRange(this.start, this.end);
 
   bool get isSingleDay => end.difference(start).inDays == 1;
@@ -87,20 +87,20 @@ class SalesAnalyticsService {
         return SalesDateRange(y, today);
       case SalesPeriod.thisWeek:
         // Semaine du lundi au lundi suivant (norme ISO).
-        final weekday = (reference.weekday == DateTime.sunday)
-            ? 7
-            : reference.weekday;
+        final weekday =
+            (reference.weekday == DateTime.sunday) ? 7 : reference.weekday;
         final monday = today.subtract(Duration(days: weekday - 1));
         return SalesDateRange(monday, monday.add(const Duration(days: 7)));
       case SalesPeriod.thisMonth:
         final first = DateTime(reference.year, reference.month, 1);
-        return SalesDateRange(first, DateTime(reference.year, reference.month + 1, 1));
+        return SalesDateRange(
+            first, DateTime(reference.year, reference.month + 1, 1));
       case SalesPeriod.custom:
         final c = custom;
         if (c != null) {
           final s = DateTime(c.start.year, c.start.month, c.start.day);
-          final e =
-              DateTime(c.end.year, c.end.month, c.end.day).add(const Duration(days: 1));
+          final e = DateTime(c.end.year, c.end.month, c.end.day)
+              .add(const Duration(days: 1));
           return SalesDateRange(s, e);
         }
         return SalesDateRange(today, today.add(const Duration(days: 1)));
@@ -110,8 +110,7 @@ class SalesAnalyticsService {
   /// Étiquette humaine de la période.
   static String periodLabel(SalesPeriod period, SalesDateRange range) {
     String two(int v) => v.toString().padLeft(2, '0');
-    String d(DateTime dt) =>
-        '${two(dt.day)}/${two(dt.month)}/${dt.year}';
+    String d(DateTime dt) => '${two(dt.day)}/${two(dt.month)}/${dt.year}';
     final endIncl = range.end.subtract(const Duration(days: 1));
     if (range.isSingleDay) return d(range.start);
     return '${d(range.start)} → ${d(endIncl)}';

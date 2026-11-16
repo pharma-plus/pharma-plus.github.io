@@ -9,7 +9,8 @@ class TouchButton extends StatelessWidget {
   final bool outlined;
   final bool small;
 
-  const TouchButton({super.key, 
+  const TouchButton({
+    super.key,
     required this.onPressed,
     required this.label,
     this.icon,
@@ -61,7 +62,8 @@ class TouchCard extends StatelessWidget {
   final Widget child;
   final double padding;
 
-  const TouchCard({super.key, 
+  const TouchCard({
+    super.key,
     this.onTap,
     required this.child,
     this.padding = 16,
@@ -90,7 +92,8 @@ class TouchFab extends StatelessWidget {
   final IconData icon;
   final String? label;
 
-  const TouchFab({super.key, 
+  const TouchFab({
+    super.key,
     required this.onPressed,
     required this.icon,
     this.label,
@@ -123,7 +126,8 @@ class TouchZone extends StatelessWidget {
   final Widget child;
   final double minSize;
 
-  const TouchZone({super.key, 
+  const TouchZone({
+    super.key,
     required this.onTap,
     required this.child,
     this.minSize = 48,

@@ -480,13 +480,12 @@ void main() {
   });
 
   testWidgets(
-      'Barre inférieure mobile compacte : 3 destinations, pas de doublons',
+      'Barre inférieure mobile compacte : 4 accès, permissions, pas de doublons',
       (tester) async {
     HttpOverrides.global = _FakeHttpOverrides(false);
 
     ShellNav.index.value = 0;
     _setWindowSize(tester, const Size(390, 844)); // smartphone
-    
 
     await tester.pumpWidget(
       ChangeNotifierProvider<AuthStore>.value(
@@ -500,28 +499,48 @@ void main() {
 
     _expectNoException(tester);
 
-    final navBar = find.byType(NavigationBar);
+    // Barre mobile dédiée (plus de NavigationBar Material générique).
+    final navBar = find.byKey(const ValueKey('mobile-bottom-bar'));
     expect(navBar, findsOneWidget,
         reason: 'barre inférieure mobile présente');
 
-    final bar = tester.widget<NavigationBar>(navBar);
-    // Compacte : exactement Point de vente + Stock + Fournisseur + Bénéfice.
-    expect(bar.destinations.length, 4,
-        reason: 'la barre mobile doit avoir exactement 4 destinations');
-    final labels = bar.destinations
-        .whereType<NavigationDestination>()
-        .map((d) => d.label)
-        .toList();
-    expect(
-      labels,
-      everyElement(anyOf('Point de vente', 'Stock', 'Fournisseurs', 'Marge')),
-      reason: 'seulement les raccourcis essentiels : POS, Stock, Fournisseur, Bénéfice',
-    );
-    // Pas de libellé dupliqué.
-    expect(labels.toSet().length, labels.length,
-        reason: 'aucune destination dupliquée');
-    // Aucun Dashboard ni Modules dans la barre inférieure.
-    expect(labels, isNot(contains('Tableau de bord')));
-    expect(labels, isNot(contains('Modules')));
+    // Exactement les 4 accès demandés (routes ShellNav existantes) :
+    // Point de vente (2), Stock (4), Fournisseur (5), Bénéfice (18).
+    const expected = <(int, String)>[
+      (2, 'Vente'),
+      (4, 'Stock'),
+      (5, 'Fournisseur'),
+      (18, 'Bénéfice'),
+    ];
+    for (final (index, label) in expected) {
+      expect(
+        find.descendant(
+          of: navBar,
+          matching: find.byKey(ValueKey('mobile-nav-item-$index')),
+        ),
+        findsOneWidget,
+        reason: 'accès primaire $label (index $index) présent',
+      );
+      expect(
+        find.descendant(of: navBar, matching: find.text(label)),
+        findsOneWidget,
+        reason: 'libellé court "$label" lisible',
+      );
+    }
+    // Pas de doublon de navigation / pas de Dashboard ni Modules dans la barre.
+    expect(find.descendant(of: navBar, matching: find.text('Tableau de bord')),
+        findsNothing);
+    expect(find.descendant(of: navBar, matching: find.text('Modules')),
+        findsNothing);
+    expect(find.descendant(of: navBar, matching: find.text('POS')),
+        findsNothing,
+        reason: 'libellé professionnel, pas d\'abréviation brute');
+
+    // Barre visible dans la fenêtre (fixe, non masquée).
+    final barRect = tester.getRect(navBar);
+    expect(barRect.bottom, closeTo(844.0, 1.0),
+        reason: 'barre fixée au bas de l\'écran');
+    expect(barRect.height, greaterThanOrEqualTo(56),
+        reason: 'zone tactile confortable');
   });
 }

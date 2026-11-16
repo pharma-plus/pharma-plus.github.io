@@ -92,23 +92,21 @@ class _SalesComparisonsPageState extends State<SalesComparisonsPage> {
                     grossDelta != null && grossDelta >= 0
                         ? AppColors.sageGreenInk
                         : grossDelta != null
-                        ? AppColors.pharmaDanger
-                        : AppColors.pharmaMuted,
+                            ? AppColors.pharmaDanger
+                            : AppColors.pharmaMuted,
                   ),
                   _comparisonRow(
                     'Ventes validées',
                     '${k?.salesCount ?? 0}',
-                    prev?.salesCount != null
-                        ? '${prev!.salesCount}'
-                        : '—',
+                    prev?.salesCount != null ? '${prev!.salesCount}' : '—',
                     countDelta != null
                         ? '${countDelta >= 0 ? '+' : ''}${countDelta.toStringAsFixed(1)} %'
                         : '—',
                     countDelta != null && countDelta >= 0
                         ? AppColors.sageGreenInk
                         : countDelta != null
-                        ? AppColors.pharmaDanger
-                        : AppColors.pharmaMuted,
+                            ? AppColors.pharmaDanger
+                            : AppColors.pharmaMuted,
                   ),
                 ],
               ],

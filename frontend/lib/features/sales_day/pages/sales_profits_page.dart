@@ -26,7 +26,8 @@ class _SalesProfitsPageState extends State<SalesProfitsPage> {
   void initState() {
     super.initState();
     _listener = () {
-      if (mounted) setState(() {});};
+      if (mounted) setState(() {});
+    };
     widget.analytics.addListener(_listener);
   }
 
@@ -77,20 +78,25 @@ class _SalesProfitsPageState extends State<SalesProfitsPage> {
                   children: [
                     Expanded(
                       child: _kpiItem(
-                        'CA TTC', Fmt.number(gross, decimals: 2),
+                        'CA TTC',
+                        Fmt.number(gross, decimals: 2),
                         AppColors.sageGreenInk,
                       ),
                     ),
                     Expanded(
                       child: _kpiItem(
-                        'Coût achats', Fmt.number(cost, decimals: 2),
+                        'Coût achats',
+                        Fmt.number(cost, decimals: 2),
                         AppColors.pharmaDanger,
                       ),
                     ),
                     Expanded(
                       child: _kpiItem(
-                        'Bénéfice brut', Fmt.number(grossProfit, decimals: 2),
-                        grossProfit >= 0 ? AppColors.sageGreenInk : AppColors.pharmaDanger,
+                        'Bénéfice brut',
+                        Fmt.number(grossProfit, decimals: 2),
+                        grossProfit >= 0
+                            ? AppColors.sageGreenInk
+                            : AppColors.pharmaDanger,
                       ),
                     ),
                   ],
@@ -100,20 +106,27 @@ class _SalesProfitsPageState extends State<SalesProfitsPage> {
                   children: [
                     Expanded(
                       child: _kpiItem(
-                        'Taux marge brute', '${marginPct.toStringAsFixed(1)} %',
-                        marginPct >= 0 ? AppColors.sageGreenInk : AppColors.pharmaDanger,
+                        'Taux marge brute',
+                        '${marginPct.toStringAsFixed(1)} %',
+                        marginPct >= 0
+                            ? AppColors.sageGreenInk
+                            : AppColors.pharmaDanger,
                       ),
                     ),
                     Expanded(
                       child: _kpiItem(
-                        'CA net HT', Fmt.number(net, decimals: 2),
+                        'CA net HT',
+                        Fmt.number(net, decimals: 2),
                         AppColors.champagneInk,
                       ),
                     ),
                     Expanded(
                       child: _kpiItem(
-                        'Marge nette', '${netMarginPct.toStringAsFixed(1)} %',
-                        netMarginPct >= 0 ? AppColors.sageGreenInk : AppColors.pharmaDanger,
+                        'Marge nette',
+                        '${netMarginPct.toStringAsFixed(1)} %',
+                        netMarginPct >= 0
+                            ? AppColors.sageGreenInk
+                            : AppColors.pharmaDanger,
                       ),
                     ),
                   ],

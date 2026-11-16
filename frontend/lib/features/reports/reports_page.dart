@@ -243,40 +243,62 @@ class _ReportsPageState extends State<ReportsPage> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-            child: Row(
-              children: [
-                Expanded(
-                  child: InkWell(
-                    onTap: () => _pickDate(isFrom: true),
-                    child: InputDecorator(
-                      decoration: InputDecoration(
-                        labelText: S.t('fromDate', locale),
-                        border: const OutlineInputBorder(),
-                      ),
-                      child: Text(Fmt.shortDate(_from)),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final narrow = constraints.maxWidth < 420;
+                final from = InkWell(
+                  onTap: () => _pickDate(isFrom: true),
+                  child: InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: S.t('fromDate', locale),
+                      border: const OutlineInputBorder(),
+                      isDense: narrow,
                     ),
+                    child: Text(Fmt.shortDate(_from)),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: InkWell(
-                    onTap: () => _pickDate(isFrom: false),
-                    child: InputDecorator(
-                      decoration: InputDecoration(
-                        labelText: S.t('toDate', locale),
-                        border: const OutlineInputBorder(),
-                      ),
-                      child: Text(Fmt.shortDate(_to)),
+                );
+                final to = InkWell(
+                  onTap: () => _pickDate(isFrom: false),
+                  child: InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: S.t('toDate', locale),
+                      border: const OutlineInputBorder(),
+                      isDense: narrow,
                     ),
+                    child: Text(Fmt.shortDate(_to)),
                   ),
-                ),
-                const SizedBox(width: 8),
-                IconButton.filled(
+                );
+                final apply = IconButton.filled(
                   onPressed: _load,
                   icon: const Icon(Icons.filter_alt),
                   tooltip: S.t('apply', locale),
-                ),
-              ],
+                );
+                if (narrow) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(child: from),
+                          const SizedBox(width: 8),
+                          Expanded(child: to),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Align(alignment: Alignment.centerRight, child: apply),
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    Expanded(child: from),
+                    const SizedBox(width: 8),
+                    Expanded(child: to),
+                    const SizedBox(width: 8),
+                    apply,
+                  ],
+                );
+              },
             ),
           ),
           Expanded(
@@ -305,7 +327,9 @@ class _ReportsPageState extends State<ReportsPage> {
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
       children: [
         SizedBox(
-          height: 128,
+          // 152 px : hauteur nécessaire à StatsTile (icône 44 + libellé +
+          // valeur + padding 16) — 128 px débordait de 16 px dès 320 px.
+          height: 152,
           child: ListView(
             scrollDirection: Axis.horizontal,
             children: [
@@ -533,34 +557,50 @@ class _ReportsPageState extends State<ReportsPage> {
           charts,
           const SizedBox(height: 12),
           Row(children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: (netValue >= 0 ? AppColors.success : AppColors.danger).withValues(alpha: .15),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: (netValue >= 0 ? AppColors.success : AppColors.danger).withValues(alpha: .4)),
-              ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                CustomPaint(size: const Size(40, 40), painter: trendArrow),
-                const SizedBox(width: 10),
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(
-                    netValue >= 0 ? 'Bénéfice net positif' : 'Perte nette',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: netValue >= 0 ? AppColors.success : AppColors.danger),
-                  ),
-                  Text(
-                    'Marge nette : ${margin?.toStringAsFixed(1) ?? 'N/A'}% | ${Fmt.money(netValue)}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textMuted,
-                      fontWeight: FontWeight.w600),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: (netValue >= 0 ? AppColors.success : AppColors.danger)
+                      .withValues(alpha: .15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color:
+                          (netValue >= 0 ? AppColors.success : AppColors.danger)
+                              .withValues(alpha: .4)),
+                ),
+                child: Row(children: [
+                  CustomPaint(size: const Size(40, 40), painter: trendArrow),
+                  const SizedBox(width: 10),
+                  // Expanded : le texte se replie au lieu de pousser la
+                  // bannière hors de l'écran sur 320 px.
+                  Expanded(
+                    child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            netValue >= 0
+                                ? 'Bénéfice net positif'
+                                : 'Perte nette',
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: netValue >= 0
+                                    ? AppColors.success
+                                    : AppColors.danger),
+                          ),
+                          Text(
+                            'Marge nette : ${margin?.toStringAsFixed(1) ?? 'N/A'}% | ${Fmt.money(netValue)}',
+                            style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textMuted,
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ]),
                   ),
                 ]),
-              ]),
+              ),
             ),
           ]),
           if (margin != null)
@@ -568,7 +608,8 @@ class _ReportsPageState extends State<ReportsPage> {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: Text(
                   'Marge calculée sur le bénéfice net : ${margin.toStringAsFixed(1)}%',
-                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                  style: const TextStyle(
+                      fontSize: 11, color: AppColors.textMuted)),
             ),
         ]);
       }),
@@ -592,7 +633,8 @@ class _ReportsPageState extends State<ReportsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
+          Text(label,
+              style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
           Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
         ],
       ),
@@ -642,8 +684,8 @@ class _ReportChartCard extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
         decoration: BoxDecoration(
           color: Theme.of(context).brightness == Brightness.dark
-            ? AppColors.surfaceDark.withValues(alpha: .52)
-            : AppColors.graphite.withValues(alpha: .88),
+              ? AppColors.surfaceDark.withValues(alpha: .52)
+              : AppColors.graphite.withValues(alpha: .88),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColors.goldBorder),
         ),
@@ -697,10 +739,9 @@ class _BenefitBars3DPainter extends CustomPainter {
 
       // Ombre flottante
       canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(left + 5, top + 6, width, h),
-          const Radius.circular(4)),
-        Paint()..color = color.withValues(alpha: .14));
+          RRect.fromRectAndRadius(Rect.fromLTWH(left + 5, top + 6, width, h),
+              const Radius.circular(4)),
+          Paint()..color = color.withValues(alpha: .14));
 
       // Face latérale (droite, perspective)
       final sidePath = Path()
@@ -722,14 +763,13 @@ class _BenefitBars3DPainter extends CustomPainter {
 
       // Face avant avec dégradé
       canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(left, top, width, h),
-          const Radius.circular(4)),
-        Paint()
-          ..shader = ui.Gradient.linear(
-            Offset(left, top),
-            Offset(left + width, top + h),
-            [color, color.withValues(alpha: .65)]));
+          RRect.fromRectAndRadius(
+              Rect.fromLTWH(left, top, width, h), const Radius.circular(4)),
+          Paint()
+            ..shader = ui.Gradient.linear(
+                Offset(left, top),
+                Offset(left + width, top + h),
+                [color, color.withValues(alpha: .65)]));
 
       // Valeur au-dessus (taille adaptative)
       var fs = 12.0;
@@ -737,23 +777,27 @@ class _BenefitBars3DPainter extends CustomPainter {
       do {
         vp = TextPainter(
           text: TextSpan(
-            text: valueLabels[i],
-            style: TextStyle(
-              color: Colors.white, fontSize: fs, fontWeight: FontWeight.w800)),
+              text: valueLabels[i],
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: fs,
+                  fontWeight: FontWeight.w800)),
           textDirection: TextDirection.ltr,
           maxLines: 2,
         )..layout(maxWidth: slot * .95);
         if (vp.width <= slot * .95) break;
         fs -= 1;
       } while (fs > 8);
-      vp.paint(canvas,
-        Offset(i * slot + (slot - vp.width) / 2, math.max(0, top - depth - vp.height - 2)));
+      vp.paint(
+          canvas,
+          Offset(i * slot + (slot - vp.width) / 2,
+              math.max(0, top - depth - vp.height - 2)));
 
       // Label en bas
       final tp = TextPainter(
         text: TextSpan(
-          text: labels[i],
-          style: const TextStyle(color: AppColors.textMuted, fontSize: 10)),
+            text: labels[i],
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 10)),
         textDirection: TextDirection.ltr,
       )..layout(maxWidth: slot);
       tp.paint(canvas, Offset(i * slot + (slot - tp.width) / 2, base + 4));
@@ -791,23 +835,32 @@ class _BenefitDonut3DPainter extends CustomPainter {
       final circle = Rect.fromCircle(center: Offset.zero, radius: radius);
 
       canvas.drawArc(
-        circle,
-        0, math.pi * 2, false,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 14
-          ..color = Colors.white.withValues(alpha: .06 - l * .006));
+          circle,
+          0,
+          math.pi * 2,
+          false,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 14
+            ..color = Colors.white.withValues(alpha: .06 - l * .006));
 
       if (total > 0) {
         var start = -1.5708;
         for (var i = 0; i < values.length; i++) {
           final sweep = (values[i] / total * math.pi * 2) - .05;
-          if (sweep <= 0) { start += values[i] / total * math.pi * 2; continue; }
-          canvas.drawArc(circle, start, sweep, false,
-            Paint()
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 14
-              ..color = Color.lerp(colors[i], Colors.black, (l / 7) * .55)!);
+          if (sweep <= 0) {
+            start += values[i] / total * math.pi * 2;
+            continue;
+          }
+          canvas.drawArc(
+              circle,
+              start,
+              sweep,
+              false,
+              Paint()
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = 14
+                ..color = Color.lerp(colors[i], Colors.black, (l / 7) * .55)!);
           start += sweep + .05;
         }
       }
@@ -817,11 +870,19 @@ class _BenefitDonut3DPainter extends CustomPainter {
     // Légende : label 11px + valeur GRAS 13px
     for (var i = 0; i < labels.length; i++) {
       final y = 16.0 + i * 28;
-      canvas.drawCircle(Offset(size.width * .55, y + 8), 5, Paint()..color = colors[i]);
+      canvas.drawCircle(
+          Offset(size.width * .55, y + 8), 5, Paint()..color = colors[i]);
       final tp = TextPainter(
         text: TextSpan(children: [
-          TextSpan(text: '${labels[i]} ', style: const TextStyle(color: Colors.white70, fontSize: 11)),
-          TextSpan(text: '${values[i].round()}', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
+          TextSpan(
+              text: '${labels[i]} ',
+              style: const TextStyle(color: Colors.white70, fontSize: 11)),
+          TextSpan(
+              text: '${values[i].round()}',
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800)),
         ]),
         textDirection: TextDirection.ltr,
       )..layout(maxWidth: size.width * .42);
@@ -867,17 +928,21 @@ class _TrendArrowPainter extends CustomPainter {
       path.lineTo(cx + s * 0.25, cy + s * 0.1);
     }
 
-    canvas.drawPath(path.shift(const Offset(1, 1)), Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.5
-      ..strokeCap = StrokeCap.round
-      ..color = Colors.black.withValues(alpha: .25));
+    canvas.drawPath(
+        path.shift(const Offset(1, 1)),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3.5
+          ..strokeCap = StrokeCap.round
+          ..color = Colors.black.withValues(alpha: .25));
 
-    canvas.drawPath(path, Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.5
-      ..strokeCap = StrokeCap.round
-      ..color = color);
+    canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3.5
+          ..strokeCap = StrokeCap.round
+          ..color = color);
   }
 
   @override

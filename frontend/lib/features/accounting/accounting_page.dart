@@ -50,10 +50,8 @@ class _AccountingPageState extends State<AccountingPage>
       _error = null;
     });
     final results = await Future.wait([
-      ApiClient.instance.get('/accounting/journal',
-          query: {'limit': 100}),
-      ApiClient.instance.get('/accounting/expenses',
-          query: {'limit': 100}),
+      ApiClient.instance.get('/accounting/journal', query: {'limit': 100}),
+      ApiClient.instance.get('/accounting/expenses', query: {'limit': 100}),
     ]);
     if (!mounted) return;
     final journal = results[0];
@@ -76,13 +74,15 @@ class _AccountingPageState extends State<AccountingPage>
   Future<void> _loadRegister() async {
     final branchId = _branchId;
     if (branchId == null) return;
-    final result = await ApiClient.instance
-        .get('/accounting/registers/$branchId/open');
+    final result =
+        await ApiClient.instance.get('/accounting/registers/$branchId/open');
     if (!mounted) return;
     if (result.success) {
       final d = result.data;
       setState(() {
-        _register = d is Map<String, dynamic> ? d : (d is Map ? Map<String, dynamic>.from(d) : null);
+        _register = d is Map<String, dynamic>
+            ? d
+            : (d is Map ? Map<String, dynamic>.from(d) : null);
         _registerChecked = true;
       });
     } else {
@@ -204,8 +204,8 @@ class _AccountingPageState extends State<AccountingPage>
 
   Future<void> _addExpense() async {
     final locale = context.read<AuthStore>().locale;
-    final categoriesResult = await ApiClient.instance
-        .get('/accounting/expense-categories');
+    final categoriesResult =
+        await ApiClient.instance.get('/accounting/expense-categories');
     if (!mounted) return;
     final categories = ApiList.of(categoriesResult.data);
     final amount = TextEditingController();
@@ -289,24 +289,24 @@ class _AccountingPageState extends State<AccountingPage>
       body: PharmaBackground(
         assetImage: 'assets/images/background.webp',
         child: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(child: Text(_error!))
-              : TabBarView(
-                  controller: _tabs,
-                  children: [
-                    _RegisterTab(
-                      register: _register,
-                      checked: _registerChecked,
-                      onOpen: _openRegister,
-                      onAddIn: () => _addMovement('in'),
-                      onAddOut: () => _addMovement('out'),
-                      onClose: _closeRegister,
-                    ),
-                    _JournalTab(items: _journal),
-                    _ExpensesTab(items: _expenses, onAdd: _addExpense),
-                  ],
-                ),
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+                ? Center(child: Text(_error!))
+                : TabBarView(
+                    controller: _tabs,
+                    children: [
+                      _RegisterTab(
+                        register: _register,
+                        checked: _registerChecked,
+                        onOpen: _openRegister,
+                        onAddIn: () => _addMovement('in'),
+                        onAddOut: () => _addMovement('out'),
+                        onClose: _closeRegister,
+                      ),
+                      _JournalTab(items: _journal),
+                      _ExpensesTab(items: _expenses, onAdd: _addExpense),
+                    ],
+                  ),
       ),
     );
   }
@@ -339,7 +339,8 @@ class _RegisterTab extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.payments_outlined, size: 56, color: AppColors.textMuted),
+            const Icon(Icons.payments_outlined,
+                size: 56, color: AppColors.textMuted),
             const SizedBox(height: 8),
             Text(S.t('noOpenRegister', locale)),
             const SizedBox(height: 16),
@@ -556,8 +557,8 @@ class _JournalTab extends StatelessWidget {
                         style: const TextStyle(
                             fontWeight: FontWeight.w800, fontSize: 13)),
                     Text(Fmt.shortDate(DateTime.tryParse('${e['entry_date']}')),
-                        style:
-                            const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                        style: const TextStyle(
+                            fontSize: 11, color: AppColors.textMuted)),
                   ],
                 ),
               ],

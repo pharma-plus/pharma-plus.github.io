@@ -98,8 +98,8 @@ SaleTotals calculateSaleTotalExcl(
 }) {
   final subtotal =
       lines.fold<double>(0, (s, l) => s + l.unitPrice * l.quantity);
-  final discount = calculateDiscount(subtotal, discountValue,
-      isPercent: discountIsPercent);
+  final discount =
+      calculateDiscount(subtotal, discountValue, isPercent: discountIsPercent);
   final net = subtotal - discount;
   // Garde division par zéro : panier vide ou lignes à prix nul.
   final tva = subtotal <= 0
@@ -128,9 +128,7 @@ double calculateProfitFromLines(
   List<({double priceSale, double costPrice, double quantity})> lines,
 ) =>
     lines.fold<double>(
-        0,
-        (s, l) =>
-            s + (l.priceSale - l.costPrice) * l.quantity);
+        0, (s, l) => s + (l.priceSale - l.costPrice) * l.quantity);
 
 /// Produits en stock faible : stock ≤ seuil configuré (reorder/min).
 int calculateLowStock(

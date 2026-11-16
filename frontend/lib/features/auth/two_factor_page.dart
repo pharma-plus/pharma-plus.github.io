@@ -61,8 +61,8 @@ class _TwoFactorPageState extends State<TwoFactorPage> {
     final locale = context.watch<AuthStore>().locale;
     return Scaffold(
       appBar: AppBar(
-        leading: const ShellBackButton(),
-        title: Text(S.t('twoFactorTitle', locale))),
+          leading: const ShellBackButton(),
+          title: Text(S.t('twoFactorTitle', locale))),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),

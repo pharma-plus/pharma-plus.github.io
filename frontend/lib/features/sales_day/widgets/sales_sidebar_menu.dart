@@ -166,26 +166,26 @@ class SalesSidebarMenu extends StatelessWidget {
           ? MarbleBackground(
               dark: false,
               child: Column(
-              children: [
-                // En-tête du menu
-                _buildHeader(context),
-                const Divider(
-                  color: AppColors.dividerLight,
-                  height: 1,
-                ),
-                // Liste des rubriques
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: SalesMenu.items.length,
-                    itemBuilder: (context, i) {
-                      final item = SalesMenu.items[i];
-                      final active = menu.isActive(item.id);
-                      return _buildItem(context, item, active);
-                    },
+                children: [
+                  // En-tête du menu
+                  _buildHeader(context),
+                  const Divider(
+                    color: AppColors.dividerLight,
+                    height: 1,
                   ),
-                ),
-              ],
-            ),
+                  // Liste des rubriques
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: SalesMenu.items.length,
+                      itemBuilder: (context, i) {
+                        final item = SalesMenu.items[i];
+                        final active = menu.isActive(item.id);
+                        return _buildItem(context, item, active);
+                      },
+                    ),
+                  ),
+                ],
+              ),
             )
           : null,
     );
@@ -266,9 +266,7 @@ class SalesSidebarMenu extends StatelessWidget {
               : Colors.transparent,
           border: Border(
             left: BorderSide(
-              color: active
-                  ? AppColors.sageGreenDark
-                  : Colors.transparent,
+              color: active ? AppColors.sageGreenDark : Colors.transparent,
               width: 3,
             ),
           ),
@@ -278,9 +276,7 @@ class SalesSidebarMenu extends StatelessWidget {
             Icon(
               item.icon,
               size: 19,
-              color: active
-                  ? AppColors.sageGreenInk
-                  : AppColors.inkDarkLight,
+              color: active ? AppColors.sageGreenInk : AppColors.inkDarkLight,
             ),
             const SizedBox(width: 14),
             Expanded(

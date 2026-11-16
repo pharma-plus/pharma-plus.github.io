@@ -1,4 +1,4 @@
-﻿import 'package:pdf/pdf.dart';
+import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
@@ -51,18 +51,16 @@ class ReportExport {
           ),
           pw.Center(
             child: pw.Text(title,
-                style: pw.TextStyle(
-                    fontSize: 15, fontWeight: pw.FontWeight.bold)),
+                style:
+                    pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold)),
           ),
           pw.Center(
-              child: pw.Text(periodLabel,
-                  style: pw.TextStyle(fontSize: 10))),
+              child: pw.Text(periodLabel, style: pw.TextStyle(fontSize: 10))),
           pw.SizedBox(height: 6),
           pw.Center(
               child: pw.Text(
                   'Généré le ${DateTime.now().toLocal().toString().split('.').first}',
-                  style: pw.TextStyle(
-                      fontSize: 9, color: PdfColors.grey600))),
+                  style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600))),
           pw.Divider(thickness: 1.2),
           pw.SizedBox(height: 8),
         ];
@@ -71,19 +69,17 @@ class ReportExport {
           if (rows.isEmpty) continue;
           widgets.addAll([
             pw.Text('${s['title'] ?? ''}',
-                style: pw.TextStyle(
-                    fontSize: 13, fontWeight: pw.FontWeight.bold)),
+                style:
+                    pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold)),
             pw.SizedBox(height: 4),
             pw.TableHelper.fromTextArray(
-              headers: (s['headers'] as List?)
-                      ?.map((h) => '$h')
-                      .toList() ??
+              headers: (s['headers'] as List?)?.map((h) => '$h').toList() ??
                   const [],
               data: rows
                   .map((r) => (r as List).map((c) => '$c').toList())
                   .toList(),
-              headerStyle: pw.TextStyle(
-                  fontWeight: pw.FontWeight.bold, fontSize: 9),
+              headerStyle:
+                  pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
               cellStyle: pw.TextStyle(fontSize: 9),
               headerDecoration:
                   const pw.BoxDecoration(color: PdfColors.grey300),
@@ -99,13 +95,13 @@ class ReportExport {
       footer: (context) => pw.Center(
         child: pw.Text(
             'PHARMA+ — Rapport confidentiel · page ${context.pageNumber}/${context.pagesCount}',
-            style:
-                pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+            style: pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
       ),
     ));
     final bytes = await pdf.save();
     if (downloadSupported) {
-      downloadBytes('PHARMA+_${title}_${_dateStamp()}.pdf'.replaceAll(' ', '_'), bytes, 'application/pdf');
+      downloadBytes('PHARMA+_${title}_${_dateStamp()}.pdf'.replaceAll(' ', '_'),
+          bytes, 'application/pdf');
     } else {
       await Printing.layoutPdf(onLayout: (_) => pdf.save());
     }
@@ -123,10 +119,8 @@ class ReportExport {
       final rows = (s['rows'] as List?)?.toList() ?? const [];
       if (rows.isEmpty) continue;
       buf.writeln('"${s['title'] ?? ''}"');
-      final headers = (s['headers'] as List?)
-              ?.map((h) => '"$h"')
-              .join(',') ??
-          '';
+      final headers =
+          (s['headers'] as List?)?.map((h) => '"$h"').join(',') ?? '';
       buf.writeln(headers);
       for (final r in rows) {
         final cells = (r as List).map((c) {

@@ -38,8 +38,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
       _loading = true;
       _error = null;
     });
-    final result = await ApiClient.instance
-        .get('/notifications', query: {'limit': 100});
+    final result =
+        await ApiClient.instance.get('/notifications', query: {'limit': 100});
     if (!mounted) return;
     if (!result.success) {
       setState(() {
@@ -104,16 +104,29 @@ class _NotificationsPageState extends State<NotificationsPage> {
         title: Text(S.t('notifications', locale)),
         actions: [
           if (_unreadCount > 0)
-            TextButton.icon(
-              onPressed: _markingAll ? null : _markAllRead,
-              icon: _markingAll
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.done_all),
-              label: Text(S.t('markAllRead', locale)),
+            Builder(
+              builder: (context) {
+                final compact = MediaQuery.sizeOf(context).width < 430;
+                final icon = _markingAll
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.done_all);
+                if (compact) {
+                  return IconButton(
+                    tooltip: S.t('markAllRead', locale),
+                    onPressed: _markingAll ? null : _markAllRead,
+                    icon: icon,
+                  );
+                }
+                return TextButton.icon(
+                  onPressed: _markingAll ? null : _markAllRead,
+                  icon: icon,
+                  label: Text(S.t('markAllRead', locale)),
+                );
+              },
             ),
           IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
         ],
@@ -121,85 +134,86 @@ class _NotificationsPageState extends State<NotificationsPage> {
       body: PharmaBackground(
         assetImage: 'assets/images/background.webp',
         child: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(child: Text(_error!))
-              : _items.isEmpty
-                  ? Center(child: Text(S.t('noNotifications', locale)))
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(12),
-                        itemCount: _items.length,
-                        itemBuilder: (context, index) {
-                          final item = _items[index];
-                          final unread = item['read_at'] == null;
-                          final type = '${item['type'] ?? 'system'}';
-                          final color = _color(type);
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: GlassCard(
-                              radius: BorderRadius.circular(16),
-                              padding: const EdgeInsets.all(12),
-                              onTap: () => _markRead(item),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    width: 40,
-                                    height: 40,
-                                    decoration: BoxDecoration(
-                                      color: color.withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(12),
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+                ? Center(child: Text(_error!))
+                : _items.isEmpty
+                    ? Center(child: Text(S.t('noNotifications', locale)))
+                    : RefreshIndicator(
+                        onRefresh: _load,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(12),
+                          itemCount: _items.length,
+                          itemBuilder: (context, index) {
+                            final item = _items[index];
+                            final unread = item['read_at'] == null;
+                            final type = '${item['type'] ?? 'system'}';
+                            final color = _color(type);
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: GlassCard(
+                                radius: BorderRadius.circular(16),
+                                padding: const EdgeInsets.all(12),
+                                onTap: () => _markRead(item),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: color.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Icon(_icon(type), color: color),
                                     ),
-                                    child: Icon(_icon(type), color: color),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text('${item['title'] ?? '—'}',
-                                            style: TextStyle(
-                                              fontWeight: unread
-                                                  ? FontWeight.w800
-                                                  : FontWeight.w600,
-                                            )),
-                                        if (item['message'] != null) ...[
-                                          const SizedBox(height: 2),
-                                          Text('${item['message']}',
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text('${item['title'] ?? '—'}',
+                                              style: TextStyle(
+                                                fontWeight: unread
+                                                    ? FontWeight.w800
+                                                    : FontWeight.w600,
+                                              )),
+                                          if (item['message'] != null) ...[
+                                            const SizedBox(height: 2),
+                                            Text('${item['message']}',
+                                                style: const TextStyle(
+                                                    fontSize: 12,
+                                                    color:
+                                                        AppColors.textMuted)),
+                                          ],
+                                          const SizedBox(height: 5),
+                                          Text(
+                                              Fmt.dateTime(DateTime.tryParse(
+                                                  '${item['created_at']}')),
                                               style: const TextStyle(
-                                                  fontSize: 12,
+                                                  fontSize: 11,
                                                   color: AppColors.textMuted)),
                                         ],
-                                        const SizedBox(height: 5),
-                                        Text(
-                                            Fmt.dateTime(DateTime.tryParse(
-                                                '${item['created_at']}')),
-                                            style: const TextStyle(
-                                                fontSize: 11,
-                                                color: AppColors.textMuted)),
-                                      ],
-                                    ),
-                                  ),
-                                  if (unread)
-                                    Container(
-                                      width: 9,
-                                      height: 9,
-                                      margin: const EdgeInsets.only(top: 5),
-                                      decoration: const BoxDecoration(
-                                        color: AppColors.primary,
-                                        shape: BoxShape.circle,
                                       ),
                                     ),
-                                ],
+                                    if (unread)
+                                      Container(
+                                        width: 9,
+                                        height: 9,
+                                        margin: const EdgeInsets.only(top: 5),
+                                        decoration: const BoxDecoration(
+                                          color: AppColors.primary,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
                       ),
-                    ),
       ),
     );
   }

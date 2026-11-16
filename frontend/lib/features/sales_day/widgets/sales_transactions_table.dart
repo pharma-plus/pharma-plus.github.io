@@ -116,11 +116,11 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
                   controller: _searchCtrl,
                   decoration: const InputDecoration(
                     isDense: true,
-                    prefixIcon:
-                        Icon(Icons.search, size: 18, color: AppColors.pharmaMuted),
+                    prefixIcon: Icon(Icons.search,
+                        size: 18, color: AppColors.pharmaMuted),
                     hintText: 'N° de vente…',
-                    hintStyle: TextStyle(
-                        color: AppColors.pharmaMuted, fontSize: 11.5),
+                    hintStyle:
+                        TextStyle(color: AppColors.pharmaMuted, fontSize: 11.5),
                     contentPadding:
                         EdgeInsets.symmetric(vertical: 8, horizontal: 10),
                     border: OutlineInputBorder(
@@ -132,8 +132,8 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
                       borderSide: BorderSide(color: AppColors.goldBorder),
                     ),
                   ),
-                  style: const TextStyle(
-                      color: AppColors.inkDark, fontSize: 12),
+                  style:
+                      const TextStyle(color: AppColors.inkDark, fontSize: 12),
                   onChanged: onSearch,
                 ),
               ),
@@ -148,12 +148,13 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
           children: [
             _chip('Toutes', SalesTxFilter.all, c.txStatus, onStatus),
             _chip('Terminées', SalesTxFilter.completed, c.txStatus, onStatus),
-            _chip('Annulées / retours', SalesTxFilter.problems, c.txStatus, onStatus),
+            _chip('Annulées / retours', SalesTxFilter.problems, c.txStatus,
+                onStatus),
             const SizedBox(width: 10, height: 10),
             Text(
               '${c.txTotal} transaction(s) au total',
-              style: const TextStyle(
-                  color: AppColors.pharmaMuted, fontSize: 10.5),
+              style:
+                  const TextStyle(color: AppColors.pharmaMuted, fontSize: 10.5),
             ),
           ],
         ),
@@ -199,7 +200,8 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
                   const SizedBox(height: 8),
                   const Text(
                     'Aucune transaction sur la période pour ce filtre',
-                    style: TextStyle(color: AppColors.pharmaMuted, fontSize: 12),
+                    style:
+                        TextStyle(color: AppColors.pharmaMuted, fontSize: 12),
                   ),
                 ],
               ),
@@ -294,8 +296,11 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
             Expanded(
               flex: (widths[i] * 100).round(),
               child: Align(
-                alignment: i >= 2 && i <= 4 ? Alignment.centerRight : Alignment.centerLeft,
-                child: Text(t, style: style, maxLines: 1, overflow: TextOverflow.ellipsis),
+                alignment: i >= 2 && i <= 4
+                    ? Alignment.centerRight
+                    : Alignment.centerLeft,
+                child: Text(t,
+                    style: style, maxLines: 1, overflow: TextOverflow.ellipsis),
               ),
             ),
         ],
@@ -309,7 +314,8 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
       decoration: BoxDecoration(
         color: AppColors.silver.withValues(alpha: 0.75),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.sageGreenDark.withValues(alpha: 0.35), width: 1),
+        border: Border.all(
+            color: AppColors.sageGreenDark.withValues(alpha: 0.35), width: 1),
       ),
       child: Column(
         children: [
@@ -330,7 +336,8 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
                   : '${SalesAnalyticsService.hourMinute(t.createdAt)} · ${t.createdAt!.toLocal().day.toString().padLeft(2, '0')}',
               Fmt.number(t.total, decimals: 2),
               Fmt.number(t.paidAmount, decimals: 2),
-              Fmt.number((t.total - t.paidAmount).clamp(0, double.infinity), decimals: 2),
+              Fmt.number((t.total - t.paidAmount).clamp(0, double.infinity),
+                  decimals: 2),
               [
                 _method(t.paymentMethod),
                 if (t.customer != null && t.customer!.isNotEmpty) t.customer!,
@@ -377,10 +384,11 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: _statusColor(t.status).withValues(alpha: 0.14),
+                            color:
+                                _statusColor(t.status).withValues(alpha: 0.14),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: _statusColor(t.status), width: 0.8),
+                                color: _statusColor(t.status), width: 0.8),
                           ),
                           child: Text(
                             _statusLabel(t.status),

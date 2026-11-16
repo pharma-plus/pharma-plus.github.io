@@ -117,8 +117,7 @@ class _CamerasPageState extends State<CamerasPage> {
           streamUrl.text.trim().isEmpty ? null : streamUrl.text.trim(),
     };
     if (body['name'] == null || (body['name'] as String).isEmpty) return;
-    final result = await ApiClient.instance
-        .post('/cameras', body: body);
+    final result = await ApiClient.instance.post('/cameras', body: body);
     if (!mounted) return;
     if (result.success) {
       await _load();
@@ -139,8 +138,7 @@ class _CamerasPageState extends State<CamerasPage> {
       isDestructive: true,
     );
     if (confirm != true) return;
-    final result = await ApiClient.instance
-        .delete('/cameras/${camera['id']}');
+    final result = await ApiClient.instance.delete('/cameras/${camera['id']}');
     if (!mounted) return;
     if (result.success) {
       await _load();
@@ -165,8 +163,7 @@ class _CamerasPageState extends State<CamerasPage> {
         ],
       ),
       body: PharmaBackground(
-        assetImage: 'assets/images/background.webp',
-        child: _buildBody()),
+          assetImage: 'assets/images/background.webp', child: _buildBody()),
     );
   }
 

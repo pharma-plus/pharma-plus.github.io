@@ -160,7 +160,9 @@ class ProductArtPainter extends CustomPainter {
       // Épaules.
       canvas.drawOval(
           Rect.fromCenter(
-              center: P(cx, cy - bh / 2), width: bw * ux, height: bw * 0.5 * uy),
+              center: P(cx, cy - bh / 2),
+              width: bw * ux,
+              height: bw * 0.5 * uy),
           Paint()..color = body);
       // Reflet.
       canvas.drawRRect(
@@ -183,11 +185,9 @@ class ProductArtPainter extends CustomPainter {
       canvas.drawRRect(
           rr(x, y, bw, bh, 2.5), Paint()..color = const Color(0xFFE9F1EC));
       for (var i = 0; i < 4; i++) {
-        canvas.drawCircle(P(x + 5 + i * 7, y + bh / 2), 2.6 * ux,
-            Paint()..color = pill);
         canvas.drawCircle(
-            P(x + 5 + i * 7 - 0.8, y + bh / 2 - 0.8),
-            1 * ux,
+            P(x + 5 + i * 7, y + bh / 2), 2.6 * ux, Paint()..color = pill);
+        canvas.drawCircle(P(x + 5 + i * 7 - 0.8, y + bh / 2 - 0.8), 1 * ux,
             Paint()..color = Colors.white.withValues(alpha: 0.6));
       }
       canvas.drawRRect(
@@ -211,15 +211,8 @@ class ProductArtPainter extends CustomPainter {
 
       // ---- BIO 3 : flacon ambré + compte-gouttes ----
       case ProductArt.bio3:
-        bottle(
-            46,
-            42,
-            20,
-            36,
-            const Color(0xFF8A5A2B),
-            const Color(0xFF2E2A26),
-            const Color(0xFFF3E9D8),
-            5);
+        bottle(46, 42, 20, 36, const Color(0xFF8A5A2B), const Color(0xFF2E2A26),
+            const Color(0xFFF3E9D8), 5);
         // Compte-gouttes.
         canvas.drawRRect(rr(44.4, 4, 3.2, 10, 1.2),
             Paint()..color = const Color(0xFFB9C6BF));
@@ -236,15 +229,8 @@ class ProductArtPainter extends CustomPainter {
 
       // ---- EAU THERMALE : bouteille spray bleue ----
       case ProductArt.eauThermale:
-        bottle(
-            46,
-            40,
-            22,
-            40,
-            const Color(0xFF5B8FD9),
-            const Color(0xFF3B6CB4),
-            const Color(0xFFEAF2FC),
-            5.5);
+        bottle(46, 40, 22, 40, const Color(0xFF5B8FD9), const Color(0xFF3B6CB4),
+            const Color(0xFFEAF2FC), 5.5);
         text('EAU', P(46, 37), 6, const Color(0xFF2E4A66));
         text('THERMALE', P(46, 44), 3.6, const Color(0xFF2E4A66));
         // Gouttelettes.
@@ -276,8 +262,8 @@ class ProductArtPainter extends CustomPainter {
           (72.0, 42.0),
           (63.0, 33.0)
         ]) {
-          canvas.drawCircle(P(bx, by), 1.1 * ux,
-              Paint()..color = const Color(0xFFBFE3FF));
+          canvas.drawCircle(
+              P(bx, by), 1.1 * ux, Paint()..color = const Color(0xFFBFE3FF));
         }
 
       // ---- PARACÉTAMOL 500 : boîte verte + plaquette ----
@@ -292,15 +278,8 @@ class ProductArtPainter extends CustomPainter {
       case ProductArt.mucosolvan:
         box3d(26, 24, 22, 34, 4.5, const Color(0xFFE0557C),
             const Color(0xFFC64566), const Color(0xFFA93A58));
-        bottle(
-            60,
-            44,
-            18,
-            32,
-            const Color(0xFF2FB563),
-            const Color(0xFF1E8144),
-            const Color(0xFFEAF7F0),
-            4.5);
+        bottle(60, 44, 18, 32, const Color(0xFF2FB563), const Color(0xFF1E8144),
+            const Color(0xFFEAF7F0), 4.5);
         text('MU', P(60, 42), 5, const Color(0xFF0B3B23));
 
       // ---- FALLBACK : boîte verte croix blanche ----

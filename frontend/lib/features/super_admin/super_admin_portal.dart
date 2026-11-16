@@ -274,7 +274,8 @@ class _SuperAdminPortalState extends State<SuperAdminPortal> {
                                                 '@${p['slug']} · ${p['city'] ?? ''}',
                                                 style: const TextStyle(
                                                     fontSize: 12,
-                                                    color: AppColors.textMuted)),
+                                                    color:
+                                                        AppColors.textMuted)),
                                             const SizedBox(height: 4),
                                             Wrap(
                                               spacing: 8,
@@ -369,7 +370,8 @@ class _GlobalStats extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(tiles[i].$1,
-                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.textMuted)),
               const SizedBox(height: 4),
               Text(tiles[i].$2,
                   style: const TextStyle(
@@ -421,8 +423,7 @@ class _PharmacyFormState extends State<PharmacyForm> {
       'city': _city.text.trim().isEmpty ? null : _city.text.trim(),
       'phone': _phone.text.trim().isEmpty ? null : _phone.text.trim(),
       'admin_email': _email.text.trim(),
-      'admin_password':
-          _password.text.isNotEmpty ? _password.text : null,
+      'admin_password': _password.text.isNotEmpty ? _password.text : null,
       'license_type': _license,
     });
     if (!mounted) return;

@@ -94,8 +94,8 @@ class _StockAuditTabState extends State<StockAuditTab> {
     });
     final results = await Future.wait([
       ApiClient.instance.get('/branches'),
-      ApiClient.instance.get('/inventory/sessions',
-          query: {'limit': 20, 'status': 'open'}),
+      ApiClient.instance
+          .get('/inventory/sessions', query: {'limit': 20, 'status': 'open'}),
     ]);
     if (!mounted) return;
     if (!results[0].success || !results[1].success) {
@@ -142,8 +142,8 @@ class _StockAuditTabState extends State<StockAuditTab> {
     );
     if (branchId == null) return;
     setState(() => _busy = true);
-    final r = await ApiClient.instance.post('/inventory/sessions',
-        body: {'branchId': branchId});
+    final r = await ApiClient.instance
+        .post('/inventory/sessions', body: {'branchId': branchId});
     if (!mounted) return;
     setState(() => _busy = false);
     if (!r.success) {
@@ -176,7 +176,8 @@ class _StockAuditTabState extends State<StockAuditTab> {
 
   /// Traitement d'une lecture de scan (mode simple ou continu).
   /// Anti-doublon : un même code ignoré s'il est rescanné < 1.2 s.
-  Future<void> _processScan(ScanResult result, {bool continuous = false}) async {
+  Future<void> _processScan(ScanResult result,
+      {bool continuous = false}) async {
     final code = result.lookupCode;
     if (code.isEmpty || !mounted) return;
     final now = DateTime.now();
@@ -199,9 +200,9 @@ class _StockAuditTabState extends State<StockAuditTab> {
       // Produit inconnu : JAMAIS de création automatique (anti-doublon).
       if (continuous) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-                'Produit non reconnu ($code) â€” utilisez le scan simple '
-                'pour le créer ou l\u2019associer.')));
+            content:
+                Text('Produit non reconnu ($code) â€” utilisez le scan simple '
+                    'pour le créer ou l\u2019associer.')));
       } else {
         await _showUnknownProductDialog(code);
       }
@@ -322,8 +323,7 @@ class _StockAuditTabState extends State<StockAuditTab> {
               style: TextStyle(fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
           Text('Comparez le stock système au stock physique.',
-              style: TextStyle(
-                  color: AppColors.inkDarkLight, fontSize: 12.5)),
+              style: TextStyle(color: AppColors.inkDarkLight, fontSize: 12.5)),
           const SizedBox(height: 16),
           GradientButton(
               label: 'Démarrer un inventaire',
@@ -403,8 +403,7 @@ class _StockAuditTabState extends State<StockAuditTab> {
                       Text(
                           'Lot ${it['lot_number'] ?? 'â€”'} · Système : ${Fmt.number(sys)}',
                           style: TextStyle(
-                              fontSize: 11.5,
-                              color: AppColors.inkDarkLight)),
+                              fontSize: 11.5, color: AppColors.inkDarkLight)),
                     ]),
               ),
               SizedBox(
@@ -463,7 +462,8 @@ class _GapChip extends StatelessWidget {
         ),
         if (gap != 0)
           Text(Fmt.money(gapValue),
-              style: const TextStyle(fontSize: 10.5, color: AppColors.textMuted)),
+              style:
+                  const TextStyle(fontSize: 10.5, color: AppColors.textMuted)),
       ],
     );
   }
@@ -564,8 +564,8 @@ class _CashAuditTabState extends State<CashAuditTab> {
       _notes.clear();
       await _load();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(r.error?.readableMessage ?? S.t('loadError', locale))));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(r.error?.readableMessage ?? S.t('loadError', locale))));
     }
   }
 
@@ -678,8 +678,7 @@ class _CashAuditView extends StatelessWidget {
                       'Attendu calculé sur les VRAIS paiements enregistrés '
                       '(aucune écriture financière modifiée).',
                       style: TextStyle(
-                          fontSize: 11.5,
-                          color: AppColors.inkDarkLight)),
+                          fontSize: 11.5, color: AppColors.inkDarkLight)),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     initialValue: branchId,
@@ -691,14 +690,25 @@ class _CashAuditView extends StatelessWidget {
                     onChanged: onBranch,
                   ),
                   const SizedBox(height: 10),
-                  cashRow('Ventes système',
-                      Fmt.money(double.tryParse('${expected?['salesTotal']}') ?? 0)),
-                  cashRow('Paiements espèces',
-                      Fmt.money(double.tryParse('${expected?['paymentsCash']}') ?? 0)),
-                  cashRow('Paiements carte',
-                      Fmt.money(double.tryParse('${expected?['paymentsCard']}') ?? 0)),
-                  cashRow('Autres paiements',
-                      Fmt.money(double.tryParse('${expected?['paymentsOther']}') ?? 0)),
+                  cashRow(
+                      'Ventes système',
+                      Fmt.money(
+                          double.tryParse('${expected?['salesTotal']}') ?? 0)),
+                  cashRow(
+                      'Paiements espèces',
+                      Fmt.money(
+                          double.tryParse('${expected?['paymentsCash']}') ??
+                              0)),
+                  cashRow(
+                      'Paiements carte',
+                      Fmt.money(
+                          double.tryParse('${expected?['paymentsCard']}') ??
+                              0)),
+                  cashRow(
+                      'Autres paiements',
+                      Fmt.money(
+                          double.tryParse('${expected?['paymentsOther']}') ??
+                              0)),
                   cashRow('CAISSE SYSTÃˆME (attendu espèces)',
                       Fmt.money(expectedCash),
                       bold: true),
@@ -771,8 +781,7 @@ class _HistoryList extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Center(
                 child: Text('Aucun audit enregistré',
-                    style: TextStyle(
-                        color: AppColors.inkDarkLight))),
+                    style: TextStyle(color: AppColors.inkDarkLight))),
           )
         else
           ...history.map((h) {
@@ -809,4 +818,3 @@ class _HistoryList extends StatelessWidget {
     );
   }
 }
-

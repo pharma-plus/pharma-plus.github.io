@@ -82,7 +82,8 @@ class _ScannerPageState extends State<ScannerPage> {
               'Code-barres inconnu : $code\nRecherchez le produit par son nom dans le POS.')));
       return;
     }
-    final medMap = med is Map ? Map<String, dynamic>.from(med) : <String, dynamic>{};
+    final medMap =
+        med is Map ? Map<String, dynamic>.from(med) : <String, dynamic>{};
     final medication = Medication.fromJson(medMap);
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => PosPage(initialItems: [medication]),
@@ -209,8 +210,7 @@ class _ScannerPageState extends State<ScannerPage> {
             const SizedBox(height: 16),
             // Mode lecteur HID
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(14),
@@ -226,8 +226,7 @@ class _ScannerPageState extends State<ScannerPage> {
                     controller: _manual,
                     autofocus: _error,
                     onSubmitted: _handleCode,
-                    style:
-                        const TextStyle(color: Colors.white, fontSize: 14),
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
                     decoration: const InputDecoration(
                       border: InputBorder.none,
                       hintText:

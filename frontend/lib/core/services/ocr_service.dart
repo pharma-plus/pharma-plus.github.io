@@ -3,8 +3,8 @@
 // section 42 — le scan produit doit rester rapide). Hors web : non
 // supporté (retourne null, jamais une simulation).
 library;
-export 'ocr_service_stub.dart'
-    if (dart.library.html) 'ocr_service_web.dart';
+
+export 'ocr_service_stub.dart' if (dart.library.html) 'ocr_service_web.dart';
 
 /// Résultat OCR brut : texte extrait + confiance du moteur (0–100).
 class OcrResult {

@@ -38,11 +38,14 @@ class AppEmptyState extends StatelessWidget {
 
     final effectiveIcon = icon ?? Icons.inbox_rounded;
     final effectiveIconColor = iconColor ??
-        (isDark ? tokens.textTertiary.withValues(alpha: 0.6) : tokens.textDisabled);
+        (isDark
+            ? tokens.textTertiary.withValues(alpha: 0.6)
+            : tokens.textDisabled);
     final effectiveTitleStyle = titleStyle ?? tokens.headlineSmall;
-    final effectiveMessageStyle = messageStyle ?? tokens.bodyMedium.copyWith(
-      color: isDark ? tokens.textTertiary : tokens.textDisabled,
-    );
+    final effectiveMessageStyle = messageStyle ??
+        tokens.bodyMedium.copyWith(
+          color: isDark ? tokens.textTertiary : tokens.textDisabled,
+        );
 
     final content = Column(
       mainAxisSize: MainAxisSize.min,

@@ -56,8 +56,7 @@ class ReceiptPdf {
 
   /// Dernier ticket généré : permet la RÉIMPRESSION sans relancer la vente.
   static Uint8List? _lastReceiptBytes;
-  static PdfPageFormat _lastFormat =
-      ReceiptPrefs.format(ReceiptWidth.mm80);
+  static PdfPageFormat _lastFormat = ReceiptPrefs.format(ReceiptWidth.mm80);
   static bool get hasLastReceipt => _lastReceiptBytes != null;
 
   static Future<pw.MemoryImage> _loadLogo() async {
@@ -86,8 +85,8 @@ class ReceiptPdf {
 
     final subtotal =
         lines.fold<double>(0, (s, l) => s + l.unitPrice * l.quantity);
-    final tva =
-        lines.fold<double>(0, (s, l) => s + l.unitPrice * l.quantity * (l.tvaRate / 100));
+    final tva = lines.fold<double>(
+        0, (s, l) => s + l.unitPrice * l.quantity * (l.tvaRate / 100));
     final discount = globalDiscountAmount > 0
         ? globalDiscountAmount
         : subtotal * (globalDiscountPercent / 100);
@@ -115,10 +114,8 @@ class ReceiptPdf {
                 pw.Expanded(
                     child: pw.Text(S.t('product', locale),
                         style: pw.TextStyle(fontSize: 8))),
-                pw.Text(S.t('qty', locale),
-                    style: pw.TextStyle(fontSize: 8)),
-                pw.Text(S.t('total', locale),
-                    style: pw.TextStyle(fontSize: 8)),
+                pw.Text(S.t('qty', locale), style: pw.TextStyle(fontSize: 8)),
+                pw.Text(S.t('total', locale), style: pw.TextStyle(fontSize: 8)),
               ],
             ),
             pw.Divider(height: 6),
@@ -128,8 +125,8 @@ class ReceiptPdf {
                 child: pw.Row(
                   children: [
                     pw.Expanded(
-                        child: pw.Text(l.name,
-                            style: pw.TextStyle(fontSize: 8))),
+                        child:
+                            pw.Text(l.name, style: pw.TextStyle(fontSize: 8))),
                     pw.Text(l.quantity.toStringAsFixed(0),
                         style: pw.TextStyle(fontSize: 8)),
                     pw.Text(Fmt.money(l.unitPrice * l.quantity),
@@ -149,7 +146,8 @@ class ReceiptPdf {
             _totalRow(S.t('total', locale), Fmt.money(total), bold: true),
             if (amountReceived > 0) ...[
               _totalRow('MONTANT REÇU', Fmt.money(amountReceived)),
-              if (change > 0) _totalRow('MONNAIE', Fmt.money(change), bold: true),
+              if (change > 0)
+                _totalRow('MONNAIE', Fmt.money(change), bold: true),
             ],
             pw.SizedBox(height: 10),
             pw.Text(S.t('thankYou', locale),
@@ -221,8 +219,8 @@ class ReceiptPdf {
               style: pw.TextStyle(fontSize: 8, color: PdfColors.grey)),
           pw.SizedBox(height: 8),
           pw.Text('TICKET DE TEST',
-              style: pw.TextStyle(
-                  fontSize: 12, fontWeight: pw.FontWeight.bold)),
+              style:
+                  pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 4),
           pw.Text('0123456789  EAN-13  Code128  QR',
               style: pw.TextStyle(fontSize: 8)),
@@ -256,11 +254,13 @@ class ReceiptPdf {
             pw.Text(label,
                 style: pw.TextStyle(
                     fontSize: bold ? 10 : 8,
-                    fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal)),
+                    fontWeight:
+                        bold ? pw.FontWeight.bold : pw.FontWeight.normal)),
             pw.Text(value,
                 style: pw.TextStyle(
                     fontSize: bold ? 11 : 8,
-                    fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal)),
+                    fontWeight:
+                        bold ? pw.FontWeight.bold : pw.FontWeight.normal)),
           ],
         ),
       );

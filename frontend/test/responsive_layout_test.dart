@@ -17,21 +17,34 @@ import 'package:pharma_maroc_gold/features/suppliers/suppliers_page.dart';
 import 'package:pharma_maroc_gold/features/super_admin/super_admin_portal.dart';
 import 'package:pharma_maroc_gold/features/super_admin/users_management_page.dart';
 
-/// Tests responsive (étape 6) : 360 / 390 / 768 / 1024 / 1366 / 1920 via
-/// setSurfaceSize. Un débordement RenderFlex apparaît comme exception de
-/// test : chaque taille assert takeException() == null.
+/// Tests responsive : 320 / 360 / 375 / 390 / 412 / 600 / 768 / 1024 /
+/// 1280 / 1366 / 1920, pilotés par `tester.view` (et NON par
+/// `setSurfaceSize`, qui ne met pas à jour `MediaQuery`).
+/// Un débordement RenderFlex apparaît comme exception de test : chaque taille
+/// assert takeException() == null.
 /// Un HttpOverrides interne sert des données factices aux pages (sinon le
 /// mock flutter_test répond 400 et les branches cartes/tableau, qui
 /// n'existent qu'avec des lignes, ne sont jamais rendues).
 
 const _sizes = <(double, double)>[
-  (360, 800),
+  (320, 568),
+  (360, 640),
+  (375, 667),
   (390, 844),
+  (412, 915),
+  (600, 800),
   (768, 1024),
   (1024, 768),
+  (1280, 800),
   (1366, 768),
   (1920, 1080),
 ];
+
+/// Applique la taille réellement perçue par `MediaQuery`.
+void _setSize(WidgetTester tester, double width, double height) {
+  tester.view.physicalSize = Size(width, height);
+  tester.view.devicePixelRatio = 1.0;
+}
 
 HttpOverrides? _previousOverrides;
 
@@ -410,11 +423,11 @@ void main() {
   });
 
   testWidgets(
-      'SuppliersPage : 6 tailles sans débordement — cartes <600, AppDataTable >=600',
+      'SuppliersPage : toutes tailles sans débordement — cartes <600, AppDataTable >=600',
       (tester) async {
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    addTearDown(tester.view.reset);
     for (final (w, h) in _sizes) {
-      await tester.binding.setSurfaceSize(Size(w, h));
+      _setSize(tester, w, h);
       await tester.pumpWidget(
         ChangeNotifierProvider.value(
           value: AuthStore.instance,
@@ -435,13 +448,10 @@ void main() {
     }
   });
 
-  testWidgets('CatalogPage : 6 tailles sans débordement (SKIP: overflow préexistant à 360px)', (tester) async {
-    // TODO: corriger l'overflow CatalogPage à 360px (Row line 1218)
-    // skip: https://github.com/pharma-plus/pharma-plus/issues/XXX
-    return;
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+  testWidgets('CatalogPage : toutes tailles sans débordement', (tester) async {
+    addTearDown(tester.view.reset);
     for (final (w, h) in _sizes) {
-      await tester.binding.setSurfaceSize(Size(w, h));
+      _setSize(tester, w, h);
       await tester.pumpWidget(
         ChangeNotifierProvider.value(
           value: AuthStore.instance,
@@ -457,11 +467,11 @@ void main() {
   });
 
   testWidgets(
-      'StockPage : 6 tailles sans débordement — tableau >=600, cartes <600',
+      'StockPage : toutes tailles sans débordement — tableau >=600, cartes <600',
       (tester) async {
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    addTearDown(tester.view.reset);
     for (final (w, h) in _sizes) {
-      await tester.binding.setSurfaceSize(Size(w, h));
+      _setSize(tester, w, h);
       await tester.pumpWidget(
         ChangeNotifierProvider.value(
           value: AuthStore.instance,
@@ -484,10 +494,10 @@ void main() {
     }
   });
 
-  testWidgets('UserFormDialog : 6 tailles sans débordement', (tester) async {
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+  testWidgets('UserFormDialog : toutes tailles sans débordement', (tester) async {
+    addTearDown(tester.view.reset);
     for (final (w, h) in _sizes) {
-      await tester.binding.setSurfaceSize(Size(w, h));
+      _setSize(tester, w, h);
       await tester.pumpWidget(
         ChangeNotifierProvider.value(
           value: AuthStore.instance,
@@ -507,10 +517,10 @@ void main() {
     }
   });
 
-  testWidgets('PharmacyForm : 6 tailles sans débordement', (tester) async {
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+  testWidgets('PharmacyForm : toutes tailles sans débordement', (tester) async {
+    addTearDown(tester.view.reset);
     for (final (w, h) in _sizes) {
-      await tester.binding.setSurfaceSize(Size(w, h));
+      _setSize(tester, w, h);
       await tester.pumpWidget(
         ChangeNotifierProvider.value(
           value: AuthStore.instance,
@@ -526,11 +536,11 @@ void main() {
     }
   });
 
-  testWidgets('AppConfirmDialog : 6 tailles — dialogue et boutons visibles',
+  testWidgets('AppConfirmDialog : toutes tailles — dialogue et boutons visibles',
       (tester) async {
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    addTearDown(tester.view.reset);
     for (final (w, h) in _sizes) {
-      await tester.binding.setSurfaceSize(Size(w, h));
+      _setSize(tester, w, h);
       await tester.pumpWidget(
         MaterialApp(
           home: Builder(

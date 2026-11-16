@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
 class PharmaBackground extends StatelessWidget {
@@ -19,7 +19,7 @@ class PharmaBackground extends StatelessWidget {
     this.assetImage,
   });
 
-    @override
+  @override
   Widget build(BuildContext context) {
     // ADAPTATIF : le theme principal (clair) et le theme sombre utilisent
     // l'image pharmacie (scène) en arriere-plan - la texture graphite est
@@ -79,8 +79,7 @@ class PharmaBackground extends StatelessWidget {
         bg,
         if (showOverlay)
           ColoredBox(
-              color:
-                  const Color(0xFF0B0F13).withValues(alpha: overlayOpacity)),
+              color: const Color(0xFF0B0F13).withValues(alpha: overlayOpacity)),
         child,
       ],
     );

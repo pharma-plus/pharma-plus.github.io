@@ -271,16 +271,19 @@ class SupplierIntegrationHub {
   List<SupplierAdapterConfig> get configured => _configs.values.toList();
 
   /// Vérifie si un fournisseur est configuré et actif
-  bool isConfigured(String supplierCode) => _configs.containsKey(supplierCode) && _configs[supplierCode]!.enabled;
+  bool isConfigured(String supplierCode) =>
+      _configs.containsKey(supplierCode) && _configs[supplierCode]!.enabled;
 
   /// Synchronise tous les fournisseurs actifs
-  Future<Map<String, SupplierSyncResult>> syncAllActive({DateTime? since}) async {
+  Future<Map<String, SupplierSyncResult>> syncAllActive(
+      {DateTime? since}) async {
     final results = <String, SupplierSyncResult>{};
     for (final config in _configs.values.where((c) => c.enabled)) {
       final adapter = _adapters[config.supplierCode];
       if (adapter != null) {
         try {
-          results[config.supplierCode] = await adapter.syncCatalog(since: since);
+          results[config.supplierCode] =
+              await adapter.syncCatalog(since: since);
         } catch (e) {
           results[config.supplierCode] = SupplierSyncResult(
             success: false,
@@ -347,11 +350,10 @@ class SupplierAdapterConfig {
 /// Helper pour extraire une liste de maps depuis une réponse API.
 class ApiList {
   ApiList._();
-  static List<Map<String, dynamic>> of(dynamic data) =>
-      (data as List? ?? [])
-          .whereType<Map>()
-          .map((m) => Map<String, dynamic>.from(m))
-          .toList();
+  static List<Map<String, dynamic>> of(dynamic data) => (data as List? ?? [])
+      .whereType<Map>()
+      .map((m) => Map<String, dynamic>.from(m))
+      .toList();
 }
 
 /// Adaptateur REST générique (OpenAPI / Swagger)
@@ -370,13 +372,13 @@ class RestSupplierAdapter implements SupplierAdapter {
   @override
   String get connectionType => 'rest';
 
-
   @override
   Future<SupplierConnectionResult> testConnection() async {
     final start = DateTime.now();
     try {
       // Endpoint de santé typique: GET /health ou GET /api/v1/ping
-      final r = await _api.get(config.settings['healthEndpoint']?.toString() ?? '/health');
+      final r = await _api
+          .get(config.settings['healthEndpoint']?.toString() ?? '/health');
       return SupplierConnectionResult(
         success: r.success,
         error: r.error?.message,
@@ -392,7 +394,8 @@ class RestSupplierAdapter implements SupplierAdapter {
   }
 
   @override
-  Future<SupplierSyncResult> syncCatalog({DateTime? since, bool fullSync = false}) async {
+  Future<SupplierSyncResult> syncCatalog(
+      {DateTime? since, bool fullSync = false}) async {
     final start = DateTime.now();
     int added = 0, updated = 0, skipped = 0, conflicts = 0;
 
@@ -405,12 +408,19 @@ class RestSupplierAdapter implements SupplierAdapter {
         params['endpoint'] = config.settings['catalogEndpoint'];
       }
 
-      final r = await _api.get(config.settings['catalogEndpoint']?.toString() ?? '/api/v1/products', query: params);
+      final r = await _api.get(
+          config.settings['catalogEndpoint']?.toString() ?? '/api/v1/products',
+          query: params);
       if (!r.success) {
         return SupplierSyncResult(
-          success: false, error: r.error?.message,
-          productsAdded: 0, productsUpdated: 0, productsSkipped: 0, conflicts: 0,
-          duration: DateTime.now().difference(start), syncedAt: DateTime.now(),
+          success: false,
+          error: r.error?.message,
+          productsAdded: 0,
+          productsUpdated: 0,
+          productsSkipped: 0,
+          conflicts: 0,
+          duration: DateTime.now().difference(start),
+          syncedAt: DateTime.now(),
         );
       }
 
@@ -432,15 +442,24 @@ class RestSupplierAdapter implements SupplierAdapter {
       }
 
       return SupplierSyncResult(
-        success: true, productsAdded: added, productsUpdated: updated,
-        productsSkipped: skipped, conflicts: conflicts,
-        duration: DateTime.now().difference(start), syncedAt: DateTime.now(),
+        success: true,
+        productsAdded: added,
+        productsUpdated: updated,
+        productsSkipped: skipped,
+        conflicts: conflicts,
+        duration: DateTime.now().difference(start),
+        syncedAt: DateTime.now(),
       );
     } catch (e) {
       return SupplierSyncResult(
-        success: false, error: e.toString(),
-        productsAdded: 0, productsUpdated: 0, productsSkipped: 0, conflicts: 0,
-        duration: DateTime.now().difference(start), syncedAt: DateTime.now(),
+        success: false,
+        error: e.toString(),
+        productsAdded: 0,
+        productsUpdated: 0,
+        productsSkipped: 0,
+        conflicts: 0,
+        duration: DateTime.now().difference(start),
+        syncedAt: DateTime.now(),
       );
     }
   }
@@ -481,7 +500,8 @@ class RestSupplierAdapter implements SupplierAdapter {
   }
 
   @override
-  Future<Map<String, SupplierStockInfo>> checkStock(List<String> ean13List) async {
+  Future<Map<String, SupplierStockInfo>> checkStock(
+      List<String> ean13List) async {
     final result = <String, SupplierStockInfo>{};
     final chunked = <List<String>>[];
     for (var i = 0; i < ean13List.length; i += 100) {
@@ -501,7 +521,8 @@ class RestSupplierAdapter implements SupplierAdapter {
               reserved: (item['reserved'] as num?)?.toInt() ?? 0,
               incoming: (item['incoming'] as num?)?.toInt() ?? 0,
               nextDelivery: item['nextDelivery'] != null
-                  ? DateTime.tryParse(item['nextDelivery'].toString()) : null,
+                  ? DateTime.tryParse(item['nextDelivery'].toString())
+                  : null,
             );
           }
         }
@@ -511,7 +532,8 @@ class RestSupplierAdapter implements SupplierAdapter {
   }
 
   @override
-  Future<Map<String, SupplierPriceInfo>> getPrices(List<String> ean13List) async {
+  Future<Map<String, SupplierPriceInfo>> getPrices(
+      List<String> ean13List) async {
     final result = <String, SupplierPriceInfo>{};
     final chunked = <List<String>>[];
     for (var i = 0; i < ean13List.length; i += 100) {
@@ -530,8 +552,12 @@ class RestSupplierAdapter implements SupplierAdapter {
               priceHT: (item['price'] as num?)?.toDouble() ?? 0,
               discountPercent: (item['discount'] as num?)?.toDouble(),
               currency: item['currency'] as String? ?? 'MAD',
-              validFrom: DateTime.tryParse(item['validFrom']?.toString() ?? '') ?? DateTime.now(),
-              validTo: item['validTo'] != null ? DateTime.tryParse(item['validTo'].toString()) : null,
+              validFrom:
+                  DateTime.tryParse(item['validFrom']?.toString() ?? '') ??
+                      DateTime.now(),
+              validTo: item['validTo'] != null
+                  ? DateTime.tryParse(item['validTo'].toString())
+                  : null,
             );
           }
         }
@@ -544,12 +570,14 @@ class RestSupplierAdapter implements SupplierAdapter {
   Future<SupplierOrderResult> placeOrder(SupplierOrderRequest request) async {
     final body = {
       'pharmacyId': request.pharmacyId,
-      'lines': request.lines.map((l) => {
-        'ean13': l.ean13,
-        'quantity': l.quantity,
-        'unitPrice': l.unitPrice,
-        'supplierRef': l.supplierRef,
-      }).toList(),
+      'lines': request.lines
+          .map((l) => {
+                'ean13': l.ean13,
+                'quantity': l.quantity,
+                'unitPrice': l.unitPrice,
+                'supplierRef': l.supplierRef,
+              })
+          .toList(),
       'deliveryAddress': request.deliveryAddress,
       'requestedDate': request.requestedDate?.toIso8601String(),
       'notes': request.notes,
@@ -567,14 +595,18 @@ class RestSupplierAdapter implements SupplierAdapter {
       success: true,
       supplierOrderId: data?['orderId']?.toString(),
       estimatedDelivery: data?['estimatedDelivery'] != null
-          ? DateTime.tryParse(data!['estimatedDelivery'].toString()) : null,
-      lines: (data?['lines'] as List?)?.map((l) => SupplierOrderLineResult(
-        ean13: l['ean13']?.toString() ?? '',
-        ordered: (l['quantity'] as num?)?.toInt() ?? 0,
-        confirmed: (l['confirmed'] as num?)?.toInt() ?? 0,
-        unitPrice: (l['unitPrice'] as num?)?.toDouble(),
-        status: l['status']?.toString() ?? '',
-      )).toList() ?? [],
+          ? DateTime.tryParse(data!['estimatedDelivery'].toString())
+          : null,
+      lines: (data?['lines'] as List?)
+              ?.map((l) => SupplierOrderLineResult(
+                    ean13: l['ean13']?.toString() ?? '',
+                    ordered: (l['quantity'] as num?)?.toInt() ?? 0,
+                    confirmed: (l['confirmed'] as num?)?.toInt() ?? 0,
+                    unitPrice: (l['unitPrice'] as num?)?.toDouble(),
+                    status: l['status']?.toString() ?? '',
+                  ))
+              .toList() ??
+          [],
     );
   }
 
@@ -594,22 +626,34 @@ class RestSupplierAdapter implements SupplierAdapter {
     return SupplierOrderTracking(
       supplierOrderId: supplierOrderId,
       status: data?['status']?.toString() ?? 'unknown',
-      confirmedAt: data?['confirmedAt'] != null ? DateTime.tryParse(data!['confirmedAt'].toString()) : null,
-      shippedAt: data?['shippedAt'] != null ? DateTime.tryParse(data!['shippedAt'].toString()) : null,
-      deliveredAt: data?['deliveredAt'] != null ? DateTime.tryParse(data!['deliveredAt'].toString()) : null,
+      confirmedAt: data?['confirmedAt'] != null
+          ? DateTime.tryParse(data!['confirmedAt'].toString())
+          : null,
+      shippedAt: data?['shippedAt'] != null
+          ? DateTime.tryParse(data!['shippedAt'].toString())
+          : null,
+      deliveredAt: data?['deliveredAt'] != null
+          ? DateTime.tryParse(data!['deliveredAt'].toString())
+          : null,
       trackingNumber: data?['trackingNumber']?.toString(),
       carrier: data?['carrier']?.toString(),
-      events: (data?['events'] as List?)?.map((e) => SupplierTrackingEvent(
-        timestamp: DateTime.tryParse(e['timestamp']?.toString() ?? '') ?? DateTime.now(),
-        status: e['status']?.toString() ?? '',
-        location: e['location']?.toString(),
-        description: e['description']?.toString(),
-      )).toList() ?? [],
+      events: (data?['events'] as List?)
+              ?.map((e) => SupplierTrackingEvent(
+                    timestamp:
+                        DateTime.tryParse(e['timestamp']?.toString() ?? '') ??
+                            DateTime.now(),
+                    status: e['status']?.toString() ?? '',
+                    location: e['location']?.toString(),
+                    description: e['description']?.toString(),
+                  ))
+              .toList() ??
+          [],
     );
   }
 
   @override
-  Future<List<SupplierInvoice>> getInvoices({DateTime? from, DateTime? to}) async {
+  Future<List<SupplierInvoice>> getInvoices(
+      {DateTime? from, DateTime? to}) async {
     final query = <String, dynamic>{};
     if (from != null) query['from'] = from.toIso8601String();
     if (to != null) query['to'] = to.toIso8601String();
@@ -622,7 +666,8 @@ class RestSupplierAdapter implements SupplierAdapter {
       final item = Map<String, dynamic>.from(e as Map);
       return SupplierInvoice(
         invoiceNumber: item['invoiceNumber']?.toString() ?? '',
-        date: DateTime.tryParse(item['date']?.toString() ?? '') ?? DateTime.now(),
+        date:
+            DateTime.tryParse(item['date']?.toString() ?? '') ?? DateTime.now(),
         amountHT: (item['amountHT'] as num?)?.toDouble() ?? 0,
         amountTTC: (item['amountTTC'] as num?)?.toDouble() ?? 0,
         status: item['status']?.toString() ?? 'unknown',
@@ -638,29 +683,51 @@ class CsvSupplierAdapter implements SupplierAdapter {
 
   CsvSupplierAdapter(this.config);
 
-  @override String get supplierCode => config.supplierCode;
-  @override String get displayName => config.displayName;
-  @override String get connectionType => 'csv';
+  @override
+  String get supplierCode => config.supplierCode;
+  @override
+  String get displayName => config.displayName;
+  @override
+  String get connectionType => 'csv';
 
-  @override Future<SupplierConnectionResult> testConnection() async =>
+  @override
+  Future<SupplierConnectionResult> testConnection() async =>
       const SupplierConnectionResult(success: true);
 
-  @override Future<SupplierSyncResult> syncCatalog({DateTime? since, bool fullSync = false}) async {
+  @override
+  Future<SupplierSyncResult> syncCatalog(
+      {DateTime? since, bool fullSync = false}) async {
     // Implémentation: lecture fichier CSV/Excel, parsing, upsert
     return SupplierSyncResult(
-      success: true, productsAdded: 0, productsUpdated: 0,
-      productsSkipped: 0, conflicts: 0,
-      duration: Duration.zero, syncedAt: DateTime.now(),
+      success: true,
+      productsAdded: 0,
+      productsUpdated: 0,
+      productsSkipped: 0,
+      conflicts: 0,
+      duration: Duration.zero,
+      syncedAt: DateTime.now(),
     );
   }
 
-  @override Future<Map<String, SupplierStockInfo>> checkStock(List<String> ean13List) async => {};
-  @override Future<Map<String, SupplierPriceInfo>> getPrices(List<String> ean13List) async => {};
-  @override Future<SupplierOrderResult> placeOrder(SupplierOrderRequest request) async =>
+  @override
+  Future<Map<String, SupplierStockInfo>> checkStock(
+          List<String> ean13List) async =>
+      {};
+  @override
+  Future<Map<String, SupplierPriceInfo>> getPrices(
+          List<String> ean13List) async =>
+      {};
+  @override
+  Future<SupplierOrderResult> placeOrder(SupplierOrderRequest request) async =>
       const SupplierOrderResult(success: false, error: 'Non supporté');
-  @override Future<SupplierOrderTracking> trackOrder(String supplierOrderId) async =>
-      SupplierOrderTracking(supplierOrderId: supplierOrderId, status: 'unknown');
-  @override Future<List<SupplierInvoice>> getInvoices({DateTime? from, DateTime? to}) async => [];
+  @override
+  Future<SupplierOrderTracking> trackOrder(String supplierOrderId) async =>
+      SupplierOrderTracking(
+          supplierOrderId: supplierOrderId, status: 'unknown');
+  @override
+  Future<List<SupplierInvoice>> getInvoices(
+          {DateTime? from, DateTime? to}) async =>
+      [];
 }
 
 /// ============================================================

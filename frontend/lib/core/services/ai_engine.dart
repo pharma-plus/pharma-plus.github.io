@@ -53,7 +53,9 @@ class AIResult<T> {
     this.metadata = const {},
   });
 
-  factory AIResult.ok(T data, {Duration latency = Duration.zero, Map<String, dynamic> metadata = const {}}) =>
+  factory AIResult.ok(T data,
+          {Duration latency = Duration.zero,
+          Map<String, dynamic> metadata = const {}}) =>
       AIResult(success: true, data: data, latency: latency, metadata: metadata);
 
   factory AIResult.err(String error, {Duration latency = Duration.zero}) =>
@@ -112,9 +114,11 @@ class PharmaAIEngine {
     final start = DateTime.now();
     try {
       final result = await module.execute(context, action, params);
-      return AIResult.ok(result as T, latency: DateTime.now().difference(start));
+      return AIResult.ok(result as T,
+          latency: DateTime.now().difference(start));
     } catch (e) {
-      return AIResult.err(e.toString(), latency: DateTime.now().difference(start));
+      return AIResult.err(e.toString(),
+          latency: DateTime.now().difference(start));
     }
   }
 
@@ -124,13 +128,16 @@ class PharmaAIEngine {
     required List<AIRequest> requests,
   }) async {
     final futures = requests.map((req) => execute(
-      context: context,
-      moduleId: req.moduleId,
-      action: req.action,
-      params: req.params,
-    ));
+          context: context,
+          moduleId: req.moduleId,
+          action: req.action,
+          params: req.params,
+        ));
     final results = await Future.wait(futures);
-    return Map.fromEntries(requests.asMap().entries.map((e) => MapEntry(e.value.moduleId, results[e.key])));
+    return Map.fromEntries(requests
+        .asMap()
+        .entries
+        .map((e) => MapEntry(e.value.moduleId, results[e.key])));
   }
 }
 
@@ -155,7 +162,8 @@ abstract class AIModule {
   String get description;
 
   /// Exécute une action spécifique du module
-  Future<dynamic> execute(AIContext context, String action, Map<String, dynamic> params);
+  Future<dynamic> execute(
+      AIContext context, String action, Map<String, dynamic> params);
 
   /// Métadonnées pour l'UI (actions disponibles, paramètres, etc.)
   Map<String, dynamic> get metadata => {};
@@ -167,22 +175,30 @@ abstract class AIModule {
 
 /// Module Réapprovisionnement (déjà existant via RPC ai_reorder_plan)
 class AIReorderModule extends AIModule {
-  @override String get moduleId => 'reorder';
-  @override String get displayName => 'Réapprovisionnement';
-  @override List<String> get requiredPermissions => ['purchases:view', 'stock:view'];
-  @override String get description => 'Plan de réapprovisionnement intelligent basé sur ventes, stock, délais fournisseurs';
+  @override
+  String get moduleId => 'reorder';
+  @override
+  String get displayName => 'Réapprovisionnement';
+  @override
+  List<String> get requiredPermissions => ['purchases:view', 'stock:view'];
+  @override
+  String get description =>
+      'Plan de réapprovisionnement intelligent basé sur ventes, stock, délais fournisseurs';
 
   @override
-  Future<dynamic> execute(AIContext context, String action, Map<String, dynamic> params) async {
+  Future<dynamic> execute(
+      AIContext context, String action, Map<String, dynamic> params) async {
     switch (action) {
       case 'plan':
-        final r = await ApiClient.instance.get('/ai/reorder-plan', query: params);
+        final r =
+            await ApiClient.instance.get('/ai/reorder-plan', query: params);
         return r.success ? r.data : throw Exception(r.error?.message);
       case 'insights':
         final r = await ApiClient.instance.get('/ai/insights', query: params);
         return r.success ? r.data : throw Exception(r.error?.message);
       case 'sales_analysis':
-        final r = await ApiClient.instance.get('/ai/sales-analysis', query: params);
+        final r =
+            await ApiClient.instance.get('/ai/sales-analysis', query: params);
         return r.success ? r.data : throw Exception(r.error?.message);
       default:
         throw ArgumentError('Action inconnue: $action');
@@ -191,79 +207,124 @@ class AIReorderModule extends AIModule {
 
   @override
   Map<String, dynamic> get metadata => {
-    'actions': {
-      'plan': {'label': 'Plan de réappro', 'params': ['supplier_filter', 'priority_filter', 'cost_range']},
-      'insights': {'label': 'Insights stock', 'params': []},
-      'sales_analysis': {'label': 'Analyse ventes', 'params': ['period']},
-    },
-  };
+        'actions': {
+          'plan': {
+            'label': 'Plan de réappro',
+            'params': ['supplier_filter', 'priority_filter', 'cost_range']
+          },
+          'insights': {'label': 'Insights stock', 'params': []},
+          'sales_analysis': {
+            'label': 'Analyse ventes',
+            'params': ['period']
+          },
+        },
+      };
 }
 
 /// Module Analyse Ventes
 class AISalesModule extends AIModule {
-  @override String get moduleId => 'sales_analysis';
-  @override String get displayName => 'Analyse Ventes';
-  @override List<String> get requiredPermissions => ['sales:view'];
-  @override String get description => 'Analyse des ventes, tendances, prévisions, panier moyen, marges';
+  @override
+  String get moduleId => 'sales_analysis';
+  @override
+  String get displayName => 'Analyse Ventes';
+  @override
+  List<String> get requiredPermissions => ['sales:view'];
+  @override
+  String get description =>
+      'Analyse des ventes, tendances, prévisions, panier moyen, marges';
 
   @override
-  Future<dynamic> execute(AIContext context, String action, Map<String, dynamic> params) async {
+  Future<dynamic> execute(
+      AIContext context, String action, Map<String, dynamic> params) async {
     final r = await ApiClient.instance.get('/ai/sales-analysis', query: params);
     return r.success ? r.data : throw Exception(r.error?.message);
   }
 
   @override
   Map<String, dynamic> get metadata => {
-    'actions': {
-      'analyze': {'label': 'Analyser', 'params': ['period', 'category', 'branch']},
-      'forecast': {'label': 'Prévoir', 'params': ['horizon_days']},
-      'trends': {'label': 'Tendances', 'params': ['metric']},
-    },
-  };
+        'actions': {
+          'analyze': {
+            'label': 'Analyser',
+            'params': ['period', 'category', 'branch']
+          },
+          'forecast': {
+            'label': 'Prévoir',
+            'params': ['horizon_days']
+          },
+          'trends': {
+            'label': 'Tendances',
+            'params': ['metric']
+          },
+        },
+      };
 }
 
 /// Module Stock / Alertes
 class AIStockModule extends AIModule {
-  @override String get moduleId => 'stock_insights';
-  @override String get displayName => 'Stock & Alertes';
-  @override List<String> get requiredPermissions => ['stock:view'];
-  @override String get description => 'Analyse stock, ruptures, péremptions, surstock, rotation';
+  @override
+  String get moduleId => 'stock_insights';
+  @override
+  String get displayName => 'Stock & Alertes';
+  @override
+  List<String> get requiredPermissions => ['stock:view'];
+  @override
+  String get description =>
+      'Analyse stock, ruptures, péremptions, surstock, rotation';
 
   @override
-  Future<dynamic> execute(AIContext context, String action, Map<String, dynamic> params) async {
+  Future<dynamic> execute(
+      AIContext context, String action, Map<String, dynamic> params) async {
     final r = await ApiClient.instance.get('/ai/insights', query: params);
     return r.success ? r.data : throw Exception(r.error?.message);
   }
 
   @override
   Map<String, dynamic> get metadata => {
-    'actions': {
-      'ruptures': {'label': 'Ruptures', 'params': []},
-      'expiring': {'label': 'Péremptions', 'params': ['days']},
-      'overstock': {'label': 'Surstock', 'params': ['threshold']},
-      'rotation': {'label': 'Rotation', 'params': ['period']},
-    },
-  };
+        'actions': {
+          'ruptures': {'label': 'Ruptures', 'params': []},
+          'expiring': {
+            'label': 'Péremptions',
+            'params': ['days']
+          },
+          'overstock': {
+            'label': 'Surstock',
+            'params': ['threshold']
+          },
+          'rotation': {
+            'label': 'Rotation',
+            'params': ['period']
+          },
+        },
+      };
 }
 
 /// Module Clients / Organismes
 class AICustomersModule extends AIModule {
-  @override String get moduleId => 'customers_ai';
-  @override String get displayName => 'Clients & Organismes';
-  @override List<String> get requiredPermissions => ['customers:view'];
-  @override String get description => 'Analyse clients, organismes (AMO/CNOPS/CNSS), crédit, fidélité';
+  @override
+  String get moduleId => 'customers_ai';
+  @override
+  String get displayName => 'Clients & Organismes';
+  @override
+  List<String> get requiredPermissions => ['customers:view'];
+  @override
+  String get description =>
+      'Analyse clients, organismes (AMO/CNOPS/CNSS), crédit, fidélité';
 
   @override
-  Future<dynamic> execute(AIContext context, String action, Map<String, dynamic> params) async {
+  Future<dynamic> execute(
+      AIContext context, String action, Map<String, dynamic> params) async {
     switch (action) {
       case 'segment':
-        final r = await ApiClient.instance.get('/ai/customers/segment', query: params);
+        final r = await ApiClient.instance
+            .get('/ai/customers/segment', query: params);
         return r.success ? r.data : throw Exception(r.error?.message);
       case 'churn_risk':
-        final r = await ApiClient.instance.get('/ai/customers/churn-risk', query: params);
+        final r = await ApiClient.instance
+            .get('/ai/customers/churn-risk', query: params);
         return r.success ? r.data : throw Exception(r.error?.message);
       case 'organism_coverage':
-        final r = await ApiClient.instance.get('/ai/customers/organism-coverage', query: params);
+        final r = await ApiClient.instance
+            .get('/ai/customers/organism-coverage', query: params);
         return r.success ? r.data : throw Exception(r.error?.message);
       default:
         throw ArgumentError('Action inconnue: $action');
@@ -272,29 +333,43 @@ class AICustomersModule extends AIModule {
 
   @override
   Map<String, dynamic> get metadata => {
-    'actions': {
-      'segment': {'label': 'Segmentation', 'params': ['criteria']},
-      'churn_risk': {'label': 'Risque attrition', 'params': ['threshold']},
-      'organism_coverage': {'label': 'Couverture organismes', 'params': []},
-    },
-  };
+        'actions': {
+          'segment': {
+            'label': 'Segmentation',
+            'params': ['criteria']
+          },
+          'churn_risk': {
+            'label': 'Risque attrition',
+            'params': ['threshold']
+          },
+          'organism_coverage': {'label': 'Couverture organismes', 'params': []},
+        },
+      };
 }
 
 /// Module Fournisseurs
 class AISuppliersModule extends AIModule {
-  @override String get moduleId => 'suppliers_ai';
-  @override String get displayName => 'Fournisseurs';
-  @override List<String> get requiredPermissions => ['suppliers:view'];
-  @override String get description => 'Comparaison fournisseurs, prix, délais, performance';
+  @override
+  String get moduleId => 'suppliers_ai';
+  @override
+  String get displayName => 'Fournisseurs';
+  @override
+  List<String> get requiredPermissions => ['suppliers:view'];
+  @override
+  String get description =>
+      'Comparaison fournisseurs, prix, délais, performance';
 
   @override
-  Future<dynamic> execute(AIContext context, String action, Map<String, dynamic> params) async {
+  Future<dynamic> execute(
+      AIContext context, String action, Map<String, dynamic> params) async {
     switch (action) {
       case 'compare':
-        final r = await ApiClient.instance.get('/ai/suppliers/compare', query: params);
+        final r = await ApiClient.instance
+            .get('/ai/suppliers/compare', query: params);
         return r.success ? r.data : throw Exception(r.error?.message);
       case 'best_price':
-        final r = await ApiClient.instance.get('/ai/suppliers/best-price', query: params);
+        final r = await ApiClient.instance
+            .get('/ai/suppliers/best-price', query: params);
         return r.success ? r.data : throw Exception(r.error?.message);
       default:
         throw ArgumentError('Action inconnue: $action');
@@ -303,22 +378,34 @@ class AISuppliersModule extends AIModule {
 
   @override
   Map<String, dynamic> get metadata => {
-    'actions': {
-      'compare': {'label': 'Comparer', 'params': ['products']},
-      'best_price': {'label': 'Meilleur prix', 'params': ['product_ids']},
-    },
-  };
+        'actions': {
+          'compare': {
+            'label': 'Comparer',
+            'params': ['products']
+          },
+          'best_price': {
+            'label': 'Meilleur prix',
+            'params': ['product_ids']
+          },
+        },
+      };
 }
 
 /// Module Finance / Comptabilité
 class AIFinanceModule extends AIModule {
-  @override String get moduleId => 'finance_ai';
-  @override String get displayName => 'Finance & Comptabilité';
-  @override List<String> get requiredPermissions => ['accounting:view', 'reports:view'];
-  @override String get description => 'Analyse financière, trésorerie, marges, TVA, trésorerie';
+  @override
+  String get moduleId => 'finance_ai';
+  @override
+  String get displayName => 'Finance & Comptabilité';
+  @override
+  List<String> get requiredPermissions => ['accounting:view', 'reports:view'];
+  @override
+  String get description =>
+      'Analyse financière, trésorerie, marges, TVA, trésorerie';
 
   @override
-  Future<dynamic> execute(AIContext context, String action, Map<String, dynamic> params) async {
+  Future<dynamic> execute(
+      AIContext context, String action, Map<String, dynamic> params) async {
     // Utiliser les endpoints existants de reporting
     final r = await ApiClient.instance.get('/reports/financial', query: params);
     return r.success ? r.data : throw Exception(r.error?.message);
@@ -326,36 +413,63 @@ class AIFinanceModule extends AIModule {
 
   @override
   Map<String, dynamic> get metadata => {
-    'actions': {
-      'cashflow': {'label': 'Trésorerie', 'params': ['period']},
-      'margins': {'label': 'Marges', 'params': ['period', 'category']},
-      'vat': {'label': 'TVA', 'params': ['period']},
-    },
-  };
+        'actions': {
+          'cashflow': {
+            'label': 'Trésorerie',
+            'params': ['period']
+          },
+          'margins': {
+            'label': 'Marges',
+            'params': ['period', 'category']
+          },
+          'vat': {
+            'label': 'TVA',
+            'params': ['period']
+          },
+        },
+      };
 }
 
 /// Module RH / Employés
 class AIHRModule extends AIModule {
-  @override String get moduleId => 'hr_ai';
-  @override String get displayName => 'Ressources Humaines';
-  @override List<String> get requiredPermissions => ['employees:view', 'attendance:view'];
-  @override String get description => 'Analyse effectifs, présences, congés, performance, masse salariale';
+  @override
+  String get moduleId => 'hr_ai';
+  @override
+  String get displayName => 'Ressources Humaines';
+  @override
+  List<String> get requiredPermissions => ['employees:view', 'attendance:view'];
+  @override
+  String get description =>
+      'Analyse effectifs, présences, congés, performance, masse salariale';
 
   @override
-  Future<dynamic> execute(AIContext context, String action, Map<String, dynamic> params) async {
+  Future<dynamic> execute(
+      AIContext context, String action, Map<String, dynamic> params) async {
     final r = await ApiClient.instance.get('/ai/hr/analyze', query: params);
     return r.success ? r.data : throw Exception(r.error?.message);
   }
 
   @override
   Map<String, dynamic> get metadata => {
-    'actions': {
-      'attendance': {'label': 'Présences', 'params': ['period']},
-      'leaves': {'label': 'Congés', 'params': ['period']},
-      'performance': {'label': 'Performance', 'params': ['employee_id']},
-      'payroll': {'label': 'Masse salariale', 'params': ['period']},
-    },
-  };
+        'actions': {
+          'attendance': {
+            'label': 'Présences',
+            'params': ['period']
+          },
+          'leaves': {
+            'label': 'Congés',
+            'params': ['period']
+          },
+          'performance': {
+            'label': 'Performance',
+            'params': ['employee_id']
+          },
+          'payroll': {
+            'label': 'Masse salariale',
+            'params': ['period']
+          },
+        },
+      };
 }
 
 /// ============================================================
@@ -373,7 +487,7 @@ class PharmaAIAssistant {
   Future<AIResponse> ask(String question) async {
     // Analyse d'intent simple (basée sur mots-clés, pas LLM)
     final intent = _parseIntent(question);
-    
+
     // Exécution du module approprié
     final result = await _engine.execute(
       context: _context,
@@ -393,36 +507,64 @@ class PharmaAIAssistant {
 
     _history.add(AIMessage(role: 'user', content: question));
     _history.add(AIMessage(role: 'assistant', content: response.text));
-    
+
     return response;
   }
 
   _ParsedIntent _parseIntent(String question) {
     final q = question.toLowerCase();
-    
+
     // Mots-clés -> module/action
-    if (q.contains('réappro') || q.contains('commander') || q.contains('rupture') || q.contains('stocker')) {
+    if (q.contains('réappro') ||
+        q.contains('commander') ||
+        q.contains('rupture') ||
+        q.contains('stocker')) {
       return const _ParsedIntent('reorder', 'plan', {});
     }
-    if (q.contains('vente') || q.contains('chiffre') || q.contains('ca ') || q.contains('panier') || q.contains('marge')) {
+    if (q.contains('vente') ||
+        q.contains('chiffre') ||
+        q.contains('ca ') ||
+        q.contains('panier') ||
+        q.contains('marge')) {
       return const _ParsedIntent('sales_analysis', 'analyze', {});
     }
-    if (q.contains('stock') || q.contains('rupture') || q.contains('périm') || q.contains('expir') || q.contains('surstock')) {
+    if (q.contains('stock') ||
+        q.contains('rupture') ||
+        q.contains('périm') ||
+        q.contains('expir') ||
+        q.contains('surstock')) {
       return const _ParsedIntent('stock_insights', 'ruptures', {});
     }
-    if (q.contains('client') || q.contains('patient') || q.contains('organisme') || q.contains('amo') || q.contains('cnops') || q.contains('cnss') || q.contains('mutuelle')) {
+    if (q.contains('client') ||
+        q.contains('patient') ||
+        q.contains('organisme') ||
+        q.contains('amo') ||
+        q.contains('cnops') ||
+        q.contains('cnss') ||
+        q.contains('mutuelle')) {
       return const _ParsedIntent('customers_ai', 'segment', {});
     }
-    if (q.contains('fournisseur') || q.contains('prix fournisseur') || q.contains('comparer fournisseur')) {
+    if (q.contains('fournisseur') ||
+        q.contains('prix fournisseur') ||
+        q.contains('comparer fournisseur')) {
       return const _ParsedIntent('suppliers_ai', 'compare', {});
     }
-    if (q.contains('trésorerie') || q.contains('trésorerie') || q.contains('marge') || q.contains('tva') || q.contains('finance') || q.contains('comptab')) {
+    if (q.contains('trésorerie') ||
+        q.contains('trésorerie') ||
+        q.contains('marge') ||
+        q.contains('tva') ||
+        q.contains('finance') ||
+        q.contains('comptab')) {
       return const _ParsedIntent('finance_ai', 'cashflow', {});
     }
-    if (q.contains('employé') || q.contains('présence') || q.contains('congé') || q.contains('paie') || q.contains('masse salariale')) {
+    if (q.contains('employé') ||
+        q.contains('présence') ||
+        q.contains('congé') ||
+        q.contains('paie') ||
+        q.contains('masse salariale')) {
       return const _ParsedIntent('hr_ai', 'attendance', {});
     }
-    
+
     // Par défaut: réapprovisionnement
     return const _ParsedIntent('reorder', 'plan', {});
   }
@@ -431,10 +573,10 @@ class PharmaAIAssistant {
     if (!result.success) {
       return '❌ Erreur: ${result.error}';
     }
-    
+
     final data = result.data;
     if (data == null) return 'Aucune donnée disponible.';
-    
+
     // Formatage selon le module
     switch (intent.moduleId) {
       case 'reorder':
@@ -451,18 +593,22 @@ class PharmaAIAssistant {
   String _formatReorderPlan(dynamic data) {
     if (data is! Map) return 'Plan généré.';
     final items = data['items'] as List? ?? [];
-    final totalCost = double.tryParse('${data['total_estimated_cost'] ?? 0}') ?? 0;
-    final totalQty = double.tryParse('${data['total_suggested_qty'] ?? 0}') ?? 0;
-    
+    final totalCost =
+        double.tryParse('${data['total_estimated_cost'] ?? 0}') ?? 0;
+    final totalQty =
+        double.tryParse('${data['total_suggested_qty'] ?? 0}') ?? 0;
+
     final buffer = StringBuffer();
     buffer.writeln('📦 **Plan de réapprovisionnement**');
-    buffer.writeln('${items.length} produits · ${totalQty.toInt()} unités · ${totalCost.toStringAsFixed(2)} DH');
+    buffer.writeln(
+        '${items.length} produits · ${totalQty.toInt()} unités · ${totalCost.toStringAsFixed(2)} DH');
     buffer.writeln('');
-    
+
     if (data['by_supplier'] is List) {
       buffer.writeln('**Par fournisseur:**');
       for (final s in data['by_supplier'] as List) {
-        buffer.writeln('• ${s['supplier_name']}: ${s['items_count']} art, ${s['total_qty']} u, ${s['total_cost']} DH');
+        buffer.writeln(
+            '• ${s['supplier_name']}: ${s['items_count']} art, ${s['total_qty']} u, ${s['total_cost']} DH');
       }
     }
 
@@ -481,7 +627,8 @@ class PharmaAIAssistant {
     buffer.writeln('📈 **Analyse des ventes**');
     buffer.writeln('CA: ${revenue.toStringAsFixed(2)} DH');
     if (change != null) {
-      buffer.writeln('Variation: ${change >= 0 ? '+' : ''}${change.toStringAsFixed(1)}%');
+      buffer.writeln(
+          'Variation: ${change >= 0 ? '+' : ''}${change.toStringAsFixed(1)}%');
     }
     return buffer.toString();
   }
@@ -536,7 +683,7 @@ class AIResponse {
 
 void initializeAIEngine() {
   final engine = PharmaAIEngine.instance;
-  
+
   engine.registerModule(AIReorderModule());
   engine.registerModule(AISalesModule());
   engine.registerModule(AIStockModule());

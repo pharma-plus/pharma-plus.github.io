@@ -115,9 +115,8 @@ class _PaymentSheetState extends State<PaymentSheet>
         Navigator.of(context).pop(PaymentResult.card(
           amount: widget.total,
           cardType: _cardType,
-          reference: _refCtrl.text.trim().isNotEmpty
-              ? _refCtrl.text.trim()
-              : null,
+          reference:
+              _refCtrl.text.trim().isNotEmpty ? _refCtrl.text.trim() : null,
         ));
       case 2: // Tiers payant
         if (_creditAmount <= 0) return;
@@ -211,9 +210,15 @@ class _PaymentSheetState extends State<PaymentSheet>
                   dividerColor: Colors.transparent,
                   padding: const EdgeInsets.all(4),
                   tabs: const [
-                    Tab(icon: Icon(Icons.payments_rounded, size: 18), text: 'Espèces'),
-                    Tab(icon: Icon(Icons.credit_card_rounded, size: 18), text: 'Carte'),
-                    Tab(icon: Icon(Icons.health_and_safety_rounded, size: 18), text: 'Tiers payant'),
+                    Tab(
+                        icon: Icon(Icons.payments_rounded, size: 18),
+                        text: 'Espèces'),
+                    Tab(
+                        icon: Icon(Icons.credit_card_rounded, size: 18),
+                        text: 'Carte'),
+                    Tab(
+                        icon: Icon(Icons.health_and_safety_rounded, size: 18),
+                        text: 'Tiers payant'),
                   ],
                 ),
               ),
@@ -249,10 +254,12 @@ class _PaymentSheetState extends State<PaymentSheet>
                           style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF0FA958),
                               foregroundColor: Colors.white,
-                              disabledBackgroundColor:
-                                  const Color(0xFF0FA958).withValues(alpha: 0.25),
-                              padding: const EdgeInsets.symmetric(vertical: 13)),
-                          icon: const Icon(Icons.check_circle_outline_rounded, size: 19),
+                              disabledBackgroundColor: const Color(0xFF0FA958)
+                                  .withValues(alpha: 0.25),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 13)),
+                          icon: const Icon(Icons.check_circle_outline_rounded,
+                              size: 19),
                           label: Text(
                               _tab.index == 0
                                   ? (_cashSufficient
@@ -268,7 +275,8 @@ class _PaymentSheetState extends State<PaymentSheet>
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                  fontWeight: FontWeight.w900, fontSize: 12.5)));
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 12.5)));
                     },
                   ),
                 ),
@@ -291,16 +299,13 @@ class _PaymentSheetState extends State<PaymentSheet>
           TextField(
             controller: _receivedCtrl,
             autofocus: true,
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d{0,2}')),
             ],
             onChanged: _setReceived,
             style: const TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.w900),
+                color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
             decoration: InputDecoration(
                 labelText: 'MONTANT REÇU (MAD)',
                 labelStyle: TextStyle(
@@ -347,79 +352,78 @@ class _PaymentSheetState extends State<PaymentSheet>
   //  CARTE BANCAIRE
   // ═══════════════════════════════════════════════════════
   Widget _buildCardSection() {
-    return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Type de carte
-          Row(children: [
-            _CardTypeChip(
-                label: 'Visa',
-                icon: Icons.credit_card,
-                selected: _cardType == 'visa',
-                onTap: () => setState(() => _cardType = 'visa')),
-            const SizedBox(width: 8),
-            _CardTypeChip(
-                label: 'Mastercard',
-                icon: Icons.credit_card,
-                selected: _cardType == 'mastercard',
-                onTap: () => setState(() => _cardType = 'mastercard')),
-            const SizedBox(width: 8),
-            _CardTypeChip(
-                label: 'Autre',
-                icon: Icons.credit_card_outlined,
-                selected: _cardType == 'other',
-                onTap: () => setState(() => _cardType = 'other')),
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      // Type de carte
+      Row(children: [
+        _CardTypeChip(
+            label: 'Visa',
+            icon: Icons.credit_card,
+            selected: _cardType == 'visa',
+            onTap: () => setState(() => _cardType = 'visa')),
+        const SizedBox(width: 8),
+        _CardTypeChip(
+            label: 'Mastercard',
+            icon: Icons.credit_card,
+            selected: _cardType == 'mastercard',
+            onTap: () => setState(() => _cardType = 'mastercard')),
+        const SizedBox(width: 8),
+        _CardTypeChip(
+            label: 'Autre',
+            icon: Icons.credit_card_outlined,
+            selected: _cardType == 'other',
+            onTap: () => setState(() => _cardType = 'other')),
+      ]),
+      const SizedBox(height: 14),
+      // Montant
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+            color: const Color(0xFF232B31),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+                color: const Color(0xFF3A424A).withValues(alpha: 0.6))),
+        child: Row(children: [
+          const Icon(Icons.attach_money_rounded,
+              color: AppColors.sageGreen, size: 20),
+          const SizedBox(width: 10),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('MONTANT À PAYER',
+                style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8)),
+            Text('${Fmt.money(widget.total)} MAD',
+                style: const TextStyle(
+                    color: AppColors.sageGreen,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900)),
           ]),
-          const SizedBox(height: 14),
-          // Montant
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-                color: const Color(0xFF232B31),
+        ]),
+      ),
+      const SizedBox(height: 12),
+      // Référence transaction
+      TextField(
+        controller: _refCtrl,
+        style: const TextStyle(color: Colors.white, fontSize: 14),
+        decoration: InputDecoration(
+            labelText: 'RÉFÉRENCE TRANSACTION (optionnel)',
+            labelStyle: TextStyle(
+                color: Colors.white.withValues(alpha: 0.55),
+                fontSize: 11,
+                fontWeight: FontWeight.w700),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.05),
+            border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF3A424A).withValues(alpha: 0.6))),
-            child: Row(children: [
-              const Icon(Icons.attach_money_rounded,
-                  color: AppColors.sageGreen, size: 20),
-              const SizedBox(width: 10),
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('MONTANT À PAYER',
-                    style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.8)),
-                Text('${Fmt.money(widget.total)} MAD',
-                    style: const TextStyle(
-                        color: AppColors.sageGreen,
-                        fontSize: 19,
-                        fontWeight: FontWeight.w900)),
-              ]),
-            ]),
-          ),
-          const SizedBox(height: 12),
-          // Référence transaction
-          TextField(
-            controller: _refCtrl,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-            decoration: InputDecoration(
-                labelText: 'RÉFÉRENCE TRANSACTION (optionnel)',
-                labelStyle: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.55),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700),
-                filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.05),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.12)))),
-          ),
-          const SizedBox(height: 12),
-          // Statut + bouton simulation
-          _buildCardStatus(),
-        ]);
+                borderSide:
+                    BorderSide(color: Colors.white.withValues(alpha: 0.12)))),
+      ),
+      const SizedBox(height: 12),
+      // Statut + bouton simulation
+      _buildCardStatus(),
+    ]);
   }
 
   Widget _buildCardStatus() {
@@ -486,13 +490,14 @@ class _PaymentSheetState extends State<PaymentSheet>
                     letterSpacing: 0.8)),
             Text(sub,
                 style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    fontSize: 11)),
+                    color: Colors.white.withValues(alpha: 0.6), fontSize: 11)),
           ]),
         ]),
       ),
       const SizedBox(height: 10),
-      if (_cardStatus == 'idle' || _cardStatus == 'refused' || _cardStatus == 'error')
+      if (_cardStatus == 'idle' ||
+          _cardStatus == 'refused' ||
+          _cardStatus == 'error')
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
@@ -522,105 +527,103 @@ class _PaymentSheetState extends State<PaymentSheet>
   //  TIERS PAYANT / ASSURANCE
   // ═══════════════════════════════════════════════════════
   Widget _buildCreditSection() {
-    return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-                color: const Color(0xFF1A1520),
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+            color: const Color(0xFF1A1520),
+            borderRadius: BorderRadius.circular(12),
+            border:
+                Border.all(color: AppColors.pharmaGold.withValues(alpha: 0.4))),
+        child: Row(children: [
+          const Icon(Icons.health_and_safety_rounded,
+              color: AppColors.pharmaGold, size: 22),
+          const SizedBox(width: 10),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('MONTANT ASSURANCE / TIERS PAYANT',
+                style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8)),
+            Text('${Fmt.money(_creditAmount)} MAD',
+                style: const TextStyle(
+                    color: AppColors.pharmaGold,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900)),
+          ]),
+        ]),
+      ),
+      const SizedBox(height: 12),
+      TextField(
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d{0,2}')),
+        ],
+        onChanged: (v) => setState(
+            () => _creditAmount = double.tryParse(v.replaceAll(',', '.')) ?? 0),
+        style: const TextStyle(
+            color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
+        decoration: InputDecoration(
+            labelText: 'MONTANT PRISE EN CHARGE (MAD)',
+            labelStyle: TextStyle(
+                color: Colors.white.withValues(alpha: 0.55),
+                fontSize: 12,
+                fontWeight: FontWeight.w700),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.05),
+            border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.pharmaGold.withValues(alpha: 0.4))),
-            child: Row(children: [
-              const Icon(Icons.health_and_safety_rounded,
-                  color: AppColors.pharmaGold, size: 22),
-              const SizedBox(width: 10),
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('MONTANT ASSURANCE / TIERS PAYANT',
-                    style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.8)),
-                Text('${Fmt.money(_creditAmount)} MAD',
-                    style: const TextStyle(
-                        color: AppColors.pharmaGold,
-                        fontSize: 19,
-                        fontWeight: FontWeight.w900)),
-              ]),
+                borderSide:
+                    BorderSide(color: Colors.white.withValues(alpha: 0.12)))),
+      ),
+      const SizedBox(height: 12),
+      TextField(
+        controller: _creditRefCtrl,
+        style: const TextStyle(color: Colors.white, fontSize: 14),
+        decoration: InputDecoration(
+            labelText: 'N° ORDONNANCE / RÉFÉRENCE ASSURANCE',
+            labelStyle: TextStyle(
+                color: Colors.white.withValues(alpha: 0.55),
+                fontSize: 11,
+                fontWeight: FontWeight.w700),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.05),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                    BorderSide(color: Colors.white.withValues(alpha: 0.12)))),
+      ),
+      const SizedBox(height: 10),
+      // Reste à payer (part client)
+      if (_creditAmount < widget.total)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+              color: const Color(0xFF232B31),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                  color: const Color(0xFF3A424A).withValues(alpha: 0.6))),
+          child: Row(children: [
+            const Icon(Icons.person_rounded,
+                color: AppColors.sageGreen, size: 18),
+            const SizedBox(width: 8),
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('RESTE À PAYER (PART CLIENT)',
+                  style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800)),
+              Text('${Fmt.money(widget.total - _creditAmount)} MAD',
+                  style: const TextStyle(
+                      color: AppColors.sageGreen,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900)),
             ]),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d{0,2}')),
-            ],
-            onChanged: (v) => setState(() =>
-                _creditAmount = double.tryParse(v.replaceAll(',', '.')) ?? 0),
-            style: const TextStyle(
-                color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
-            decoration: InputDecoration(
-                labelText: 'MONTANT PRISE EN CHARGE (MAD)',
-                labelStyle: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.55),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700),
-                filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.05),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.12)))),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _creditRefCtrl,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-            decoration: InputDecoration(
-                labelText: 'N° ORDONNANCE / RÉFÉRENCE ASSURANCE',
-                labelStyle: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.55),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700),
-                filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.05),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.12)))),
-          ),
-          const SizedBox(height: 10),
-          // Reste à payer (part client)
-          if (_creditAmount < widget.total)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                  color: const Color(0xFF232B31),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF3A424A).withValues(alpha: 0.6))),
-              child: Row(children: [
-                const Icon(Icons.person_rounded,
-                    color: AppColors.sageGreen, size: 18),
-                const SizedBox(width: 8),
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('RESTE À PAYER (PART CLIENT)',
-                      style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800)),
-                  Text(
-                      '${Fmt.money(widget.total - _creditAmount)} MAD',
-                      style: const TextStyle(
-                          color: AppColors.sageGreen,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900)),
-                ]),
-              ]),
-            ),
-        ]);
+          ]),
+        ),
+    ]);
   }
 }
 
@@ -707,9 +710,7 @@ class _CardTypeChip extends StatelessWidget {
                 style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    color: selected
-                        ? AppColors.sageGreenInk
-                        : Colors.white54)),
+                    color: selected ? AppColors.sageGreenInk : Colors.white54)),
           ]),
         ),
       ),
@@ -722,9 +723,7 @@ class _QuickRow extends StatelessWidget {
   final void Function(double) onAdd;
   final VoidCallback onExact;
   const _QuickRow(
-      {required this.total,
-      required this.onAdd,
-      required this.onExact});
+      {required this.total, required this.onAdd, required this.onExact});
 
   @override
   Widget build(BuildContext context) {
@@ -797,21 +796,15 @@ class _ChangeBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-          color: sufficient
-              ? const Color(0xFF232B31)
-              : const Color(0xFF2A1310),
+          color: sufficient ? const Color(0xFF232B31) : const Color(0xFF2A1310),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
               color: sufficient
                   ? const Color(0xFF3A424A).withValues(alpha: 0.8)
                   : AppColors.danger.withValues(alpha: 0.8))),
       child: Row(children: [
-        Icon(
-            sufficient
-                ? Icons.savings_rounded
-                : Icons.report_problem_rounded,
-            color:
-                sufficient ? AppColors.sageGreen : AppColors.danger,
+        Icon(sufficient ? Icons.savings_rounded : Icons.report_problem_rounded,
+            color: sufficient ? AppColors.sageGreen : AppColors.danger,
             size: 20),
         const SizedBox(width: 10),
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -822,13 +815,9 @@ class _ChangeBanner extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.8)),
           Text(
-              sufficient
-                  ? '${Fmt.money(change)} MAD'
-                  : '${Fmt.money(due)} MAD',
+              sufficient ? '${Fmt.money(change)} MAD' : '${Fmt.money(due)} MAD',
               style: TextStyle(
-                  color: sufficient
-                      ? AppColors.sageGreen
-                      : AppColors.danger,
+                  color: sufficient ? AppColors.sageGreen : AppColors.danger,
                   fontSize: 19,
                   fontWeight: FontWeight.w900)),
         ]),

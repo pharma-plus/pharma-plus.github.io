@@ -13,9 +13,23 @@ const _zxingCdn = 'https://unpkg.com/@zxing/library@0.21.3';
 
 /// Noms des formats ZXing, indexés comme l'enum JS BarcodeFormat.
 const _formatNames = [
-  'AZTEC', 'CODABAR', 'CODE_39', 'CODE_93', 'CODE_128', 'DATA_MATRIX',
-  'EAN_8', 'EAN_13', 'ITF', 'MAXICODE', 'PDF_417', 'QR_CODE', 'RSS_14',
-  'RSS_EXPANDED', 'UPC_A', 'UPC_E', 'UPC_EAN_EXTENSION',
+  'AZTEC',
+  'CODABAR',
+  'CODE_39',
+  'CODE_93',
+  'CODE_128',
+  'DATA_MATRIX',
+  'EAN_8',
+  'EAN_13',
+  'ITF',
+  'MAXICODE',
+  'PDF_417',
+  'QR_CODE',
+  'RSS_14',
+  'RSS_EXPANDED',
+  'UPC_A',
+  'UPC_E',
+  'UPC_EAN_EXTENSION',
 ];
 
 bool _zxingReady = false;
@@ -55,8 +69,7 @@ Future<String> startBarcodeCamera(
 
   final viewId = 'pmg-barcode-camera-pro-${_viewCounter++}';
   final doc = globalContext['document'] as JSObject;
-  final video =
-      doc.callMethod('createElement'.toJS, 'video'.toJS) as JSObject;
+  final video = doc.callMethod('createElement'.toJS, 'video'.toJS) as JSObject;
   video.setProperty('autoplay'.toJS, true.toJS);
   video.setProperty('muted'.toJS, true.toJS);
   video.callMethod('setAttribute'.toJS, 'playsinline'.toJS, 'true'.toJS);
@@ -100,8 +113,9 @@ Future<String> startBarcodeCamera(
     'audio': false,
   }.jsify();
 
-  final promise = reader.callMethod('decodeFromConstraints'.toJS, constraints,
-          video, handle.toJS) as JSPromise;
+  final promise = reader.callMethod(
+          'decodeFromConstraints'.toJS, constraints, video, handle.toJS)
+      as JSPromise;
   await promise.toDart;
   return viewId;
 }
@@ -123,5 +137,3 @@ void stopBarcodeCamera() {
   _video = null;
   _reader = null;
 }
-
-

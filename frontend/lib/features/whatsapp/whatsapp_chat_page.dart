@@ -118,7 +118,8 @@ class _WhatsAppChatPageState extends State<WhatsAppChatPage> {
         } else {
           final errMsg = result.success
               // Message enregistré mais NON livré : raison réelle affichée.
-              ? (providerError ?? 'Message enregistré mais non livré (WhatsApp non configuré)')
+              ? (providerError ??
+                  'Message enregistré mais non livré (WhatsApp non configuré)')
               : (result.error?.readableMessage ?? 'Erreur envoi');
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(errMsg),
@@ -150,7 +151,8 @@ class _WhatsAppChatPageState extends State<WhatsAppChatPage> {
             onTap: () => _sendMedia('image'),
           ),
           ListTile(
-            leading: const Icon(Icons.insert_drive_file, color: AppColors.pharmaGold),
+            leading: const Icon(Icons.insert_drive_file,
+                color: AppColors.pharmaGold),
             title: const Text('Document'),
             onTap: () => _sendMedia('document'),
           ),
@@ -165,7 +167,8 @@ class _WhatsAppChatPageState extends State<WhatsAppChatPage> {
             onTap: () => _sendLocation(),
           ),
           ListTile(
-            leading: const Icon(Icons.contact_page, color: AppColors.pharmaGold),
+            leading:
+                const Icon(Icons.contact_page, color: AppColors.pharmaGold),
             title: const Text('Contact'),
             onTap: () => _sendContact(),
           ),
@@ -208,7 +211,8 @@ class _WhatsAppChatPageState extends State<WhatsAppChatPage> {
               widget.conversation.contactName.isNotEmpty
                   ? widget.conversation.contactName[0].toUpperCase()
                   : '?',
-              style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.pharmaGold),
+              style: const TextStyle(
+                  fontWeight: FontWeight.w900, color: AppColors.pharmaGold),
             ),
           ),
           const SizedBox(width: 10),
@@ -217,18 +221,27 @@ class _WhatsAppChatPageState extends State<WhatsAppChatPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(widget.conversation.contactName,
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 16),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
                 Text(
-                    widget.conversation.status == 'active' ? 'En ligne' : widget.conversation.status,
-                    style: TextStyle(fontSize: 11, color: widget.conversation.status == 'active' ? AppColors.success : AppColors.textMuted),
-                  ),
+                  widget.conversation.status == 'active'
+                      ? 'En ligne'
+                      : widget.conversation.status,
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: widget.conversation.status == 'active'
+                          ? AppColors.success
+                          : AppColors.textMuted),
+                ),
               ],
             ),
           ),
         ]),
         actions: [
-          IconButton(icon: const Icon(Icons.videocam_outlined), onPressed: () {}),
+          IconButton(
+              icon: const Icon(Icons.videocam_outlined), onPressed: () {}),
           IconButton(icon: const Icon(Icons.call_outlined), onPressed: () {}),
           IconButton(icon: const Icon(Icons.more_vert), onPressed: () {}),
         ],
@@ -254,7 +267,8 @@ class _WhatsAppChatPageState extends State<WhatsAppChatPage> {
           child: SafeArea(
             child: Row(children: [
               IconButton(
-                icon: const Icon(Icons.attach_file, color: AppColors.pharmaGold),
+                icon:
+                    const Icon(Icons.attach_file, color: AppColors.pharmaGold),
                 onPressed: _showAttachmentOptions,
               ),
               Expanded(
@@ -268,15 +282,20 @@ class _WhatsAppChatPageState extends State<WhatsAppChatPage> {
                       borderSide: BorderSide.none,
                     ),
                     filled: true,
-                    fillColor: isDark ? AppColors.pharmaSurface : Colors.grey[100],
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    fillColor:
+                        isDark ? AppColors.pharmaSurface : Colors.grey[100],
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
               IconButton.filled(
-                icon: _sending 
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                icon: _sending
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.send, color: Colors.white),
                 onPressed: _sending ? null : _sendMessage,
               ),
@@ -317,7 +336,7 @@ class WhatsAppMessageUI {
           ? DateTime.tryParse(json['timestamp'].toString()) ?? DateTime.now()
           : DateTime.now(),
       mediaUrl: json['media_url']?.toString(),
-      mediaType: json['media_type'] != null 
+      mediaType: json['media_type'] != null
           ? WhatsAppMessageType.values.byName(json['media_type'].toString())
           : null,
       status: json['status']?.toString() ?? 'sent',
@@ -333,18 +352,23 @@ class _MessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final isMe = message.isMe;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        constraints:
+            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
         decoration: BoxDecoration(
-          color: isMe ? AppColors.pharmaGold : (isDark ? AppColors.pharmaSurface : Colors.white),
+          color: isMe
+              ? AppColors.pharmaGold
+              : (isDark ? AppColors.pharmaSurface : Colors.white),
           borderRadius: BorderRadius.circular(16).copyWith(
-            bottomLeft: isMe ? const Radius.circular(16) : const Radius.circular(4),
-            bottomRight: isMe ? const Radius.circular(4) : const Radius.circular(16),
+            bottomLeft:
+                isMe ? const Radius.circular(16) : const Radius.circular(4),
+            bottomRight:
+                isMe ? const Radius.circular(4) : const Radius.circular(16),
           ),
           boxShadow: [
             BoxShadow(
@@ -355,16 +379,20 @@ class _MessageBubble extends StatelessWidget {
           ],
         ),
         child: Column(
-          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment:
+              isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             if (message.text.isNotEmpty)
-              Text(message.text,
-                  style: TextStyle(
-                      color: isMe ? Colors.black : (isDark ? Colors.white : AppColors.inkDark),
-                      fontSize: 14,
-                      height: 1.4),
-                  ),
+              Text(
+                message.text,
+                style: TextStyle(
+                    color: isMe
+                        ? Colors.black
+                        : (isDark ? Colors.white : AppColors.inkDark),
+                    fontSize: 14,
+                    height: 1.4),
+              ),
             const SizedBox(height: 4),
             Row(
               mainAxisSize: MainAxisSize.min,

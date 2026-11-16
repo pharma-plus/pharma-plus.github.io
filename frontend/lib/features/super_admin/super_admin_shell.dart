@@ -33,7 +33,12 @@ class _NavItem {
   final IconData icon;
   final Color color;
   final Widget page;
-  _NavItem({required this.id, required this.label, required this.icon, required this.color, required this.page});
+  _NavItem(
+      {required this.id,
+      required this.label,
+      required this.icon,
+      required this.color,
+      required this.page});
 }
 
 class SuperAdminShell extends StatefulWidget {
@@ -58,23 +63,74 @@ class _SuperAdminShellState extends State<SuperAdminShell> {
 
   void _buildItems() {
     _items
-      ..add(_NavItem(id: 'dashboard', label: 'Tableau de bord', icon: Icons.dashboard, color: _kSuperAdminGold, page: const SuperAdminDashboardPage()))
-      ..add(_NavItem(id: 'pharmacies', label: 'Pharmacies', icon: Icons.local_pharmacy, color: _kSuperAdminAccent, page: const SuperAdminPortal()))
-      ..add(_NavItem(id: 'users', label: 'Utilisateurs', icon: Icons.people, color: Colors.blue, page: const UsersManagementPage()))
-      ..add(_NavItem(id: 'subscriptions', label: 'Abonnements', icon: Icons.payment, color: _kSuperAdminGoldLight, page: const SubscriptionManagementPage()))
-      ..add(_NavItem(id: 'whatsapp', label: 'WhatsApp', icon: Icons.chat, color: Colors.green, page: const WhatsAppManagementPage()))
-      ..add(_NavItem(id: 'chatbot', label: 'Chatbot IA', icon: Icons.smart_toy, color: Colors.purple, page: const ChatbotManagementPage()))
-      ..add(_NavItem(id: 'crm', label: 'CRM / Support', icon: Icons.support_agent, color: Colors.orange, page: const CRMSupportPage()))
-      ..add(_NavItem(id: 'roles', label: 'Rôles & Permissions', icon: Icons.admin_panel_settings, color: Colors.purple, page: const RoleManagementPage()))
-      ..add(_NavItem(id: 'reports', label: 'Rapports / Monitoring', icon: Icons.assignment, color: Colors.teal, page: const ReportsMonitoringPage()))
-      ..add(_NavItem(id: 'settings', label: 'Paramètres / Securite', icon: Icons.settings, color: Colors.pink, page: const SettingsSecurityPage()));
+      ..add(_NavItem(
+          id: 'dashboard',
+          label: 'Tableau de bord',
+          icon: Icons.dashboard,
+          color: _kSuperAdminGold,
+          page: const SuperAdminDashboardPage()))
+      ..add(_NavItem(
+          id: 'pharmacies',
+          label: 'Pharmacies',
+          icon: Icons.local_pharmacy,
+          color: _kSuperAdminAccent,
+          page: const SuperAdminPortal()))
+      ..add(_NavItem(
+          id: 'users',
+          label: 'Utilisateurs',
+          icon: Icons.people,
+          color: Colors.blue,
+          page: const UsersManagementPage()))
+      ..add(_NavItem(
+          id: 'subscriptions',
+          label: 'Abonnements',
+          icon: Icons.payment,
+          color: _kSuperAdminGoldLight,
+          page: const SubscriptionManagementPage()))
+      ..add(_NavItem(
+          id: 'whatsapp',
+          label: 'WhatsApp',
+          icon: Icons.chat,
+          color: Colors.green,
+          page: const WhatsAppManagementPage()))
+      ..add(_NavItem(
+          id: 'chatbot',
+          label: 'Chatbot IA',
+          icon: Icons.smart_toy,
+          color: Colors.purple,
+          page: const ChatbotManagementPage()))
+      ..add(_NavItem(
+          id: 'crm',
+          label: 'CRM / Support',
+          icon: Icons.support_agent,
+          color: Colors.orange,
+          page: const CRMSupportPage()))
+      ..add(_NavItem(
+          id: 'roles',
+          label: 'Rôles & Permissions',
+          icon: Icons.admin_panel_settings,
+          color: Colors.purple,
+          page: const RoleManagementPage()))
+      ..add(_NavItem(
+          id: 'reports',
+          label: 'Rapports / Monitoring',
+          icon: Icons.assignment,
+          color: Colors.teal,
+          page: const ReportsMonitoringPage()))
+      ..add(_NavItem(
+          id: 'settings',
+          label: 'Paramètres / Securite',
+          icon: Icons.settings,
+          color: Colors.pink,
+          page: const SettingsSecurityPage()));
   }
 
   Future<void> _loadStats() async {
     try {
       final r = await ApiClient.instance.get('/superadmin/dashboard-stats');
       if (!mounted) return;
-      setState(() => _globalStats = r.success ? (r.data as Map<String, dynamic>?) : null);
+      setState(() =>
+          _globalStats = r.success ? (r.data as Map<String, dynamic>?) : null);
     } catch (_) {}
   }
 
@@ -83,7 +139,9 @@ class _SuperAdminShellState extends State<SuperAdminShell> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Material(
-        color: isSelected ? item.color.withValues(alpha: 0.15) : Colors.transparent,
+        color: isSelected
+            ? item.color.withValues(alpha: 0.15)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
@@ -93,20 +151,27 @@ class _SuperAdminShellState extends State<SuperAdminShell> {
             child: Row(
               children: [
                 Container(
-                  width: 40, height: 40,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
-                    color: isSelected ? item.color : Colors.white.withValues(alpha: 0.1),
+                    color: isSelected
+                        ? item.color
+                        : Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(item.icon, color: isSelected ? AppColors.graphite : Colors.white70, size: 20),
+                  child: Icon(item.icon,
+                      color: isSelected ? AppColors.graphite : Colors.white70,
+                      size: 20),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: Text(item.label, style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.white70,
-                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                    fontSize: 15,
-                  )),
+                  child: Text(item.label,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.white70,
+                        fontWeight:
+                            isSelected ? FontWeight.w800 : FontWeight.w600,
+                        fontSize: 15,
+                      )),
                 ),
               ],
             ),
@@ -144,17 +209,28 @@ class _SuperAdminShellState extends State<SuperAdminShell> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 40, height: 40,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
                     gradient: core_colors.AppColors.goldGradient,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.shield, color: AppColors.graphite, size: 22),
+                  child: const Icon(Icons.shield,
+                      color: AppColors.graphite, size: 22),
                 ),
                 const SizedBox(height: 12),
-                const Text('PHARMA+', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1)),
+                const Text('PHARMA+',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
+                        letterSpacing: 1)),
                 const SizedBox(height: 4),
-                Text('Super Admin', style: TextStyle(color: _kSuperAdminGold, fontSize: 12, fontWeight: FontWeight.w700)),
+                Text('Super Admin',
+                    style: TextStyle(
+                        color: _kSuperAdminGold,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700)),
               ],
             ),
           ),
@@ -164,13 +240,21 @@ class _SuperAdminShellState extends State<SuperAdminShell> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('APERÇU', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1)),
+                Text('APERÇU',
+                    style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1)),
                 const SizedBox(height: 12),
-                _MiniStat('Pharmacies', '${ph['total'] ?? 0}', Icons.local_pharmacy, Colors.white),
+                _MiniStat('Pharmacies', '${ph['total'] ?? 0}',
+                    Icons.local_pharmacy, Colors.white),
                 const SizedBox(height: 10),
-                _MiniStat('Licences actives', '${lic['active'] ?? 0}', Icons.verified, Colors.green),
+                _MiniStat('Licences actives', '${lic['active'] ?? 0}',
+                    Icons.verified, Colors.green),
                 const SizedBox(height: 10),
-                _MiniStat('Suspendues', '${ph['suspended'] ?? 0}', Icons.block, Colors.orange),
+                _MiniStat('Suspendues', '${ph['suspended'] ?? 0}', Icons.block,
+                    Colors.orange),
               ],
             ),
           ),
@@ -181,7 +265,12 @@ class _SuperAdminShellState extends State<SuperAdminShell> {
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-                  child: Text('NAVIGATION', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1)),
+                  child: Text('NAVIGATION',
+                      style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1)),
                 ),
                 ..._items.map((item) => _buildItem(item)).toList(),
               ],
@@ -214,13 +303,18 @@ class _SuperAdminShellState extends State<SuperAdminShell> {
               const Icon(Icons.shield, color: _kSuperAdminGold, size: 20),
               const SizedBox(width: 8),
               Text(
-                _items.firstWhere((i) => i.id == _selected, orElse: () => _items.first).label,
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                _items
+                    .firstWhere((i) => i.id == _selected,
+                        orElse: () => _items.first)
+                    .label,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
               ),
             ],
           ),
         ),
-        drawer: Drawer(backgroundColor: _kSuperAdminDark, child: SafeArea(child: sidebar)),
+        drawer: Drawer(
+            backgroundColor: _kSuperAdminDark, child: SafeArea(child: sidebar)),
         body: SafeArea(child: _buildPage(_selected)),
       );
     }
@@ -233,7 +327,9 @@ class _SuperAdminShellState extends State<SuperAdminShell> {
           Container(
             width: 280,
             decoration: BoxDecoration(
-              border: Border(right: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
+              border: Border(
+                  right:
+                      BorderSide(color: Colors.white.withValues(alpha: 0.05))),
             ),
             child: sidebar,
           ),
@@ -247,7 +343,8 @@ class _SuperAdminShellState extends State<SuperAdminShell> {
   }
 
   Widget _buildPage(String id) {
-    final item = _items.firstWhere((i) => i.id == id, orElse: () => _items.first);
+    final item =
+        _items.firstWhere((i) => i.id == id, orElse: () => _items.first);
     return item.page;
   }
 
@@ -256,14 +353,25 @@ class _SuperAdminShellState extends State<SuperAdminShell> {
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         children: [
-          Container(width: 32, height: 32, decoration: BoxDecoration(color: color.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: color, size: 16)),
+          Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8)),
+              child: Icon(icon, color: color, size: 16)),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: TextStyle(color: Colors.white60, fontSize: 11)),
-                Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+                Text(label,
+                    style: TextStyle(color: Colors.white60, fontSize: 11)),
+                Text(value,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16)),
               ],
             ),
           ),
@@ -286,6 +394,8 @@ class ShellBackButton extends StatelessWidget {
   const ShellBackButton({super.key});
   @override
   Widget build(BuildContext context) {
-    return IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white70), onPressed: () => Navigator.of(context).pop());
+    return IconButton(
+        icon: const Icon(Icons.arrow_back, color: Colors.white70),
+        onPressed: () => Navigator.of(context).pop());
   }
 }

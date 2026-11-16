@@ -49,10 +49,8 @@ class _PurchasesPageState extends State<PurchasesPage>
       _error = null;
     });
     final results = await Future.wait([
-      ApiClient.instance.get('/purchases/orders',
-          query: {'limit': 100}),
-      ApiClient.instance.get('/purchases/receptions',
-          query: {'limit': 100}),
+      ApiClient.instance.get('/purchases/orders', query: {'limit': 100}),
+      ApiClient.instance.get('/purchases/receptions', query: {'limit': 100}),
     ]);
     if (!mounted) return;
     final orders = results[0];
@@ -76,11 +74,15 @@ class _PurchasesPageState extends State<PurchasesPage>
     final created = await showDialog<bool>(
       context: context,
       builder: (_) => Dialog(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 720),
-              child: const OrderForm(),
-            ),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 720,
+            maxHeight: MediaQuery.sizeOf(context).height * 0.94,
           ),
+          child: const OrderForm(),
+        ),
+      ),
     );
     if (created == true) {
       _load();
@@ -102,8 +104,8 @@ class _PurchasesPageState extends State<PurchasesPage>
   }
 
   Future<void> _scanProduct() async {
-    final result = await BarcodeScannerSheet.show(
-        context, title: 'Scanner produit pour réception');
+    final result = await BarcodeScannerSheet.show(context,
+        title: 'Scanner produit pour réception');
     if (result == null || !mounted) return;
     final code = result.lookupCode;
     if (code.isEmpty) return;
@@ -112,12 +114,12 @@ class _PurchasesPageState extends State<PurchasesPage>
     );
     if (!mounted) return;
     if (!apiResult.success || apiResult.data == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Code inconnu : $code')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Code inconnu : $code')));
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Produit trouvé : ${apiResult.data['name']}')));
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Produit trouvé : ${apiResult.data['name']}')));
   }
 
   @override
@@ -131,7 +133,8 @@ class _PurchasesPageState extends State<PurchasesPage>
         actions: [
           IconButton(
               onPressed: _scanProduct,
-              icon: const Icon(Icons.qr_code_scanner, color: Color(0xFFE9C873))),
+              icon:
+                  const Icon(Icons.qr_code_scanner, color: Color(0xFFE9C873))),
         ],
         bottom: TabBar(
           controller: _tabs,
@@ -186,9 +189,10 @@ class _OrderList extends StatelessWidget {
               radius: BorderRadius.circular(16),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               onTap: () => onTap(o),
-              child: Row(
-                children: [
-                  Container(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final narrow = constraints.maxWidth < 420;
+                  final icon = Container(
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
@@ -197,29 +201,31 @@ class _OrderList extends StatelessWidget {
                     ),
                     child: const Icon(Icons.shopping_bag_outlined,
                         color: Color(0xFF3E2A00)),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('${o['number']}',
-                            style:
-                                const TextStyle(fontWeight: FontWeight.w800)),
-                        Text('${o['supplier_name']} · ${o['branch_name']}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.white60
-                                    : Colors.black54)),
-                      ],
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                  );
+                  final details = Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('${o['number']}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 2),
+                      Text('${o['supplier_name']} • ${o['branch_name']}',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white60
+                                  : Colors.black54)),
+                    ],
+                  );
+                  final trailing = Column(
+                    crossAxisAlignment: narrow
+                        ? CrossAxisAlignment.start
+                        : CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       StatusChip(
                         label: orderStatusLabel('${o['status']}'),
@@ -231,8 +237,36 @@ class _OrderList extends StatelessWidget {
                           style: const TextStyle(
                               fontWeight: FontWeight.w800, fontSize: 14)),
                     ],
-                  ),
-                ],
+                  );
+                  if (narrow) {
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        icon,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              details,
+                              const SizedBox(height: 8),
+                              trailing,
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+                  return Row(
+                    children: [
+                      icon,
+                      const SizedBox(width: 12),
+                      Expanded(child: details),
+                      const SizedBox(width: 8),
+                      trailing,
+                    ],
+                  );
+                },
               ),
             ),
           );
@@ -324,8 +358,7 @@ class OrderFormState extends State<OrderForm> {
   Future<void> _load() async {
     final results = await Future.wait([
       ApiClient.instance.get('/branches'),
-      ApiClient.instance
-          .get('/suppliers', query: {'limit': 200}),
+      ApiClient.instance.get('/suppliers', query: {'limit': 200}),
       ApiClient.instance.get('/catalog/medications',
           query: {'limit': 200, 'status': 'available'}),
     ]);
@@ -401,105 +434,104 @@ class OrderFormState extends State<OrderForm> {
                 child: Form(
                   key: _formKey,
                   child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    DropdownButtonFormField<String>(
-                      initialValue: _supplierId,
-                      decoration: InputDecoration(
-                          labelText: S.t('chooseSupplier', locale)),
-                      validator: (v) => v == null
-                          ? S.t('chooseSupplier', locale)
-                          : null,
-                      items: _suppliers
-                          .map((s) => DropdownMenuItem(
-                              value: s['id'] as String,
-                              child: Text('${s['name']}')))
-                          .toList(),
-                      onChanged: (v) => setState(() => _supplierId = v),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: _branchId,
-                      decoration: InputDecoration(
-                          labelText: S.t('chooseBranch', locale)),
-                      validator: (v) =>
-                          v == null ? S.t('chooseBranch', locale) : null,
-                      items: _branches
-                          .map((b) => DropdownMenuItem(
-                              value: b['id'] as String,
-                              child: Text('${b['name']}')))
-                          .toList(),
-                      onChanged: (v) => setState(() => _branchId = v),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _expected,
-                      readOnly: true,
-                      decoration: InputDecoration(
-                        labelText: S.t('expectedDate', locale),
-                        suffixIcon: const Icon(Icons.event),
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      DropdownButtonFormField<String>(
+                        initialValue: _supplierId,
+                        decoration: InputDecoration(
+                            labelText: S.t('chooseSupplier', locale)),
+                        validator: (v) =>
+                            v == null ? S.t('chooseSupplier', locale) : null,
+                        items: _suppliers
+                            .map((s) => DropdownMenuItem(
+                                value: s['id'] as String,
+                                child: Text('${s['name']}')))
+                            .toList(),
+                        onChanged: (v) => setState(() => _supplierId = v),
                       ),
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: DateTime.now(),
-                          firstDate: DateTime.now(),
-                          lastDate:
-                              DateTime.now().add(const Duration(days: 365)),
-                        );
-                        if (picked != null) {
-                          _expected.text =
-                              picked.toIso8601String().split('T').first;
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _notes,
-                      maxLines: 2,
-                      decoration:
-                          InputDecoration(labelText: S.t('notes', locale)),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        const Spacer(),
-                        TextButton.icon(
-                          onPressed: _addLine,
-                          icon: const Icon(Icons.add),
-                          label: Text(S.t('addItem', locale)),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: _branchId,
+                        decoration: InputDecoration(
+                            labelText: S.t('chooseBranch', locale)),
+                        validator: (v) =>
+                            v == null ? S.t('chooseBranch', locale) : null,
+                        items: _branches
+                            .map((b) => DropdownMenuItem(
+                                value: b['id'] as String,
+                                child: Text('${b['name']}')))
+                            .toList(),
+                        onChanged: (v) => setState(() => _branchId = v),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _expected,
+                        readOnly: true,
+                        decoration: InputDecoration(
+                          labelText: S.t('expectedDate', locale),
+                          suffixIcon: const Icon(Icons.event),
                         ),
-                      ],
-                    ),
-                    for (var i = 0; i < _lines.length; i++)
-                      _LineEditor(
-                        key: ValueKey(i),
-                        medications: _medications,
-                        line: _lines[i],
-                        onChanged: () => setState(() {}),
-                        onRemove: () => setState(() => _lines.removeAt(i)),
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime.now(),
+                            lastDate:
+                                DateTime.now().add(const Duration(days: 365)),
+                          );
+                          if (picked != null) {
+                            _expected.text =
+                                picked.toIso8601String().split('T').first;
+                          }
+                        },
                       ),
-                    const SizedBox(height: 20),
-                    Row(children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.close),
-                          label: Text(S.t('cancel', locale)),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _notes,
+                        maxLines: 2,
+                        decoration:
+                            InputDecoration(labelText: S.t('notes', locale)),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          const Spacer(),
+                          TextButton.icon(
+                            onPressed: _addLine,
+                            icon: const Icon(Icons.add),
+                            label: Text(S.t('addItem', locale)),
+                          ),
+                        ],
+                      ),
+                      for (var i = 0; i < _lines.length; i++)
+                        _LineEditor(
+                          key: ValueKey(i),
+                          medications: _medications,
+                          line: _lines[i],
+                          onChanged: () => setState(() {}),
+                          onRemove: () => setState(() => _lines.removeAt(i)),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: GradientButton(
-                          label: S.t('create', locale),
-                          icon: Icons.check,
-                          loading: _saving,
-                          onPressed: _save,
+                      const SizedBox(height: 20),
+                      Row(children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close),
+                            label: Text(S.t('cancel', locale)),
+                          ),
                         ),
-                      ),
-                    ]),
-                  ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: GradientButton(
+                            label: S.t('create', locale),
+                            icon: Icons.check,
+                            loading: _saving,
+                            onPressed: _save,
+                          ),
+                        ),
+                      ]),
+                    ],
                   ),
                 ),
               ),
@@ -568,38 +600,55 @@ class _LineEditor extends StatelessWidget {
                   icon: const Icon(Icons.close, color: AppColors.danger)),
             ],
           ),
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  initialValue: '${line.quantity}',
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                      labelText: S.t('quantityOrdered', locale)),
-                  onChanged: (v) => line.quantity = double.tryParse(v) ?? 0,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextFormField(
-                  initialValue: '${line.unitCost}',
-                  keyboardType: TextInputType.number,
-                  decoration:
-                      InputDecoration(labelText: S.t('unitCost', locale)),
-                  onChanged: (v) => line.unitCost = double.tryParse(v) ?? 0,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextFormField(
-                  initialValue: '${line.discount}',
-                  keyboardType: TextInputType.number,
-                  decoration:
-                      InputDecoration(labelText: S.t('discount', locale)),
-                  onChanged: (v) => line.discount = double.tryParse(v) ?? 0,
-                ),
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final narrow = constraints.maxWidth < 420;
+              Widget qty() => TextFormField(
+                    initialValue: '${line.quantity}',
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                        labelText: S.t('quantityOrdered', locale)),
+                    onChanged: (v) => line.quantity = double.tryParse(v) ?? 0,
+                  );
+              Widget cost() => TextFormField(
+                    initialValue: '${line.unitCost}',
+                    keyboardType: TextInputType.number,
+                    decoration:
+                        InputDecoration(labelText: S.t('unitCost', locale)),
+                    onChanged: (v) => line.unitCost = double.tryParse(v) ?? 0,
+                  );
+              Widget discount() => TextFormField(
+                    initialValue: '${line.discount}',
+                    keyboardType: TextInputType.number,
+                    decoration:
+                        InputDecoration(labelText: S.t('discount', locale)),
+                    onChanged: (v) => line.discount = double.tryParse(v) ?? 0,
+                  );
+              if (narrow) {
+                return Column(
+                  children: [
+                    qty(),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(child: cost()),
+                        const SizedBox(width: 8),
+                        Expanded(child: discount()),
+                      ],
+                    ),
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(child: qty()),
+                  const SizedBox(width: 8),
+                  Expanded(child: cost()),
+                  const SizedBox(width: 8),
+                  Expanded(child: discount()),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -628,12 +677,14 @@ class _OrderDetailState extends State<_OrderDetail> {
   }
 
   Future<void> _load() async {
-    final result = await ApiClient.instance
-        .get('/purchases/orders/${widget.orderId}');
+    final result =
+        await ApiClient.instance.get('/purchases/orders/${widget.orderId}');
     if (!mounted) return;
     if (result.success) {
       final d = result.data;
-      setState(() => _order = d is Map<String, dynamic> ? d : (d is Map ? Map<String, dynamic>.from(d) : null));
+      setState(() => _order = d is Map<String, dynamic>
+          ? d
+          : (d is Map ? Map<String, dynamic>.from(d) : null));
     } else {
       setState(() => _error = result.error?.message);
     }
@@ -809,12 +860,24 @@ class _ReceiveFormState extends State<_ReceiveForm> {
 
   @override
   void dispose() {
-    for (final c in _qty.values) { c.dispose(); }
-    for (final c in _lot.values) { c.dispose(); }
-    for (final c in _expiry.values) { c.dispose(); }
-    for (final c in _extraQty) { c.dispose(); }
-    for (final c in _extraLot) { c.dispose(); }
-    for (final c in _extraExpiry) { c.dispose(); }
+    for (final c in _qty.values) {
+      c.dispose();
+    }
+    for (final c in _lot.values) {
+      c.dispose();
+    }
+    for (final c in _expiry.values) {
+      c.dispose();
+    }
+    for (final c in _extraQty) {
+      c.dispose();
+    }
+    for (final c in _extraLot) {
+      c.dispose();
+    }
+    for (final c in _extraExpiry) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -865,13 +928,15 @@ class _ReceiveFormState extends State<_ReceiveForm> {
 
   /// Traitement d'une lecture : identifie le produit, incrémente la quantité
   /// reçue (jamais au-delà du reste) et pré-remplit lot/expiration GS1.
-  Future<void> _processScan(ScanResult result, {bool continuous = false}) async {
+  Future<void> _processScan(ScanResult result,
+      {bool continuous = false}) async {
     final code = result.lookupCode;
     if (code.isEmpty || !mounted) return;
     final now = DateTime.now();
     if (code == _lastCode &&
         now.difference(_lastScanAt).inMilliseconds < 1200) {
-      if (!continuous) _toast('Scan identique ignoré (protection anti-doublon)');
+      if (!continuous)
+        _toast('Scan identique ignoré (protection anti-doublon)');
       return;
     }
     _lastCode = code;
@@ -914,8 +979,7 @@ class _ReceiveFormState extends State<_ReceiveForm> {
       _toast('${med['name']} : déjà entièrement reçu.');
       return;
     }
-    final cur =
-        double.tryParse(_qtyCtrl(item).text.replaceAll(',', '.')) ?? 0;
+    final cur = double.tryParse(_qtyCtrl(item).text.replaceAll(',', '.')) ?? 0;
     if (cur >= rem) {
       _toast('${med['name']} : déjà compté à $cur pour un reste de $rem.');
       return;
@@ -924,11 +988,12 @@ class _ReceiveFormState extends State<_ReceiveForm> {
       _qtyCtrl(item).text = _fmt((cur + 1).clamp(0, rem));
       // Données GS1 extraites (DataMatrix) : pré-remplir lot / expiration.
       if (result.gs1.lot != null && result.gs1.lot!.isNotEmpty) {
-        _lot.putIfAbsent('${item['id']}', () => TextEditingController())
-            .text = result.gs1.lot!;
+        _lot.putIfAbsent('${item['id']}', () => TextEditingController()).text =
+            result.gs1.lot!;
       }
       if (result.gs1.expiry != null && result.gs1.expiry!.isNotEmpty) {
-        _expiry.putIfAbsent('${item['id']}', () => TextEditingController())
+        _expiry
+            .putIfAbsent('${item['id']}', () => TextEditingController())
             .text = result.gs1.expiry!;
       }
     });
@@ -941,9 +1006,9 @@ class _ReceiveFormState extends State<_ReceiveForm> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Produit supplémentaire'),
-        content: Text(
-            '${med['name']} n\u2019est pas prévu dans cette commande. '
-            'L\u2019ajouter à la réception ?'),
+        content:
+            Text('${med['name']} n\u2019est pas prévu dans cette commande. '
+                'L\u2019ajouter à la réception ?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -1002,8 +1067,8 @@ class _ReceiveFormState extends State<_ReceiveForm> {
       _toast('Indiquez au moins une quantité reçue.');
       return;
     }
-    final missingLot = payload.any((p) =>
-        '${p['lot_number']}'.trim().isEmpty || p['expiry_date'] == null);
+    final missingLot = payload.any(
+        (p) => '${p['lot_number']}'.trim().isEmpty || p['expiry_date'] == null);
     if (missingLot) {
       _toast('Numéro de lot et date de péremption obligatoires.');
       return;
@@ -1102,10 +1167,11 @@ class _ReceiveFormState extends State<_ReceiveForm> {
           children: [
             Text('${item['medication_name']}',
                 style: const TextStyle(fontWeight: FontWeight.w700)),
-            Text('Commandé ${_fmt(ordered)} · Déjà reçu ${_fmt(received)}'
+            Text(
+                'Commandé ${_fmt(ordered)} · Déjà reçu ${_fmt(received)}'
                 ' · Reste ${_fmt(rem)}',
-                style:
-                    const TextStyle(fontSize: 11.5, color: AppColors.textMuted)),
+                style: const TextStyle(
+                    fontSize: 11.5, color: AppColors.textMuted)),
             const SizedBox(height: 6),
             Row(children: [
               Expanded(
@@ -1220,4 +1286,3 @@ class _ReceiveFormState extends State<_ReceiveForm> {
     );
   }
 }
-

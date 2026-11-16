@@ -175,8 +175,8 @@ class _SalesAlertsPageState extends State<SalesAlertsPage> {
                   alert.level == 'high'
                       ? Icons.error_outline
                       : alert.level == 'medium'
-                      ? Icons.warning_outlined
-                      : Icons.check_circle_outline,
+                          ? Icons.warning_outlined
+                          : Icons.check_circle_outline,
                   color: alert.color,
                   size: 20,
                 ),

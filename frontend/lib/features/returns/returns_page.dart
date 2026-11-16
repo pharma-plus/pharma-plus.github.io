@@ -140,7 +140,10 @@ class _ReturnsPageState extends State<ReturnsPage> {
     if (_sales.isEmpty) {
       return Center(
           child: Text('Aucune vente trouvée',
-              style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.55) : AppColors.inkDarkLight)));
+              style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white.withValues(alpha: 0.55)
+                      : AppColors.inkDarkLight)));
     }
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),

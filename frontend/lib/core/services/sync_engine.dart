@@ -49,15 +49,21 @@ class SyncEngine {
   /// Synchronise en tâche de fond. Idempotente.
   ///
   /// Ordre :
-///   1. Flush de la file d'attente (POST/PUT/DELETE en attente) ;
-///   2. Pull du catalogue (révisions de médicaments) ;
-///   3. Mise à jour des caches d'entités (clients, fournisseurs…).
+  ///   1. Flush de la file d'attente (POST/PUT/DELETE en attente) ;
+  ///   2. Pull du catalogue (révisions de médicaments) ;
+  ///   3. Mise à jour des caches d'entités (clients, fournisseurs…).
   Future<SyncResult> sync({bool verbose = false}) async {
     if (_running) {
-      return SyncResult(flushed: 0, failed: 0, pulled: 0, errors: [], conflicts: []);
+      return SyncResult(
+          flushed: 0, failed: 0, pulled: 0, errors: [], conflicts: []);
     }
     if (!AuthStore.instance.isAuthenticated) {
-      return SyncResult(flushed: 0, failed: 0, pulled: 0, errors: ['Non authentifié'], conflicts: []);
+      return SyncResult(
+          flushed: 0,
+          failed: 0,
+          pulled: 0,
+          errors: ['Non authentifié'],
+          conflicts: []);
     }
     _running = true;
     _conn.setSyncing();
@@ -116,10 +122,11 @@ class SyncEngine {
       // file hors-ligne. Les chemins /superadmin/* nécessitent une
       // confirmation serveur immédiate.
       if (path.startsWith('/superadmin/')) {
-        await _store.markFailed(
-            id, 'Opération Super Admin refusée hors-ligne (confirmation serveur requise)');
+        await _store.markFailed(id,
+            'Opération Super Admin refusée hors-ligne (confirmation serveur requise)');
         failed++;
-        conflicts.add('Super Admin : $method $path (confirmation serveur requise)');
+        conflicts
+            .add('Super Admin : $method $path (confirmation serveur requise)');
         continue;
       }
 
@@ -160,9 +167,11 @@ class SyncEngine {
           errors.add('Conflit sur $path : ${result['message'] ?? ''}');
         } else {
           // Échec temporaire : marquer et réessayer plus tard.
-          await _store.markFailed(id, '${result['message'] ?? result['statusCode']}');
+          await _store.markFailed(
+              id, '${result['message'] ?? result['statusCode']}');
           failed++;
-          errors.add('Échec $method $path : ${result['message'] ?? result['statusCode']}');
+          errors.add(
+              'Échec $method $path : ${result['message'] ?? result['statusCode']}');
         }
       } catch (e) {
         await _store.markFailed(id, '$e');
@@ -181,17 +190,18 @@ class SyncEngine {
 
   /// Envoie une requête avec gestion des en-têtes d'idempotence et retry.
   /// Retourne une map {success, statusCode, message, serverRef}.
-  Future<Map<String, dynamic>> _sendWithIdempotency(
-      String method, String path, Map<String, dynamic>? body,
-      Map<String, String> headers) async {
+  Future<Map<String, dynamic>> _sendWithIdempotency(String method, String path,
+      Map<String, dynamic>? body, Map<String, String> headers) async {
     try {
       late final Future<dynamic> call;
       switch (method) {
         case 'POST':
-          call = ApiClient.instance.post(path, body: body, customHeaders: headers);
+          call =
+              ApiClient.instance.post(path, body: body, customHeaders: headers);
           break;
         case 'PUT':
-          call = ApiClient.instance.put(path, body: body, customHeaders: headers);
+          call =
+              ApiClient.instance.put(path, body: body, customHeaders: headers);
           break;
         default:
           call = ApiClient.instance.delete(path);
@@ -260,10 +270,8 @@ class SyncEngine {
   /// Met en cache les lignes du catalogue (upsert par id) pour que la
   /// recherche reste fonctionnelle hors-ligne.
   Future<void> _cacheMedications(List<dynamic> rows) async {
-    final maps = rows
-        .whereType<Map>()
-        .map((e) => Map<String, dynamic>.from(e))
-        .toList();
+    final maps =
+        rows.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
     if (maps.isEmpty) return;
     try {
       await OfflineStore.instance.saveCatalogRows(maps);

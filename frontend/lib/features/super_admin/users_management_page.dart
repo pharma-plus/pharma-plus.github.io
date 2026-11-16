@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/l10n/strings.dart';
@@ -74,8 +74,7 @@ class _UsersManagementState extends State<UsersManagementPage> {
   Future<void> _addUser() async {
     final saved = await showDialog<bool>(
       context: context,
-      builder: (_) =>
-          UserFormDialog(roles: _roles, employees: _employees),
+      builder: (_) => UserFormDialog(roles: _roles, employees: _employees),
     );
     if (saved == true) _loadAll();
   }
@@ -83,8 +82,8 @@ class _UsersManagementState extends State<UsersManagementPage> {
   Future<void> _editUser(Map<String, dynamic> user) async {
     final saved = await showDialog<bool>(
       context: context,
-      builder: (_) => UserFormDialog(
-          user: user, roles: _roles, employees: _employees),
+      builder: (_) =>
+          UserFormDialog(user: user, roles: _roles, employees: _employees),
     );
     if (saved == true) _loadAll();
   }
@@ -99,7 +98,8 @@ class _UsersManagementState extends State<UsersManagementPage> {
         content: TextField(
           controller: ctl,
           obscureText: true,
-          decoration: const InputDecoration(labelText: 'Nouveau mot de passe (min. 8)'),
+          decoration:
+              const InputDecoration(labelText: 'Nouveau mot de passe (min. 8)'),
         ),
         actions: [
           TextButton(
@@ -151,15 +151,15 @@ class _UsersManagementState extends State<UsersManagementPage> {
     );
     if (newPin == null || newPin.isEmpty || !mounted) return;
     if (!RegExp(r'^\d{4,6}$').hasMatch(newPin)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Le PIN doit contenir 4 à 6 chiffres.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Le PIN doit contenir 4 à 6 chiffres.')));
       return;
     }
     // Note : PUT /auth/pin définit le PIN de l'utilisateur CONNECTÉ.
     // Pour définir le PIN d'un AUTRE utilisateur, le backend doit exposer
     // PUT /users/{id}/pin. Ici on utilise la route existante.
-    final res = await ApiClient.instance.put('/users/${user['id']}/pin',
-        body: {'pin': newPin});
+    final res = await ApiClient.instance
+        .put('/users/${user['id']}/pin', body: {'pin': newPin});
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(res.success
@@ -211,8 +211,7 @@ class _UsersManagementState extends State<UsersManagementPage> {
     final confirmed = await AppConfirmDialog.show(
       context: context,
       title: 'Supprimer le compte',
-      message:
-          'Désactiver définitivement le compte de ${user['email']} ?',
+      message: 'Désactiver définitivement le compte de ${user['email']} ?',
       extraContent: const Text(
         '· Les ventes et opérations déjà enregistrées sont conservées.\n'
         '· Le dossier historique de l\'employé rattaché n\'est pas effacé.\n'
@@ -243,8 +242,7 @@ class _UsersManagementState extends State<UsersManagementPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('$label ce compte'),
-        content: Text(
-            'Voulez-vous $label le compte de ${user['email']} ?'),
+        content: Text('Voulez-vous $label le compte de ${user['email']} ?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -276,7 +274,8 @@ class _UsersManagementState extends State<UsersManagementPage> {
     final locale = context.watch<AuthStore>().locale;
     final auth = context.watch<AuthStore>();
     // Seul un admin/super-admin (users:view) peut créer un utilisateur.
-    final canCreate = auth.isSuperAdmin || auth.permissions.contains('users:view');
+    final canCreate =
+        auth.isSuperAdmin || auth.permissions.contains('users:view');
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
@@ -314,38 +313,41 @@ class _UsersManagementState extends State<UsersManagementPage> {
     }
     return Column(
       children: [
-        // Filtre statut
+        // Filtre statut (adapté smartphone : défilement horizontal si étroit)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            children: [
-              ChoiceChip(
-                label: const Text('Tous'),
-                selected: _filterStatus == null,
-                onSelected: (_) {
-                  setState(() => _filterStatus = null);
-                  _loadAll();
-                },
-              ),
-              const SizedBox(width: 8),
-              ChoiceChip(
-                label: const Text('Actifs'),
-                selected: _filterStatus == 'active',
-                onSelected: (_) {
-                  setState(() => _filterStatus = 'active');
-                  _loadAll();
-                },
-              ),
-              const SizedBox(width: 8),
-              ChoiceChip(
-                label: const Text('Inactifs'),
-                selected: _filterStatus == 'inactive',
-                onSelected: (_) {
-                  setState(() => _filterStatus = 'inactive');
-                  _loadAll();
-                },
-              ),
-            ],
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                ChoiceChip(
+                  label: const Text('Tous'),
+                  selected: _filterStatus == null,
+                  onSelected: (_) {
+                    setState(() => _filterStatus = null);
+                    _loadAll();
+                  },
+                ),
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  label: const Text('Actifs'),
+                  selected: _filterStatus == 'active',
+                  onSelected: (_) {
+                    setState(() => _filterStatus = 'active');
+                    _loadAll();
+                  },
+                ),
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  label: const Text('Inactifs'),
+                  selected: _filterStatus == 'inactive',
+                  onSelected: (_) {
+                    setState(() => _filterStatus = 'inactive');
+                    _loadAll();
+                  },
+                ),
+              ],
+            ),
           ),
         ),
         Expanded(
@@ -363,9 +365,8 @@ class _UsersManagementState extends State<UsersManagementPage> {
                       color: AppColors.pharmaSurface2,
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: isActive
-                              ? AppColors.emerald
-                              : AppColors.danger,
+                          backgroundColor:
+                              isActive ? AppColors.emerald : AppColors.danger,
                           child: Text(
                             '${(u['first_name'] ?? '?')[0]}${(u['last_name'] ?? '?')[0]}'
                                 .toUpperCase(),
@@ -377,8 +378,7 @@ class _UsersManagementState extends State<UsersManagementPage> {
                         title: Text(
                           '${u['first_name'] ?? ''} ${u['last_name'] ?? ''}'
                               .trim(),
-                          style:
-                              const TextStyle(fontWeight: FontWeight.w600),
+                          style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
                         subtitle: Text(
                           '${u['email'] ?? ''} · ${u['role_name'] ?? u['role'] ?? 'Aucun rôle'}'
@@ -428,9 +428,8 @@ class _UsersManagementState extends State<UsersManagementPage> {
                                   child: Text('Désactiver le PIN')),
                             PopupMenuItem(
                               value: 'status',
-                              child: Text(isActive
-                                  ? 'Désactiver'
-                                  : 'Réactiver'),
+                              child:
+                                  Text(isActive ? 'Désactiver' : 'Réactiver'),
                             ),
                             const PopupMenuItem(
                                 value: 'delete',
@@ -462,8 +461,8 @@ class UserFormDialog extends StatefulWidget {
 }
 
 class UserFormDialogState extends State<UserFormDialog> {
-  late final _first = TextEditingController(
-      text: '${widget.user?['first_name'] ?? ''}');
+  late final _first =
+      TextEditingController(text: '${widget.user?['first_name'] ?? ''}');
   late final _last =
       TextEditingController(text: '${widget.user?['last_name'] ?? ''}');
   late final _email =
@@ -500,13 +499,12 @@ class UserFormDialogState extends State<UserFormDialog> {
 
   /// Employés rattachables : non archivés et soit libres, soit déjà
   /// rattachés à CET utilisateur (relation 1-1).
-  List<Map<String, dynamic>> get _linkableEmployees => widget.employees
-      .where((e) {
+  List<Map<String, dynamic>> get _linkableEmployees =>
+      widget.employees.where((e) {
         if ('${e['status'] ?? ''}' == 'archived') return false;
         final linked = e['user_id'];
         return linked == null || '$linked' == '${widget.user?['id']}';
-      })
-      .toList();
+      }).toList();
 
   @override
   void initState() {
@@ -562,7 +560,8 @@ class UserFormDialogState extends State<UserFormDialog> {
     } else {
       setState(() {
         _saving = false;
-        _err = res.error?.readableMessage ?? 'Erreur lors de l\'enregistrement.';
+        _err =
+            res.error?.readableMessage ?? 'Erreur lors de l\'enregistrement.';
       });
     }
   }
@@ -571,168 +570,181 @@ class UserFormDialogState extends State<UserFormDialog> {
   Widget build(BuildContext context) {
     final locale = context.watch<AuthStore>().locale;
     return AlertDialog(
-      title: Text(
-          _isEdit ? S.t('editUser', locale) : S.t('newUser', locale)),
+      title: Text(_isEdit ? S.t('editUser', locale) : S.t('newUser', locale)),
       content: SingleChildScrollView(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 400),
           child: Form(
             key: _formKey,
             child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(children: [
-                Expanded(
-                  child: TextFormField(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Builder(
+                  builder: (context) {
+                    final narrow = MediaQuery.sizeOf(context).width < 420;
+                    final first = TextFormField(
                       controller: _first,
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                       validator: (v) =>
                           validateRequired(v, S.t('requiredField', locale)),
-                      decoration: InputDecoration(
-                          labelText: S.t('firstName', locale))),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextFormField(
+                      decoration:
+                          InputDecoration(labelText: S.t('firstName', locale)),
+                    );
+                    final last = TextFormField(
                       controller: _last,
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                       validator: (v) =>
                           validateRequired(v, S.t('requiredField', locale)),
                       decoration:
-                          InputDecoration(labelText: S.t('lastName', locale))),
-                ),
-              ]),
-              const SizedBox(height: 10),
-              TextFormField(
-                  controller: _email,
-                  keyboardType: TextInputType.emailAddress,
-                  enabled: !_isEdit, // email non modifiable en édition
-                  autovalidateMode: AutovalidateMode.onUserInteraction,
-                  validator: (v) {
-                    if (_isEdit) return null;
-                    return validateRequired(v, S.t('requiredField', locale)) ??
-                        validateEmail(v, S.t('invalidEmail', locale));
+                          InputDecoration(labelText: S.t('lastName', locale)),
+                    );
+                    if (narrow) {
+                      return Column(
+                        children: [
+                          first,
+                          const SizedBox(height: 10),
+                          last,
+                        ],
+                      );
+                    }
+                    return Row(children: [
+                      Expanded(child: first),
+                      const SizedBox(width: 10),
+                      Expanded(child: last),
+                    ]);
                   },
-                  decoration:
-                      InputDecoration(labelText: S.t('email', locale))),
-              const SizedBox(height: 10),
-              TextFormField(
-                  controller: _phone,
-                  keyboardType: TextInputType.phone,
-                  autovalidateMode: AutovalidateMode.onUserInteraction,
-                  validator: (v) =>
-                      validatePhone(v, S.t('invalidPhone', locale)),
-                  decoration:
-                      InputDecoration(labelText: S.t('phone', locale))),
-              const SizedBox(height: 10),
-              if (!_isEdit)
+                ),
+                const SizedBox(height: 10),
                 TextFormField(
-                    controller: _pass,
-                    obscureText: true,
+                    controller: _email,
+                    keyboardType: TextInputType.emailAddress,
+                    enabled: !_isEdit, // email non modifiable en édition
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    validator: (v) {
+                      if (_isEdit) return null;
+                      return validateRequired(
+                              v, S.t('requiredField', locale)) ??
+                          validateEmail(v, S.t('invalidEmail', locale));
+                    },
+                    decoration:
+                        InputDecoration(labelText: S.t('email', locale))),
+                const SizedBox(height: 10),
+                TextFormField(
+                    controller: _phone,
+                    keyboardType: TextInputType.phone,
                     autovalidateMode: AutovalidateMode.onUserInteraction,
                     validator: (v) =>
-                        validateRequired(v, S.t('requiredField', locale)) ??
-                        (v != null && v.length < 8
-                            ? S.t('passwordMin8', locale)
-                            : null),
+                        validatePhone(v, S.t('invalidPhone', locale)),
                     decoration:
-                        InputDecoration(labelText: S.t('password', locale))),
-              if (!_isEdit) const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                initialValue: _roleId,
-                decoration: const InputDecoration(labelText: 'Rôle'),
-                items: widget.roles
-                    .map((r) => DropdownMenuItem(
-                        value: '${r['id']}', child: Text('${r['name']}')))
-                    .toList(),
-                onChanged: (v) => setState(() => _roleId = v),
-                validator: (v) => v == null || v.isEmpty
-                    ? 'Rôle requis'
-                    : null,
-              ),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                initialValue: _employeeId,
-                decoration: const InputDecoration(
-                    labelText: 'Employé associé (optionnel)'),
-                items: [
-                  const DropdownMenuItem<String>(
-                      value: '', child: Text('Aucun')),
-                  ..._linkableEmployees.map((e) => DropdownMenuItem<String>(
-                        value: '${e['id']}',
-                        child: Text(
-                            '${e['first_name'] ?? ''} ${e['last_name'] ?? ''}'
-                                .trim()),
-                      )),
-                  // Employé lié non présent dans la page chargée : on
-                  // l'ajoute pour que la valeur initiale existe.
-                  if (_employeeId.isNotEmpty &&
-                      !_linkableEmployees
-                          .any((e) => '${e['id']}' == _employeeId))
-                    DropdownMenuItem<String>(
-                      value: _employeeId,
-                      child: Text(
-                          '${widget.user?['employee_name'] ?? 'Employé lié'}'),
-                    ),
-                ],
-                onChanged: (v) => setState(() => _employeeId = v ?? ''),
-              ),
-              const SizedBox(height: 14),
-              // Section : modules visibles sur le dashboard.
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Modules visibles',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Décochez les modules à masquer pour cet utilisateur.',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: AppColors.pharmaMuted,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 4,
-                runSpacing: 0,
-                children: [
-                  for (final (key, label) in _moduleOptions)
-                    SizedBox(
-                      width: 180,
-                      child: CheckboxListTile(
-                        value: _visibleModules[key] ?? true,
-                        onChanged: (v) =>
-                            setState(() => _visibleModules[key] = v ?? true),
-                        title: Text(label,
-                            style: const TextStyle(fontSize: 12)),
-                        contentPadding: EdgeInsets.zero,
-                        dense: true,
-                        controlAffinity: ListTileControlAffinity.leading,
-                      ),
-                    ),
-                ],
-              ),
-              if (_err != null) ...[
+                        InputDecoration(labelText: S.t('phone', locale))),
                 const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.danger.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(_err!,
-                      style: const TextStyle(
-                          color: AppColors.danger, fontSize: 12)),
+                if (!_isEdit)
+                  TextFormField(
+                      controller: _pass,
+                      obscureText: true,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      validator: (v) =>
+                          validateRequired(v, S.t('requiredField', locale)) ??
+                          (v != null && v.length < 8
+                              ? S.t('passwordMin8', locale)
+                              : null),
+                      decoration:
+                          InputDecoration(labelText: S.t('password', locale))),
+                if (!_isEdit) const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  initialValue: _roleId,
+                  decoration: const InputDecoration(labelText: 'Rôle'),
+                  items: widget.roles
+                      .map((r) => DropdownMenuItem(
+                          value: '${r['id']}', child: Text('${r['name']}')))
+                      .toList(),
+                  onChanged: (v) => setState(() => _roleId = v),
+                  validator: (v) =>
+                      v == null || v.isEmpty ? 'Rôle requis' : null,
                 ),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  initialValue: _employeeId,
+                  decoration: const InputDecoration(
+                      labelText: 'Employé associé (optionnel)'),
+                  items: [
+                    const DropdownMenuItem<String>(
+                        value: '', child: Text('Aucun')),
+                    ..._linkableEmployees.map((e) => DropdownMenuItem<String>(
+                          value: '${e['id']}',
+                          child: Text(
+                              '${e['first_name'] ?? ''} ${e['last_name'] ?? ''}'
+                                  .trim()),
+                        )),
+                    // Employé lié non présent dans la page chargée : on
+                    // l'ajoute pour que la valeur initiale existe.
+                    if (_employeeId.isNotEmpty &&
+                        !_linkableEmployees
+                            .any((e) => '${e['id']}' == _employeeId))
+                      DropdownMenuItem<String>(
+                        value: _employeeId,
+                        child: Text(
+                            '${widget.user?['employee_name'] ?? 'Employé lié'}'),
+                      ),
+                  ],
+                  onChanged: (v) => setState(() => _employeeId = v ?? ''),
+                ),
+                const SizedBox(height: 14),
+                // Section : modules visibles sur le dashboard.
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Modules visibles',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Décochez les modules à masquer pour cet utilisateur.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.pharmaMuted,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 0,
+                  children: [
+                    for (final (key, label) in _moduleOptions)
+                      SizedBox(
+                        width: 180,
+                        child: CheckboxListTile(
+                          value: _visibleModules[key] ?? true,
+                          onChanged: (v) =>
+                              setState(() => _visibleModules[key] = v ?? true),
+                          title:
+                              Text(label, style: const TextStyle(fontSize: 12)),
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          controlAffinity: ListTileControlAffinity.leading,
+                        ),
+                      ),
+                  ],
+                ),
+                if (_err != null) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.danger.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(_err!,
+                        style: const TextStyle(
+                            color: AppColors.danger, fontSize: 12)),
+                  ),
+                ],
               ],
-            ],
             ),
           ),
         ),
@@ -742,11 +754,13 @@ class UserFormDialogState extends State<UserFormDialog> {
             onPressed: () => Navigator.pop(context),
             child: Text(S.t('cancel', locale))),
         FilledButton(
-            onPressed: _saving ? null : () {
-              if (_formKey.currentState?.validate() ?? false) {
-                _submit();
-              }
-            },
+            onPressed: _saving
+                ? null
+                : () {
+                    if (_formKey.currentState?.validate() ?? false) {
+                      _submit();
+                    }
+                  },
             child: Text(_saving ? '…' : S.t('save', locale))),
       ],
     );

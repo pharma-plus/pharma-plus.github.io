@@ -22,10 +22,12 @@ class SubscriptionManagementPage extends StatefulWidget {
   const SubscriptionManagementPage({super.key});
 
   @override
-  State<SubscriptionManagementPage> createState() => _SubscriptionManagementPageState();
+  State<SubscriptionManagementPage> createState() =>
+      _SubscriptionManagementPageState();
 }
 
-class _SubscriptionManagementPageState extends State<SubscriptionManagementPage> {
+class _SubscriptionManagementPageState
+    extends State<SubscriptionManagementPage> {
   List<Map<String, dynamic>> _licenses = [];
   List<Map<String, dynamic>> _pharmacies = [];
   bool _loading = true;
@@ -96,7 +98,9 @@ class _SubscriptionManagementPageState extends State<SubscriptionManagementPage>
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.error?.readableMessage ?? S.t('loadError', locale))),
+        SnackBar(
+            content: Text(
+                result.error?.readableMessage ?? S.t('loadError', locale))),
       );
     }
   }
@@ -119,30 +123,44 @@ class _SubscriptionManagementPageState extends State<SubscriptionManagementPage>
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.error?.readableMessage ?? S.t('loadError', locale))),
+        SnackBar(
+            content: Text(
+                result.error?.readableMessage ?? S.t('loadError', locale))),
       );
     }
   }
 
   String _planLabel(String? type, String locale) {
     switch (type) {
-      case 'basic': return 'BASIC';
-      case 'gold': return 'GOLD';
-      case 'standard': return S.t('standard', locale);
-      case 'professional': return S.t('professional', locale);
-      case 'enterprise': return S.t('enterprise', locale);
-      case 'trial': return S.t('trial', locale);
-      default: return type ?? '—';
+      case 'basic':
+        return 'BASIC';
+      case 'gold':
+        return 'GOLD';
+      case 'standard':
+        return S.t('standard', locale);
+      case 'professional':
+        return S.t('professional', locale);
+      case 'enterprise':
+        return S.t('enterprise', locale);
+      case 'trial':
+        return S.t('trial', locale);
+      default:
+        return type ?? '—';
     }
   }
 
   Color _statusColor(String? s) {
     switch (s) {
-      case 'active': return Colors.green;
-      case 'suspended': return Colors.orange;
-      case 'expired': return Colors.red;
-      case 'cancelled': return AppColors.textMuted;
-      default: return Colors.white70;
+      case 'active':
+        return Colors.green;
+      case 'suspended':
+        return Colors.orange;
+      case 'expired':
+        return Colors.red;
+      case 'cancelled':
+        return AppColors.textMuted;
+      default:
+        return Colors.white70;
     }
   }
 
@@ -150,11 +168,20 @@ class _SubscriptionManagementPageState extends State<SubscriptionManagementPage>
   Widget build(BuildContext context) {
     final locale = context.read<AuthStore>().locale;
     final filtered = _licenses.where((l) {
-      final matchesStatus = _filterStatus == 'all' || l['status'] == _filterStatus;
+      final matchesStatus =
+          _filterStatus == 'all' || l['status'] == _filterStatus;
       final matchesType = _filterType == 'all' || l['type'] == _filterType;
       final matchesSearch = _searchQuery.isEmpty ||
-          (l['pharmacy_name']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
-          (l['type']?.toString().toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
+          (l['pharmacy_name']
+                  ?.toString()
+                  .toLowerCase()
+                  .contains(_searchQuery.toLowerCase()) ??
+              false) ||
+          (l['type']
+                  ?.toString()
+                  .toLowerCase()
+                  .contains(_searchQuery.toLowerCase()) ??
+              false);
       return matchesStatus && matchesType && matchesSearch;
     }).toList();
 
@@ -164,7 +191,8 @@ class _SubscriptionManagementPageState extends State<SubscriptionManagementPage>
         backgroundColor: _kSuperAdminDark.withValues(alpha: 0.95),
         elevation: 0,
         leading: const ShellBackButton(),
-        title: const Text('Abonnements BASIC / GOLD', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+        title: const Text('Abonnements BASIC / GOLD',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
         actions: [
           GradientButton(
             label: 'Nouvelle licence',
@@ -175,7 +203,8 @@ class _SubscriptionManagementPageState extends State<SubscriptionManagementPage>
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _kSuperAdminGold))
+          ? const Center(
+              child: CircularProgressIndicator(color: _kSuperAdminGold))
           : Column(
               children: [
                 Padding(
@@ -190,8 +219,10 @@ class _SubscriptionManagementPageState extends State<SubscriptionManagementPage>
                               hint: 'Rechercher licence ou pharmacie',
                               onChanged: (v) {
                                 _debounce?.cancel();
-                                _debounce = Timer(const Duration(milliseconds: 300), () {
-                                  if (mounted) setState(() => _searchQuery = v.trim());
+                                _debounce = Timer(
+                                    const Duration(milliseconds: 300), () {
+                                  if (mounted)
+                                    setState(() => _searchQuery = v.trim());
                                 });
                               },
                             ),
@@ -200,14 +231,27 @@ class _SubscriptionManagementPageState extends State<SubscriptionManagementPage>
                           _FilterChip(
                             label: 'Statut',
                             value: _filterStatus,
-                            items: const ['all', 'active', 'suspended', 'expired'],
+                            items: const [
+                              'all',
+                              'active',
+                              'suspended',
+                              'expired'
+                            ],
                             onChanged: (v) => setState(() => _filterStatus = v),
                           ),
                           const SizedBox(width: 8),
                           _FilterChip(
                             label: 'Formule',
                             value: _filterType,
-                            items: const ['all', 'basic', 'gold', 'trial', 'standard', 'professional', 'enterprise'],
+                            items: const [
+                              'all',
+                              'basic',
+                              'gold',
+                              'trial',
+                              'standard',
+                              'professional',
+                              'enterprise'
+                            ],
                             onChanged: (v) => setState(() => _filterType = v),
                           ),
                         ],
@@ -222,9 +266,13 @@ class _SubscriptionManagementPageState extends State<SubscriptionManagementPage>
                   ),
                 Expanded(
                   child: _loading
-                      ? const Center(child: CircularProgressIndicator(color: _kSuperAdminGold))
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                              color: _kSuperAdminGold))
                       : filtered.isEmpty
-                          ? Center(child: Text('Aucune licence', style: TextStyle(color: Colors.white70)))
+                          ? Center(
+                              child: Text('Aucune licence',
+                                  style: TextStyle(color: Colors.white70)))
                           : ListView.builder(
                               padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                               itemCount: filtered.length,
@@ -282,9 +330,15 @@ class _KPISummary extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600)),
+            Text(label,
+                style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
-            Text(value, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.w900)),
+            Text(value,
+                style: TextStyle(
+                    color: color, fontSize: 18, fontWeight: FontWeight.w900)),
           ],
         ),
       ),
@@ -300,17 +354,26 @@ class _LicenseCard extends StatelessWidget {
   final String locale;
   final Function(String, String) onToggle;
   final Function(String) onRenew;
-  const _LicenseCard({required this.license, required this.locale, required this.onToggle, required this.onRenew});
+  const _LicenseCard(
+      {required this.license,
+      required this.locale,
+      required this.onToggle,
+      required this.onRenew});
 
   /// Couleur du badge de statut (copie locale : la méthode de la classe
   /// State parente n'est pas accessible depuis cette card).
   Color _statusColor(String? s) {
     switch (s) {
-      case 'active': return Colors.green;
-      case 'suspended': return Colors.orange;
-      case 'expired': return Colors.red;
-      case 'cancelled': return AppColors.textMuted;
-      default: return Colors.white70;
+      case 'active':
+        return Colors.green;
+      case 'suspended':
+        return Colors.orange;
+      case 'expired':
+        return Colors.red;
+      case 'cancelled':
+        return AppColors.textMuted;
+      default:
+        return Colors.white70;
     }
   }
 
@@ -332,18 +395,24 @@ class _LicenseCard extends StatelessWidget {
               end: Alignment.bottomRight,
             )
           : null,
-      borderColor: (isGold ? _kSuperAdminGoldLight : Colors.white).withValues(alpha: 0.2),
+      borderColor: (isGold ? _kSuperAdminGoldLight : Colors.white)
+          .withValues(alpha: 0.2),
       child: Row(
         children: [
           Container(
-            width: 48, height: 48,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               gradient: isGold ? AppColors.goldGradient : null,
               color: !isGold ? Colors.white.withValues(alpha: 0.1) : null,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
-              child: Text(type.toUpperCase(), style: TextStyle(color: isGold ? Color(0xFF03100D) : Colors.white70, fontWeight: FontWeight.w900, fontSize: 12)),
+              child: Text(type.toUpperCase(),
+                  style: TextStyle(
+                      color: isGold ? Color(0xFF03100D) : Colors.white70,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12)),
             ),
           ),
           const SizedBox(width: 14),
@@ -353,18 +422,31 @@ class _LicenseCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text('${license['pharmacy_name'] ?? 'Pharmacie'}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
+                    Text('${license['pharmacy_name'] ?? 'Pharmacie'}',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15)),
                     if (isGold)
                       Container(
                         margin: const EdgeInsets.only(left: 8),
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(color: _kSuperAdminGoldLight.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
-                        child: const Text('GOLD', style: TextStyle(color: Color(0xFF03100D), fontSize: 9, fontWeight: FontWeight.w900)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                            color: _kSuperAdminGoldLight.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(4)),
+                        child: const Text('GOLD',
+                            style: TextStyle(
+                                color: Color(0xFF03100D),
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900)),
                       ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text('${license['expiry_date']?.toString().substring(0, 10) ?? '—'} · ${license['type'] ?? '—'}', style: TextStyle(color: Colors.white60, fontSize: 11)),
+                Text(
+                    '${license['expiry_date']?.toString().substring(0, 10) ?? '—'} · ${license['type'] ?? '—'}',
+                    style: TextStyle(color: Colors.white60, fontSize: 11)),
               ],
             ),
           ),
@@ -373,7 +455,11 @@ class _LicenseCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               StatusChip(
-                label: status == 'active' ? S.t('pharmacyActive', locale) : status == 'suspended' ? S.t('suspended', locale) : S.t('expired', locale),
+                label: status == 'active'
+                    ? S.t('pharmacyActive', locale)
+                    : status == 'suspended'
+                        ? S.t('suspended', locale)
+                        : S.t('expired', locale),
                 color: _statusColor(status),
               ),
               const SizedBox(height: 8),
@@ -381,14 +467,16 @@ class _LicenseCard extends StatelessWidget {
                 GradientButton(
                   label: 'Suspendre',
                   icon: Icons.block,
-                  onPressed: () => onToggle(license['id'] as String? ?? '', 'suspended'),
+                  onPressed: () =>
+                      onToggle(license['id'] as String? ?? '', 'suspended'),
                   fullWidth: false,
                 )
               else if (status == 'suspended')
                 GradientButton(
                   label: 'Réactiver',
                   icon: Icons.check_circle,
-                  onPressed: () => onToggle(license['id'] as String? ?? '', 'active'),
+                  onPressed: () =>
+                      onToggle(license['id'] as String? ?? '', 'active'),
                   fullWidth: false,
                 )
               else
@@ -414,7 +502,11 @@ class _FilterChip extends StatefulWidget {
   final String value;
   final List<String> items;
   final Function(String) onChanged;
-  const _FilterChip({required this.label, required this.value, required this.items, required this.onChanged});
+  const _FilterChip(
+      {required this.label,
+      required this.value,
+      required this.items,
+      required this.onChanged});
 
   @override
   State<_FilterChip> createState() => _FilterChipState();
@@ -427,23 +519,34 @@ class _FilterChipState extends State<_FilterChip> {
     super.initState();
     _selected = widget.value;
   }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(widget.label, style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600)),
+        Text(widget.label,
+            style: TextStyle(
+                color: Colors.white70,
+                fontSize: 10,
+                fontWeight: FontWeight.w600)),
         const SizedBox(height: 6),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+          decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20)),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: _selected,
-              items: widget.items.map((i) => DropdownMenuItem(
-                value: i,
-                child: Text(i.toUpperCase(), style: TextStyle(color: Colors.white, fontSize: 11)),
-              )).toList(),
+              items: widget.items
+                  .map((i) => DropdownMenuItem(
+                        value: i,
+                        child: Text(i.toUpperCase(),
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 11)),
+                      ))
+                  .toList(),
               onChanged: (v) {
                 if (v != null) {
                   setState(() => _selected = v);
@@ -484,7 +587,8 @@ class _LicenseFormDialogState extends State<LicenseFormDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: _kSuperAdminSurface,
-      title: const Text('Nouvelle licence', style: TextStyle(color: Colors.white)),
+      title:
+          const Text('Nouvelle licence', style: TextStyle(color: Colors.white)),
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
         child: SingleChildScrollView(
@@ -511,20 +615,36 @@ class _LicenseFormDialogState extends State<LicenseFormDialog> {
                 DropdownButtonFormField<String>(
                   value: _type,
                   decoration: InputDecoration(labelText: 'Type d\'abonnement'),
-                  items: ['basic', 'gold', 'trial', 'standard', 'professional', 'enterprise'].map((t) => DropdownMenuItem(
-                    value: t,
-                    child: Text(t.toUpperCase(), style: TextStyle(color: t == 'gold' ? _kSuperAdminGoldLight : Colors.white)),
-                  )).toList(),
+                  items: [
+                    'basic',
+                    'gold',
+                    'trial',
+                    'standard',
+                    'professional',
+                    'enterprise'
+                  ]
+                      .map((t) => DropdownMenuItem(
+                            value: t,
+                            child: Text(t.toUpperCase(),
+                                style: TextStyle(
+                                    color: t == 'gold'
+                                        ? _kSuperAdminGoldLight
+                                        : Colors.white)),
+                          ))
+                      .toList(),
                   onChanged: (v) => setState(() => _type = v!),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: _billingCycle,
-                  decoration: InputDecoration(labelText: 'Cycle de facturation'),
-                  items: ['monthly', 'annual'].map((c) => DropdownMenuItem(
-                    value: c,
-                    child: Text(c == 'monthly' ? 'Mensuel' : 'Annuel'),
-                  )).toList(),
+                  decoration:
+                      InputDecoration(labelText: 'Cycle de facturation'),
+                  items: ['monthly', 'annual']
+                      .map((c) => DropdownMenuItem(
+                            value: c,
+                            child: Text(c == 'monthly' ? 'Mensuel' : 'Annuel'),
+                          ))
+                      .toList(),
                   onChanged: (v) => setState(() => _billingCycle = v!),
                 ),
                 const SizedBox(height: 12),
@@ -554,7 +674,9 @@ class _LicenseFormDialogState extends State<LicenseFormDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuler')),
+        TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler')),
         GradientButton(
           label: 'Créer',
           icon: Icons.add,
@@ -619,7 +741,9 @@ class _RenewDialogState extends State<RenewDialog> {
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler')),
         GradientButton(
           label: 'Renouveler',
           icon: Icons.refresh,
@@ -643,7 +767,9 @@ class ShellBackButton extends StatelessWidget {
   const ShellBackButton({super.key});
   @override
   Widget build(BuildContext context) {
-    return IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white70), onPressed: () => Navigator.of(context).pop());
+    return IconButton(
+        icon: const Icon(Icons.arrow_back, color: Colors.white70),
+        onPressed: () => Navigator.of(context).pop());
   }
 }
 

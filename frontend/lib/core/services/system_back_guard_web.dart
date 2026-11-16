@@ -11,6 +11,7 @@ BuildContext? _ctx;
 Future<void> Function(BuildContext context)? _onBackAtRoot;
 bool _quitOpen = false;
 bool _inited = false;
+
 /// true pendant qu'on restaure un onglet / ferme une route depuis
 /// l'historique : on ne doit PAS pousser une nouvelle entree.
 bool _restoring = false;

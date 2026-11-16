@@ -107,8 +107,7 @@ class SalesKpiCard extends StatelessWidget {
                             width: 1,
                           ),
                         ),
-                        child:
-                            Icon(icon, size: 15, color: accent),
+                        child: Icon(icon, size: 15, color: accent),
                       ),
                       const SizedBox(width: 7),
                       Expanded(
@@ -186,8 +185,7 @@ class SalesKpiCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.info_outline,
-              size: 10,
-              color: AppColors.pharmaMuted.withValues(alpha: 0.7)),
+              size: 10, color: AppColors.pharmaMuted.withValues(alpha: 0.7)),
           const SizedBox(width: 3),
           Text(
             'Évolution indisponible',

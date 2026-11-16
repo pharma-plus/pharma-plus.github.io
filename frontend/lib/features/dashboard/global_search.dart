@@ -241,6 +241,32 @@ class _GlobalSearchFieldState extends State<GlobalSearchField> {
           // sans quoi le champ de recherche force un débordement du header.
           // Le scanner reste accessible depuis le POS et le menu.
           LayoutBuilder(builder: (context, constraints) {
+            // Écran très étroit : la barre supérieure ne laisse pas assez de
+            // place pour un champ de saisie lisible. On affiche un bouton
+            // loupe (même action : ouverture du catalogue avec recherche)
+            // au lieu d'un champ écrasé qui déborde de son conteneur.
+            if (constraints.maxWidth < 150) {
+              return Tooltip(
+                message: 'Rechercher dans le catalogue',
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => Navigator.of(context, rootNavigator: true).push(
+                    MaterialPageRoute(builder: (_) => const CatalogPage()),
+                  ),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0A201A),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.goldBorder),
+                    ),
+                    child: const Icon(Icons.search,
+                        size: 20, color: AppColors.textSecondary),
+                  ),
+                ),
+              );
+            }
             final compactSearch = constraints.maxWidth < 250;
             return Container(
               constraints: const BoxConstraints(maxWidth: 380),
@@ -270,8 +296,7 @@ class _GlobalSearchFieldState extends State<GlobalSearchField> {
                             builder: (_) => CatalogPage(initialQuery: q)),
                       );
                     },
-                    style: const TextStyle(
-                        color: Colors.white, fontSize: 13.5),
+                    style: const TextStyle(color: Colors.white, fontSize: 13.5),
                     cursorColor: AppColors.goldBorder,
                     decoration: InputDecoration(
                       isDense: true,
@@ -333,81 +358,82 @@ class _GlobalSearchFieldState extends State<GlobalSearchField> {
                   child: Container(
                     width: w,
                     constraints: const BoxConstraints(maxHeight: 340),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.goldBorder),
-                  ),
-                  child: _hits.isEmpty && !_loading
-                      ? const Padding(
-                          padding: EdgeInsets.all(14),
-                          child: Text(
-                            'Aucun résultat',
-                            style:
-                                TextStyle(color: Colors.white54, fontSize: 13),
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          shrinkWrap: true,
-                          itemCount: _hits.length,
-                          itemBuilder: (_, i) {
-                            final h = _hits[i];
-                            return InkWell(
-                              onTap: () => _select(h),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 8),
-                                child: Row(children: [
-                                  Icon(h.icon,
-                                      size: 18, color: const Color(0xFFD9B45C)),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(h.title,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w700)),
-                                        if (h.subtitle.isNotEmpty)
-                                          Text(h.subtitle,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.goldBorder),
+                    ),
+                    child: _hits.isEmpty && !_loading
+                        ? const Padding(
+                            padding: EdgeInsets.all(14),
+                            child: Text(
+                              'Aucun résultat',
+                              style: TextStyle(
+                                  color: Colors.white54, fontSize: 13),
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            shrinkWrap: true,
+                            itemCount: _hits.length,
+                            itemBuilder: (_, i) {
+                              final h = _hits[i];
+                              return InkWell(
+                                onTap: () => _select(h),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 8),
+                                  child: Row(children: [
+                                    Icon(h.icon,
+                                        size: 18,
+                                        color: const Color(0xFFD9B45C)),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(h.title,
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                  color: Colors.white
-                                                      .withValues(alpha: 0.5),
-                                                  fontSize: 11)),
-                                      ],
+                                              style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w700)),
+                                          if (h.subtitle.isNotEmpty)
+                                            Text(h.subtitle,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                    color: Colors.white
+                                                        .withValues(alpha: 0.5),
+                                                    fontSize: 11)),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 7, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          Colors.white.withValues(alpha: 0.06),
-                                      borderRadius: BorderRadius.circular(6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 7, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white
+                                            .withValues(alpha: 0.06),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(h.group,
+                                          style: const TextStyle(
+                                              color: Color(0xFF9BB8A8),
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w700)),
                                     ),
-                                    child: Text(h.group,
-                                        style: const TextStyle(
-                                            color: Color(0xFF9BB8A8),
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w700)),
-                                  ),
-                                ]),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    );
-                  }),
+                                  ]),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                );
+              }),
             ),
-          ],
+        ],
       ),
     );
   }

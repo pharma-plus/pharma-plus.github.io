@@ -193,7 +193,8 @@ class _UnknownProductDialogState extends State<UnknownProductDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Code scanné : ${widget.barcode}',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.textMuted)),
               const SizedBox(height: 4),
               const Text(
                   'Ce code n\u2019est associé à aucun produit. Rechercher, '

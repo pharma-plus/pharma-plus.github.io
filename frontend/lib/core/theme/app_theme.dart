@@ -38,7 +38,8 @@ class AppTheme {
       primary: accent,
       secondary: AppColors.champagne,
       surface: surfaceColor,
-      onPrimary: AppColors.inkDark, // Texte sur fond vert sauge : graphite foncé
+      onPrimary:
+          AppColors.inkDark, // Texte sur fond vert sauge : graphite foncé
       onSurface: textColor,
     );
 
@@ -50,7 +51,13 @@ class AppTheme {
       // Police officielle PHARMA+ : Times New Roman (« New Roman gras »),
       // titres en gras via textTheme ci-dessous.
       fontFamily: 'Times New Roman',
-      fontFamilyFallback: const ['Georgia', 'Times', 'serif', 'Arial', 'Noto Sans Arabic'],
+      fontFamilyFallback: const [
+        'Georgia',
+        'Times',
+        'serif',
+        'Arial',
+        'Noto Sans Arabic'
+      ],
       textTheme: (isDark ? ThemeData.dark() : ThemeData.light())
           .textTheme
           .apply(
@@ -61,24 +68,17 @@ class AppTheme {
           )
           .copyWith(
             // Écritures TOUJOURS lisibles : titres en gras, corps en w500.
-            bodyMedium: TextStyle(
-                color: textColor, fontWeight: FontWeight.w500),
-            bodyLarge: TextStyle(
-                color: textColor, fontWeight: FontWeight.w500),
-            bodySmall: TextStyle(
-                color: mutedColor, fontWeight: FontWeight.w500),
+            bodyMedium:
+                TextStyle(color: textColor, fontWeight: FontWeight.w500),
+            bodyLarge: TextStyle(color: textColor, fontWeight: FontWeight.w500),
+            bodySmall:
+                TextStyle(color: mutedColor, fontWeight: FontWeight.w500),
             titleLarge: TextStyle(
-                color: textColor,
-                fontWeight: FontWeight.w700,
-                fontSize: 22),
+                color: textColor, fontWeight: FontWeight.w700, fontSize: 22),
             titleMedium: TextStyle(
-                color: textColor,
-                fontWeight: FontWeight.w700,
-                fontSize: 16),
+                color: textColor, fontWeight: FontWeight.w700, fontSize: 16),
             titleSmall: TextStyle(
-                color: textColor,
-                fontWeight: FontWeight.w700,
-                fontSize: 14),
+                color: textColor, fontWeight: FontWeight.w700, fontSize: 14),
           ),
       appBarTheme: AppBarTheme(
         backgroundColor: isDark ? AppColors.graphite : AppColors.silver,
@@ -88,7 +88,8 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         elevation: 6,
-        shadowColor: AppColors.shadowColor.withValues(alpha: isDark ? 0.35 : 0.12),
+        shadowColor:
+            AppColors.shadowColor.withValues(alpha: isDark ? 0.35 : 0.12),
         surfaceTintColor: accent.withValues(alpha: isDark ? 0.06 : 0.04),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -179,10 +180,10 @@ class AppTheme {
           color: AppColors.inkDark,
           fontWeight: FontWeight.w700,
         ),
-        unselectedIconTheme: IconThemeData(
-            color: isDark ? Colors.white60 : Colors.black54),
-        unselectedLabelTextStyle: TextStyle(
-            color: isDark ? Colors.white60 : Colors.black54),
+        unselectedIconTheme:
+            IconThemeData(color: isDark ? Colors.white60 : Colors.black54),
+        unselectedLabelTextStyle:
+            TextStyle(color: isDark ? Colors.white60 : Colors.black54),
         indicatorColor: accent.withValues(alpha: 0.18),
       ),
       drawerTheme: DrawerThemeData(
@@ -223,9 +224,8 @@ class AppTheme {
         thumbColor: WidgetStateProperty.resolveWith(
           // Pouces VISIBLES dans les deux thèmes (anciens white24/black26
           // pratiquement invisibles sur marbre et graphite).
-          (states) => isDark
-              ? const Color(0xFF9AA3AB)
-              : const Color(0xFF6B7280),
+          (states) =>
+              isDark ? const Color(0xFF9AA3AB) : const Color(0xFF6B7280),
         ),
         radius: const Radius.circular(8),
         thickness: WidgetStateProperty.all(7),

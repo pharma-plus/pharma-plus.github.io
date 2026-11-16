@@ -8,11 +8,19 @@ import 'package:flutter/material.dart';
 import '../../core/theme/colors.dart';
 
 enum OrganismType {
-  amo('amo', 'AMO', 'Assurance Maladie Obligatoire', Icons.health_and_safety_outlined),
-  cnops('cnops', 'CNOPS', 'Caisse Nationale des Organismes de Prévoyance Sociale', Icons.account_balance_outlined),
-  cnss('cnss', 'CNSS', 'Caisse Nationale de Sécurité Sociale', Icons.shield_outlined),
-  mutuelle('mutuelle', 'Mutuelle', 'Mutuelle / Assurance Complémentaire', Icons.favorite_outlined),
-  assurancePrivee('assurance_privee', 'Assurance Privée', 'Assurance Privée / Internationale', Icons.business_outlined),
+  amo('amo', 'AMO', 'Assurance Maladie Obligatoire',
+      Icons.health_and_safety_outlined),
+  cnops(
+      'cnops',
+      'CNOPS',
+      'Caisse Nationale des Organismes de Prévoyance Sociale',
+      Icons.account_balance_outlined),
+  cnss('cnss', 'CNSS', 'Caisse Nationale de Sécurité Sociale',
+      Icons.shield_outlined),
+  mutuelle('mutuelle', 'Mutuelle', 'Mutuelle / Assurance Complémentaire',
+      Icons.favorite_outlined),
+  assurancePrivee('assurance_privee', 'Assurance Privée',
+      'Assurance Privée / Internationale', Icons.business_outlined),
   autre('autre', 'Autre', 'Autre organisme', Icons.more_horiz);
 
   const OrganismType(this.code, this.label, this.description, this.icon);
@@ -61,12 +69,17 @@ class ClientAffiliation {
   factory ClientAffiliation.fromJson(Map<String, dynamic> json) {
     return ClientAffiliation(
       id: json['id']?.toString(),
-      organismType: OrganismType.fromCode(json['organism_type']?.toString() ?? 'autre'),
+      organismType:
+          OrganismType.fromCode(json['organism_type']?.toString() ?? 'autre'),
       organismName: json['organism_name']?.toString() ?? '',
       affiliationNumber: json['affiliation_number']?.toString() ?? '',
       contractNumber: json['contract_number']?.toString(),
-      validityStart: json['validity_start'] != null ? DateTime.tryParse(json['validity_start'].toString()) : null,
-      validityEnd: json['validity_end'] != null ? DateTime.tryParse(json['validity_end'].toString()) : null,
+      validityStart: json['validity_start'] != null
+          ? DateTime.tryParse(json['validity_start'].toString())
+          : null,
+      validityEnd: json['validity_end'] != null
+          ? DateTime.tryParse(json['validity_end'].toString())
+          : null,
       status: json['status']?.toString() ?? 'active',
       coverageRate: (json['coverage_rate'] as num?)?.toDouble(),
       annualCeiling: (json['annual_ceiling'] as num?)?.toDouble(),
@@ -103,31 +116,68 @@ class ClientAffiliation {
 
   String get statusLabel {
     switch (status) {
-      case 'active': return 'Actif';
-      case 'expired': return 'Expiré';
-      case 'suspended': return 'Suspendu';
-      case 'pending': return 'En attente';
-      default: return status;
+      case 'active':
+        return 'Actif';
+      case 'expired':
+        return 'Expiré';
+      case 'suspended':
+        return 'Suspendu';
+      case 'pending':
+        return 'En attente';
+      default:
+        return status;
     }
   }
 
   Color get statusColor {
     switch (status) {
-      case 'active': return Colors.green;
-      case 'expired': return Colors.red;
-      case 'suspended': return Colors.orange;
-      case 'pending': return Colors.blue;
-      default: return AppColors.textMuted;
+      case 'active':
+        return Colors.green;
+      case 'expired':
+        return Colors.red;
+      case 'suspended':
+        return Colors.orange;
+      case 'pending':
+        return Colors.blue;
+      default:
+        return AppColors.textMuted;
     }
   }
 }
 
 /// Organismes pré-définis par type (pour sélection rapide)
 final Map<OrganismType, List<String>> predefinedOrganisms = {
-  OrganismType.amo: ['AMO - Secteur Public', 'AMO - Secteur Privé', 'AMO - Étudiants', 'AMO - Retraités'],
-  OrganismType.cnops: ['CNOPS - Secteur Public', 'CNOPS - Secteur Privé', 'CNOPS - Étudiants'],
-  OrganismType.cnss: ['CNSS - Salariés', 'CNSS - Indépendants', 'CNSS - Agricoles'],
-  OrganismType.mutuelle: ['MAMDA', 'MCMA', 'Mutuelle Générale', 'Mutuelle des Fonctionnaires', 'Wafa Assurance Mutuelle'],
-  OrganismType.assurancePrivee: ['AXA', 'Allianz', 'SAHAM', 'Wafa Assurance', 'RMA Watanya', 'Atlanta', 'Saham Assurance'],
+  OrganismType.amo: [
+    'AMO - Secteur Public',
+    'AMO - Secteur Privé',
+    'AMO - Étudiants',
+    'AMO - Retraités'
+  ],
+  OrganismType.cnops: [
+    'CNOPS - Secteur Public',
+    'CNOPS - Secteur Privé',
+    'CNOPS - Étudiants'
+  ],
+  OrganismType.cnss: [
+    'CNSS - Salariés',
+    'CNSS - Indépendants',
+    'CNSS - Agricoles'
+  ],
+  OrganismType.mutuelle: [
+    'MAMDA',
+    'MCMA',
+    'Mutuelle Générale',
+    'Mutuelle des Fonctionnaires',
+    'Wafa Assurance Mutuelle'
+  ],
+  OrganismType.assurancePrivee: [
+    'AXA',
+    'Allianz',
+    'SAHAM',
+    'Wafa Assurance',
+    'RMA Watanya',
+    'Atlanta',
+    'Saham Assurance'
+  ],
   OrganismType.autre: [],
 };

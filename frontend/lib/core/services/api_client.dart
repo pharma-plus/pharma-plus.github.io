@@ -118,8 +118,11 @@ bool _isWakePage(String body) {
 /// Diagnostic Ventes du jour : masque tout secret et borne la taille des
 /// messages. Ne logge JAMAIS de jeton, mot de passe ou donnée personnelle.
 String _sanitizeForDiag(String input) {
-  var s = input.replaceAll(RegExp(r'Bearer\s+[A-Za-z0-9\-._~+\/=]+'), 'Bearer ***');
-  s = s.replaceAll(RegExp(r'(eyJ[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+)'), 'eyJ***');
+  var s =
+      input.replaceAll(RegExp(r'Bearer\s+[A-Za-z0-9\-._~+\/=]+'), 'Bearer ***');
+  s = s.replaceAll(
+      RegExp(r'(eyJ[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+)'),
+      'eyJ***');
   if (s.length > 400) s = s.substring(0, 400);
   return s;
 }
@@ -127,9 +130,8 @@ String _sanitizeForDiag(String input) {
 /// Étiquette de requête sans valeurs sensibles : méthode + chemin + noms de
 /// paramètres uniquement (jamais les tokens ni le corps complet).
 String _requestTag(String method, String path, Map<String, dynamic>? query) {
-  final keys = query == null || query.isEmpty
-      ? ''
-      : ' ?${query.keys.join(',')}';
+  final keys =
+      query == null || query.isEmpty ? '' : ' ?${query.keys.join(',')}';
   return '$method $path$keys';
 }
 
@@ -148,7 +150,8 @@ String _responseSummary(http.Response res) {
     if (decoded is Map) {
       final err = decoded['error'];
       final meta = decoded['meta'];
-      snippet = 'error=${err == null ? 'null' : err.runtimeType}, dataType=${decoded['data']?.runtimeType ?? 'null'}, metaTotal=${meta is Map ? '${meta['total']}' : 'n/a'}, keys=${decoded.keys.join(',')}';
+      snippet =
+          'error=${err == null ? 'null' : err.runtimeType}, dataType=${decoded['data']?.runtimeType ?? 'null'}, metaTotal=${meta is Map ? '${meta['total']}' : 'n/a'}, keys=${decoded.keys.join(',')}';
       if (err is Map) {
         snippet +=
             ', errCode=${err['code'] ?? 'n/a'}, errMsg=${err['message'] ?? 'n/a'}';
@@ -216,7 +219,10 @@ class ApiClient {
     return uri.replace(queryParameters: query.map((k, v) => MapEntry(k, '$v')));
   }
 
-  Map<String, String> _headers({bool auth = true, Map<String, String>? customHeaders, bool includeContentType = true}) {
+  Map<String, String> _headers(
+      {bool auth = true,
+      Map<String, String>? customHeaders,
+      bool includeContentType = true}) {
     final headers = <String, String>{
       'Accept': 'application/json',
     };
@@ -234,10 +240,15 @@ class ApiClient {
   }
 
   Future<ApiResult<dynamic>> get(String path,
-      {Map<String, dynamic>? query, Map<String, String>? customHeaders, Duration? timeout}) async {
+      {Map<String, dynamic>? query,
+      Map<String, String>? customHeaders,
+      Duration? timeout}) async {
     return _send(
       () => _http.get(_uri(path, query),
-          headers: _headers(auth: true, customHeaders: customHeaders, includeContentType: false)),
+          headers: _headers(
+              auth: true,
+              customHeaders: customHeaders,
+              includeContentType: false)),
       timeoutOverride: timeout,
       debugTag: _requestTag('GET', path, query),
     );
@@ -254,7 +265,10 @@ class ApiClient {
   }
 
   Future<ApiResult<dynamic>> post(String path,
-      {Object? body, bool auth = true, Map<String, String>? customHeaders, Duration? timeout}) async {
+      {Object? body,
+      bool auth = true,
+      Map<String, String>? customHeaders,
+      Duration? timeout}) async {
     return _send(
       () => _http.post(
         _uri(path),
@@ -266,7 +280,8 @@ class ApiClient {
     );
   }
 
-  Future<ApiResult<dynamic>> put(String path, {Object? body, Map<String, String>? customHeaders}) async {
+  Future<ApiResult<dynamic>> put(String path,
+      {Object? body, Map<String, String>? customHeaders}) async {
     return _send(
       () => _http.put(_uri(path),
           headers: _headers(customHeaders: customHeaders),
@@ -278,7 +293,8 @@ class ApiClient {
   /// Mise à jour partielle (PostgREST PATCH) : seuls les champs envoyés
   /// sont modifiés. Contrairement à PUT (remplace toute la ligne et
   /// remet à défaut les colonnes absentes), PATCH est sans risque.
-  Future<ApiResult<dynamic>> patch(String path, {Object? body, Map<String, String>? customHeaders}) async {
+  Future<ApiResult<dynamic>> patch(String path,
+      {Object? body, Map<String, String>? customHeaders}) async {
     return _send(
       () => _http.patch(_uri(path),
           headers: _headers(customHeaders: customHeaders),
@@ -287,9 +303,11 @@ class ApiClient {
     );
   }
 
-  Future<ApiResult<dynamic>> delete(String path, {Map<String, String>? customHeaders}) async {
+  Future<ApiResult<dynamic>> delete(String path,
+      {Map<String, String>? customHeaders}) async {
     return _send(
-      () => _http.delete(_uri(path), headers: _headers(customHeaders: customHeaders)),
+      () => _http.delete(_uri(path),
+          headers: _headers(customHeaders: customHeaders)),
       debugTag: _requestTag('DELETE', path, null),
     );
   }
@@ -300,7 +318,9 @@ class ApiClient {
   ///  - le renouvellement de session unique en cas de 401 ;
   ///  - les erreurs réseau / timeout.
   Future<ApiResult<dynamic>> _send(Future<http.Response> Function() request,
-      {bool retried = false, Duration? timeoutOverride, String? debugTag}) async {
+      {bool retried = false,
+      Duration? timeoutOverride,
+      String? debugTag}) async {
     final timeout = timeoutOverride ?? ApiClient.timeout;
     final bool isSales = debugTag != null && debugTag.contains('sales');
     final sw = Stopwatch()..start();
@@ -320,8 +340,7 @@ class ApiClient {
 
         // Conteneur en cours de démarrage : on attend et on réessaie.
         if (_isWakePage(res.body)) {
-          final expired =
-              DateTime.now().difference(started) > wakeDeadline;
+          final expired = DateTime.now().difference(started) > wakeDeadline;
           if (attempt < maxWakeRetries && !expired) {
             await Future.delayed(wakeDelay);
             continue;
@@ -427,8 +446,11 @@ class ApiClient {
       false,
       null,
       null,
-      ApiError('SERVER_STARTING',
-          'Le serveur démarre, veuillez patienter puis réessayer.', const [], 0),
+      ApiError(
+          'SERVER_STARTING',
+          'Le serveur démarre, veuillez patienter puis réessayer.',
+          const [],
+          0),
       0,
     );
   }

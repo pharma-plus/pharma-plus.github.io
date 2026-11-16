@@ -49,7 +49,8 @@ class _CustomersPageV2State extends State<CustomersPageV2> {
       'limit': 100,
       if (_search.text.trim().isNotEmpty) 'q': _search.text.trim(),
       if (_creditOnly) 'hasCredit': true,
-      if (_organismFilter != null && _organismFilter!.isNotEmpty) 'organism_type': _organismFilter,
+      if (_organismFilter != null && _organismFilter!.isNotEmpty)
+        'organism_type': _organismFilter,
     };
     final result = await ApiClient.instance.get(
       '/customers',
@@ -96,9 +97,10 @@ class _CustomersPageV2State extends State<CustomersPageV2> {
       _load();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(customer == null
-              ? S.t('customerCreated', locale)
-              : S.t('customerUpdated', locale))),
+          SnackBar(
+              content: Text(customer == null
+                  ? S.t('customerCreated', locale)
+                  : S.t('customerUpdated', locale))),
         );
       }
     }
@@ -118,10 +120,10 @@ class _CustomersPageV2State extends State<CustomersPageV2> {
   }
 
   void _clearFilters() => setState(() {
-    _creditOnly = false;
-    _organismFilter = null;
-    _load();
-  });
+        _creditOnly = false;
+        _organismFilter = null;
+        _load();
+      });
 
   @override
   Widget build(BuildContext context) {
@@ -220,12 +222,12 @@ class _CustomersPageV2State extends State<CustomersPageV2> {
                                                   ? '${c['name']}'[0]
                                                       .toUpperCase()
                                                   : '?',
-                                                style: const TextStyle(
-                                                    fontWeight: FontWeight.w900,
-                                                    color: Color(0xFF3E2A00)),
-                                              ),
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.w900,
+                                                  color: Color(0xFF3E2A00)),
                                             ),
                                           ),
+                                        ),
                                         const SizedBox(width: 12),
                                         Expanded(
                                           child: Column(
@@ -241,17 +243,18 @@ class _CustomersPageV2State extends State<CustomersPageV2> {
                                                           FontWeight.w700)),
                                               Text(
                                                 _buildCustomerSubtitle(c),
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                  style: const TextStyle(
-                                                      fontSize: 12,
-                                                      color: AppColors.textMuted),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: AppColors.textMuted),
                                               ),
                                             ],
                                           ),
                                         ),
                                         _CustomerOrganismChips(
-                                            affiliations: _parseAffiliations(c)),
+                                            affiliations:
+                                                _parseAffiliations(c)),
                                         Column(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.end,
@@ -281,7 +284,7 @@ class _CustomersPageV2State extends State<CustomersPageV2> {
                               },
                             ),
                           ),
-                        ),
+          ),
         ],
       ),
     );
@@ -316,49 +319,54 @@ class _CustomersPageV2State extends State<CustomersPageV2> {
 
     showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setState) => AlertDialog(
-        title: Text(S.t('filters', locale)),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          ChoiceChip(
-            label: Text(S.t('hasCredit', locale)),
-            selected: tmpCredit,
-            onSelected: (v) => setState(() => tmpCredit = v),
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: tmpOrganism,
-            isExpanded: true,
-            decoration: InputDecoration(labelText: S.t('organismType', locale)),
-            items: [
-              DropdownMenuItem(value: null, child: Text(S.t('all', locale))),
-              for (final o in OrganismType.values)
-                DropdownMenuItem(
-                  value: o.code,
-                  child: Row(children: [
-                    Icon(o.icon, size: 18, color: AppColors.pharmaGold),
-                    const SizedBox(width: 8),
-                    Text(o.label),
-                  ]),
-                ),
-            ],
-            onChanged: (v) => setState(() => tmpOrganism = v),
-          ),
-        ]),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(S.t('cancel', locale))),
-          FilledButton(
-            onPressed: () {
-              setState(() {
-                _creditOnly = tmpCredit;
-                _organismFilter = tmpOrganism;
-              });
-              _load();
-              Navigator.pop(ctx);
-            },
-            child: Text(S.t('apply', locale)),
-          ),
-        ],
-      )),
+      builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setState) => AlertDialog(
+                title: Text(S.t('filters', locale)),
+                content: Column(mainAxisSize: MainAxisSize.min, children: [
+                  ChoiceChip(
+                    label: Text(S.t('hasCredit', locale)),
+                    selected: tmpCredit,
+                    onSelected: (v) => setState(() => tmpCredit = v),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: tmpOrganism,
+                    isExpanded: true,
+                    decoration:
+                        InputDecoration(labelText: S.t('organismType', locale)),
+                    items: [
+                      DropdownMenuItem(
+                          value: null, child: Text(S.t('all', locale))),
+                      for (final o in OrganismType.values)
+                        DropdownMenuItem(
+                          value: o.code,
+                          child: Row(children: [
+                            Icon(o.icon, size: 18, color: AppColors.pharmaGold),
+                            const SizedBox(width: 8),
+                            Text(o.label),
+                          ]),
+                        ),
+                    ],
+                    onChanged: (v) => setState(() => tmpOrganism = v),
+                  ),
+                ]),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: Text(S.t('cancel', locale))),
+                  FilledButton(
+                    onPressed: () {
+                      setState(() {
+                        _creditOnly = tmpCredit;
+                        _organismFilter = tmpOrganism;
+                      });
+                      _load();
+                      Navigator.pop(ctx);
+                    },
+                    child: Text(S.t('apply', locale)),
+                  ),
+                ],
+              )),
     );
   }
 }
@@ -381,11 +389,13 @@ class _OrganismFilterChip extends StatelessWidget {
       onSelected: onChanged,
       tooltip: S.t('organismType', locale),
       itemBuilder: (ctx) => [
-        PopupMenuItem(value: null, child: Row(children: [
-          const Icon(Icons.clear, size: 18),
-          const SizedBox(width: 8),
-          Text(S.t('all', locale)),
-        ])),
+        PopupMenuItem(
+            value: null,
+            child: Row(children: [
+              const Icon(Icons.clear, size: 18),
+              const SizedBox(width: 8),
+              Text(S.t('all', locale)),
+            ])),
         for (final o in OrganismType.values)
           PopupMenuItem(
             value: o.code,
@@ -488,7 +498,8 @@ class _CustomerDetailV2State extends State<_CustomerDetailV2> {
   }
 
   Future<void> _load() async {
-    final result = await ApiClient.instance.get('/customers/${widget.customerId}');
+    final result =
+        await ApiClient.instance.get('/customers/${widget.customerId}');
     if (!mounted) return;
     if (result.success) {
       final d = result.data;
@@ -538,32 +549,64 @@ class _CustomerDetailV2State extends State<_CustomerDetailV2> {
             ),
             const SizedBox(height: 12),
             Row(children: [
-              _InfoChip(label: S.t('phone', locale), value: c['phone']?.toString() ?? '—'),
-              _InfoChip(label: S.t('email', locale), value: c['email']?.toString() ?? '—'),
-              _InfoChip(label: S.t('creditLimit', locale), value: Fmt.money(double.tryParse(c['credit_limit']?.toString() ?? '0') ?? 0)),
+              _InfoChip(
+                  label: S.t('phone', locale),
+                  value: c['phone']?.toString() ?? '—'),
+              _InfoChip(
+                  label: S.t('email', locale),
+                  value: c['email']?.toString() ?? '—'),
+              _InfoChip(
+                  label: S.t('creditLimit', locale),
+                  value: Fmt.money(
+                      double.tryParse(c['credit_limit']?.toString() ?? '0') ??
+                          0)),
             ]),
             const SizedBox(height: 12),
             // Affiliations / Organismes
             if (_affiliations.isNotEmpty) ...[
               Text(S.t('organisms', locale),
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w800, fontSize: 14)),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: _affiliations.map((a) => _AffiliationChip(affiliation: a)).toList(),
+                children: _affiliations
+                    .map((a) => _AffiliationChip(affiliation: a))
+                    .toList(),
               ),
               const SizedBox(height: 16),
             ],
             const Divider(),
-            _DetailRow(label: S.t('name', locale), value: c['name']?.toString() ?? '—'),
-            _DetailRow(label: S.t('phone', locale), value: c['phone']?.toString() ?? '—'),
-            _DetailRow(label: S.t('email', locale), value: c['email']?.toString() ?? '—'),
-            _DetailRow(label: S.t('address', locale), value: c['address']?.toString() ?? '—'),
-            _DetailRow(label: S.t('creditLimit', locale), value: Fmt.money(double.tryParse(c['credit_limit']?.toString() ?? '0') ?? 0)),
-            _DetailRow(label: S.t('totalSpent', locale), value: Fmt.money(double.tryParse(c['total_spent']?.toString() ?? '0') ?? 0)),
-            _DetailRow(label: S.t('creditBalance', locale), value: Fmt.money(double.tryParse(c['credit_balance']?.toString() ?? '0') ?? 0)),
-            _DetailRow(label: S.t('notes', locale), value: c['notes']?.toString() ?? '—'),
+            _DetailRow(
+                label: S.t('name', locale),
+                value: c['name']?.toString() ?? '—'),
+            _DetailRow(
+                label: S.t('phone', locale),
+                value: c['phone']?.toString() ?? '—'),
+            _DetailRow(
+                label: S.t('email', locale),
+                value: c['email']?.toString() ?? '—'),
+            _DetailRow(
+                label: S.t('address', locale),
+                value: c['address']?.toString() ?? '—'),
+            _DetailRow(
+                label: S.t('creditLimit', locale),
+                value: Fmt.money(
+                    double.tryParse(c['credit_limit']?.toString() ?? '0') ??
+                        0)),
+            _DetailRow(
+                label: S.t('totalSpent', locale),
+                value: Fmt.money(
+                    double.tryParse(c['total_spent']?.toString() ?? '0') ?? 0)),
+            _DetailRow(
+                label: S.t('creditBalance', locale),
+                value: Fmt.money(
+                    double.tryParse(c['credit_balance']?.toString() ?? '0') ??
+                        0)),
+            _DetailRow(
+                label: S.t('notes', locale),
+                value: c['notes']?.toString() ?? '—'),
           ],
         ),
       ),
@@ -601,31 +644,40 @@ class _AffiliationChip extends StatelessWidget {
           Icon(affiliation.organismType.icon, size: 16, color: color),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(affiliation.organismName.isNotEmpty
-                ? affiliation.organismName
-                : affiliation.organismType.label,
+            child: Text(
+                affiliation.organismName.isNotEmpty
+                    ? affiliation.organismName
+                    : affiliation.organismType.label,
                 style: TextStyle(
                     fontWeight: FontWeight.w700, color: color, fontSize: 13)),
           ),
           if (affiliation.isExpired || affiliation.isExpiringSoon)
             Icon(
-                affiliation.isExpired ? Icons.warning_amber_rounded : Icons.schedule,
+                affiliation.isExpired
+                    ? Icons.warning_amber_rounded
+                    : Icons.schedule,
                 size: 16,
                 color: color),
         ]),
         const SizedBox(height: 6),
-        _AffRow(S.t('affiliationNumber', context.read<AuthStore>().locale), affiliation.affiliationNumber),
+        _AffRow(S.t('affiliationNumber', context.read<AuthStore>().locale),
+            affiliation.affiliationNumber),
         if (affiliation.contractNumber != null)
-          _AffRow(S.t('contractNumber', context.read<AuthStore>().locale), affiliation.contractNumber!),
-        if (affiliation.validityStart != null || affiliation.validityEnd != null)
+          _AffRow(S.t('contractNumber', context.read<AuthStore>().locale),
+              affiliation.contractNumber!),
+        if (affiliation.validityStart != null ||
+            affiliation.validityEnd != null)
           _AffRow(S.t('validityPeriod', context.read<AuthStore>().locale),
               '${affiliation.validityStart != null ? DateFormat('dd/MM/yyyy').format(affiliation.validityStart!) : '—'} → ${affiliation.validityEnd != null ? DateFormat('dd/MM/yyyy').format(affiliation.validityEnd!) : '—'}'),
         if (affiliation.coverageRate != null)
-          _AffRow(S.t('coverageRate', context.read<AuthStore>().locale), '${affiliation.coverageRate}%'),
+          _AffRow(S.t('coverageRate', context.read<AuthStore>().locale),
+              '${affiliation.coverageRate}%'),
         if (affiliation.annualCeiling != null)
-          _AffRow(S.t('annualCeiling', context.read<AuthStore>().locale), Fmt.money(affiliation.annualCeiling!)),
+          _AffRow(S.t('annualCeiling', context.read<AuthStore>().locale),
+              Fmt.money(affiliation.annualCeiling!)),
         if (affiliation.notes != null && affiliation.notes!.isNotEmpty)
-          _AffRow(S.t('notes', context.read<AuthStore>().locale), affiliation.notes!),
+          _AffRow(S.t('notes', context.read<AuthStore>().locale),
+              affiliation.notes!),
         const SizedBox(height: 6),
         Row(mainAxisAlignment: MainAxisAlignment.end, children: [
           Container(
@@ -636,7 +688,10 @@ class _AffiliationChip extends StatelessWidget {
               border: Border.all(color: affiliation.statusColor, width: 1),
             ),
             child: Text(affiliation.statusLabel,
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: affiliation.statusColor)),
+                style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: affiliation.statusColor)),
           ),
         ]),
       ]),
@@ -655,8 +710,15 @@ class _AffRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(children: [
-        SizedBox(width: 100, child: Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textMuted))),
-        Expanded(child: Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600))),
+        SizedBox(
+            width: 100,
+            child: Text(label,
+                style:
+                    const TextStyle(fontSize: 11, color: AppColors.textMuted))),
+        Expanded(
+            child: Text(value,
+                style: const TextStyle(
+                    fontSize: 11, fontWeight: FontWeight.w600))),
       ]),
     );
   }
@@ -676,8 +738,11 @@ class _InfoChip extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: AppColors.dividerDark)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+          Text(label,
+              style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
+          Text(value,
+              style:
+                  const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
         ]),
       ),
     );
@@ -693,8 +758,13 @@ class _DetailRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(children: [
-        SizedBox(width: 120, child: Text(label, style: const TextStyle(color: AppColors.textMuted))),
-        Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600))),
+        SizedBox(
+            width: 120,
+            child: Text(label,
+                style: const TextStyle(color: AppColors.textMuted))),
+        Expanded(
+            child: Text(value,
+                style: const TextStyle(fontWeight: FontWeight.w600))),
       ]),
     );
   }

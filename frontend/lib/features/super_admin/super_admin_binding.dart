@@ -17,7 +17,7 @@ mixin SuperAdminRetentionMixin {
     // Force tree-shaking retention by accessing the singleton and its methods
     // This runs during app initialization before runApp()
     final functions = SuperAdminFunctions.instance;
-    
+
     // Access methods in a way the tree-shaker can't optimize away
     // by using them in a conditional that affects program state
     _forceRetention(functions);
@@ -29,7 +29,7 @@ mixin SuperAdminRetentionMixin {
     final hash1 = functions.hashCode;
     final hash2 = functions.returnToPharma.hashCode;
     final hash3 = functions.confirmLogout.hashCode;
-    
+
     // Use in a conditional that could theoretically affect program behavior
     // The tree-shaker can't prove this is never true
     if (hash1 == 0 && hash2 == 0 && hash3 == 0) {

@@ -407,13 +407,14 @@ void main() {
   });
 
   testWidgets(
-      'Tableau Stock : en-tête et contrôles fixes pendant le défilement (SKIP: flaky horizontal scroll)',
+      'Tableau Stock : en-tête et contrôles fixes pendant le défilement',
       (tester) async {
-    // TODO: corriger le test flaky sur défilement horizontal (offset 0)
-    // skip: https://github.com/pharma-plus/pharma-plus/issues/XXX
-    return;
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await _pumpStock(tester, const Size(1024, 768));
+    // 800 px : en dessous de la largeur cumulée des colonnes (≈1015 px), le
+    // tableau est réellement défilable horizontalement. À 1024 px toutes les
+    // colonnes tenaient déjà → offset toujours 0, ce qui rendait le test
+    // trompeur (faux échec).
+    await _pumpStock(tester, const Size(800, 768));
 
     final headerBefore = tester.getTopLeft(find.text('Médicament'));
     final chipBefore = tester.getTopLeft(find.text('Tous'));
@@ -437,9 +438,14 @@ void main() {
         reason: 'les lignes défilent sous l\'en-tête fixe');
 
     // Défilement horizontal : l'en-tête suit les colonnes (même scroll).
+    // On démarre le geste sur une colonne d'en-tête réellement présente
+    // (« Péremption ») pour que le Scrollable horizontal récupère le drag.
     final h = tester.widget<SingleChildScrollView>(_horizontalScroll());
-    await tester.drag(_horizontalScroll(), const Offset(-200, 0));
-    await tester.pump();
+    expect(h.controller!.position.maxScrollExtent, greaterThan(0),
+        reason: 'le tableau doit être plus large que la fenêtre (800 px)');
+    await tester.dragFrom(
+        tester.getCenter(find.text('Péremption')), const Offset(-220, 0));
+    await tester.pumpAndSettle();
     expect(h.controller!.offset, greaterThan(0),
         reason: 'défilement horizontal actif');
   });
@@ -574,11 +580,8 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('Menu : Autres modules est visible avant le réglage (SKIP: flaky layout 232px)',
+  testWidgets('Menu : Autres modules est visible avant le réglage',
       (tester) async {
-    // TODO: corriger le test flaky sur layout 232px (Autres modules non trouvé)
-    // skip: https://github.com/pharma-plus/pharma-plus/issues/XXX
-    return;
     addTearDown(() => tester.binding.setSurfaceSize(null));
     var opened = false;
     await tester.pumpWidget(
@@ -602,11 +605,20 @@ void main() {
     );
     await tester.pump();
 
-    await tester.drag(find.byType(ListView), const Offset(0, -520));
-    await tester.pump();
+    // Le menu est plus haut que 900 px : on fait défiler jusqu'à l'entrée.
+    final menuScrollable = find
+        .descendant(
+          of: find.byType(AppSideMenu),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.scrollUntilVisible(find.text('Autres modules'), 200,
+        scrollable: menuScrollable);
+    await tester.pumpAndSettle();
     expect(find.text('Autres modules'), findsOneWidget);
     expect(find.text('Tableau de contrôle'), findsOneWidget);
     await tester.tap(find.text('Autres modules'));
+    await tester.pump();
     expect(opened, isTrue);
 
     await tester.pumpWidget(const SizedBox());

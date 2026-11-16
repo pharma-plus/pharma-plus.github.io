@@ -7,6 +7,30 @@ import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
 import '../shell/shell_nav.dart';
 
+/// Normalise une réponse JSON d'API en `Map` sans jamais lever d'exception.
+/// Une réponse inattendue (liste, chaîne, null) ne doit pas casser l'écran.
+Map<String, dynamic>? normalizeAiMap(dynamic data) {
+  if (data is Map<String, dynamic>) return data;
+  if (data is Map) {
+    // Les clés JSON sont des chaînes, mais une réponse mal formée peut
+    // contenir des clés non-String : on ne lève jamais, on convertit.
+    return <String, dynamic>{
+      for (final entry in data.entries) '${entry.key}': entry.value,
+    };
+  }
+  return null;
+}
+
+/// Normalise la réponse de `/ai/reorder-plan`.
+/// Contrat accepté : `{ "items": [...], "total_suggested_qty": n }`
+/// ou directement la liste des lignes à réapprovisionner.
+Map<String, dynamic>? normalizeReorderPlan(dynamic data) {
+  final asMap = normalizeAiMap(data);
+  if (asMap != null) return asMap;
+  if (data is List) return <String, dynamic>{'items': data};
+  return null;
+}
+
 /// Page IA — Centre intelligent PHARMA+
 class AIPageV2 extends StatefulWidget {
   const AIPageV2({super.key});
@@ -43,7 +67,10 @@ class _AIPageV2State extends State<AIPageV2> {
   }
 
   Future<void> _loadInsights() async {
-    setState(() { _loadingInsights = true; _insightsError = null; });
+    setState(() {
+      _loadingInsights = true;
+      _insightsError = null;
+    });
     try {
       final results = await Future.wait([
         ApiClient.instance.get('/ai/insights'),
@@ -51,16 +78,21 @@ class _AIPageV2State extends State<AIPageV2> {
       ]);
       if (!mounted) return;
       setState(() {
-        _insights = results[0].success ? results[0].data as Map<String, dynamic>? : null;
-        _reorderPlan = results[1].success ? results[1].data as Map<String, dynamic>? : null;
+        _insights = results[0].success ? normalizeAiMap(results[0].data) : null;
+        _reorderPlan =
+            results[1].success ? normalizeReorderPlan(results[1].data) : null;
         _loadingInsights = false;
         if (!results[0].success && !results[1].success) {
-          _insightsError = 'Impossible de charger les insights. Vérifiez votre connexion.';
+          _insightsError =
+              'Impossible de charger les insights. Vérifiez votre connexion.';
         }
       });
     } catch (e) {
       if (mounted) {
-        setState(() { _loadingInsights = false; _insightsError = 'Erreur: $e'; });
+        setState(() {
+          _loadingInsights = false;
+          _insightsError = 'Erreur: $e';
+        });
       }
     }
   }
@@ -123,29 +155,37 @@ class _AIPageV2State extends State<AIPageV2> {
         else if (_insightsError != null)
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Text(_insightsError!, style: const TextStyle(color: Colors.red)),
+            child: Text(_insightsError!,
+                style: const TextStyle(color: Colors.red)),
           )
         else
           _buildInsightsPanel(context),
         const Divider(height: 1),
         // Conversation
-        Expanded(child: ListView.builder(
+        Expanded(
+            child: ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: _messages.length,
           itemBuilder: (_, i) {
             final m = _messages[i];
             return Align(
-              alignment: m.role == 'user' ? Alignment.centerRight : Alignment.centerLeft,
+              alignment: m.role == 'user'
+                  ? Alignment.centerRight
+                  : Alignment.centerLeft,
               child: Container(
                 margin: const EdgeInsets.symmetric(vertical: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color: m.role == 'user' ? AppColors.pharmaGold : AppColors.pharmaSurface,
+                  color: m.role == 'user'
+                      ? AppColors.pharmaGold
+                      : AppColors.pharmaSurface,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Text(m.content, style: TextStyle(
-                  color: m.role == 'user' ? Colors.black : Colors.white,
-                )),
+                child: Text(m.content,
+                    style: TextStyle(
+                      color: m.role == 'user' ? Colors.black : Colors.white,
+                    )),
               ),
             );
           },
@@ -153,20 +193,26 @@ class _AIPageV2State extends State<AIPageV2> {
         Padding(
           padding: const EdgeInsets.all(12),
           child: Row(children: [
-            Expanded(child: TextField(
+            Expanded(
+                child: TextField(
               controller: _controller,
               onSubmitted: (_) => _send(),
               decoration: InputDecoration(
                 hintText: S.t('aiAssistant', locale),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             )),
             const SizedBox(width: 8),
             IconButton.filled(
               onPressed: _sending ? null : _send,
               icon: _sending
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.send),
             ),
           ]),
@@ -178,8 +224,14 @@ class _AIPageV2State extends State<AIPageV2> {
   Widget _buildInsightsPanel(BuildContext context) {
     final insights = _insights;
     final reorder = _reorderPlan;
-    final items = (reorder?['items'] as List?) ?? [];
-    final urgentCount = items.where((i) => i['priority'] == 'urgent' || i['priority'] == 'high').length;
+    // Tolérant : seules les lignes réellement structurées sont comptées.
+    final rawItems = reorder?['items'];
+    final items = rawItems is List
+        ? rawItems.whereType<Map>().toList(growable: false)
+        : const <Map>[];
+    final urgentCount = items
+        .where((i) => i['priority'] == 'urgent' || i['priority'] == 'high')
+        .length;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -210,7 +262,8 @@ class _AIPageV2State extends State<AIPageV2> {
           _insightCard(
             icon: Icons.calendar_today,
             label: 'Périm. < 60j',
-            value: '${(insights?['expiring_within_60d'] as List?)?.length ?? 0}',
+            value:
+                '${(insights?['expiring_within_60d'] as List?)?.length ?? 0}',
             color: Colors.amber,
           ),
           const SizedBox(width: 8),
@@ -225,7 +278,11 @@ class _AIPageV2State extends State<AIPageV2> {
     );
   }
 
-  Widget _insightCard({required IconData icon, required String label, required String value, required Color color}) {
+  Widget _insightCard(
+      {required IconData icon,
+      required String label,
+      required String value,
+      required Color color}) {
     return Container(
       width: 120,
       padding: const EdgeInsets.all(10),
@@ -239,9 +296,15 @@ class _AIPageV2State extends State<AIPageV2> {
         children: [
           Icon(icon, color: color, size: 20),
           const SizedBox(height: 4),
-          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+          Text(value,
+              style: TextStyle(
+                  fontSize: 18, fontWeight: FontWeight.bold, color: color)),
           const SizedBox(height: 2),
-          Text(label, style: const TextStyle(fontSize: 10), textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis),
+          Text(label,
+              style: const TextStyle(fontSize: 10),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis),
         ],
       ),
     );

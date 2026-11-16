@@ -317,8 +317,7 @@ class AuthStore extends ChangeNotifier {
           _user = merged;
           await _tokenWrite(_kUser, jsonEncode(merged.toJson()));
           notifyListeners();
-        } else if (serverUser == null ||
-            serverUser.isSuperAdminFlag == null) {
+        } else if (serverUser == null || serverUser.isSuperAdminFlag == null) {
           // Réponse absente ou contrat incomplet : le profil local est
           // conservé pour l'affichage mais SANS confirmation admin. On ne
           // réécrit PAS le stockage (aucune destruction inutile de données,
@@ -533,9 +532,7 @@ class AuthStore extends ChangeNotifier {
         return false;
       }
       final decoded = jsonDecode(res.body);
-      final data = decoded is Map<String, dynamic>
-          ? decoded['data']
-          : null;
+      final data = decoded is Map<String, dynamic> ? decoded['data'] : null;
       if (data is! Map<String, dynamic>) {
         completer.complete(false);
         return false;
