@@ -5,14 +5,19 @@ import 'package:flutter/material.dart';
 import '../theme/colors.dart';
 
 /// ============================================================
-/// FONDS « MARBRE GRIS ARGENTÉ » (thème clair) et
+/// FONDS « ÉMERAUDE MÉTALLISÉE ORÉE » (thème clair) et
 /// « GRAPHITE MÉTAL BROSSÉ » (thème sombre) — dessinés par code.
 ///
-/// Aucun asset requis : la texture est peinte par un CustomPainter
-/// déterministe (graine fixe), peinte UNE seule fois puis mise en
-/// cache (shouldRepaint => false + RepaintBoundary).
+/// La texture du thème clair est votre image « Fond émeraude métallisé
+/// aux accents dorés » (assets/images/emerald_principale.png) ; le thème
+/// sombre conserve le graphite métal brossé.
 ///
-/// Clarté : sur marbre clair le texte doit être inkDark ;
+/// Le thème clair est PEINT (CustomPainter déterministe, graine fixe)
+/// et mis en cache (shouldRepaint => false + RepaintBoundary) ; l'image
+/// est superposée par-dessus (errorBuilder => repli peint si l'asset
+/// échoue à charger).
+///
+/// Clarté : sur émeraude claire le texte doit être inkDark ;
 /// sur graphite brossé le texte doit être porcelain.
 /// ============================================================
 class MarbleBackground extends StatelessWidget {
@@ -31,8 +36,9 @@ class MarbleBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Thème clair : la VRAIE texture marbre de la maquette, en WebP
-    // LÉGER (71 Ko, décodée une fois et mise en cache par Flutter).
+    // Thème clair : la VRAIE texture émeraude métallisée de votre maquette
+    // (Fond émeraude métallisé aux accents dorés, PNG). Peinte UNE seule fois
+    // puis mise en cache par Flutter.
     // Repli : texture peinte (sous le calque image, visible si l'asset
     // échoue à charger).
     if (!dark) {
@@ -44,13 +50,13 @@ class MarbleBackground extends StatelessWidget {
               child: CustomPaint(
                 isComplex: true,
                 willChange: false,
-                painter: _SilverMarblePainter(opacity: opacity),
+                painter: _EmeraldPainted(opacity: opacity),
               ),
             ),
-            // Calque image WebP légère.
+            // Calque image émeraude.
             Positioned.fill(
               child: Image.asset(
-                'assets/images/marble_principale.webp',
+                'assets/images/emerald_principale.png',
                 fit: BoxFit.cover,
                 filterQuality: FilterQuality.low,
                 errorBuilder: (_, __, ___) => const SizedBox.shrink(),
@@ -90,11 +96,12 @@ class MarbleBackground extends StatelessWidget {
   }
 }
 
-/// Peintre marbre gris argenté : base argent (#F1F2F4 → #E6E9EB),
-/// veines très fines et discrètes, léger voile lumineux.
-class _SilverMarblePainter extends CustomPainter {
+/// Peintre de repli thème clair (émeraude) : base émeraude claire, veines
+/// discrètes, léger voile lumineux — utilisé uniquement si l'asset PNG
+/// émeraude échoue à charger.
+class _EmeraldPainted extends CustomPainter {
   final double opacity;
-  const _SilverMarblePainter({required this.opacity});
+  const _EmeraldPainted({required this.opacity});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -197,7 +204,7 @@ class _SilverMarblePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _SilverMarblePainter oldDelegate) =>
+  bool shouldRepaint(covariant _EmeraldPainted oldDelegate) =>
       oldDelegate.opacity != opacity;
 }
 
