@@ -42,6 +42,41 @@ void main() {
     expect(panelWidth, greaterThan(200), reason: 'Panneau mobile trop étroit');
   });
 
+  testWidgets('Connexion smartphone : split PC absent, formulaire plein écran',
+      (tester) async {
+    // 360 x 800 = smartphone Android courant (portrait). La scène PC
+    // (3 atouts à gauche) ne doit PAS être rendue : le split est réservé
+    // aux vraies tablettes (shortestSide >= 600).
+    await pumpLogin(tester, const Size(360, 800));
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Sécurisé'), findsNothing,
+        reason: 'La scène PC (split) ne doit pas apparaître sur smartphone');
+    expect(find.text('Performant'), findsNothing);
+    expect(find.text('Support'), findsNothing);
+    expect(find.text('SE CONNECTER'), findsOneWidget);
+
+    // Le panneau occupe quasi toute la largeur de l'écran (formulaire
+    // centré plein écran, comme une application mobile pro).
+    final panelWidth =
+        tester.getSize(find.byKey(const ValueKey('login-form-panel'))).width;
+    expect(panelWidth, greaterThan(300),
+        reason: 'Panneau mobile doit remplir lécran (360 px de large)');
+  });
+
+  testWidgets('Connexion tablette : split PC présent (scène + formulaire)',
+      (tester) async {
+    // 1280 x 800 = tablette / PC : shortestSide = 800 >= 600 -> split.
+    await pumpLogin(tester, const Size(1280, 800));
+
+    expect(tester.takeException(), isNull);
+    // Les atouts de la scène PC sont rendus uniquement dans le split.
+    expect(find.text('Sécurisé'), findsOneWidget);
+    expect(find.text('Performant'), findsOneWidget);
+    expect(find.text('Support'), findsOneWidget);
+    expect(find.text('SE CONNECTER'), findsOneWidget);
+  });
+
   testWidgets('Connexion tactile : panneau stable à 390 px', (tester) async {
     await pumpLogin(tester, const Size(390, 844));
 
