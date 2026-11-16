@@ -247,9 +247,16 @@ class MobileNavDrawer extends StatelessWidget {
 
     return Drawer(
       key: const ValueKey('mobile-nav-drawer'),
-      width: MediaQuery.sizeOf(context).width * 0.86 < 320
-          ? MediaQuery.sizeOf(context).width * 0.86
-          : 320,
+      // Largeur ≈ 3,5 cm physique au lieu de 86 % de l'écran :
+      // - smartphone (~60 px logiques / cm) -> 210 px ;
+      // - tablette (shortestSide >= 600, ~50 px / cm) -> 175 px ;
+      // - très petits écrans : jamais plus de 86 % de la largeur.
+      width: () {
+        final size = MediaQuery.sizeOf(context);
+        final target = size.shortestSide >= 600 ? 175.0 : 210.0;
+        final cap = size.width * 0.86;
+        return cap < target ? cap : target;
+      }(),
       backgroundColor: AppColors.surfaceSidebar,
       child: SafeArea(
         child: Column(
