@@ -143,7 +143,10 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final isSplit = MediaQuery.of(context).size.width >= 760;
+    // Split (scène + formulaire) réservé aux vraies tablettes. Sur
+    // smartphone, même en paysage, on garde le formulaire centré pour
+    // éviter l'affichage PC sur petit écran.
+    final isSplit = MediaQuery.sizeOf(context).shortestSide >= 600;
 
     return Scaffold(
       backgroundColor: AppColors.graphite,
@@ -164,8 +167,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         color: AppColors.graphiteLight,
                         borderRadius: BorderRadius.circular(26),
                         border: Border.all(
-                          color:
-                              AppColors.sageGreen.withValues(alpha: 0.20),
+                          color: AppColors.sageGreen.withValues(alpha: 0.20),
                           width: 1,
                         ),
                         boxShadow: [
@@ -790,7 +792,10 @@ class _ThemeToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthStore>();
-    final isDark = auth.themeMode != ThemeMode.light;
+    final platformDark =
+        MediaQuery.platformBrightnessOf(context) == Brightness.dark;
+    final isDark = auth.themeMode == ThemeMode.dark ||
+        (auth.themeMode == ThemeMode.system && platformDark);
 
     return Positioned(
       top: MediaQuery.of(context).padding.top + 18,
