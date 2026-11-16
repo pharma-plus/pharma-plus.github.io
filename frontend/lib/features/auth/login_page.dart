@@ -267,7 +267,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               child: Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 30, vertical: 24),
-                child: SizedBox(width: formWidth, child: _buildForm()),
+                child: SizedBox(
+                    width: formWidth,
+                    child: _buildForm(onLight: !transparent && !isDark)),
               ),
             ),
           ),
@@ -424,7 +426,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildForm() {
+  Widget _buildForm({bool onLight = false}) {
     return Form(
       key: _formKey,
       child: Column(
@@ -446,11 +448,15 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             ),
           ),
           const SizedBox(height: 5),
-          const Center(
+          Center(
             child: Text(
               'Connectez-vous à votre espace professionnel',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white, fontSize: 13),
+              style: TextStyle(
+                // Smartphone thème clair : marbre blanc -> encre sombre.
+                color: onLight ? const Color(0xFF52655C) : Colors.white,
+                fontSize: 13,
+              ),
             ),
           ),
           const SizedBox(height: 22),
@@ -529,7 +535,11 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         Checkbox(
                           value: _remember,
                           activeColor: AppColors.emerald,
-                          side: const BorderSide(color: Colors.white70),
+                          side: BorderSide(
+                            color: onLight
+                                ? const Color(0xFF52655C).withValues(alpha: 0.6)
+                                : Colors.white70,
+                          ),
                           visualDensity:
                               const VisualDensity(horizontal: -3, vertical: -3),
                           materialTapTargetSize:
@@ -538,13 +548,15 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                               setState(() => _remember = value ?? false),
                         ),
                         const SizedBox(width: 2),
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             'Se souvenir de moi',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: Colors.white70,
+                              color: onLight
+                                  ? const Color(0xFF52655C)
+                                  : Colors.white70,
                               fontSize: 12.5,
                             ),
                           ),
@@ -573,13 +585,16 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       alignment: Alignment.centerRight,
                     ),
-                    child: const Text(
+                    child: Text(
                       'Mot de passe oublié ?',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.right,
                       style: TextStyle(
-                        color: Color(0xFFE9C873),
+                        // Or profond sur marbre clair, or clair sur graphite.
+                        color: onLight
+                            ? const Color(0xFF8A6A1D)
+                            : const Color(0xFFE9C873),
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
@@ -655,21 +670,25 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               Expanded(
                 child: Container(
                   height: 1,
-                  color: Colors.white.withValues(alpha: 0.16),
+                  color: onLight
+                      ? Colors.black.withValues(alpha: 0.18)
+                      : Colors.white.withValues(alpha: 0.16),
                 ),
               ),
               // Le libellé cède la place au besoin : jamais de débordement
               // sur les petits écrans / grandes polices d'accessibilité.
-              const Flexible(
+              Flexible(
                 flex: 6,
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
                       'ou continuez avec',
                       style: TextStyle(
-                        color: Color(0xFF8FA39A),
+                        color: onLight
+                            ? const Color(0xFF5F7268)
+                            : const Color(0xFF8FA39A),
                         fontSize: 12,
                       ),
                     ),
@@ -679,7 +698,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               Expanded(
                 child: Container(
                   height: 1,
-                  color: Colors.white.withValues(alpha: 0.16),
+                  color: onLight
+                      ? Colors.black.withValues(alpha: 0.18)
+                      : Colors.white.withValues(alpha: 0.16),
                 ),
               ),
             ],
@@ -735,7 +756,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                 Text(
                   'Connexion sécurisée avec chiffrement 256-bit SSL',
                   style: TextStyle(
-                    color: const Color(0xFF8FA39A).withValues(alpha: 0.85),
+                    color: onLight
+                        ? const Color(0xFF5F7268)
+                        : const Color(0xFF8FA39A),
                     fontSize: 11,
                   ),
                 ),
