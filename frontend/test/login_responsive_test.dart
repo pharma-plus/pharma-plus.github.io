@@ -77,6 +77,23 @@ void main() {
     expect(find.text('SE CONNECTER'), findsOneWidget);
   });
 
+  testWidgets('Connexion smartphone en paysage : formulaire portrait conservé',
+      (tester) async {
+    // 844 x 390 = smartphone Android en paysage. Le formulaire doit rester
+    // en mode PORTRAIT (centré, plein écran) : jamais le split PC.
+    await pumpLogin(tester, const Size(844, 390));
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Sécurisé'), findsNothing,
+        reason: 'Pas de scène PC en paysage smartphone');
+    expect(find.text('SE CONNECTER'), findsOneWidget);
+
+    final panelWidth =
+        tester.getSize(find.byKey(const ValueKey('login-form-panel'))).width;
+    expect(panelWidth, greaterThan(300),
+        reason: 'Formulaire portrait large en paysage');
+  });
+
   testWidgets('Connexion tactile : panneau stable à 390 px', (tester) async {
     await pumpLogin(tester, const Size(390, 844));
 
