@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pharma_maroc_gold/core/widgets/marble_texture.dart';
 import 'package:provider/provider.dart';
 
 import 'package:pharma_maroc_gold/core/services/auth_store.dart';
@@ -92,6 +93,25 @@ void main() {
         tester.getSize(find.byKey(const ValueKey('login-form-panel'))).width;
     expect(panelWidth, greaterThan(300),
         reason: 'Formulaire portrait large en paysage');
+  });
+
+  testWidgets('Connexion smartphone : fond TEXTURE (marble/graphite)',
+      (tester) async {
+    // Thème sombre -> texture graphite métal brossé (MarbleBackground).
+    await pumpLogin(tester, const Size(360, 800));
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(MarbleBackground), findsOneWidget,
+        reason: 'Le panneau mobile doit porter la texture de la charte');
+  });
+
+  testWidgets('Connexion tablette/PC : split SANS texture de panneau',
+      (tester) async {
+    // Split : panneau transparent sur l image de fond, jamais MarbleBackground.
+    await pumpLogin(tester, const Size(1280, 800));
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(MarbleBackground), findsNothing);
   });
 
   testWidgets('Connexion tactile : panneau stable à 390 px', (tester) async {
