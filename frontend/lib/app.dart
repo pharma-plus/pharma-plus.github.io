@@ -18,7 +18,8 @@ import 'features/shell/home_shell.dart';
 import 'features/shell/shell_nav.dart';
 import 'features/super_admin/super_admin_crm_page.dart';
 import 'features/super_admin/super_admin_shell.dart';
-import 'features/super_admin/super_admin_functions.dart' as super_admin_functions;
+import 'features/super_admin/super_admin_functions.dart'
+    as super_admin_functions;
 
 /// Force tree-shaking retention by making the super admin check dynamic
 /// This prevents the tree-shaker from proving the condition is never true
@@ -46,10 +47,10 @@ void _retainSuperAdminFunctions() {
   super_admin_functions.superAdminConfirmLogout.toString();
   super_admin_functions.SuperAdminFunctions.instance.returnToPharma.toString();
   super_admin_functions.SuperAdminFunctions.instance.confirmLogout.toString();
-  
+
   // Call the functions in a way that the tree-shaker can't optimize away
   // by using them in a conditional that could theoretically affect program behavior
-  if (super_admin_functions.superAdminReturnToPharma == null && 
+  if (super_admin_functions.superAdminReturnToPharma == null &&
       super_admin_functions.superAdminConfirmLogout == null) {
     debugPrint('SuperAdmin retention check');
   }
@@ -83,9 +84,9 @@ class RootGate extends StatelessWidget {
         }
 
         if (_shouldShowSuperAdmin(auth)) {
-      // Force retention of SuperAdminCRMPage by using it in a way tree-shaker can't eliminate
-      return _withPopScope(_createSuperAdminPage());
-    }
+          // Force retention of SuperAdminCRMPage by using it in a way tree-shaker can't eliminate
+          return _withPopScope(_createSuperAdminPage());
+        }
         // Bouton retour système (smartphone) — TOUTES les pages :
         // 1) dialogue / formulaire / sous-page poussée → pop (reste sur la page) ;
         // 2) onglet shell ≠ Dashboard → Dashboard ;
@@ -194,17 +195,145 @@ class _SplashScreenState extends State<_SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Un seul splash visuel : celui du HTML (#pmg-loading dans web/index.html),
-    // retiré à l'événement flutter-first-frame. Aucun deuxième splash Flutter
-    // n'est affiché ici : pas de logo, pas de barre de progression, pas
-    // d'indicateur. Juste le fond identique au splash HTML pour une transition
-    // sans saut visuel. Dès qu'AuthStore est initialisé, RootGate bascule
-    // vers la page de connexion ou le dashboard.
+    // Splash visuel conforme à la maquette : fond scène pharmacie, logo
+    // circulaire PHARMA+ avec lueur or, "Bienvenue dans votre pharmacie",
+    // ligne décorative et "Chargement en cours…". Aucun deuxième splash
+    // n'est affiché : celui du HTML (#pmg-loading dans web/index.html) est
+    // retiré à l'événement flutter-first-frame, puis ce widget prend le
+    // relais pour une transition sans saut visuel.
+    final size = MediaQuery.sizeOf(context);
+    final w = size.width;
+    final isTablet = w >= 600;
+    // Taille du logo circulaire adaptée : petit écran → plus compact,
+    // tablette/desktop → plus grand.
+    final logoSize = (w < 360
+            ? w * 0.62
+            : w < 600
+                ? 210.0
+                : w < 1024
+                    ? 260.0
+                    : 300.0)
+        .clamp(170.0, 320.0);
+    final innerLogo = (logoSize * 0.42).clamp(64.0, 120.0);
+
     return Scaffold(
       backgroundColor: AppColors.pharmaBg,
       body: PharmaBackground(
         overlayOpacity: 0.66,
-        child: SizedBox.expand(),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Badge circulaire PHARMA+ avec lueur or (maquette splash).
+              Container(
+                width: logoSize,
+                height: logoSize,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.champagne.withValues(alpha: 0.55),
+                    width: 3,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.champagne.withValues(alpha: 0.40),
+                      blurRadius: 44,
+                      spreadRadius: 10,
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.65),
+                      blurRadius: 32,
+                      offset: const Offset(0, 14),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      PharmaPlusLogo(size: innerLogo),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'PHARMA+',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'GESTION INTELLIGENTE',
+                        style: TextStyle(
+                          color: AppColors.champagne,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.6,
+                        ),
+                      ),
+                      const Text(
+                        'DE VOTRE PHARMACIE',
+                        style: TextStyle(
+                          color: AppColors.champagne,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.6,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 30),
+              // Titre principal.
+              const Text(
+                'Bienvenue',
+                style: TextStyle(
+                  color: AppColors.champagne,
+                  fontSize: 30,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.6,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'dans votre pharmacie',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 36),
+              // Ligne décorative or.
+              Container(
+                width: isTablet ? 140 : 90,
+                height: 2,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.transparent,
+                      AppColors.champagne,
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 44),
+              // Texte de chargement.
+              const Text(
+                'Chargement en cours…',
+                style: TextStyle(
+                  color: Colors.white38,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.6,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
