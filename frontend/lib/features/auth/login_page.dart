@@ -10,6 +10,7 @@ import '../../core/models/user.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/auth_store.dart';
 import '../../core/theme/colors.dart';
+import '../../core/widgets/marble_texture.dart';
 import '../../core/widgets/pharma_logo.dart';
 import 'two_factor_page.dart';
 
@@ -243,8 +244,36 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   }
 
   /// Panneau droit : sur desktop, transparent (l'image de fond fournit déjà le
-  /// panneau vert sombre et la courbe) ; sur mobile, carte translucide sombre.
+  /// panneau vert sombre et la courbe) ; sur smartphone, fond TEXTURE de la
+  /// charte — marbre gris argenté (thème clair) ou graphite métal brossé
+  /// (thème sombre), via `MarbleBackground` (repli peint si asset absent).
   Widget _buildFormPanel({bool transparent = false}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const panelRadius = BorderRadius.horizontal(
+      left: Radius.zero,
+      right: Radius.circular(20),
+    );
+    final Widget body = LayoutBuilder(
+      builder: (context, constraints) {
+        final formWidth =
+            (constraints.maxWidth - 60).clamp(0.0, 400.0).toDouble();
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minWidth: constraints.maxWidth,
+              minHeight: constraints.maxHeight,
+            ),
+            child: Center(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 30, vertical: 24),
+                child: SizedBox(width: formWidth, child: _buildForm()),
+              ),
+            ),
+          ),
+        );
+      },
+    );
     return Container(
       key: const ValueKey('login-form-panel'),
       width: double.infinity,
@@ -254,44 +283,24 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       decoration: transparent
           ? null
           : BoxDecoration(
-              borderRadius: const BorderRadius.horizontal(
-                left: Radius.zero,
-                right: Radius.circular(20),
-              ),
+              borderRadius: panelRadius,
               border: Border.all(
                 color: AppColors.sageGreen.withValues(alpha: 0.22),
                 width: 1,
               ),
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.graphiteDark,
-                  AppColors.graphite,
-                ],
+              // Couleur de repli le temps que la texture se charge.
+              color:
+                  isDark ? AppColors.graphiteDark : AppColors.backgroundLight,
+            ),
+      child: transparent
+          ? body
+          : ClipRRect(
+              borderRadius: panelRadius,
+              child: MarbleBackground(
+                dark: isDark,
+                child: body,
               ),
             ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final formWidth =
-              (constraints.maxWidth - 60).clamp(0.0, 400.0).toDouble();
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minWidth: constraints.maxWidth,
-                minHeight: constraints.maxHeight,
-              ),
-              child: Center(
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 24),
-                  child: SizedBox(width: formWidth, child: _buildForm()),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
     );
   }
 
