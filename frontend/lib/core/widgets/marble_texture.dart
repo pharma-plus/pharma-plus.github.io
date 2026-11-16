@@ -12,13 +12,15 @@ import '../theme/colors.dart';
 /// aux accents dorés » (assets/images/emerald_principale.png) ; le thème
 /// sombre conserve le graphite métal brossé.
 ///
+/// Les deux fonds sont FONCÉS : le texte doit être CLAIR (champagne /
+/// blanc) par-dessus. `lightText` est exposé via un InheritedWidget pour
+/// que les enfants (titres, libellés, séparateurs) s'adaptent
+/// automatiquement.
+///
 /// Le thème clair est PEINT (CustomPainter déterministe, graine fixe)
 /// et mis en cache (shouldRepaint => false + RepaintBoundary) ; l'image
 /// est superposée par-dessus (errorBuilder => repli peint si l'asset
 /// échoue à charger).
-///
-/// Clarté : sur émeraude claire le texte doit être inkDark ;
-/// sur graphite brossé le texte doit être porcelain.
 /// ============================================================
 class MarbleBackground extends StatelessWidget {
   final Widget? child;
@@ -27,78 +29,106 @@ class MarbleBackground extends StatelessWidget {
   /// Opacité globale de la texture (1 = pleine).
   final double opacity;
 
+  /// Si true, le texte sur ce fond doit être CLAIR (fond émeraude ou
+  /// graphite foncés). Défaut true car les deux textures sont foncées.
+  final bool lightText;
+
   const MarbleBackground({
     super.key,
     this.child,
     this.dark = false,
     this.opacity = 1.0,
+    this.lightText = true,
   });
+
+  /// Récupère la configuration de texte du `MarbleBackground` ancêtre.
+  static MarbleBackgroundData? of(BuildContext context) {
+    final scope = context
+        .dependOnInheritedWidgetOfExactType<_MarbleBackgroundScope>();
+    return scope?.data;
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Thème clair : la VRAIE texture émeraude métallisée de votre maquette
-    // (Fond émeraude métallisé aux accents dorés, PNG). Peinte UNE seule fois
-    // puis mise en cache par Flutter.
-    // Repli : texture peinte (sous le calque image, visible si l'asset
-    // échoue à charger).
-    if (!dark) {
-      return RepaintBoundary(
-        child: Stack(
-          children: [
-            // Calque texture peinte (repli si l'asset échoue).
-            Positioned.fill(
-              child: CustomPaint(
-                isComplex: true,
-                willChange: false,
-                painter: _EmeraldPainted(opacity: opacity),
+    // Données de texte exposées aux descendants (couleur claire sur fond foncé).
+    final data = MarbleBackgroundData(
+      dark: dark,
+      lightText: lightText,
+      textColor: lightText
+          ? (dark ? AppColors.porcelain : AppColors.champagne)
+          : AppColors.inkDark,
+    );
+    return _MarbleBackgroundScope(
+      data: data,
+      child: DefaultTextStyle(
+        style: TextStyle(color: data.textColor, inherit: true),
+        child: RepaintBoundary(
+          child: Stack(
+            children: [
+              // Calque texture peinte (repli si l'asset échoue).
+              Positioned.fill(
+                child: CustomPaint(
+                  isComplex: true,
+                  willChange: false,
+                  painter:
+                      dark
+                          ? _GraphiteBrushedPainter(opacity: opacity)
+                          : _EmeraldPainted(opacity: opacity),
+                ),
               ),
-            ),
-            // Calque image émeraude.
-            Positioned.fill(
-              child: Image.asset(
-                'assets/images/emerald_principale.png',
-                fit: BoxFit.cover,
-                filterQuality: FilterQuality.low,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              // Calque image (émeraude ou graphite).
+              Positioned.fill(
+                child: Image.asset(
+                  dark
+                      ? 'assets/images/graphite_principale.webp'
+                      : 'assets/images/emerald_principale.png',
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.low,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
               ),
-            ),
-            // Contenu : contraintes libres (shrink-wrap OK dans les
-            // barres compactes).
-            if (child != null) child!,
-          ],
+              // Contenu : contraintes libres (shrink-wrap OK dans les
+              // barres compactes).
+              if (child != null) child!,
+            ],
+          ),
         ),
-      );
-    }
-    // Thème sombre : la VRAIE texture graphite métal brossé (WebP léger
-    // 70 Ko), repli peint si l'asset échoue.
-    return RepaintBoundary(
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: CustomPaint(
-              isComplex: true,
-              willChange: false,
-              painter: _GraphiteBrushedPainter(opacity: opacity),
-            ),
-          ),
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/graphite_principale.webp',
-              fit: BoxFit.cover,
-              filterQuality: FilterQuality.low,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-            ),
-          ),
-          if (child != null) child!,
-        ],
       ),
     );
   }
 }
 
-/// Peintre de repli thème clair (émeraude) : base émeraude claire, veines
-/// discrètes, léger voile lumineux — utilisé uniquement si l'asset PNG
-/// émeraude échoue à charger.
+/// Données exposées aux enfants par l'InheritedWidget.
+class MarbleBackgroundData {
+  final bool dark;
+  final bool lightText;
+  final Color textColor;
+
+  const MarbleBackgroundData({
+    required this.dark,
+    required this.lightText,
+    required this.textColor,
+  });
+}
+
+/// InheritedWidget : propage la config de texte aux descendants.
+class _MarbleBackgroundScope extends InheritedWidget {
+  final MarbleBackgroundData data;
+
+  const _MarbleBackgroundScope({
+    super.key,
+    required this.data,
+    required Widget child,
+  }) : super(child: child);
+
+  @override
+  bool updateShouldNotify(covariant _MarbleBackgroundScope old) =>
+      old.data != data;
+}
+
+/// Peintre de repli thème clair (émeraude foncée) : base émeraude, veines
+/// dorées discrètes, léger voile lumineux — utilisé uniquement si
+/// l'asset PNG émeraude échoue à charger.
 class _EmeraldPainted extends CustomPainter {
   final double opacity;
   const _EmeraldPainted({required this.opacity});
@@ -107,16 +137,15 @@ class _EmeraldPainted extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
 
-    // 1) Base argent très claire (jamais blanc pur : thème « sans cellule
-    //    blanche » de la charte).
+    // 1) Base émeraude foncée (jamais blanc pur).
     final base = Paint()
       ..shader = const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          Color(0xFFF2F3F4),
-          Color(0xFFE9ECEF),
-          Color(0xFFE3E7EA),
+          Color(0xFF0B2A1E),
+          Color(0xFF103A28),
+          Color(0xFF0B2A1E),
         ],
       ).createShader(Offset.zero & size);
     final rect = Offset.zero & size;
@@ -133,8 +162,8 @@ class _EmeraldPainted extends CustomPainter {
       final veil = Paint()
         ..shader = RadialGradient(
           colors: [
-            Colors.white.withValues(alpha: 0.10 * opacity),
-            Colors.white.withValues(alpha: 0.0),
+            AppColors.champagne.withValues(alpha: 0.12 * opacity),
+            AppColors.champagne.withValues(alpha: 0.0),
           ],
         ).createShader(Rect.fromCircle(center: c, radius: r));
       canvas.drawCircle(c, r, veil);
@@ -170,30 +199,30 @@ class _EmeraldPainted extends CustomPainter {
         path.quadraticBezierTo(mid.dx, mid.dy, cur.dx, cur.dy);
       }
 
-      // Halo clair (large, très transparent) puis trait fin gris.
+      // Halo doré puis trait fin.
       canvas.drawPath(
         path,
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 3.0
-          ..color = Colors.white.withValues(alpha: 0.35 * opacity)
+          ..color = AppColors.champagne.withValues(alpha: 0.25 * opacity)
           ..strokeCap = StrokeCap.round,
       );
       final shade =
-          i % 5 == 0 ? const Color(0xFF9AA3A9) : const Color(0xFFB9C1C7);
+          i % 5 == 0 ? const Color(0xFF8A6A1D) : const Color(0xFFB4881F);
       canvas.drawPath(
         path,
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = i % 5 == 0 ? 1.0 : 0.7
-          ..color = shade.withValues(alpha: 0.30 * opacity)
+          ..color = shade.withValues(alpha: 0.22 * opacity)
           ..strokeCap = StrokeCap.round,
       );
     }
 
     // 4) Micro-grain : points très fins, à peine perceptibles.
     final grain = Paint()
-      ..color = const Color(0xFF8F979D).withValues(alpha: 0.05 * opacity);
+      ..color = const Color(0xFF5F7A64).withValues(alpha: 0.06 * opacity);
     for (var i = 0; i < 140; i++) {
       canvas.drawCircle(
         Offset(rng.nextDouble() * size.width, rng.nextDouble() * size.height),

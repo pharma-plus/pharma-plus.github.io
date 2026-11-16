@@ -251,8 +251,8 @@ class _AppSideMenuState extends State<AppSideMenu> {
   /// accès déconnexion conservé — aucun grand espace vide.
   Widget _buildCollapsed(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    // Thème clair : marbre gris argenté, icônes vert sauge foncé lisibles.
-    // Thème sombre : graphite métal brossé, icônes champagne.
+    // Couleur de texte adaptée au fond (émeraude = champagne, graphite = porcelain).
+    final textColor = MarbleBackground.of(context)?.textColor ?? Colors.white;
     return MarbleBackground(
       dark: isDark,
       child: Container(
@@ -309,10 +309,10 @@ class _AppSideMenuState extends State<AppSideMenu> {
                               color: active
                                   ? (isDark
                                       ? Colors.white
-                                      : AppColors.sageGreenInk)
+                                      : textColor)
                                   : (isDark
                                       ? AppColors.champagne
-                                      : AppColors.sageGreenInk)),
+                                      : textColor)),
                         ),
                       ),
                     ),
@@ -379,6 +379,8 @@ class _AppSideMenuState extends State<AppSideMenu> {
   Widget _buildExpanded(BuildContext context) {
     final visibleItems = _visibleItems;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Couleur de texte adaptée au fond (émeraude = champagne, graphite = porcelain).
+    final textColor = MarbleBackground.of(context)?.textColor ?? Colors.white;
     return MarbleBackground(
       dark: isDark,
       child: Container(
@@ -433,7 +435,7 @@ class _AppSideMenuState extends State<AppSideMenu> {
                             size: 19,
                             color: isDark
                                 ? AppColors.champagne
-                                : AppColors.sageGreenInk),
+                                : textColor),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
@@ -441,18 +443,12 @@ class _AppSideMenuState extends State<AppSideMenu> {
                                   context.watch<AuthStore>().locale),
                               style: TextStyle(
                                   fontSize: 13.5,
-                                  // Sombre : même couleur que les icônes (champagne)
-                                  // + gras, pour que chaque titre reste lisible.
                                   color: isDark
                                       ? AppColors.champagne
-                                      : (active
-                                          ? AppColors.sageGreenInk
-                                          : AppColors.inkDark),
+                                      : textColor,
                                   fontWeight: isDark
                                       ? FontWeight.w700
-                                      : (active
-                                          ? FontWeight.w700
-                                          : FontWeight.w500))),
+                                      : FontWeight.w700)),
                         ),
                       ]),
                     ),
@@ -491,7 +487,7 @@ class _AppSideMenuState extends State<AppSideMenu> {
                               : AppColors.sageGreenDark
                                   .withValues(alpha: 0.55))),
                   child: Icon(Icons.person,
-                      color: isDark ? Colors.white70 : AppColors.sageGreenInk,
+                      color: isDark ? Colors.white70 : textColor,
                       size: 24),
                 ),
                 Positioned(
@@ -529,8 +525,7 @@ class _AppSideMenuState extends State<AppSideMenu> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                                color:
-                                    isDark ? Colors.white : AppColors.inkDark,
+                                color: textColor,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w800)),
                         if (role != null && role.isNotEmpty)
@@ -538,18 +533,14 @@ class _AppSideMenuState extends State<AppSideMenu> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                  color: isDark
-                                      ? AppColors.textSecondary
-                                      : AppColors.inkDarkLight,
+                                  color: textColor,
                                   fontSize: 10.5)),
                         if (pharmacy != null && pharmacy.isNotEmpty)
                           Text(pharmacy,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                  color: isDark
-                                      ? AppColors.emeraldLight
-                                      : AppColors.sageGreenInk,
+                                  color: textColor,
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600)),
                       ]);
@@ -582,8 +573,7 @@ class _AppSideMenuState extends State<AppSideMenu> {
                         ),
                         child: Center(
                             child: Icon(Icons.lock_open_outlined,
-                                color:
-                                    isDark ? _sideGold : AppColors.sageGreenInk,
+                                color: textColor,
                                 size: 19)),
                       ),
                     ),
@@ -639,16 +629,14 @@ class _AppSideMenuState extends State<AppSideMenu> {
                     children: [
                       Text(DateFormat('HH:mm').format(_now),
                           style: TextStyle(
-                              color: isDark ? Colors.white : AppColors.inkDark,
+                              color: textColor,
                               fontSize: 19,
                               fontWeight: FontWeight.w900,
                               letterSpacing: 0.5)),
                       const SizedBox(height: 3),
                       Text(_dateLabel(),
                           style: TextStyle(
-                              color: isDark
-                                  ? AppColors.textSecondary
-                                  : AppColors.inkDarkLight,
+                              color: textColor,
                               fontSize: 10.5,
                               fontWeight: FontWeight.w600)),
                     ]),

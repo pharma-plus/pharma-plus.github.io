@@ -441,6 +441,7 @@ class _DashboardPageState extends State<DashboardPage> {
     final mq = MediaQuery.of(context);
     final phone = mq.size.shortestSide < 600;
     final isDark = dashDark(context);
+    final textColor = MarbleBackground.of(context)?.textColor ?? Colors.white;
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: Colors.transparent,
@@ -965,6 +966,7 @@ class _MobileTopBar extends StatelessWidget {
         ? user!.fullName.trim()
         : 'Admin';
     final isDark = dashDark(context);
+    final textColor = MarbleBackground.of(context)?.textColor ?? Colors.white;
     return MarbleBackground(
       dark: isDark,
       child: Container(
@@ -1003,16 +1005,14 @@ class _MobileTopBar extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        color: dashText(context),
+                        color: textColor,
                         fontSize: 13.5,
                         fontWeight: FontWeight.w800)),
                 Text('$userName · $roleLabel',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        color: isDark
-                            ? AppColors.emeraldLight
-                            : AppColors.sageGreenInk,
+                        color: textColor,
                         fontSize: 10.5,
                         fontWeight: FontWeight.w700)),
               ],
@@ -1257,6 +1257,7 @@ class _TopBar extends StatelessWidget {
         : pharmacyName;
     final narrow = MediaQuery.sizeOf(context).width < 700;
     final isDark = dashDark(context);
+    final textColor = MarbleBackground.of(context)?.textColor ?? Colors.white;
     return MarbleBackground(
       dark: isDark,
       child: Container(
@@ -1542,6 +1543,7 @@ class _DarkPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = dashDark(context);
+    final textColor = MarbleBackground.of(context)?.textColor ?? Colors.white;
     return MarbleBackground(
       dark: isDark,
       child: Container(

@@ -269,7 +269,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                     const EdgeInsets.symmetric(horizontal: 30, vertical: 24),
                 child: SizedBox(
                     width: formWidth,
-                    child: _buildForm(onLight: !transparent && !isDark)),
+                    child: _buildForm()),
               ),
             ),
           ),
@@ -426,7 +426,10 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildForm({bool onLight = false}) {
+  Widget _buildForm() {
+    // Couleur de texte adaptée au fond (émeraude claire = champagne,
+    // graphite sombre = porcelain), exposée par MarbleBackground.
+    final textColor = MarbleBackground.of(context)?.textColor ?? Colors.white;
     return Form(
       key: _formKey,
       child: Column(
@@ -437,11 +440,11 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
           // identique au splash / dashboard. Les textes sont DÉJÀ dans l'image.
           const Center(child: PharmaFullLogo(width: 230)),
           const SizedBox(height: 18),
-          const Center(
+          Center(
             child: Text(
               'Bienvenue',
               style: TextStyle(
-                color: Color(0xFFE9C873),
+                color: textColor,
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
               ),
@@ -453,8 +456,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               'Connectez-vous à votre espace professionnel',
               textAlign: TextAlign.center,
               style: TextStyle(
-                // Smartphone thème clair : marbre blanc -> encre sombre.
-                color: onLight ? const Color(0xFF52655C) : Colors.white,
+                color: textColor,
                 fontSize: 13,
               ),
             ),
@@ -536,9 +538,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                           value: _remember,
                           activeColor: AppColors.emerald,
                           side: BorderSide(
-                            color: onLight
-                                ? const Color(0xFF52655C).withValues(alpha: 0.6)
-                                : Colors.white70,
+                            color: textColor.withValues(alpha: 0.6),
                           ),
                           visualDensity:
                               const VisualDensity(horizontal: -3, vertical: -3),
@@ -554,9 +554,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: onLight
-                                  ? const Color(0xFF52655C)
-                                  : Colors.white70,
+                              color: textColor,
                               fontSize: 12.5,
                             ),
                           ),
@@ -591,10 +589,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.right,
                       style: TextStyle(
-                        // Or profond sur marbre clair, or clair sur graphite.
-                        color: onLight
-                            ? const Color(0xFF8A6A1D)
-                            : const Color(0xFFE9C873),
+                        // Or profond sur émeraude, or clair sur graphite.
+                        color: textColor,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
@@ -670,9 +666,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               Expanded(
                 child: Container(
                   height: 1,
-                  color: onLight
-                      ? Colors.black.withValues(alpha: 0.18)
-                      : Colors.white.withValues(alpha: 0.16),
+                  color: textColor.withValues(alpha: 0.16),
                 ),
               ),
               // Le libellé cède la place au besoin : jamais de débordement
@@ -686,9 +680,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                     child: Text(
                       'ou continuez avec',
                       style: TextStyle(
-                        color: onLight
-                            ? const Color(0xFF5F7268)
-                            : const Color(0xFF8FA39A),
+                        color: textColor,
                         fontSize: 12,
                       ),
                     ),
@@ -698,9 +690,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               Expanded(
                 child: Container(
                   height: 1,
-                  color: onLight
-                      ? Colors.black.withValues(alpha: 0.18)
-                      : Colors.white.withValues(alpha: 0.16),
+                  color: textColor.withValues(alpha: 0.16),
                 ),
               ),
             ],
@@ -756,9 +746,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                 Text(
                   'Connexion sécurisée avec chiffrement 256-bit SSL',
                   style: TextStyle(
-                    color: onLight
-                        ? const Color(0xFF5F7268)
-                        : const Color(0xFF8FA39A),
+                    color: textColor,
                     fontSize: 11,
                   ),
                 ),
