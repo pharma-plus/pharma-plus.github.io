@@ -607,7 +607,10 @@ class _DashboardPageState extends State<DashboardPage> {
           image: 'assets/images/kpi_bg_5.webp',
           badge: Icons.local_shipping_rounded,
           badgeColor: AppColors.petroleumBlue,
-          module: 'suppliers'),
+          module: 'suppliers',
+          // Thème clair : illustration agrandie et CENTRÉE sur l'émeraude.
+          lightWidthFactor: 0.88,
+          lightAlign: Alignment(0, 0.45)),
       _KpiDef(
           label: 'CLIENTS',
           value: Fmt.number(_customers),
@@ -615,7 +618,10 @@ class _DashboardPageState extends State<DashboardPage> {
           image: 'assets/images/kpi_bg_6.webp',
           badge: Icons.groups_rounded,
           badgeColor: AppColors.emeraldDeep,
-          module: 'customers'),
+          module: 'customers',
+          // Thème clair : illustration agrandie et CENTRÉE sur l'émeraude.
+          lightWidthFactor: 0.90,
+          lightAlign: Alignment(0, 0.45)),
       _KpiDef(
           label: 'EMPLOYÉS',
           value: '$_employees',
@@ -624,9 +630,10 @@ class _DashboardPageState extends State<DashboardPage> {
           badge: Icons.person_rounded,
           badgeColor: AppColors.emeraldInk,
           module: 'employees',
-          // Illustration employe : largeur reduite pour ne pas toucher
-          // l'icone / le badge.
-          lightWidthFactor: 0.50,
+          // Illustration employe : en thème clair on utilise l'illustration
+          // PLEIN CADRE (fond sombre émeraude d'origine) — l'ancienne version
+          // "light" avait un fond blanc qui débordait sur l'émeraude.
+          lightFullBleed: true,
           imageScale: 0.85,
           imageAlignment: const Alignment(0.25, 0.95)),
       _KpiDef(
@@ -702,6 +709,14 @@ class _KpiDef {
   /// Largeur relative de l'illustration détourée en thème clair (défaut 0.62).
   final double lightWidthFactor;
 
+  /// Alignement de l'illustration détourée en thème clair (défaut bas-droite).
+  final Alignment lightAlign;
+
+  /// Si true, en THÈME CLAIR, l'illustration est affichée PLEIN CADRE
+  /// (BoxFit.cover) comme en thème sombre : utilisé quand l'asset "light"
+  /// possède un fond clair opaque (ancienne couleur) qu'on ne veut plus voir.
+  final bool lightFullBleed;
+
   /// Clé de module visible (null = toujours visible).
   final String? module;
   const _KpiDef({
@@ -717,6 +732,8 @@ class _KpiDef {
     this.imageAlignment = Alignment.bottomCenter,
     this.module,
     this.lightWidthFactor = 0.62,
+    this.lightAlign = Alignment.bottomRight,
+    this.lightFullBleed = false,
   });
 }
 
@@ -750,7 +767,8 @@ class _KpiCardState extends State<_KpiCard> {
     // - thème clair : illustration DÉTOURÉE (fond transparent) posée sur le
     //   fond ÉMERAUDE officiel de la carte — plus aucun fond clair.
     final bool kpiDark = dashDark(context);
-    final String kpiImg = kpiDark
+    final bool fullBleed = kpiDark || def.lightFullBleed;
+    final String kpiImg = fullBleed
         ? def.image
         : def.image.replaceFirst('kpi_bg_', 'kpi_bg_light_');
     // Sur smartphone, les cartes KPI sont plus petites : on reduit l'ombre
@@ -806,13 +824,13 @@ class _KpiCardState extends State<_KpiCard> {
                   const Positioned.fill(
                     child: MarbleBackground(dark: false),
                   ),
-                if (kpiDark)
-                  // Sombre (validé) : illustration plein cadre, socle 3D calé
-                  // en bas via imageAlignment / imageScale.
+                if (fullBleed)
+                  // Illustration plein cadre (thème sombre validé, ou thème
+                  // clair d'un KPI dont l'asset "light" avait un fond clair).
                   // Pour imageScale != 1.0, on utilise Transform.scale SANS
                   // ClipRect parent (AnimatedContainer a déjà Clip.antiAlias).
                   Positioned.fill(
-                    child: def.imageScale != 1.0
+                    child: (kpiDark && def.imageScale != 1.0)
                         ? Transform.scale(
                             scale: def.imageScale,
                             alignment: def.imageAlignment,
@@ -831,17 +849,18 @@ class _KpiCardState extends State<_KpiCard> {
                           ),
                   )
                 else
-                  // Clair : illustration détourée (fond transparent) posée en
-                  // bas à droite SUR la texture émeraude, sans zoom.
+                  // Clair : illustration détourée (fond transparent) posée SUR
+                  // la texture émeraude, alignée selon le KPI (centrée pour
+                  // clients / fournisseurs, agrandie).
                   Align(
-                    alignment: Alignment.bottomRight,
+                    alignment: def.lightAlign,
                     child: FractionallySizedBox(
                       widthFactor: def.lightWidthFactor,
                       heightFactor: 1.0,
                       child: Image.asset(
                         kpiImg,
                         fit: BoxFit.contain,
-                        alignment: Alignment.bottomRight,
+                        alignment: def.lightAlign,
                         filterQuality: FilterQuality.medium,
                       ),
                     ),
