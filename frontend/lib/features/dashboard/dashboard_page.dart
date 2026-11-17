@@ -636,6 +636,7 @@ class _DashboardPageState extends State<DashboardPage> {
           // cheveux / le visage sont conserves.
           lightFullBleed: true,
           lightImage: 'assets/images/kpi_bg_light_7.webp',
+          lightScale: 1.15,
           imageScale: 0.85,
           imageAlignment: const Alignment(0.25, 0.95)),
       _KpiDef(
@@ -718,6 +719,11 @@ class _KpiDef {
   /// (BoxFit.cover) comme en thème sombre.
   final bool lightFullBleed;
 
+  /// Mise à l'échelle de l'illustration pleine cadre en THÈME CLAIR
+  /// (defaut 1.0 = taille native). Utilisée pour « agrandir » une
+  /// illustration sans toucher le rendu du thème sombre.
+  final double lightScale;
+
   /// Asset spécifique pour le THÈME CLAIR (sinon l'asset `image` est dérivé
   /// en `kpi_bg_light_N`). Utilisé quand l'asset d'origine a un fond clair
   /// opaque : on fournit une version détourée (fond transparent).
@@ -740,6 +746,7 @@ class _KpiDef {
     this.lightWidthFactor = 0.62,
     this.lightAlign = Alignment.bottomRight,
     this.lightFullBleed = false,
+    this.lightScale = 1.0,
     this.lightImage,
   });
 }
@@ -837,9 +844,9 @@ class _KpiCardState extends State<_KpiCard> {
                   // Pour imageScale != 1.0, on utilise Transform.scale SANS
                   // ClipRect parent (AnimatedContainer a déjà Clip.antiAlias).
                   Positioned.fill(
-                    child: def.imageScale != 1.0
+                    child: (kpiDark ? def.imageScale : def.lightScale) != 1.0
                         ? Transform.scale(
-                            scale: def.imageScale,
+                            scale: (kpiDark ? def.imageScale : def.lightScale),
                             alignment: def.imageAlignment,
                             child: Image.asset(
                               kpiImg,
