@@ -6,21 +6,16 @@ import '../theme/colors.dart';
 
 /// ============================================================
 /// FONDS « ÉMERAUDE MÉTALLISÉE ORÉE » (thème clair) et
-/// « GRAPHITE MÉTAL BROSSÉ » (thème sombre) — dessinés par code.
+/// « GRAPHITE MÉTAL BROSSÉ » (thème sombre).
 ///
 /// La texture du thème clair est votre image « Fond émeraude métallisé
-/// aux accents dorés » (assets/images/emerald_principale.png) ; le thème
-/// sombre conserve le graphite métal brossé.
+/// aux accents dorés » (assets/images/emerald_principale.png) seule ;
+/// le thème sombre conserve le graphite métal brossé.
 ///
 /// Les deux fonds sont FONCÉS : le texte doit être CLAIR (champagne /
 /// blanc) par-dessus. `lightText` est exposé via un InheritedWidget pour
 /// que les enfants (titres, libellés, séparateurs) s'adaptent
 /// automatiquement.
-///
-/// Le thème clair est PEINT (CustomPainter déterministe, graine fixe)
-/// et mis en cache (shouldRepaint => false + RepaintBoundary) ; l'image
-/// est superposée par-dessus (errorBuilder => repli peint si l'asset
-/// échoue à charger).
 /// ============================================================
 class MarbleBackground extends StatelessWidget {
   final Widget? child;
@@ -65,17 +60,14 @@ class MarbleBackground extends StatelessWidget {
         child: RepaintBoundary(
           child: Stack(
             children: [
-              // Calque texture peinte (repli si l'asset échoue).
-              Positioned.fill(
-                child: CustomPaint(
-                  isComplex: true,
-                  willChange: false,
-                  painter:
-                      dark
-                          ? _GraphiteBrushedPainter(opacity: opacity)
-                          : _EmeraldPainted(opacity: opacity),
+              if (dark)
+                Positioned.fill(
+                  child: CustomPaint(
+                    isComplex: true,
+                    willChange: false,
+                    painter: _GraphiteBrushedPainter(opacity: opacity),
+                  ),
                 ),
-              ),
               // Calque image (émeraude ou graphite).
               Positioned.fill(
                 child: Image.asset(
@@ -124,117 +116,6 @@ class _MarbleBackgroundScope extends InheritedWidget {
   @override
   bool updateShouldNotify(covariant _MarbleBackgroundScope old) =>
       old.data != data;
-}
-
-/// Peintre de repli thème clair (émeraude foncée) : base émeraude, veines
-/// dorées discrètes, léger voile lumineux — utilisé uniquement si
-/// l'asset PNG émeraude échoue à charger.
-class _EmeraldPainted extends CustomPainter {
-  final double opacity;
-  const _EmeraldPainted({required this.opacity});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (size.isEmpty) return;
-
-    // 1) Base émeraude foncée (jamais blanc pur).
-    final base = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Color(0xFF0B2A1E),
-          Color(0xFF103A28),
-          Color(0xFF0B2A1E),
-        ],
-      ).createShader(Offset.zero & size);
-    final rect = Offset.zero & size;
-    canvas.drawRect(rect, base);
-
-    // 2) Voiles lumineux discrets (grandes zones molles).
-    final rng = math.Random(7);
-    for (var i = 0; i < 5; i++) {
-      final c = Offset(
-        rng.nextDouble() * size.width,
-        rng.nextDouble() * size.height,
-      );
-      final r = size.shortestSide * (0.35 + rng.nextDouble() * 0.45);
-      final veil = Paint()
-        ..shader = RadialGradient(
-          colors: [
-            AppColors.champagne.withValues(alpha: 0.12 * opacity),
-            AppColors.champagne.withValues(alpha: 0.0),
-          ],
-        ).createShader(Rect.fromCircle(center: c, radius: r));
-      canvas.drawCircle(c, r, veil);
-    }
-
-    // 3) Veines : fines diagonales irrégulières, très discrètes.
-    final veinCount = 26;
-    for (var i = 0; i < veinCount; i++) {
-      final start = Offset(
-        rng.nextDouble() * size.width,
-        rng.nextDouble() * size.height,
-      );
-      final path = Path()..moveTo(start.dx, start.dy);
-      var cur = start;
-      var dir = (rng.nextDouble() - 0.5) > 0 ? 1.0 : -1.0;
-      final segs = 3 + rng.nextInt(4);
-      for (var s = 0; s < segs; s++) {
-        final len = size.shortestSide * (0.08 + rng.nextDouble() * 0.22);
-        final angle =
-            (-math.pi / 4 + dir * 0.4) + (rng.nextDouble() - 0.5) * 0.9;
-        final mid = Offset(
-          cur.dx +
-              len * 0.5 * math.cos(angle) +
-              (rng.nextDouble() - 0.5) * len * 0.35,
-          cur.dy +
-              len * 0.5 * math.sin(angle) +
-              (rng.nextDouble() - 0.5) * len * 0.35,
-        );
-        cur = Offset(
-          cur.dx + len * math.cos(angle),
-          cur.dy + len * math.sin(angle),
-        );
-        path.quadraticBezierTo(mid.dx, mid.dy, cur.dx, cur.dy);
-      }
-
-      // Halo doré puis trait fin.
-      canvas.drawPath(
-        path,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3.0
-          ..color = AppColors.champagne.withValues(alpha: 0.25 * opacity)
-          ..strokeCap = StrokeCap.round,
-      );
-      final shade =
-          i % 5 == 0 ? const Color(0xFF8A6A1D) : const Color(0xFFB4881F);
-      canvas.drawPath(
-        path,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = i % 5 == 0 ? 1.0 : 0.7
-          ..color = shade.withValues(alpha: 0.22 * opacity)
-          ..strokeCap = StrokeCap.round,
-      );
-    }
-
-    // 4) Micro-grain : points très fins, à peine perceptibles.
-    final grain = Paint()
-      ..color = const Color(0xFF5F7A64).withValues(alpha: 0.06 * opacity);
-    for (var i = 0; i < 140; i++) {
-      canvas.drawCircle(
-        Offset(rng.nextDouble() * size.width, rng.nextDouble() * size.height),
-        0.6,
-        grain,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _EmeraldPainted oldDelegate) =>
-      oldDelegate.opacity != opacity;
 }
 
 /// Peintre graphite métal brossé : base #20272D, stries horizontales
