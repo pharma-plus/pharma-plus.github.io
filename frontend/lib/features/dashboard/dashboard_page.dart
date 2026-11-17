@@ -43,7 +43,7 @@ Color dashTextSoft(BuildContext c) => Colors.white70;
 
 /// Panneaux translucides : la texture (émeraude / graphite) reste visible.
 Color dashPanel(BuildContext c) =>
-    dashDarkUi(c) ? AppColors.graphite : Colors.black.withValues(alpha: 0.26);
+    dashDarkUi(c) ? AppColors.graphite : Colors.black.withValues(alpha: 0.55);
 
 /// ============================================================
 /// DASHBOARD PHARMA+ — reconstruction IDENTIQUE à la maquette :
@@ -304,12 +304,6 @@ class _DashboardPageState extends State<DashboardPage> {
         final vh = MediaQuery.sizeOf(context).height;
         final compact = vh < 900;
         return Stack(children: [
-          // Texture ÉMERAUDE (thème clair) / GRAPHITE (sombre) derrière TOUT
-          // le dashboard : l'ancien fond clair des cartes/illustrations/
-          // graphiques disparaît au profit de la texture de la charte.
-          Positioned.fill(
-            child: MarbleBackground(dark: dashDark(context)),
-          ),
           Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Expanded(
               child: Column(
@@ -456,11 +450,6 @@ class _DashboardPageState extends State<DashboardPage> {
       key: _scaffoldKey,
       backgroundColor: Colors.transparent,
       body: Stack(children: [
-        // Texture ÉMERAUDE (thème clair) / GRAPHITE (sombre) derrière tout
-        // le dashboard mobile (mêmes fonds que la version PC).
-        Positioned.fill(
-          child: MarbleBackground(dark: dashDark(context)),
-        ),
         Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           _MobileTopBar(
             onMenu: _openMenuDrawer,
@@ -635,9 +624,8 @@ class _DashboardPageState extends State<DashboardPage> {
           badge: Icons.person_rounded,
           badgeColor: AppColors.emeraldInk,
           module: 'employees',
-          // Illustration employe : reduite pour ne pas toucher l'icone/badge,
-          // surtout en sombre (arriere-plan plus large). Clair: largeur reduite.
-          lightWidthFactor: 0.50,
+          // Illustration employe : legerement reculee pour ne pas toucher
+          // l'icone / le badge.
           imageScale: 0.85,
           imageAlignment: const Alignment(0.25, 0.95)),
       _KpiDef(
@@ -710,10 +698,6 @@ class _KpiDef {
   /// Ex: Alignment(0, 0.85) montre plus le bas que bottomCenter (0, 1.0).
   final Alignment imageAlignment;
 
-  /// Largeur relative de l'illustration en theme clair (defaut 0.62).
-  /// Permet de reduire une illustration trop large (ex: employe).
-  final double lightWidthFactor;
-
   /// Clé de module visible (null = toujours visible).
   final String? module;
   const _KpiDef({
@@ -728,7 +712,6 @@ class _KpiDef {
     this.imageScale = 1.0,
     this.imageAlignment = Alignment.bottomCenter,
     this.module,
-    this.lightWidthFactor = 0.62,
   });
 }
 
@@ -757,12 +740,11 @@ class _KpiCardState extends State<_KpiCard> {
 
   @override
   Widget build(BuildContext context) {
-    // Illustration selon le thème : graphite (sombre, validé) /
-    // marbre argenté (thème principal clair).
-    final bool kpiDark = dashDark(context);
-    final String kpiImg = kpiDark
-        ? def.image
-        : def.image.replaceFirst('kpi_bg_', 'kpi_bg_light_');
+    // Illustration OFFICIELLE unique (graphite / 3D) : les anciennes
+    // illustrations "light" contenaient un fond clair opaque (l'ancien fond
+    // de la maquette) — elles sont abandonnées. Les deux thèmes utilisent
+    // donc l'illustration plein cadre, lisible avec les écritures or.
+    final String kpiImg = def.image;
     // Sur smartphone, les cartes KPI sont plus petites : on reduit l'ombre
     // (blur/offset) pour eviter qu'elle deborde en dehors de la carte et
     // chevauche l'illustration / les cartes voisines.
@@ -803,57 +785,37 @@ class _KpiCardState extends State<_KpiCard> {
               // Le fond 3D est la seule illustration de la carte. Les anciens
               // assets kpi/kpi_N.webp (cartons avec image au premier plan) ne
               // sont volontairement plus composés par-dessus.
-              // Fond de carte selon le thème : graphite (sombre) /
-              // marbre argenté clair (quasi identique au fond de la maquette,
-              // ce qui fond les bords des illustrations détourées).
-              color: kpiDark
-                  ? AppColors.graphiteDark
-                  : Colors.black.withValues(alpha: 0.30),
+              // Carte FONCÉE dans les deux thèmes : l'ancien fond clair des
+              // illustrations ne réapparaît plus, les écritures or restent
+              // lisibles (le fond officiel pharmacie reste derrière la carte).
+              color: AppColors.graphiteDark,
             ),
             child: Stack(
               fit: StackFit.expand,
               children: [
-                if (kpiDark)
-                  // Sombre (validé) : illustration plein cadre, socle 3D calé
-                  // en bas via imageAlignment / imageScale.
-                  // Pour imageScale != 1.0, on utilise Transform.scale SANS
-                  // ClipRect parent (AnimatedContainer a déjà Clip.antiAlias).
-                  Positioned.fill(
-                    child: def.imageScale != 1.0
-                        ? Transform.scale(
-                            scale: def.imageScale,
-                            alignment: def.imageAlignment,
-                            child: Image.asset(
-                              kpiImg,
-                              fit: BoxFit.cover,
-                              alignment: def.imageAlignment,
-                              filterQuality: FilterQuality.low,
-                            ),
-                          )
-                        : Image.asset(
+                // Illustration plein cadre (socle 3D calé en bas via
+                // imageAlignment / imageScale). Pour imageScale != 1.0, on
+                // utilise Transform.scale SANS ClipRect parent
+                // (AnimatedContainer a déjà Clip.antiAlias).
+                Positioned.fill(
+                  child: def.imageScale != 1.0
+                      ? Transform.scale(
+                          scale: def.imageScale,
+                          alignment: def.imageAlignment,
+                          child: Image.asset(
                             kpiImg,
                             fit: BoxFit.cover,
                             alignment: def.imageAlignment,
                             filterQuality: FilterQuality.low,
                           ),
-                  )
-                else
-                  // Clair : illustrations détourées de la maquette (fond
-                  // transparent). On les pose ENTIÈRES en bas à droite, sans
-                  // zoom ni recadrage, comme sur la maquette.
-                  Align(
-                    alignment: Alignment.bottomRight,
-                    child: FractionallySizedBox(
-                      widthFactor: def.lightWidthFactor,
-                      heightFactor: 1.0,
-                      child: Image.asset(
-                        kpiImg,
-                        fit: BoxFit.contain,
-                        alignment: Alignment.bottomRight,
-                        filterQuality: FilterQuality.medium,
-                      ),
-                    ),
-                  ),
+                        )
+                      : Image.asset(
+                          kpiImg,
+                          fit: BoxFit.cover,
+                          alignment: def.imageAlignment,
+                          filterQuality: FilterQuality.low,
+                        ),
+                ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(14, 11, 14, 8),
                   child: Column(
@@ -978,6 +940,9 @@ class _MobileTopBar extends StatelessWidget {
         : 'Admin';
     final textColor = MarbleBackground.of(context)?.textColor ?? Colors.white;
     return MarbleBackground(
+      // Zone posée sur le fond officiel (image pharmacie) : pas de texture,
+      // la barre est translucide.
+      showTexture: false,
       dark: dashDark(context),
       child: Container(
         height: 56,
@@ -985,7 +950,7 @@ class _MobileTopBar extends StatelessWidget {
         decoration: BoxDecoration(
             color: dashDark(context)
                 ? AppColors.surfaceDark
-                : Colors.black.withValues(alpha: 0.40),
+                : Colors.black.withValues(alpha: 0.55),
             border: Border(
                 bottom: BorderSide(
                     color: dashDark(context)
@@ -1269,6 +1234,8 @@ class _TopBar extends StatelessWidget {
     final isDark = dashDarkUi(context);
     final textColor = MarbleBackground.of(context)?.textColor ?? Colors.white;
     return MarbleBackground(
+      // Zone posée sur le fond officiel (image pharmacie) : pas de texture.
+      showTexture: false,
       dark: dashDark(context),
       child: Container(
         height: 62,
@@ -1276,7 +1243,7 @@ class _TopBar extends StatelessWidget {
         decoration: BoxDecoration(
             color: dashDark(context)
                 ? AppColors.surfaceDark
-                : Colors.black.withValues(alpha: 0.40),
+                : Colors.black.withValues(alpha: 0.55),
             border: Border(
                 bottom: BorderSide(
                     color: dashDark(context)
@@ -1555,13 +1522,16 @@ class _DarkPanel extends StatelessWidget {
     final isDark = dashDarkUi(context);
     final textColor = MarbleBackground.of(context)?.textColor ?? Colors.white;
     return MarbleBackground(
+      // Zone posée sur le fond officiel (image pharmacie) : pas de texture,
+      // seul le voile translucide de la carte reste.
+      showTexture: false,
       dark: dashDark(context),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
             color: dashDark(context)
                 ? AppColors.graphite.withValues(alpha: 0.72)
-                : Colors.black.withValues(alpha: 0.30),
+                : Colors.black.withValues(alpha: 0.55),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
                 color: dashDark(context)

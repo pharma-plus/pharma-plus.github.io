@@ -126,12 +126,16 @@ class MobileBottomBar extends StatelessWidget {
     final textColor = isDark ? AppColors.porcelain : AppColors.champagne;
     return MarbleBackground(
       key: const ValueKey('mobile-bottom-bar'),
+      // Barre = ZONE posée sur le fond officiel (image pharmacie) : voile
+      // foncé translucide en thème clair, texture graphite en sombre.
+      showTexture: isDark,
       dark: isDark,
       child: SafeArea(
         top: false,
         child: Container(
-          decoration: const BoxDecoration(
-            border: Border(
+          decoration: BoxDecoration(
+            color: isDark ? null : Colors.black.withValues(alpha: 0.55),
+            border: const Border(
               top: BorderSide(color: AppColors.goldBorder),
             ),
           ),

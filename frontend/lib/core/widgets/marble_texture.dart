@@ -28,12 +28,19 @@ class MarbleBackground extends StatelessWidget {
   /// graphite foncés). Défaut true car les deux textures sont foncées.
   final bool lightText;
 
+  /// Si false, AUCUNE texture n'est peinte : seuls le scope de texte et le
+  /// style de texte sont appliqués. Utilisé pour les ZONES posées sur le
+  /// fond officiel (image pharmacie) — la zone reste translucide et laisse
+  /// voir le fond officiel.
+  final bool showTexture;
+
   const MarbleBackground({
     super.key,
     this.child,
     this.dark = false,
     this.opacity = 1.0,
     this.lightText = true,
+    this.showTexture = true,
   });
 
   /// Récupère la configuration de texte du `MarbleBackground` ancêtre.
@@ -63,13 +70,15 @@ class MarbleBackground extends StatelessWidget {
               // Fond de repli FONCÉ (émeraude / graphite) : même si l'image
               // de texture tarde ou échoue, aucun flash blanc et les textes
               // clairs restent lisibles.
-              Positioned.fill(
-                child: ColoredBox(
-                  color:
-                      dark ? const Color(0xFF101314) : const Color(0xFF0B2A1E),
+              if (showTexture)
+                Positioned.fill(
+                  child: ColoredBox(
+                    color: dark
+                        ? const Color(0xFF101314)
+                        : const Color(0xFF0B2A1E),
+                  ),
                 ),
-              ),
-              if (dark)
+              if (showTexture && dark)
                 Positioned.fill(
                   child: CustomPaint(
                     isComplex: true,
@@ -77,17 +86,19 @@ class MarbleBackground extends StatelessWidget {
                     painter: _GraphiteBrushedPainter(opacity: opacity),
                   ),
                 ),
-              // Calque image (émeraude ou graphite).
-              Positioned.fill(
-                child: Image.asset(
-                  dark
-                      ? 'assets/images/graphite_principale.webp'
-                      : 'assets/images/emerald_principale.png',
-                  fit: BoxFit.cover,
-                  filterQuality: FilterQuality.low,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              // Calque image (émeraude ou graphite) — masqué pour une ZONE
+              // posée sur le fond officiel (showTexture: false).
+              if (showTexture)
+                Positioned.fill(
+                  child: Image.asset(
+                    dark
+                        ? 'assets/images/graphite_principale.webp'
+                        : 'assets/images/emerald_principale.png',
+                    fit: BoxFit.cover,
+                    filterQuality: FilterQuality.low,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
                 ),
-              ),
               // Contenu : contraintes libres (shrink-wrap OK dans les
               // barres compactes).
               if (child != null) child!,
