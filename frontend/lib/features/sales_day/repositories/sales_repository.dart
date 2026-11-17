@@ -134,7 +134,7 @@ class SalesRepository {
             paidAmount: 0,
             outstandingAmount: 0,
             refundedAmount: null,
-            costTotal: 0,
+            costTotal: null,
             totalRows: 0,
           ),
           hourly: const [],
@@ -193,6 +193,59 @@ class SalesRepository {
         limit: limit,
       ),
       null,
+    );
+  }
+
+  /// Charge TOUTES les transactions de la période pour les agrégations et
+  /// les exports. La pagination serveur existante est parcourue page par
+  /// page (aucune modification backend). En cas d'erreur ou de limite atteinte,
+  /// le résultat est signalé comme incomplet au lieu d'être tronqué en silence.
+  Future<(List<SalesTransaction>?, SalesDayFailure?, bool)> loadAllTransactions(
+    SalesDateRange range, {
+    required int offsetMinutes,
+    String status = '',
+    String search = '',
+  }) async {
+    const pageSize = 200;
+    const maxPages = 100; // garde-fou : 20 000 lignes maximum
+    final rows = <SalesTransaction>[];
+    final seen = <String>{};
+    int total = 0;
+    for (var page = 1; page <= maxPages; page++) {
+      final (res, err) = await loadTransactions(
+        range,
+        SalesTransactionQuery(
+          page: page,
+          limit: pageSize,
+          status: status,
+          search: search,
+        ),
+        offsetMinutes: offsetMinutes,
+      );
+      if (res == null) {
+        return (
+          null,
+          err ??
+              const SalesDayFailure(
+                kind: SalesDayErrorKind.unknown,
+                message: 'Chargement complet indisponible',
+                technical: 'réponse vide',
+              ),
+          false
+        );
+      }
+      total = res.totalServer;
+      if (res.rows.isEmpty) break;
+      for (final row in res.rows) {
+        if (seen.add(row.id)) rows.add(row);
+      }
+      if (rows.length >= total || res.rows.length < pageSize) break;
+    }
+    final complete = rows.length >= total;
+    return (
+      rows,
+      null,
+      complete,
     );
   }
 

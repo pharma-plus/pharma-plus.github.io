@@ -13,13 +13,12 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/utils/format.dart';
-import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/marble_texture.dart';
 import '../controllers/sales_day_controller.dart';
 import '../models/sales_day_model.dart';
 import '../services/sales_analytics_service.dart';
-import '../services/sales_export_service.dart';
 import '../widgets/sales_date_filter.dart';
+import '../widgets/sales_design_system.dart';
 import '../widgets/sales_hourly_chart.dart';
 import '../widgets/sales_kpi_section.dart';
 import '../widgets/sales_navigation.dart';
@@ -461,17 +460,20 @@ class SalesDayOverviewPage extends StatefulWidget {
 }
 
 class _SalesDayOverviewPageState extends State<SalesDayOverviewPage> {
+  late final VoidCallback _listener;
+
   @override
   void initState() {
     super.initState();
-    widget.analytics.addListener(() {
+    _listener = () {
       if (mounted) setState(() {});
-    });
+    };
+    widget.analytics.addListener(_listener);
   }
 
   @override
   void dispose() {
-    widget.analytics.removeListener(() {});
+    widget.analytics.removeListener(_listener);
     super.dispose();
   }
 
@@ -496,7 +498,13 @@ class _SalesDayOverviewPageState extends State<SalesDayOverviewPage> {
           onSelect: (p) => c.setPeriod(p),
           onCustomRange: (r) => c.setCustomRange(r),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: SalesDesign.spacingMD),
+        SalesSectionHeader(
+          title: 'Vue générale',
+          subtitle:
+              '${c.periodLabelText} · KPI et montants réels · source Supabase',
+        ),
+        const SizedBox(height: SalesDesign.spacingSM),
         SalesKpiSection(
           kpis: kpis ??
               const SalesDayKpis(
@@ -511,7 +519,7 @@ class _SalesDayOverviewPageState extends State<SalesDayOverviewPage> {
                 paidAmount: 0,
                 outstandingAmount: 0,
                 refundedAmount: null,
-                costTotal: 0,
+                costTotal: null,
                 totalRows: 0,
               ),
           grossDeltaPct: c.grossDelta.pct,
@@ -529,50 +537,45 @@ class _SalesDayOverviewPageState extends State<SalesDayOverviewPage> {
               ),
             ),
           ),
-        const SizedBox(height: 20),
-        GlassCard(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(4, 4, 8, 4),
-            child: SalesHourlyChart(hourly: hourly),
+        const SizedBox(height: SalesDesign.spacingLG),
+        SalesPanel(
+          padding: const EdgeInsets.fromLTRB(8, 12, 12, 8),
+          child: SalesHourlyChart(
+            hourly: hourly,
+            height: SalesDesign.chartHourlyHeight,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: SalesDesign.spacingMD),
         LayoutBuilder(builder: (context, box) {
           final wide = box.maxWidth >= 760;
           final charts = <Widget>[
-            GlassCard(
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                child: SalesPaymentChart(slices: payments),
-              ),
+            SalesPanel(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+              child: SalesPaymentChart(slices: payments),
             ),
-            GlassCard(
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SalesProductRanking(
-                      title: 'Top 10 par quantité',
-                      products: topQty,
-                      sortBy: 'qty',
-                    ),
-                    const SizedBox(height: 16),
-                    SalesProductRanking(
-                      title: 'Top 10 par CA',
-                      products: topRev,
-                      sortBy: 'rev',
-                    ),
-                    const SizedBox(height: 16),
-                    SalesProductRanking(
-                      title: 'Top 10 par bénéfice',
-                      products: topProfit,
-                      sortBy: 'profit',
-                    ),
-                  ],
-                ),
+            SalesPanel(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SalesProductRanking(
+                    title: 'Top 10 par quantité',
+                    products: topQty,
+                    sortBy: 'qty',
+                  ),
+                  const SizedBox(height: SalesDesign.spacingMD),
+                  SalesProductRanking(
+                    title: 'Top 10 par CA',
+                    products: topRev,
+                    sortBy: 'rev',
+                  ),
+                  const SizedBox(height: SalesDesign.spacingMD),
+                  SalesProductRanking(
+                    title: 'Top 10 par bénéfice',
+                    products: topProfit,
+                    sortBy: 'profit',
+                  ),
+                ],
               ),
             ),
           ];
@@ -594,16 +597,14 @@ class _SalesDayOverviewPageState extends State<SalesDayOverviewPage> {
             ],
           );
         }),
-        const SizedBox(height: 16),
-        GlassCard(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-            child: SalesTransactionsTable(
-              controller: c,
-              onSearch: (v) => c.setSearch(v),
-              onStatus: (s) => c.setStatus(s),
-              onLoadMore: () => c.loadMore(),
-            ),
+        const SizedBox(height: SalesDesign.spacingMD),
+        SalesPanel(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+          child: SalesTransactionsTable(
+            controller: c,
+            onSearch: (v) => c.setSearch(v),
+            onStatus: (s) => c.setStatus(s),
+            onLoadMore: () => c.loadMore(),
           ),
         ),
         const SizedBox(height: 10),
@@ -630,18 +631,30 @@ class SalesAnalysisPage extends StatefulWidget {
 }
 
 class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
+  late final VoidCallback _listener;
+
   @override
   void initState() {
     super.initState();
-    widget.analytics.addListener(() {
+    _listener = () {
       if (mounted) setState(() {});
-    });
+    };
+    widget.analytics.addListener(_listener);
   }
 
   @override
   void dispose() {
-    widget.analytics.removeListener(() {});
+    widget.analytics.removeListener(_listener);
     super.dispose();
+  }
+
+  void _requestFull() {
+    final c = widget.analytics;
+    if (c.analytics == null || c.fullLoading) return;
+    if (c.fullRows.isNotEmpty || c.fullError != null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) c.ensureFullTransactions();
+    });
   }
 
   @override
@@ -650,6 +663,9 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
     final kpis = c.analytics?.kpis;
     final hourly = c.analytics?.hourly ?? const <SalesHourBucket>[];
     final tx = c.txRows;
+    _requestFull();
+    final quantities =
+        c.fullRows.fold<int>(0, (s, t) => s + (t.itemsCount?.toInt() ?? 0));
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 30),
@@ -661,104 +677,76 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
           onSelect: (p) => c.setPeriod(p),
           onCustomRange: (r) => c.setCustomRange(r),
         ),
-        const SizedBox(height: 14),
-        GlassCard(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Résumé analytique',
-                  style: TextStyle(
-                    color: AppColors.inkDark,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _kpiItem(
-                        'Tickets',
-                        '${kpis?.salesCount ?? 0}',
-                        AppColors.sageGreenInk,
-                      ),
-                    ),
-                    Expanded(
-                      child: _kpiItem(
-                        'CA TTC',
-                        Fmt.number(kpis?.grossRevenue ?? 0, decimals: 2),
-                        AppColors.champagneInk,
-                      ),
-                    ),
-                    Expanded(
-                      child: _kpiItem(
-                        'Panier moyen',
-                        Fmt.number(kpis?.averageBasket ?? 0, decimals: 2),
-                        AppColors.cardBlue,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _kpiItem(
-                        'Quantités',
-                        '${tx.fold<int>(0, (s, t) => s + (t.itemsCount?.toInt() ?? 0))}',
-                        AppColors.cardPurple,
-                      ),
-                    ),
-                    Expanded(
-                      child: _kpiItem(
-                        'CA HT',
-                        Fmt.number(kpis?.netRevenue ?? 0, decimals: 2),
-                        AppColors.cardAmber,
-                      ),
-                    ),
-                    Expanded(
-                      child: _kpiItem(
-                        'Remises',
-                        Fmt.number(kpis?.discountsTotal ?? 0, decimals: 2),
-                        AppColors.pharmaWarning,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+        const SizedBox(height: SalesDesign.spacingMD),
+        SalesSectionHeader(
+          title: 'Analyse des ventes',
+          subtitle: '${c.periodLabelText} · indicateurs et répartition horaire',
         ),
-        const SizedBox(height: 16),
-        GlassCard(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(4, 4, 8, 4),
-            child: SalesHourlyChart(hourly: hourly),
-          ),
-        ),
-        const SizedBox(height: 20),
-        const Text(
-          'Dernières transactions',
-          style: TextStyle(
-            color: AppColors.inkDark,
-            fontWeight: FontWeight.w700,
-            fontSize: 16,
-          ),
-        ),
-        const SizedBox(height: 8),
-        if (tx.isEmpty)
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.all(24),
-              child: Text(
-                'Aucune transaction sur la période',
-                style: TextStyle(color: AppColors.pharmaMuted),
+        const SizedBox(height: SalesDesign.spacingSM),
+        SalesPanel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SalesSectionHeader(
+                title: 'Résumé analytique',
+                subtitle: '${c.fullScopeLabel} · montants MAD',
               ),
-            ),
-          )
+              const SizedBox(height: SalesDesign.spacingMD),
+              Wrap(
+                spacing: SalesDesign.spacingLG,
+                runSpacing: SalesDesign.spacingSM,
+                children: [
+                  SalesMetric(
+                      label: 'Tickets',
+                      value: '${kpis?.salesCount ?? 0}',
+                      color: AppColors.sageGreenInk),
+                  SalesMetric(
+                      label: 'CA TTC',
+                      value: Fmt.number(kpis?.grossRevenue ?? 0, decimals: 2),
+                      unit: 'MAD',
+                      color: AppColors.champagneInk),
+                  SalesMetric(
+                      label: 'Panier moyen',
+                      value: Fmt.number(kpis?.averageBasket ?? 0, decimals: 2),
+                      unit: 'MAD',
+                      color: AppColors.cardBlue),
+                  SalesMetric(
+                      label: 'Quantités',
+                      value: c.fullLoading ? '…' : Fmt.number(quantities),
+                      color: AppColors.cardPurple,
+                      hint: c.fullComplete ? null : 'jeu complet indisponible'),
+                  SalesMetric(
+                      label: 'CA HT',
+                      value: Fmt.number(kpis?.netRevenue ?? 0, decimals: 2),
+                      unit: 'MAD',
+                      color: AppColors.cardAmber),
+                  SalesMetric(
+                      label: 'Remises',
+                      value: Fmt.number(kpis?.discountsTotal ?? 0, decimals: 2),
+                      unit: 'MAD',
+                      color: AppColors.pharmaWarning),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: SalesDesign.spacingMD),
+        SalesPanel(
+          padding: const EdgeInsets.fromLTRB(8, 12, 12, 8),
+          child: SalesHourlyChart(
+            hourly: hourly,
+            height: SalesDesign.chartHourlyHeightDetail,
+            title: 'Répartition horaire des ventes',
+          ),
+        ),
+        const SizedBox(height: SalesDesign.spacingLG),
+        SalesSectionHeader(
+          title: 'Dernières transactions',
+          subtitle: '10 premières lignes de la période · triées par date API',
+        ),
+        const SizedBox(height: SalesDesign.spacingSM),
+        if (tx.isEmpty)
+          const SalesEmptyState(message: 'Aucune transaction sur la période')
         else ...[
           for (final t in tx.take(10))
             Padding(
@@ -812,31 +800,6 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
               ),
             ),
         ],
-      ],
-    );
-  }
-
-  Widget _kpiItem(String label, String value, Color color) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppColors.pharmaMuted,
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            color: color,
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
       ],
     );
   }

@@ -53,6 +53,24 @@ class SalesDayController extends ChangeNotifier {
 
   Timer? _searchDebounce;
 
+  // --- Jeu complet pour agrégations et exports (hors pagination UI) ----
+  List<SalesTransaction> fullRows = const <SalesTransaction>[];
+  bool fullLoading = false;
+  bool fullComplete = false;
+  SalesDayFailure? fullError;
+  String? _fullLoadedKey;
+  Future<List<SalesTransaction>?>? _fullFuture;
+
+  /// Le jeu complet est périmétré par la PÉRIODE SEULE : les filtres
+  /// `txStatus` / `_search` appartiennent exclusivement au tableau de la
+  /// vue générale et ne doivent pas restreindre employés/retours/exports.
+  String get _fullKey =>
+      '${range.start.toIso8601String()}|${range.end.toIso8601String()}';
+
+  /// Libellé explicite du périmètre affiché dans l'UI et les exports.
+  String get fullScopeLabel =>
+      'Période ${periodLabelText} complète · aucun filtre de statut ni de recherche appliqué';
+
   SalesDateRange get range =>
       SalesAnalyticsService.rangeFor(period, custom: custom);
 
@@ -100,6 +118,10 @@ class SalesDayController extends ChangeNotifier {
     previousKpis = null;
     txRows.clear();
     txTotal = 0;
+    _fullLoadedKey = null;
+    fullRows = const <SalesTransaction>[];
+    fullComplete = false;
+    fullError = null;
     _notify();
     final r = range;
     final offsetMinutes = DateTime.now().timeZoneOffset.inMinutes;
@@ -229,6 +251,50 @@ class SalesDayController extends ChangeNotifier {
       const Duration(milliseconds: 400),
       () => unawaited(_refreshTxOnly()),
     );
+  }
+
+  // --------------------------------------------------------------------
+  // Transactions complètes (une seule fois par combinaison période/filtres)
+  // --------------------------------------------------------------------
+  /// Retourne toutes les transactions de la période, SANS filtre de statut
+  /// ni de recherche (pagination serveur parcourue intégralement), pour les
+  /// agrégations et les exports. « fullComplete = false » signale une
+  /// troncature : l'appelant doit refuser l'export plutôt que de produire
+  /// un document incomplet.
+  Future<List<SalesTransaction>?> ensureFullTransactions() {
+    final key = _fullKey;
+    if (_fullLoadedKey == key && fullError == null) {
+      return Future.value(fullRows);
+    }
+    final pending = _fullFuture;
+    if (pending != null) return pending;
+    final future = _loadFullTransactions(key);
+    _fullFuture = future;
+    return future;
+  }
+
+  Future<List<SalesTransaction>?> _loadFullTransactions(String key) async {
+    fullLoading = true;
+    fullError = null;
+    _notify();
+    try {
+      final (rows, err, complete) = await _repo.loadAllTransactions(
+        range,
+        offsetMinutes: DateTime.now().timeZoneOffset.inMinutes,
+        // Périmètre explicite et indépendant des filtres du tableau.
+        status: SalesTxFilter.all,
+        search: '',
+      );
+      fullRows = rows ?? const <SalesTransaction>[];
+      fullComplete = complete;
+      fullError = err;
+      if (err == null) _fullLoadedKey = key;
+      return rows;
+    } finally {
+      fullLoading = false;
+      _fullFuture = null;
+      _notify();
+    }
   }
 
   /// Note de couverture honnête (vide = tout est inclus).

@@ -161,6 +161,138 @@ class SalesProductRanking extends StatelessWidget {
     final pct = (value / maxVal).clamp(0.0, 1.0);
     final isMedal = rank <= 3;
 
+    // Sans callback, la ligne est une présentation pure : aucun InkWell
+    // ne doit suggérer une action qui n'existe pas.
+    final content = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Ligne 1 : rang + nom + valeur
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 24,
+                child: Text(
+                  '$rank',
+                  style: TextStyle(
+                    color: isMedal ? _medals[rank - 1] : AppColors.pharmaMuted,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      product.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.inkDark,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (product.dosage != null && product.dosage!.isNotEmpty)
+                      Text(
+                        product.dosage!,
+                        style: const TextStyle(
+                          color: AppColors.pharmaMuted,
+                          fontSize: 10,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              // Valeur principale selon le critère
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    sortBy == 'qty'
+                        ? '${product.quantity.toStringAsFixed(0)} u.'
+                        : Fmt.money(
+                            sortBy == 'rev' ? product.revenue : product.profit),
+                    style: const TextStyle(
+                      color: AppColors.champagneInkLight,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    sortBy == 'qty'
+                        ? 'Qté'
+                        : (sortBy == 'rev' ? 'CA' : 'Bénéfice'),
+                    style: const TextStyle(
+                      color: AppColors.pharmaMuted,
+                      fontSize: 9,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          // Graphique horizontal
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: pct,
+              minHeight: 6,
+              color: barColor,
+              backgroundColor: AppColors.pharmaSurface2.withValues(alpha: 0.6),
+            ),
+          ),
+          const SizedBox(height: 3),
+          // Métriques secondaires : quantité / CA / bénéfice + marge
+          Row(
+            children: [
+              Expanded(
+                child: _metricChip(
+                  'Qté',
+                  '${product.quantity.toStringAsFixed(0)}',
+                  AppColors.pharmaMuted,
+                ),
+              ),
+              Expanded(
+                child: _metricChip(
+                  'CA',
+                  Fmt.money(product.revenue),
+                  AppColors.champagneInkLight,
+                ),
+              ),
+              Expanded(
+                child: _metricChip(
+                  'Bénéf.',
+                  Fmt.money(product.profit),
+                  AppColors.cardBlue,
+                ),
+              ),
+              if (product.revenue > 0)
+                Expanded(
+                  child: _metricChip(
+                    'Marge',
+                    '${product.marginPct.toStringAsFixed(0)} %',
+                    product.marginPct >= 0
+                        ? AppColors.sageGreenInk
+                        : AppColors.pharmaDanger,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+
     return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.pharmaSurface.withValues(alpha: 0.6),
@@ -169,144 +301,13 @@ class SalesProductRanking extends StatelessWidget {
       ),
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Ligne 1 : rang + nom + valeur
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 24,
-                      child: Text(
-                        '$rank',
-                        style: TextStyle(
-                          color: isMedal
-                              ? _medals[rank - 1]
-                              : AppColors.pharmaMuted,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            product.displayName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: AppColors.inkDark,
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          if (product.dosage != null &&
-                              product.dosage!.isNotEmpty)
-                            Text(
-                              product.dosage!,
-                              style: const TextStyle(
-                                color: AppColors.pharmaMuted,
-                                fontSize: 10,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    // Valeur principale selon le critère
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          sortBy == 'qty'
-                              ? '${product.quantity.toStringAsFixed(0)} u.'
-                              : Fmt.money(sortBy == 'rev'
-                                  ? product.revenue
-                                  : product.profit),
-                          style: const TextStyle(
-                            color: AppColors.champagneInkLight,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          sortBy == 'qty'
-                              ? 'Qté'
-                              : (sortBy == 'rev' ? 'CA' : 'Bénéfice'),
-                          style: const TextStyle(
-                            color: AppColors.pharmaMuted,
-                            fontSize: 9,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 7),
-                // Graphique horizontal
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: pct,
-                    minHeight: 6,
-                    color: barColor,
-                    backgroundColor:
-                        AppColors.pharmaSurface2.withValues(alpha: 0.6),
-                  ),
-                ),
-                const SizedBox(height: 3),
-                // Métriques secondaires : quantité / CA / bénéfice + marge
-                Row(
-                  children: [
-                    Expanded(
-                      child: _metricChip(
-                        'Qté',
-                        '${product.quantity.toStringAsFixed(0)}',
-                        AppColors.pharmaMuted,
-                      ),
-                    ),
-                    Expanded(
-                      child: _metricChip(
-                        'CA',
-                        Fmt.money(product.revenue),
-                        AppColors.champagneInkLight,
-                      ),
-                    ),
-                    Expanded(
-                      child: _metricChip(
-                        'Bénéf.',
-                        Fmt.money(product.profit),
-                        AppColors.cardBlue,
-                      ),
-                    ),
-                    if (product.revenue > 0)
-                      Expanded(
-                        child: _metricChip(
-                          'Marge',
-                          '${product.marginPct.toStringAsFixed(0)} %',
-                          product.marginPct >= 0
-                              ? AppColors.sageGreenInk
-                              : AppColors.pharmaDanger,
-                        ),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
+        child: onTap == null
+            ? content
+            : InkWell(
+                onTap: onTap,
+                borderRadius: BorderRadius.circular(12),
+                child: content,
+              ),
       ),
     );
   }

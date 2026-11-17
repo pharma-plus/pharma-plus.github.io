@@ -87,7 +87,9 @@ class SalesDayKpis {
   final double? refundedAmount;
 
   /// Coût des marchandises vendues (info marge, exposition honnête).
-  final double costTotal;
+  /// null = information non fournie par l'API : aucune marge ne doit être
+  /// calculée dans ce cas (jamais de coût implicite à 0).
+  final double? costTotal;
 
   /// Toutes les lignes de la fenêtre (tous statuts).
   final int totalRows;
@@ -127,7 +129,7 @@ class SalesDayKpis {
       outstandingAmount: n(j['outstanding_amount']),
       refundedAmount:
           j['refunded_amount'] == null ? null : n(j['refunded_amount']),
-      costTotal: n(j['cost_total']),
+      costTotal: j['cost_total'] == null ? null : n(j['cost_total']),
       totalRows: n(j['total_rows']).round(),
     );
   }
@@ -297,7 +299,7 @@ class SalesDayAnalytics {
       paidAmount: 0,
       outstandingAmount: 0,
       refundedAmount: null,
-      costTotal: 0,
+      costTotal: null,
       totalRows: 0,
     );
     return SalesDayAnalytics(

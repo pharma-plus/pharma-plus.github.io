@@ -9,8 +9,10 @@
 /// ============================================================
 
 import 'package:excel/excel.dart';
+import '../../../core/services/download_file.dart';
 import '../../../core/services/report_export.dart';
 import '../models/sales_day_model.dart';
+import 'sales_financials.dart';
 
 class SalesExportService {
   const SalesExportService._();
@@ -24,10 +26,21 @@ class SalesExportService {
   /// Secteurs identiques à l'affichage écran (affichage == export).
   static List<Map<String, dynamic>> _sections(
     SalesDayAnalytics analytics,
-    List<SalesTransaction> transactions,
-  ) {
+    List<SalesTransaction> transactions, {
+    String periodLabel = '',
+    String scopeLabel = '',
+  }) {
     final k = analytics.kpis;
+    final finance = SalesFinancials.fromKpis(k);
     return <Map<String, dynamic>>[
+      ReportExport.section('Périmètre du rapport', [
+        'Propriété',
+        'Valeur'
+      ], [
+        ['Période', periodLabel.isEmpty ? 'Non précisée' : periodLabel],
+        ['Filtres appliqués', scopeLabel.isEmpty ? 'Non précisés' : scopeLabel],
+        ['Transactions incluses', '${transactions.length}'],
+      ]),
       ReportExport.section('Indicateurs de la période', [
         'Indicateur',
         'Valeur'
@@ -44,7 +57,12 @@ class SalesExportService {
         ['Restant à encaisser', '${_num(k.outstandingAmount)} MAD'],
         if (k.refundedAmount != null)
           ['Remboursements réels (retours)', '${_num(k.refundedAmount!)} MAD'],
-        ['Coût des marchandises vendues', '${_num(k.costTotal)} MAD'],
+        if (finance.hasCost)
+          ['Coût des marchandises vendues', '${_num(k.costTotal!)} MAD']
+        else
+          ['Coût des marchandises vendues', finance.costUnavailableLabel],
+        if (!finance.hasCost)
+          ['Fiabilité de la marge', finance.costExplanation],
       ]),
       if (analytics.payments.isNotEmpty)
         ReportExport.section('Répartition des paiements', [
@@ -152,10 +170,16 @@ class SalesExportService {
     required String periodLabel,
     required SalesDayAnalytics analytics,
     required List<SalesTransaction> transactions,
+    String scopeLabel = '',
   }) async {
     await ReportExport.exportPdf(
       'Ventes du jour',
-      _sections(analytics, transactions),
+      _sections(
+        analytics,
+        transactions,
+        periodLabel: periodLabel,
+        scopeLabel: scopeLabel,
+      ),
       periodLabel,
     );
   }
@@ -165,10 +189,35 @@ class SalesExportService {
     required String periodLabel,
     required SalesDayAnalytics analytics,
     required List<SalesTransaction> transactions,
+    String scopeLabel = '',
   }) {
     ReportExport.exportCsv(
       'Ventes_du_jour',
-      _sections(analytics, transactions),
+      _sections(
+        analytics,
+        transactions,
+        periodLabel: periodLabel,
+        scopeLabel: scopeLabel,
+      ),
+    );
+  }
+
+  /// Export Word (.doc HTML compatible Microsoft Word / LibreOffice).
+  static void exportWord({
+    required String periodLabel,
+    required SalesDayAnalytics analytics,
+    required List<SalesTransaction> transactions,
+    String scopeLabel = '',
+  }) {
+    ReportExport.exportDoc(
+      'Ventes du jour',
+      _sections(
+        analytics,
+        transactions,
+        periodLabel: periodLabel,
+        scopeLabel: scopeLabel,
+      ),
+      periodLabel,
     );
   }
 
@@ -181,8 +230,10 @@ class SalesExportService {
     required String periodLabel,
     required SalesDayAnalytics analytics,
     required List<SalesTransaction> transactions,
+    String scopeLabel = '',
   }) async {
     final k = analytics.kpis;
+    final finance = SalesFinancials.fromKpis(k);
     final excel = Excel.createExcel();
 
     // Helper: écrit une valeur dans une cellule selon son type
@@ -208,6 +259,9 @@ class SalesExportService {
         .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 0))
         .value = TextCellValue('Valeur');
     final kpiRows = <List<Object?>>[
+      ['Période', periodLabel.isEmpty ? 'Non précisée' : periodLabel],
+      ['Filtres appliqués', scopeLabel.isEmpty ? 'Non précisés' : scopeLabel],
+      ['Transactions incluses', transactions.length.toDouble()],
       ['Chiffre d\'affaires brut (TTC)', k.grossRevenue],
       ['Chiffre d\'affaires net (HT)', k.netRevenue],
       ['TVA facturée', k.taxTotal],
@@ -219,7 +273,11 @@ class SalesExportService {
       ['Montant encaissé', k.paidAmount],
       ['Restant à encaisser', k.outstandingAmount],
       if (k.refundedAmount != null) ['Remboursements réels', k.refundedAmount],
-      ['Coût des marchandises vendues', k.costTotal],
+      [
+        'Coût des marchandises vendues',
+        finance.hasCost ? k.costTotal! : finance.costUnavailableLabel
+      ],
+      if (!finance.hasCost) ['Fiabilité de la marge', finance.costExplanation],
     ];
     for (int i = 0; i < kpiRows.length; i++) {
       sheetKpi.insertRow(i + 1);
@@ -433,5 +491,14 @@ class SalesExportService {
       throw Exception(
           'Échec de l\'encodage ou de l\'écriture du fichier .xlsx');
     }
+
+    // `excel.save()` renvoie les octets mais ne les écrit pas sur
+    // desktop/mobile (voir SavingHelper.client_save_excel) : l'écriture
+    // réelle est faite ici via le service PHARMA+ officiel.
+    downloadBytes(
+      fileName,
+      savedBytes,
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
   }
 }

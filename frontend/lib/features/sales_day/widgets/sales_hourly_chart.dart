@@ -1,10 +1,12 @@
-/// ============================================================
-/// VENTES DU JOUR — Graphique des ventes par heure (données réelles)
-/// ============================================================
-/// Une barre par heure de la journée (heure locale de la pharmacie).
-/// Infobulle au toucher / survol ; les heures sans vente valent 0
-/// (réel, affiché tel quel). Aucune estimation.
-/// ============================================================
+// ============================================================
+// VENTES DU JOUR — Graphique des ventes par heure (données réelles)
+// ============================================================
+// Une courbe par heure de la journée (heure locale de la pharmacie) —
+// orientation « évolution » imposée par le cahier des charges de la
+// refonte : courbe (et non histogramme) pour une lecture d'évolution.
+// Infobulle au toucher / survol ; les heures sans vente valent 0
+// (réel, affiché tel quel). Aucune estimation.
+// ============================================================
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -12,13 +14,14 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/utils/format.dart';
 import '../models/sales_day_model.dart';
+import 'sales_design_system.dart';
 
 class SalesHourlyChart extends StatelessWidget {
   final List<SalesHourBucket> hourly;
   final String title;
 
-  /// Hauteur du graphique (barres). Compacte par défaut pour une densité
-  /// visuelle maîtrisée : le titre + sous-titre sont rendus à l'intérieur.
+  /// Hauteur du graphique (courbe). Compacte par défaut pour une densité
+  /// visuelle maîtrisée.
   final double height;
 
   const SalesHourlyChart({
@@ -33,6 +36,12 @@ class SalesHourlyChart extends StatelessWidget {
     final data = hourly;
     final busy = data.any((b) => b.revenue > 0 || b.count > 0);
 
+    double maxY = 0;
+    for (final b in data) {
+      if (b.revenue > maxY) maxY = b.revenue;
+    }
+    if (maxY <= 0) maxY = _yInterval(data);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -45,9 +54,9 @@ class SalesHourlyChart extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 2),
-        Text(
+        const Text(
           'Heure locale de la pharmacie · montants TTC réels',
-          style: const TextStyle(
+          style: TextStyle(
             color: AppColors.pharmaMuted,
             fontSize: 10.5,
           ),
@@ -69,13 +78,47 @@ class SalesHourlyChart extends StatelessWidget {
         else
           SizedBox(
             height: height,
-            child: BarChart(
-              BarChartData(
-                alignment: BarChartAlignment.spaceAround,
-                gridData: const FlGridData(
+            child: LineChart(
+              LineChartData(
+                minY: 0,
+                maxY: maxY,
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: [
+                      for (final b in data)
+                        FlSpot(b.hour.toDouble(), b.revenue),
+                    ],
+                    isCurved: true,
+                    barWidth: 3,
+                    // Alignement maquette : courbe or, points et aire dégradée.
+                    color: AppColors.champagneInkLight,
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          AppColors.champagneInkLight.withValues(alpha: 0.32),
+                          AppColors.champagneInkLight.withValues(alpha: 0.0),
+                        ],
+                      ),
+                    ),
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (spot, percent, bar, index) =>
+                          FlDotCirclePainter(
+                        color: AppColors.champagneInkLight,
+                        radius: 3,
+                        strokeColor: AppColors.pharmaSurface,
+                        strokeWidth: 1,
+                      ),
+                    ),
+                  ),
+                ],
+                gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
-                  horizontalInterval: 1,
+                  horizontalInterval: _yInterval(data),
                 ),
                 borderData: FlBorderData(show: false),
                 titlesData: FlTitlesData(
@@ -116,71 +159,35 @@ class SalesHourlyChart extends StatelessWidget {
                   rightTitles: const AxisTitles(
                       sideTitles: SideTitles(showTitles: false)),
                 ),
-                barTouchData: BarTouchData(
-                  touchTooltipData: BarTouchTooltipData(
-                    getTooltipItem: (group, gi, rod, ri) {
-                      final h = group.x.toInt();
-                      SalesHourBucket? bucket;
-                      for (final b in data) {
-                        if (b.hour == h) {
-                          bucket = b;
-                          break;
-                        }
-                      }
-                      return BarTooltipItem(
-                        '${h.toString().padLeft(2, '0')}:00',
+                lineTouchData: LineTouchData(
+                  touchTooltipData: LineTouchTooltipData(
+                    tooltipRoundedRadius: SalesDesign.radiusInner,
+                    tooltipBorder: const BorderSide(
+                      color: AppColors.goldBorder,
+                      width: SalesDesign.borderWidth,
+                    ),
+                    fitInsideHorizontally: true,
+                    fitInsideVertically: true,
+                    getTooltipColor: (_) => AppColors.pharmaSurface,
+                    getTooltipItems: (spots) => spots.map((s) {
+                      final hour = s.x.round();
+                      final bucket = data.cast<SalesHourBucket?>().firstWhere(
+                            (b) => b?.hour == hour,
+                            orElse: () => null,
+                          );
+                      final count = bucket?.count ?? 0;
+                      return LineTooltipItem(
+                        '${hour.toString().padLeft(2, '0')}h · ${Fmt.money(s.y)}'
+                        '${count > 0 ? ' · ${Fmt.number(count)} vente(s)' : ''}',
                         const TextStyle(
                           color: AppColors.inkDark,
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                         ),
-                        children: [
-                          TextSpan(
-                            text: '\n${Fmt.money(rod.toY)}',
-                            style: const TextStyle(
-                              color: AppColors.champagneInkLight,
-                              fontSize: 11,
-                            ),
-                          ),
-                          if (bucket != null)
-                            TextSpan(
-                              text:
-                                  '\n${bucket.count} vente${bucket.count > 1 ? 's' : ''}',
-                              style: const TextStyle(
-                                color: AppColors.pharmaMuted,
-                                fontSize: 10,
-                              ),
-                            ),
-                        ],
                       );
-                    },
+                    }).toList(),
                   ),
                 ),
-                barGroups: [
-                  for (final b in data)
-                    BarChartGroupData(
-                      x: b.hour,
-                      barRods: [
-                        BarChartRodData(
-                          toY: b.revenue,
-                          width: data.length > 12 ? 10 : 18,
-                          borderRadius: BorderRadius.circular(3),
-                          gradient: LinearGradient(
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                            colors: [
-                              AppColors.sageGreenInkDark
-                                  .withValues(alpha: 0.95),
-                              AppColors.sageGreenInk.withValues(alpha: 0.95),
-                              AppColors.sageGreenInk.withValues(alpha: 0.95),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                ],
-                extraLinesData: const ExtraLinesData(),
-                minY: 0,
               ),
             ),
           ),

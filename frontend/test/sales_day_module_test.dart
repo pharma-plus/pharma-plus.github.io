@@ -159,9 +159,10 @@ void main() {
           200,
         );
       }));
-      final range = SalesDateRange(
-          DateTime(2026, 11, 10), DateTime(2026, 11, 11));
-      final (a, err) = await SalesRepository.instance.loadAnalytics(range, offsetMinutes: 60);
+      final range =
+          SalesDateRange(DateTime(2026, 11, 10), DateTime(2026, 11, 11));
+      final (a, err) = await SalesRepository.instance
+          .loadAnalytics(range, offsetMinutes: 60);
       expect(err, isNull);
       expect(a, isNotNull);
       expect(captured['offsetMin'], '60');
@@ -174,12 +175,14 @@ void main() {
       ApiClient.setClientForTesting(http_testing.MockClient((r) async {
         captured = r.url.queryParameters;
         return http.Response(
-          jsonEncode({'data': {'kpis': {}}}),
+          jsonEncode({
+            'data': {'kpis': {}}
+          }),
           200,
         );
       }));
-      final range = SalesDateRange(
-          DateTime(2026, 11, 10), DateTime(2026, 11, 11));
+      final range =
+          SalesDateRange(DateTime(2026, 11, 10), DateTime(2026, 11, 11));
       await SalesRepository.instance.loadAnalytics(range, offsetMinutes: 60);
       // from/to doivent être des ISO avec décalage local (UTC ou local)
       expect(captured['from']!, startsWith('2026-11-10T00:00:00'));
@@ -192,7 +195,9 @@ void main() {
         () async {
       ApiClient.setClientForTesting(http_testing.MockClient((r) async {
         return http.Response(
-          jsonEncode({'meta': {'total': 0}}), // pas de champ 'data'
+          jsonEncode({
+            'meta': {'total': 0}
+          }), // pas de champ 'data'
           200,
         );
       }));
@@ -222,7 +227,9 @@ void main() {
       expect(a!.topProductsRev, isEmpty);
     });
 
-    test('Formules financières : cohérence des KPIs et absence de double déduction', () async {
+    test(
+        'Formules financières : cohérence des KPIs et absence de double déduction',
+        () async {
       // Données : 3 ventes terminées
       // Vente 1 : subtotal=100, discount=10, tax=20, total=110, paid=110, cost=60
       // Vente 2 : subtotal=200, discount=0, tax=40, total=240, paid=200, cost=120
@@ -281,8 +288,9 @@ void main() {
       // Vérification : gross = net + tax (pas de double déduction des remises)
       expect(a!.kpis.grossRevenue, a.kpis.netRevenue + a.kpis.taxTotal);
 
-      // Vérification : gross - cost = gross profit
-      final grossProfit = a.kpis.grossRevenue - a.kpis.costTotal;
+      // Vérification : gross - cost = gross profit (coût réellement exposé)
+      expect(a.kpis.costTotal, isNotNull);
+      final grossProfit = a.kpis.grossRevenue - a.kpis.costTotal!;
       expect(grossProfit, 195.0);
 
       // Vérification : outstanding = Σ max(total - paid, 0)
@@ -316,7 +324,10 @@ void main() {
       ApiClient.setClientForTesting(http_testing.MockClient((r) async {
         return http.Response(
           jsonEncode({
-            'error': {'code': 'FORBIDDEN', 'message': 'Permission sales:view requise'},
+            'error': {
+              'code': 'FORBIDDEN',
+              'message': 'Permission sales:view requise'
+            },
           }),
           403,
         );
@@ -382,8 +393,10 @@ void main() {
         'isTokenExpiringSoon : expiré → vrai, valide → faux, '
         'mal formé → faux (sans crash)', () {
       String make(int expSecondsFromNow) {
-        final payload = base64Url.encode(
-            utf8.encode(jsonEncode({'exp': DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000 + expSecondsFromNow})));
+        final payload = base64Url.encode(utf8.encode(jsonEncode({
+          'exp': DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000 +
+              expSecondsFromNow
+        })));
         return 'h.$payload.s';
       }
 
@@ -417,7 +430,12 @@ void main() {
         }
         return http.Response(
           jsonEncode({
-            'data': {'kpis': {'gross_revenue': 15.6, 'sales_count': 1}, 'hourly': [], 'payment_breakdown': [], 'top_products': []},
+            'data': {
+              'kpis': {'gross_revenue': 15.6, 'sales_count': 1},
+              'hourly': [],
+              'payment_breakdown': [],
+              'top_products': []
+            },
           }),
           200,
         );
