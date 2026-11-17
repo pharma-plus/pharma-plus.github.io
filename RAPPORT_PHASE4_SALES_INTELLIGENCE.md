@@ -77,7 +77,7 @@ Date : 17/11/2026 · Branche : `main` · Commit initial : `b650f259bd6a45ea3a580
 | `flutter test test/sales_phase4_capture_test.dart` | `00:11 +23: All tests passed!` |
 | `flutter test test/sales_intelligence_pages_test.dart` | `00:07 +30: All tests passed!` |
 | `flutter test test/sales_day_module_test.dart` | `00:01 +22: All tests passed!` |
-| `flutter test test/sales_day_repository_test.dart` | `00:01 +11: All tests passed!` |
+| `flutter test test/sales_day_repository_test.dart` | `00:01 +11: All tests passed!` (test de l'ancien repository, supprimé en Phase 5 ; couverture équivalente conservée dans `sales_day_module_test.dart`) |
 | `flutter test test/dashboard_kpi_test.dart` | `00:07 +2: All tests passed!` |
 | `flutter test test/pos_page_protection_test.dart` | `00:00 +5: All tests passed!` |
 | `flutter test test/responsive_smartphone_test.dart test/mobile_nav_kpi_test.dart test/stock_table_ui_test.dart test/dashboard_kpi_test.dart` | `01:10 +24: All tests passed!` |
@@ -132,7 +132,7 @@ Tous les jeux de données sont contrôlés (`MockClient`, pas de réseau réel, 
   - panneau « Alertes & Infos » en barre latérale : option recommandée = conserver la page dédiée (déjà accessible) ;
   - bascule Jour/Semaine/Mois : fonction équivalente assurée par le filtre de période global ; à confirmer par le propriétaire.
 - Clôture de caisse : saisie locale non persistée, explicitement documentée dans l'UI.
-- Anciens modules orphelins (`features/sales/sales_of_day_page.dart`, `sales_analysis_page.dart`) conservés : aucune suppression sans autorisation spécifique.
+- Anciens modules orphelins (`features/sales/sales_of_day_page.dart`, `sales_analysis_page.dart`) : conservés en Phase 4, puis supprimés en Phase 5 après autorisation explicite et vérification de l'absence de consommateurs.
 - Captures : le harnais Flutter substitue les polices (texte en blocs) ; elles prouvent la structure et le fond émeraude, pas la typographie finale ni un rendu physique.
 - Aucune donnée de production n'a été consultée ni validée.
 

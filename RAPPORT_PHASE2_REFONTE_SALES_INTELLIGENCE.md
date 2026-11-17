@@ -95,6 +95,6 @@ Données des tests : factices et **explicitement contrôlées** (`MockClient`), 
 ## 7. Problèmes restants
 
 1. **Blocage backend (non contourné)** : le coût d'achat par article n'est pas exposé par `/sales/day` → détail des marges par produit indisponible, signalé dans l'UI.
-2. **Ancien module orphelin** : `frontend/lib/features/sales/sales_of_day_page.dart` (`_BarsPainter`) et `sales_analysis_page.dart` (doublon de `SalesAnalysisPage`) restent en place mais ne sont plus consommés. Non supprimés pour respecter l'interdiction de retirer une fonctionnalité.
+2. **Ancien module orphelin (état Phase 2, mis à jour en Phase 5)** : `frontend/lib/features/sales/sales_of_day_page.dart` (`_BarsPainter`) et `sales_analysis_page.dart` (doublon de `SalesAnalysisPage`) étaient conservés à ce stade faute d'autorisation de suppression. Ils ont été supprimés ultérieurement en Phase 5, après vérification de l'absence de références et autorisation explicite du propriétaire.
 3. **Preuves physiques** : captures « avant », ouverture réelle des fichiers exportés, validation sur appareil et matrice responsive exhaustive restent à réaliser dès que l'environnement le permettra.
 4. **Livraison** : aucun commit/push/déploiement effectué — modifications laissées en attente de votre validation finale.

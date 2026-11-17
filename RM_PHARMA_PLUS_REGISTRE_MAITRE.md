@@ -35,7 +35,7 @@
 | ID | Exigence | Source | Statut | Preuve | Écart | Priorité | Prochaine action |
 |---|---|---|---|---|---|---|---|
 | RM-010 | 8 cartes KPI | Suivi §2-3 | CONFORME ET VÉRIFIÉ | `dashboard_page.dart` `_KpiDef` ×8 | Valeurs prod non validées [statut initial: CONFORME ET VÉRIFIÉ (code)] | P3 | Vérif données prod |
-| RM-011 | KPI Ventes du jour → SalesOfDayPage (jamais POS) | Suivi §4 | CONFORME ET VÉRIFIÉ | `mobile_nav_kpi_test` (3 PASS) | — | P3 | — |
+| RM-011 | KPI Ventes du jour → SalesIntelligenceShell (jamais POS) | Phase 5 | CONFORME ET VÉRIFIÉ | `dashboard_page.dart` L224-231 ; `mobile_nav_kpi_test.dart` L437 | Ancien `SalesOfDayPage` supprimé (plus aucun autre écran concurrent) | P3 | — |
 | RM-012 | Illustrations KPI détourées (thème clair) | Suivi 14.17 | CONFORME ET VÉRIFIÉ | `kpi_bg_light_1..8.webp` | Vérification visuelle propriétaire | P3 | Ctrl+F5 |
 | RM-013 | Fond dashboard = image pharmacie (clair + sombre) | Suivi 14.18 | CONFORME ET VÉRIFIÉ | `pharma_background.dart` | Vérification visuelle propriétaire | P3 | Ctrl+F5 |
 | RM-014 | Illustration employé non découpée (v6) | Suivi 14.18 | CONFORME ET VÉRIFIÉ | `kpi_bg_light_7.webp` 153×200 | Vérification visuelle propriétaire | P3 | Ctrl+F5 |
@@ -177,7 +177,7 @@
 | ID | Exigence | Source | Statut | Preuve | Écart | Priorité | Prochaine action |
 |---|---|---|---|---|---|---|---|
 | RM-082 | Performances sur appareils modestes | Suivi | IMPLÉMENTÉ MAIS NON VÉRIFIÉ | Tree-shaking icons, lazy loading | Test device non effectué | P2 | Test device |
-| RM-083 | Pas de fl_chart (CustomPainter) | Suivi | CONFORME ET VÉRIFIÉ | `sales_of_day_page` `_BarsPainter` | — | P3 | — |
+| RM-083 | Graphiques Sales Intelligence (fl_chart, plus de CustomPainter) | Phase 5 | CONFORME ET VÉRIFIÉ | `sales_hourly_chart.dart` LineChart, `sales_payment_chart.dart` PieChart ; ancien `_BarsPainter` supprimé | Ancien module `features/sales/**` supprimé | P3 | — |
 
 ## Q. FONCTIONNALITÉS NON TROUVÉES (ABSENTES)
 
