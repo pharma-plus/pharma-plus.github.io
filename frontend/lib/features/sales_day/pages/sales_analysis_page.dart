@@ -161,18 +161,10 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Répartition horaire',
-                    style: TextStyle(
-                      color: AppColors.inkDark,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 200,
-                    child: SalesHourlyChart(hourly: hourly),
+                  SalesHourlyChart(
+                    hourly: hourly,
+                    title: 'Répartition horaire',
+                    height: 172,
                   ),
                 ],
               ),

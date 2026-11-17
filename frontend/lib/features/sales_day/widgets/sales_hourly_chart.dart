@@ -17,10 +17,15 @@ class SalesHourlyChart extends StatelessWidget {
   final List<SalesHourBucket> hourly;
   final String title;
 
+  /// Hauteur du graphique (barres). Compacte par défaut pour une densité
+  /// visuelle maîtrisée : le titre + sous-titre sont rendus à l'intérieur.
+  final double height;
+
   const SalesHourlyChart({
     super.key,
     required this.hourly,
     this.title = 'Ventes par heure',
+    this.height = 168,
   });
 
   @override
@@ -63,7 +68,7 @@ class SalesHourlyChart extends StatelessWidget {
           )
         else
           SizedBox(
-            height: 190,
+            height: height,
             child: BarChart(
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,

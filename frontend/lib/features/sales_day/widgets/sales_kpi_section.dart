@@ -33,6 +33,7 @@ class SalesKpiSection extends StatelessWidget {
         SalesKpiCard(
           title: 'CA BRUT (TTC)',
           value: _money(kpis.grossRevenue),
+          unit: 'MAD',
           icon: Icons.storefront_outlined,
           accent: AppColors.sageGreenInk,
           deltaPct: grossDeltaPct,
@@ -40,12 +41,14 @@ class SalesKpiSection extends StatelessWidget {
         SalesKpiCard(
           title: 'CA NET (HT)',
           value: _money(kpis.netRevenue),
+          unit: 'MAD',
           icon: Icons.paid_outlined,
           accent: AppColors.champagneInkLight,
         ),
         SalesKpiCard(
           title: 'VENTES VALIDÉES',
           value: '${kpis.salesCount}',
+          unit: 'ventes',
           icon: Icons.receipt_long_outlined,
           accent: AppColors.sageGreenInk,
           deltaPct: countDeltaPct,
@@ -53,30 +56,35 @@ class SalesKpiSection extends StatelessWidget {
         SalesKpiCard(
           title: 'PANIER MOYEN',
           value: _money(kpis.averageBasket),
+          unit: 'MAD',
           icon: Icons.shopping_bag_outlined,
           accent: AppColors.champagneInk,
         ),
         SalesKpiCard(
           title: 'TOTAL REMISES',
           value: _money(kpis.discountsTotal),
+          unit: 'MAD',
           icon: Icons.local_offer_outlined,
           accent: AppColors.cardAmber,
         ),
         SalesKpiCard(
           title: 'VENTES ANNULÉES',
           value: '${kpis.cancelledCount + kpis.returnedCount}',
+          unit: 'retours',
           icon: Icons.cancel_outlined,
           accent: AppColors.pharmaDanger,
         ),
         SalesKpiCard(
           title: 'MONTANT ENCAISSÉ',
           value: _money(kpis.paidAmount),
+          unit: 'MAD',
           icon: Icons.account_balance_wallet_outlined,
           accent: AppColors.sageGreenInkRich,
         ),
         SalesKpiCard(
           title: 'RESTANT À ENCAISSER',
           value: _money(kpis.outstandingAmount),
+          unit: 'MAD',
           icon: Icons.hourglass_bottom_outlined,
           accent: AppColors.cardPurple,
         ),

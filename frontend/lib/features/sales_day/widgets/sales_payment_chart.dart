@@ -87,7 +87,7 @@ class SalesPaymentChart extends StatelessWidget {
               const SizedBox(height: 12),
               for (final (i, p) in slices.indexed)
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Row(
                     children: [
                       Container(

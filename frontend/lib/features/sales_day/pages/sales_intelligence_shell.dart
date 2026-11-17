@@ -594,7 +594,7 @@ class _SalesDayOverviewPageState extends State<SalesDayOverviewPage> {
             ],
           );
         }),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         GlassCard(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
@@ -732,7 +732,7 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
             ),
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         GlassCard(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(4, 4, 8, 4),
