@@ -156,10 +156,13 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
           fit: StackFit.expand,
           children: [
             // Grande carte arrondie contenant scène + formulaire (maquette).
+            // Sur smartphone (pas de split), la carte remplit TOUT l'écran :
+            // le fond de connexion (émeraude ou graphite) occupe tout le
+            // cadre, sans marge vide autour.
             Positioned.fill(
               child: SafeArea(
                 child: Padding(
-                  padding: const EdgeInsets.all(14),
+                  padding: EdgeInsets.all(isSplit ? 14 : 0),
                   child: SizedBox(
                     width: double.infinity,
                     child: Container(
@@ -249,10 +252,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   /// (thème sombre), via `MarbleBackground` (repli peint si asset absent).
   Widget _buildFormPanel({bool transparent = false}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    const panelRadius = BorderRadius.horizontal(
-      left: Radius.zero,
-      right: Radius.circular(20),
-    );
     final Widget body = LayoutBuilder(
       builder: (context, constraints) {
         final formWidth =
@@ -277,25 +276,20 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     return Container(
       key: const ValueKey('login-form-panel'),
       width: double.infinity,
-      margin: transparent
-          ? EdgeInsets.zero
-          : const EdgeInsets.fromLTRB(0, 12, 12, 12),
+      // Smartphone : le panneau REMPLIT toute la carte (aucune marge) pour que
+      // le fond de connexion couvre tout le cadre, dans les deux thèmes.
+      margin: EdgeInsets.zero,
       decoration: transparent
           ? null
           : BoxDecoration(
-              borderRadius: panelRadius,
-              border: Border.all(
-                color: AppColors.sageGreen.withValues(alpha: 0.22),
-                width: 1,
-              ),
-              // Couleur de repli (FOND FONCÉ) le temps que la texture se
-              // charge : jamais de flash blanc sous un texte clair.
+              // Repli pendant le chargement de la texture : fond foncé
+              // (émeraude / graphite), jamais de flash blanc.
               color: isDark ? AppColors.graphiteDark : const Color(0xFF0B2A1E),
             ),
       child: transparent
           ? body
           : ClipRRect(
-              borderRadius: panelRadius,
+              borderRadius: BorderRadius.zero,
               child: MarbleBackground(
                 dark: isDark,
                 child: body,

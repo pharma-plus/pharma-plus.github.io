@@ -630,10 +630,12 @@ class _DashboardPageState extends State<DashboardPage> {
           badge: Icons.person_rounded,
           badgeColor: AppColors.emeraldInk,
           module: 'employees',
-          // Illustration employe : en thème clair on utilise l'illustration
-          // PLEIN CADRE (fond sombre émeraude d'origine) — l'ancienne version
-          // "light" avait un fond blanc qui débordait sur l'émeraude.
+          // Illustration employe : en thème clair, version DÉTOURÉE (fond
+          // transparent obtenu depuis l'illustration sombre) posée plein
+          // cadre sur l'émeraude — même fond que les autres KPI, plus aucun
+          // fond blanc ni fond graphite.
           lightFullBleed: true,
+          lightImage: 'assets/images/kpi_bg_light_7_cut.png',
           imageScale: 0.85,
           imageAlignment: const Alignment(0.25, 0.95)),
       _KpiDef(
@@ -713,9 +715,13 @@ class _KpiDef {
   final Alignment lightAlign;
 
   /// Si true, en THÈME CLAIR, l'illustration est affichée PLEIN CADRE
-  /// (BoxFit.cover) comme en thème sombre : utilisé quand l'asset "light"
-  /// possède un fond clair opaque (ancienne couleur) qu'on ne veut plus voir.
+  /// (BoxFit.cover) comme en thème sombre.
   final bool lightFullBleed;
+
+  /// Asset spécifique pour le THÈME CLAIR (sinon l'asset `image` est dérivé
+  /// en `kpi_bg_light_N`). Utilisé quand l'asset d'origine a un fond clair
+  /// opaque : on fournit une version détourée (fond transparent).
+  final String? lightImage;
 
   /// Clé de module visible (null = toujours visible).
   final String? module;
@@ -734,6 +740,7 @@ class _KpiDef {
     this.lightWidthFactor = 0.62,
     this.lightAlign = Alignment.bottomRight,
     this.lightFullBleed = false,
+    this.lightImage,
   });
 }
 
@@ -768,9 +775,10 @@ class _KpiCardState extends State<_KpiCard> {
     //   fond ÉMERAUDE officiel de la carte — plus aucun fond clair.
     final bool kpiDark = dashDark(context);
     final bool fullBleed = kpiDark || def.lightFullBleed;
-    final String kpiImg = fullBleed
+    final String kpiImg = kpiDark
         ? def.image
-        : def.image.replaceFirst('kpi_bg_', 'kpi_bg_light_');
+        : (def.lightImage ??
+            def.image.replaceFirst('kpi_bg_', 'kpi_bg_light_'));
     // Sur smartphone, les cartes KPI sont plus petites : on reduit l'ombre
     // (blur/offset) pour eviter qu'elle deborde en dehors de la carte et
     // chevauche l'illustration / les cartes voisines.
