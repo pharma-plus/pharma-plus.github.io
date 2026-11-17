@@ -565,6 +565,10 @@ class _DashboardPageState extends State<DashboardPage> {
           badge: Icons.point_of_sale_rounded,
           badgeColor: AppColors.emeraldRich,
           module: 'pos',
+          // NOUVELLE illustration client (theme clair) : fond sombre -> plein
+          // cadre sur l'emeraude des KPI.
+          lightFullBleed: true,
+          lightImage: 'assets/images/kpi_ventes_du_jour.png',
           // Image centrée et légèrement réduite, légèrement descendue pour caler le socle 3D.
           imageScale: 1.05,
           imageAlignment: const Alignment(0, 0.03)),
@@ -576,6 +580,9 @@ class _DashboardPageState extends State<DashboardPage> {
           badge: Icons.medication_rounded,
           badgeColor: AppColors.cardBlue,
           module: 'catalog',
+          // NOUVELLE illustration client (theme clair) : fond sombre -> plein cadre.
+          lightFullBleed: true,
+          lightImage: 'assets/images/kpi_medicaments.png',
           // Descendre l'illustration pour bien caler le socle 3D en bas.
           imageAlignment: const Alignment(0, 0.92)),
       _KpiDef(
@@ -601,16 +608,17 @@ class _DashboardPageState extends State<DashboardPage> {
           imageScale: 1.05,
           imageAlignment: const Alignment(0, 0.03)),
       _KpiDef(
-          label: 'FOURNISSEURS',
-          value: Fmt.number(_suppliers),
-          sub: '',
-          image: 'assets/images/kpi_bg_5.webp',
-          badge: Icons.local_shipping_rounded,
-          badgeColor: AppColors.petroleumBlue,
-          module: 'suppliers',
-          // Thème clair : illustration agrandie et CENTRÉE sur l'émeraude.
-          lightWidthFactor: 0.88,
-          lightAlign: Alignment(0, 0.45)),
+        label: 'FOURNISSEURS',
+        value: Fmt.number(_suppliers),
+        sub: '',
+        image: 'assets/images/kpi_bg_5.webp',
+        badge: Icons.local_shipping_rounded,
+        badgeColor: AppColors.petroleumBlue,
+        module: 'suppliers',
+        // NOUVELLE illustration client (theme clair) : fond sombre -> plein cadre.
+        lightFullBleed: true,
+        lightImage: 'assets/images/kpi_fournisseurs.png',
+      ),
       _KpiDef(
           label: 'CLIENTS',
           value: Fmt.number(_customers),
@@ -623,23 +631,21 @@ class _DashboardPageState extends State<DashboardPage> {
           lightWidthFactor: 0.90,
           lightAlign: Alignment(0, 0.45)),
       _KpiDef(
-          label: 'EMPLOYÉS',
-          value: '$_employees',
-          sub: '',
-          image: 'assets/images/kpi_bg_7.webp',
-          badge: Icons.person_rounded,
-          badgeColor: AppColors.emeraldInk,
-          module: 'employees',
-          // Illustration employe : en thème clair, l'asset "light" original
-          // (kpi_bg_light_7, fond transparent + brossard blanc) est pose plein
-          // cadre sur l'emeraude -> plus de fond blanc ni fond graphite, et le
-          // cheveux / le visage sont conserves.
-          lightFullBleed: false,
-          lightImage: 'assets/images/kpi_bg_light_7.webp',
-          lightScale: 1.0,
-          lightWidthFactor: 0.88,
-          lightAlign: Alignment(0, 0.45),
-          imageAlignment: const Alignment(0.25, 0.95)),
+        label: 'EMPLOYÉS',
+        value: '$_employees',
+        sub: '',
+        image: 'assets/images/kpi_bg_7.webp',
+        badge: Icons.person_rounded,
+        badgeColor: AppColors.emeraldInk,
+        module: 'employees',
+        // Illustration employe : en thème clair, l'asset "light" original
+        // (kpi_bg_light_7, fond transparent + brossard blanc) est pose plein
+        // cadre sur l'emeraude -> plus de fond blanc ni fond graphite, et le
+        // cheveux / le visage sont conserves.
+        lightFullBleed: true,
+        lightImage: 'assets/images/kpi_employes.png',
+        lightScale: 1.0,
+      ),
       _KpiDef(
           label: 'BÉNÉFICE MOIS',
           value: Fmt.money(_profitMonth),
@@ -784,7 +790,10 @@ class _KpiCardState extends State<_KpiCard> {
     final bool kpiDark = dashDark(context);
     final bool fullBleed = kpiDark || def.lightFullBleed;
     final String kpiImg = fullBleed
-        ? (def.lightImage ?? def.image)
+        ? (kpiDark
+            ? def.image
+            : (def.lightImage ??
+                def.image.replaceFirst('kpi_bg_', 'kpi_bg_light_')))
         : def.image.replaceFirst('kpi_bg_', 'kpi_bg_light_');
     // Sur smartphone, les cartes KPI sont plus petites : on reduit l'ombre
     // (blur/offset) pour eviter qu'elle deborde en dehors de la carte et
