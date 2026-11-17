@@ -126,15 +126,14 @@ class MobileBottomBar extends StatelessWidget {
     final textColor = isDark ? AppColors.porcelain : AppColors.champagne;
     return MarbleBackground(
       key: const ValueKey('mobile-bottom-bar'),
-      // Barre = ZONE posée sur le fond officiel (image pharmacie) : voile
-      // foncé translucide en thème clair, texture graphite en sombre.
-      showTexture: isDark,
+      // Barre inférieure = fond ÉMERAUDE officiel (MarbleBackground) en
+      // thème clair ; texture graphite conservée en thème sombre.
       dark: isDark,
       child: SafeArea(
         top: false,
         child: Container(
           decoration: BoxDecoration(
-            color: isDark ? null : Colors.black.withValues(alpha: 0.55),
+            color: isDark ? null : Colors.black.withValues(alpha: 0.15),
             border: const Border(
               top: BorderSide(color: AppColors.goldBorder),
             ),
@@ -266,141 +265,147 @@ class MobileNavDrawer extends StatelessWidget {
         final cap = size.width * 0.86;
         return cap < target ? cap : target;
       }(),
-      backgroundColor: AppColors.surfaceSidebar,
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ---- Identité PHARMA+ ----
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const PharmaFullLogo(width: 132),
-                  const SizedBox(height: 10),
-                  if ((user?.pharmacyName ?? '').trim().isNotEmpty)
+      backgroundColor: isDark ? AppColors.surfaceSidebar : Colors.transparent,
+      // Menu latéral smartphone : fond ÉMERAUDE officiel (MarbleBackground)
+      // en thème clair — comme la barre latérale PC. Thème sombre inchangé.
+      child: MarbleBackground(
+        showTexture: !isDark,
+        dark: isDark,
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ---- Identité PHARMA+ ----
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const PharmaFullLogo(width: 132),
+                    const SizedBox(height: 10),
+                    if ((user?.pharmacyName ?? '').trim().isNotEmpty)
+                      Text(
+                        user!.pharmacyName!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.champagne,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    const SizedBox(height: 2),
                     Text(
-                      user!.pharmacyName!,
+                      ((user?.fullName ?? '').trim().isNotEmpty
+                              ? user!.fullName.trim()
+                              : 'Admin') +
+                          ((user?.roleName ?? '').trim().isNotEmpty
+                              ? ' · ${user!.roleName!.trim()}'
+                              : ''),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.champagne,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  const SizedBox(height: 2),
-                  Text(
-                    ((user?.fullName ?? '').trim().isNotEmpty
-                            ? user!.fullName.trim()
-                            : 'Admin') +
-                        ((user?.roleName ?? '').trim().isNotEmpty
-                            ? ' · ${user!.roleName!.trim()}'
-                            : ''),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(height: 1, color: AppColors.dividerDark),
-            // ---- Navigation ----
-            Expanded(
-              child: ListView(
-                key: const ValueKey('mobile-drawer-list'),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                children: [
-                  _DrawerTile(
-                    key: const ValueKey('mobile-drawer-all-modules'),
-                    icon: Icons.apps_rounded,
-                    label: S.t('modules', locale),
-                    subtitle: 'Tous les modules',
-                    active: false,
-                    isDark: isDark,
-                    onTap: () {
-                      onClose();
-                      onShellIndex(1);
-                    },
-                  ),
-                  _DrawerTile(
-                    key: const ValueKey('mobile-drawer-dashboard'),
-                    icon: Icons.dashboard_outlined,
-                    label: S.t('dashboard', locale),
-                    active: ShellNav.index.value == 0,
-                    isDark: isDark,
-                    onTap: () {
-                      onClose();
-                      onShellIndex(0);
-                    },
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(6, 10, 6, 6),
-                    child: Text(
-                      'NAVIGATION',
                       style: TextStyle(
-                        color: AppColors.textTertiary,
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.1,
+                        color: textColor,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
-                  for (final item in rest)
+                  ],
+                ),
+              ),
+              Container(height: 1, color: AppColors.dividerDark),
+              // ---- Navigation ----
+              Expanded(
+                child: ListView(
+                  key: const ValueKey('mobile-drawer-list'),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  children: [
                     _DrawerTile(
-                      key: ValueKey(
-                          'mobile-drawer-item-${item.shellIndex ?? item.label}'),
-                      icon: item.icon,
-                      label: S.t(item.label, locale),
-                      active: item.shellIndex != null &&
-                          item.shellIndex == ShellNav.index.value,
-                      isDark: isDark,
-                      onTap: () => _activateItem(context, item),
-                    ),
-                ],
-              ),
-            ),
-            Container(height: 1, color: AppColors.dividerDark),
-            // ---- Sécurité ----
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _DrawerTile(
-                      icon: Icons.lock_open_outlined,
-                      label: 'Verrouiller',
+                      key: const ValueKey('mobile-drawer-all-modules'),
+                      icon: Icons.apps_rounded,
+                      label: S.t('modules', locale),
+                      subtitle: 'Tous les modules',
                       active: false,
                       isDark: isDark,
                       onTap: () {
                         onClose();
-                        onLock();
+                        onShellIndex(1);
                       },
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _DrawerTile(
-                      icon: Icons.logout_rounded,
-                      label: S.t('logout', locale),
-                      active: false,
+                    _DrawerTile(
+                      key: const ValueKey('mobile-drawer-dashboard'),
+                      icon: Icons.dashboard_outlined,
+                      label: S.t('dashboard', locale),
+                      active: ShellNav.index.value == 0,
                       isDark: isDark,
                       onTap: () {
                         onClose();
-                        onLogout();
+                        onShellIndex(0);
                       },
                     ),
-                  ),
-                ],
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(6, 10, 6, 6),
+                      child: Text(
+                        'NAVIGATION',
+                        style: TextStyle(
+                          color: AppColors.textTertiary,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
+                    ),
+                    for (final item in rest)
+                      _DrawerTile(
+                        key: ValueKey(
+                            'mobile-drawer-item-${item.shellIndex ?? item.label}'),
+                        icon: item.icon,
+                        label: S.t(item.label, locale),
+                        active: item.shellIndex != null &&
+                            item.shellIndex == ShellNav.index.value,
+                        isDark: isDark,
+                        onTap: () => _activateItem(context, item),
+                      ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              Container(height: 1, color: AppColors.dividerDark),
+              // ---- Sécurité ----
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _DrawerTile(
+                        icon: Icons.lock_open_outlined,
+                        label: 'Verrouiller',
+                        active: false,
+                        isDark: isDark,
+                        onTap: () {
+                          onClose();
+                          onLock();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _DrawerTile(
+                        icon: Icons.logout_rounded,
+                        label: S.t('logout', locale),
+                        active: false,
+                        isDark: isDark,
+                        onTap: () {
+                          onClose();
+                          onLogout();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -254,13 +254,12 @@ class _AppSideMenuState extends State<AppSideMenu> {
     // Couleur de texte adaptée au fond (émeraude = champagne, graphite = porcelain).
     final textColor = MarbleBackground.of(context)?.textColor ?? Colors.white;
     return MarbleBackground(
-      // Le rail est une ZONE posée sur le fond officiel (image pharmacie) :
-      // pas de texture en thème clair, seulement un voile foncé translucide.
-      showTexture: isDark,
+      // Rail = fond ÉMERAUDE officiel (MarbleBackground), thème clair ;
+      // texture graphite conservée en thème sombre.
       dark: isDark,
       child: Container(
         color:
-            isDark ? Colors.transparent : Colors.black.withValues(alpha: 0.55),
+            isDark ? Colors.transparent : Colors.black.withValues(alpha: 0.15),
         child: Column(children: [
           Container(
             width: double.infinity,
@@ -382,13 +381,12 @@ class _AppSideMenuState extends State<AppSideMenu> {
     // Couleur de texte adaptée au fond (émeraude = champagne, graphite = porcelain).
     final textColor = MarbleBackground.of(context)?.textColor ?? Colors.white;
     return MarbleBackground(
-      // Le rail est une ZONE posée sur le fond officiel (image pharmacie) :
-      // pas de texture en thème clair, seulement un voile foncé translucide.
-      showTexture: isDark,
+      // Rail = fond ÉMERAUDE officiel (MarbleBackground), thème clair ;
+      // texture graphite conservée en thème sombre.
       dark: isDark,
       child: Container(
         color:
-            isDark ? Colors.transparent : Colors.black.withValues(alpha: 0.55),
+            isDark ? Colors.transparent : Colors.black.withValues(alpha: 0.15),
         child: Column(children: [
           // ---- Marque : logo officiel complet (textes inclus dans l'asset) ----
           Container(

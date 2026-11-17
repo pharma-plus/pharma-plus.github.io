@@ -17,6 +17,7 @@ import '../../core/theme/colors.dart';
 import '../../core/utils/calculations.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/barcode_scanner.dart';
+import '../../core/widgets/marble_texture.dart';
 import '../../core/widgets/stock_notification.dart';
 import '../pos/payment_models.dart';
 import '../pos/pos_models.dart';
@@ -1436,10 +1437,9 @@ class _PanelShell extends StatelessWidget {
               color: Color(0x66000000), blurRadius: 18, offset: Offset(0, 10)),
         ],
       ),
-      // Fond : l'image officielle (fond pharmacie) reste visible. En thème
-      // sombre on la repeint dans le panneau ; en thème clair le panneau
-      // n'est qu'un VOILE FONCÉ translucide posé sur le fond officiel
-      // (aucune texture émeraude : le fond de page reste l'image pharmacie).
+      // Fond : ÉMERAUDE officiel (MarbleBackground) en thème clair — comme
+      // demandé pour toutes les zones (barres, POS, panneaux) ; l'image
+      // pharmacie reste le fond de page derrière. Thème sombre inchangé.
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
         child: isDark
@@ -1460,9 +1460,12 @@ class _PanelShell extends StatelessWidget {
             : Stack(
                 fit: StackFit.expand,
                 children: [
+                  const Positioned.fill(
+                    child: MarbleBackground(dark: false),
+                  ),
                   Positioned.fill(
                     child: ColoredBox(
-                      color: Colors.black.withValues(alpha: 0.58),
+                      color: Colors.black.withValues(alpha: 0.15),
                     ),
                   ),
                   base,
