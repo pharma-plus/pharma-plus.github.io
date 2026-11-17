@@ -630,12 +630,12 @@ class _DashboardPageState extends State<DashboardPage> {
           badge: Icons.person_rounded,
           badgeColor: AppColors.emeraldInk,
           module: 'employees',
-          // Illustration employe : en thème clair, version DÉTOURÉE (fond
-          // transparent obtenu depuis l'illustration sombre) posée plein
-          // cadre sur l'émeraude — même fond que les autres KPI, plus aucun
-          // fond blanc ni fond graphite.
+          // Illustration employe : en thème clair, l'asset "light" original
+          // (kpi_bg_light_7, fond transparent + brossard blanc) est pose plein
+          // cadre sur l'emeraude -> plus de fond blanc ni fond graphite, et le
+          // cheveux / le visage sont conserves.
           lightFullBleed: true,
-          lightImage: 'assets/images/kpi_bg_light_7_cut.png',
+          lightImage: 'assets/images/kpi_bg_light_7.webp',
           imageScale: 0.85,
           imageAlignment: const Alignment(0.25, 0.95)),
       _KpiDef(
@@ -775,10 +775,9 @@ class _KpiCardState extends State<_KpiCard> {
     //   fond ÉMERAUDE officiel de la carte — plus aucun fond clair.
     final bool kpiDark = dashDark(context);
     final bool fullBleed = kpiDark || def.lightFullBleed;
-    final String kpiImg = kpiDark
-        ? def.image
-        : (def.lightImage ??
-            def.image.replaceFirst('kpi_bg_', 'kpi_bg_light_'));
+    final String kpiImg = fullBleed
+        ? (def.lightImage ?? def.image)
+        : def.image.replaceFirst('kpi_bg_', 'kpi_bg_light_');
     // Sur smartphone, les cartes KPI sont plus petites : on reduit l'ombre
     // (blur/offset) pour eviter qu'elle deborde en dehors de la carte et
     // chevauche l'illustration / les cartes voisines.
@@ -838,7 +837,7 @@ class _KpiCardState extends State<_KpiCard> {
                   // Pour imageScale != 1.0, on utilise Transform.scale SANS
                   // ClipRect parent (AnimatedContainer a déjà Clip.antiAlias).
                   Positioned.fill(
-                    child: (kpiDark && def.imageScale != 1.0)
+                    child: def.imageScale != 1.0
                         ? Transform.scale(
                             scale: def.imageScale,
                             alignment: def.imageAlignment,
