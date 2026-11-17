@@ -634,10 +634,11 @@ class _DashboardPageState extends State<DashboardPage> {
           // (kpi_bg_light_7, fond transparent + brossard blanc) est pose plein
           // cadre sur l'emeraude -> plus de fond blanc ni fond graphite, et le
           // cheveux / le visage sont conserves.
-          lightFullBleed: true,
+          lightFullBleed: false,
           lightImage: 'assets/images/kpi_bg_light_7.webp',
-          lightScale: 1.15,
-          imageScale: 0.85,
+          lightScale: 1.0,
+          lightWidthFactor: 0.88,
+          lightAlign: Alignment(0, 0.45),
           imageAlignment: const Alignment(0.25, 0.95)),
       _KpiDef(
           label: 'BÉNÉFICE MOIS',
