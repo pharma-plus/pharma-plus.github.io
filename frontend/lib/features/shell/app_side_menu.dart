@@ -307,12 +307,8 @@ class _AppSideMenuState extends State<AppSideMenu> {
                           child: Icon(item.icon,
                               size: 20,
                               color: active
-                                  ? (isDark
-                                      ? Colors.white
-                                      : textColor)
-                                  : (isDark
-                                      ? AppColors.champagne
-                                      : textColor)),
+                                  ? (isDark ? Colors.white : textColor)
+                                  : (isDark ? AppColors.champagne : textColor)),
                         ),
                       ),
                     ),
@@ -433,9 +429,7 @@ class _AppSideMenuState extends State<AppSideMenu> {
                       child: Row(children: [
                         Icon(item.icon,
                             size: 19,
-                            color: isDark
-                                ? AppColors.champagne
-                                : textColor),
+                            color: isDark ? AppColors.champagne : textColor),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
@@ -443,9 +437,8 @@ class _AppSideMenuState extends State<AppSideMenu> {
                                   context.watch<AuthStore>().locale),
                               style: TextStyle(
                                   fontSize: 13.5,
-                                  color: isDark
-                                      ? AppColors.champagne
-                                      : textColor,
+                                  color:
+                                      isDark ? AppColors.champagne : textColor,
                                   fontWeight: isDark
                                       ? FontWeight.w700
                                       : FontWeight.w700)),
@@ -487,8 +480,7 @@ class _AppSideMenuState extends State<AppSideMenu> {
                               : AppColors.sageGreenDark
                                   .withValues(alpha: 0.55))),
                   child: Icon(Icons.person,
-                      color: isDark ? Colors.white70 : textColor,
-                      size: 24),
+                      color: isDark ? Colors.white70 : textColor, size: 24),
                 ),
                 Positioned(
                   right: -1,
@@ -532,9 +524,8 @@ class _AppSideMenuState extends State<AppSideMenu> {
                           Text(role,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  color: textColor,
-                                  fontSize: 10.5)),
+                              style:
+                                  TextStyle(color: textColor, fontSize: 10.5)),
                         if (pharmacy != null && pharmacy.isNotEmpty)
                           Text(pharmacy,
                               maxLines: 1,
@@ -561,20 +552,21 @@ class _AppSideMenuState extends State<AppSideMenu> {
                       child: Container(
                         height: 42,
                         decoration: BoxDecoration(
+                          // Fond FONCÉ translucide (les deux thèmes ont un
+                          // fond foncé) : l'icône claire reste lisible.
                           color: isDark
                               ? AppColors.graphiteDark
-                              : AppColors.sageGreenLight,
+                              : Colors.black.withValues(alpha: 0.32),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                               color: isDark
                                   ? AppColors.champagne.withValues(alpha: 0.55)
-                                  : AppColors.sageGreenDark
-                                      .withValues(alpha: 0.55)),
+                                  : AppColors.goldBorder
+                                      .withValues(alpha: 0.7)),
                         ),
                         child: Center(
                             child: Icon(Icons.lock_open_outlined,
-                                color: textColor,
-                                size: 19)),
+                                color: textColor, size: 19)),
                       ),
                     ),
                   ),
@@ -590,19 +582,16 @@ class _AppSideMenuState extends State<AppSideMenu> {
                       decoration: BoxDecoration(
                         color: isDark
                             ? AppColors.graphiteDark
-                            : AppColors.sageGreenLight,
+                            : Colors.black.withValues(alpha: 0.32),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                             color: isDark
                                 ? AppColors.champagne.withValues(alpha: 0.55)
-                                : AppColors.sageGreenDark
-                                    .withValues(alpha: 0.55)),
+                                : AppColors.goldBorder.withValues(alpha: 0.7)),
                       ),
-                      child: Center(
-                          child: Icon(Icons.logout,
-                              color:
-                                  isDark ? _sideGold : AppColors.sageGreenInk,
-                              size: 19)),
+                      child: const Center(
+                          child:
+                              Icon(Icons.logout, color: _sideGold, size: 19)),
                     ),
                   ),
                 ),

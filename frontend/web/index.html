@@ -219,8 +219,17 @@
   <!-- Version du bootstrap (cache-busting). En Release, flutter build web
        génère flutter_bootstrap.js dans build/web/. En Debug, le dev server
        de Flutter le génère à la volée pour DDC. L'URL doit être statique
-       sans placeholder non remplacé. -->
-  <script src="flutter_bootstrap.js" async></script>
+       sans placeholder non remplacé.
+       Jeton unique : évite qu'un navigateur / une PWA serve un ancien
+       bootstrap (et donc un ancien main.dart.js) après un déploiement. -->
+  <script>
+    (function () {
+      var s = document.createElement('script');
+      s.src = 'flutter_bootstrap.js?v=' + Date.now();
+      s.async = true;
+      document.body.appendChild(s);
+    })();
+  </script>
   <script>
     (function () {
       var fill = document.getElementById('pmg-fill');
@@ -247,8 +256,12 @@
           if (el && el.parentNode) el.parentNode.removeChild(el);
         }, 400);
       }
-      window.addEventListener('flutter-first-frame', finish);
-      setTimeout(finish, 6000);
+      // Le splash ne se retire QUE lorsque l'application Flutter a terminé
+      // son initialisation (événement « pharma-ready » émis par RootGate) :
+      // un seul splash, aucune transition intermédiaire.
+      window.addEventListener('pharma-ready', finish);
+      // Filet de sécurité : ne jamais bloquer l'utilisateur.
+      setTimeout(finish, 12000);
     })();
   </script>
 </body>

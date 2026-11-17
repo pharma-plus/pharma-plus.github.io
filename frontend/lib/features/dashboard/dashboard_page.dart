@@ -29,16 +29,21 @@ import '../stock/stock_page.dart';
 import 'pos_panel.dart';
 import 'global_search.dart';
 
-/// Helpers thème-adaptatif dashboard : écritures TOUJOURS lisibles
-/// (encre foncée sur marbre clair, blanc sur graphite sombre).
+/// Vrai si le thème système est sombre (fond graphite).
 bool dashDark(BuildContext c) => Theme.of(c).brightness == Brightness.dark;
-Color dashText(BuildContext c) =>
-    dashDark(c) ? Colors.white : AppColors.inkDark;
-Color dashTextSoft(BuildContext c) =>
-    dashDark(c) ? Colors.white70 : AppColors.inkDarkLight;
-Color dashPanel(BuildContext c) => dashDark(c)
-    ? AppColors.graphite // même ton que le menu latéral (cohérence sombre)
-    : AppColors.sageGreen.withValues(alpha: 0.10);
+
+/// Vrai quand le fond des pages est FONCÉ : émeraude métallisée (thème
+/// clair) ET graphite (thème sombre). Les deux fonds étant foncés, le
+/// dashboard utilise TOUJOURS le rendu « verre fumé » + écritures claires
+/// (l'ancien rendu marbre clair / encre foncée n'est plus utilisé).
+bool dashDarkUi(BuildContext c) => true;
+
+Color dashText(BuildContext c) => Colors.white;
+Color dashTextSoft(BuildContext c) => Colors.white70;
+
+/// Panneaux translucides : la texture (émeraude / graphite) reste visible.
+Color dashPanel(BuildContext c) =>
+    dashDarkUi(c) ? AppColors.graphite : Colors.black.withValues(alpha: 0.26);
 
 /// ============================================================
 /// DASHBOARD PHARMA+ — reconstruction IDENTIQUE à la maquette :
@@ -299,6 +304,12 @@ class _DashboardPageState extends State<DashboardPage> {
         final vh = MediaQuery.sizeOf(context).height;
         final compact = vh < 900;
         return Stack(children: [
+          // Texture ÉMERAUDE (thème clair) / GRAPHITE (sombre) derrière TOUT
+          // le dashboard : l'ancien fond clair des cartes/illustrations/
+          // graphiques disparaît au profit de la texture de la charte.
+          Positioned.fill(
+            child: MarbleBackground(dark: dashDark(context)),
+          ),
           Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Expanded(
               child: Column(
@@ -440,12 +451,16 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _buildCompactLayout(BuildContext context, double vw) {
     final mq = MediaQuery.of(context);
     final phone = mq.size.shortestSide < 600;
-    final isDark = dashDark(context);
-    final textColor = MarbleBackground.of(context)?.textColor ?? Colors.white;
+    final isDark = dashDarkUi(context);
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: Colors.transparent,
       body: Stack(children: [
+        // Texture ÉMERAUDE (thème clair) / GRAPHITE (sombre) derrière tout
+        // le dashboard mobile (mêmes fonds que la version PC).
+        Positioned.fill(
+          child: MarbleBackground(dark: dashDark(context)),
+        ),
         Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           _MobileTopBar(
             onMenu: _openMenuDrawer,
@@ -791,7 +806,9 @@ class _KpiCardState extends State<_KpiCard> {
               // Fond de carte selon le thème : graphite (sombre) /
               // marbre argenté clair (quasi identique au fond de la maquette,
               // ce qui fond les bords des illustrations détourées).
-              color: kpiDark ? AppColors.graphiteDark : AppColors.silverLight,
+              color: kpiDark
+                  ? AppColors.graphiteDark
+                  : Colors.black.withValues(alpha: 0.30),
             ),
             child: Stack(
               fit: StackFit.expand,
@@ -850,9 +867,7 @@ class _KpiCardState extends State<_KpiCard> {
                             child: Text(def.label,
                                 maxLines: 1,
                                 style: TextStyle(
-                                    color: kpiDark
-                                        ? _gold
-                                        : AppColors.champagneInk,
+                                    color: _gold,
                                     fontSize: 10.5,
                                     fontWeight: FontWeight.w800,
                                     letterSpacing: 0.8)),
@@ -872,7 +887,7 @@ class _KpiCardState extends State<_KpiCard> {
                         child: Text(def.value,
                             maxLines: 1,
                             style: TextStyle(
-                                color: kpiDark ? _gold : AppColors.champagneInk,
+                                color: _gold,
                                 fontSize: 20,
                                 fontWeight: FontWeight.w900)),
                       ),
@@ -882,9 +897,7 @@ class _KpiCardState extends State<_KpiCard> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                                color:
-                                    (kpiDark ? _gold : AppColors.champagneInk)
-                                        .withValues(alpha: 0.85),
+                                color: _gold.withValues(alpha: 0.85),
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.w700)),
                       ],
@@ -907,9 +920,7 @@ class _KpiCardState extends State<_KpiCard> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                                color: dashDark(context)
-                                    ? Colors.white.withValues(alpha: 0.70)
-                                    : AppColors.inkDarkLight,
+                                color: Colors.white.withValues(alpha: 0.70),
                                 fontSize: 9.5,
                                 fontWeight: FontWeight.w600)),
                       ],
@@ -965,22 +976,21 @@ class _MobileTopBar extends StatelessWidget {
     final userName = (user?.fullName.trim().isNotEmpty ?? false)
         ? user!.fullName.trim()
         : 'Admin';
-    final isDark = dashDark(context);
     final textColor = MarbleBackground.of(context)?.textColor ?? Colors.white;
     return MarbleBackground(
-      dark: isDark,
+      dark: dashDark(context),
       child: Container(
         height: 56,
         padding: const EdgeInsets.symmetric(horizontal: 6),
         decoration: BoxDecoration(
-            color: isDark
+            color: dashDark(context)
                 ? AppColors.surfaceDark
-                : const Color(0xFFF7F8F9).withValues(alpha: 0.72),
+                : Colors.black.withValues(alpha: 0.40),
             border: Border(
                 bottom: BorderSide(
-                    color: isDark
+                    color: dashDark(context)
                         ? AppColors.dividerDark.withValues(alpha: 0.7)
-                        : AppColors.silverDark))),
+                        : Colors.white.withValues(alpha: 0.14)))),
         child: Row(children: [
           // Menu (drawer mobile « Tous les modules »).
           InkWell(
@@ -1256,22 +1266,22 @@ class _TopBar extends StatelessWidget {
         ? user!.fullName.trim()
         : pharmacyName;
     final narrow = MediaQuery.sizeOf(context).width < 700;
-    final isDark = dashDark(context);
+    final isDark = dashDarkUi(context);
     final textColor = MarbleBackground.of(context)?.textColor ?? Colors.white;
     return MarbleBackground(
-      dark: isDark,
+      dark: dashDark(context),
       child: Container(
         height: 62,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-            color: isDark
+            color: dashDark(context)
                 ? AppColors.surfaceDark
-                : const Color(0xFFF7F8F9).withValues(alpha: 0.72),
+                : Colors.black.withValues(alpha: 0.40),
             border: Border(
                 bottom: BorderSide(
-                    color: isDark
+                    color: dashDark(context)
                         ? AppColors.dividerDark.withValues(alpha: 0.7)
-                        : AppColors.silverDark))),
+                        : Colors.white.withValues(alpha: 0.14)))),
         child: Row(children: [
           // ☰ — menu rétractable sur tablette/mobile (masqué sur desktop).
           if (onMenu != null) ...[
@@ -1319,39 +1329,37 @@ class _TopBar extends StatelessWidget {
           const SizedBox(width: 16),
           if (narrow)
             Tooltip(
-              message: '$userName · $roleLabel',
-              child: Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.goldBorderStrong),
-                ),
-                child: Text(
-                  userName.isEmpty
-                      ? '?'
-                      : userName.characters.first.toUpperCase(),
-                  style: TextStyle(
-                      color: MarbleBackground.of(context)?.textColor ?? Colors.white,
-                      fontWeight: FontWeight.w900,
-                    )
-              )
-            )
-          )
+                message: '$userName · $roleLabel',
+                child: Container(
+                    width: 36,
+                    height: 36,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.goldBorderStrong),
+                    ),
+                    child: Text(
+                        userName.isEmpty
+                            ? '?'
+                            : userName.characters.first.toUpperCase(),
+                        style: TextStyle(
+                          color: MarbleBackground.of(context)?.textColor ??
+                              Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ))))
           else
             Flexible(
               child: Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                 decoration: BoxDecoration(
-                    color: dashDark(context)
+                    color: dashDarkUi(context)
                         ? Colors.white.withValues(alpha: 0.03)
                         : AppColors.sageGreen.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                        color: dashDark(context)
+                        color: dashDarkUi(context)
                             ? Colors.white.withValues(alpha: 0.10)
                             : AppColors.sageGreenDark.withValues(alpha: 0.35))),
                 child: Column(
@@ -1511,7 +1519,7 @@ class _TopIcon extends StatelessWidget {
                     color: AppColors.danger,
                     borderRadius: BorderRadius.circular(9),
                     border: Border.all(
-                        color: dashDark(context)
+                        color: dashDarkUi(context)
                             ? AppColors.surfaceDark
                             : AppColors.silver,
                         width: 1.5)),
@@ -1544,21 +1552,21 @@ class _DarkPanel extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
-    final isDark = dashDark(context);
+    final isDark = dashDarkUi(context);
     final textColor = MarbleBackground.of(context)?.textColor ?? Colors.white;
     return MarbleBackground(
-      dark: isDark,
+      dark: dashDark(context),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-            color: isDark
+            color: dashDark(context)
                 ? AppColors.graphite.withValues(alpha: 0.72)
-                : const Color(0xFFF7F8F9).withValues(alpha: 0.72),
+                : Colors.black.withValues(alpha: 0.30),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-                color: isDark
+                color: dashDark(context)
                     ? AppColors.goldBorder
-                    : AppColors.sageGreenDark.withValues(alpha: 0.30)),
+                    : AppColors.goldBorder.withValues(alpha: 0.55)),
             boxShadow: [
               BoxShadow(
                   color: Colors.black.withValues(alpha: isDark ? 0.30 : 0.08),
@@ -1660,14 +1668,14 @@ class _AlertsStockPanel extends StatelessWidget {
             child: Column(children: [
               Icon(Icons.verified_rounded,
                   size: 26,
-                  color: dashDark(context)
+                  color: dashDarkUi(context)
                       ? AppColors.sageGreen
                       : AppColors.sageGreenInk),
               const SizedBox(height: 6),
               Text('Aucune alerte — stock et péremptions sains',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      color: dashDark(context)
+                      color: dashDarkUi(context)
                           ? Colors.white.withValues(alpha: 0.45)
                           : AppColors.inkDarkLight,
                       fontSize: 11)),
@@ -1691,12 +1699,12 @@ class _AlertsStockPanel extends StatelessWidget {
             onPressed: onViewAll,
             style: OutlinedButton.styleFrom(
               foregroundColor:
-                  dashDark(context) ? Colors.white : AppColors.sageGreenInk,
-              backgroundColor: dashDark(context)
+                  dashDarkUi(context) ? Colors.white : AppColors.sageGreenInk,
+              backgroundColor: dashDarkUi(context)
                   ? AppColors.graphiteDark
                   : AppColors.sageGreen.withValues(alpha: 0.45),
               side: BorderSide(
-                  color: dashDark(context)
+                  color: dashDarkUi(context)
                       ? AppColors.goldBorderStrong
                       : AppColors.sageGreenDark.withValues(alpha: 0.55)),
               shape: RoundedRectangleBorder(
@@ -1704,7 +1712,7 @@ class _AlertsStockPanel extends StatelessWidget {
             ),
             child: Text('Voir toutes',
                 style: TextStyle(
-                    color: dashDark(context)
+                    color: dashDarkUi(context)
                         ? Colors.white
                         : AppColors.sageGreenInk,
                     fontWeight: FontWeight.w700)),
@@ -1735,7 +1743,7 @@ class _AlertRow extends StatelessWidget {
           color: dashPanel(context),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-              color: dashDark(context)
+              color: dashDarkUi(context)
                   ? Colors.white.withValues(alpha: 0.07)
                   : AppColors.sageGreenDark.withValues(alpha: 0.25))),
       child: Row(children: [
@@ -1755,13 +1763,13 @@ class _AlertRow extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    color: MarbleBackground.of(context)?.textColor ??
-                        Colors.white,
+                    color:
+                        MarbleBackground.of(context)?.textColor ?? Colors.white,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700)),
             Text(detail,
                 style: TextStyle(
-                    color: dashDark(context)
+                    color: dashDarkUi(context)
                         ? color
                         : Color.lerp(color, Colors.black, 0.35)!,
                     fontSize: 10.5,
@@ -1826,7 +1834,7 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
                   decoration: BoxDecoration(
-                      gradient: dashDark(context)
+                      gradient: dashDarkUi(context)
                           ? const LinearGradient(
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
@@ -1836,7 +1844,7 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
                               end: Alignment.bottomRight,
                               colors: [Color(0xFFF6F7F8), Color(0xFFE7EAEC)]),
                       border: Border.all(
-                          color: dashDark(context)
+                          color: dashDarkUi(context)
                               ? AppColors.dividerDark.withValues(alpha: 0.9)
                               : AppColors.inkDark.withValues(alpha: 0.10))),
                   // MÊME modèle 3D que la page "Plan 3D" (PlanPainter +
@@ -1914,17 +1922,17 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
             height: compact ? 24 : 40,
             decoration: BoxDecoration(
               color: active
-                  ? (dashDark(context)
+                  ? (dashDarkUi(context)
                       ? AppColors.pharmaGreen.withValues(alpha: 0.20)
                       : AppColors.sageGreen.withValues(alpha: 0.45))
                   : dashPanel(context),
               borderRadius: BorderRadius.circular(compact ? 8 : 10),
               border: Border.all(
                   color: active
-                      ? (dashDark(context)
+                      ? (dashDarkUi(context)
                           ? AppColors.pharmaGreen.withValues(alpha: 0.75)
                           : AppColors.sageGreenDark.withValues(alpha: 0.75))
-                      : (dashDark(context)
+                      : (dashDarkUi(context)
                           ? Colors.white.withValues(alpha: 0.16)
                           : AppColors.sageGreenDark.withValues(alpha: 0.30))),
             ),
@@ -1935,7 +1943,7 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
                       Icon(icon,
                           size: 15,
                           color: active
-                              ? (dashDark(context)
+                              ? (dashDarkUi(context)
                                   ? AppColors.pharmaGreen
                                   : AppColors.sageGreenInk)
                               : dashText(context)),
@@ -1943,7 +1951,7 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
                       Text(tip,
                           style: TextStyle(
                               color: active
-                                  ? (dashDark(context)
+                                  ? (dashDarkUi(context)
                                       ? AppColors.pharmaGreen
                                       : AppColors.sageGreenInk)
                                   : dashTextSoft(context),
@@ -1954,7 +1962,7 @@ class _Plan3DPanelState extends State<_Plan3DPanel> {
                 : Icon(icon,
                     size: compact ? 14 : 17,
                     color: active
-                        ? (dashDark(context)
+                        ? (dashDarkUi(context)
                             ? AppColors.pharmaGreen
                             : AppColors.sageGreenInk)
                         : dashText(context)),
@@ -2068,7 +2076,7 @@ class _AnalyticsTiles extends StatelessWidget {
         legend: 'Valeurs réelles',
         painter: _AnalyticsBarsPainter(
           values: [revenueToday, revenueMonth, profitMonth],
-          colors: dashDark(context)
+          colors: dashDarkUi(context)
               ? const [AppColors.emerald, AppColors.chart, AppColors.gold]
               : const [
                   AppColors.sageGreenInk,
@@ -2095,7 +2103,7 @@ class _AnalyticsTiles extends StatelessWidget {
           ],
           colors: const [AppColors.gold, AppColors.warning, AppColors.danger],
           labelColor:
-              dashDark(context) ? Colors.white70 : AppColors.inkDarkLight,
+              dashDarkUi(context) ? Colors.white70 : AppColors.inkDarkLight,
           valueColor: dashText(context),
         ),
       ),
@@ -2166,7 +2174,7 @@ class _AnalyticsChartCard extends StatelessWidget {
               color: dashPanel(context),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                  color: dashDark(context)
+                  color: dashDarkUi(context)
                       ? Colors.white.withValues(alpha: 0.07)
                       : AppColors.sageGreenDark.withValues(alpha: 0.25)),
             ),
@@ -2182,7 +2190,7 @@ class _AnalyticsChartCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(legend,
                     style: TextStyle(
-                        color: dashDark(context)
+                        color: dashDarkUi(context)
                             ? AppColors.textTertiary
                             : AppColors.inkDarkLight,
                         fontSize: 10.5)),

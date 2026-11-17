@@ -267,9 +267,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               child: Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 30, vertical: 24),
-                child: SizedBox(
-                    width: formWidth,
-                    child: _buildForm()),
+                child: SizedBox(width: formWidth, child: _buildForm()),
               ),
             ),
           ),
@@ -290,9 +288,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                 color: AppColors.sageGreen.withValues(alpha: 0.22),
                 width: 1,
               ),
-              // Couleur de repli le temps que la texture se charge.
-              color:
-                  isDark ? AppColors.graphiteDark : AppColors.backgroundLight,
+              // Couleur de repli (FOND FONCÉ) le temps que la texture se
+              // charge : jamais de flash blanc sous un texte clair.
+              color: isDark ? AppColors.graphiteDark : const Color(0xFF0B2A1E),
             ),
       child: transparent
           ? body

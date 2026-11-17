@@ -465,7 +465,8 @@ class _DrawerTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 15,
-                        color: isDark ? AppColors.porcelain : AppColors.champagne,
+                        color:
+                            isDark ? AppColors.porcelain : AppColors.champagne,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -476,7 +477,9 @@ class _DrawerTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 12,
-                          color: isDark ? AppColors.porcelain : AppColors.champagne,
+                          color: isDark
+                              ? AppColors.porcelain
+                              : AppColors.champagne,
                         ),
                       ),
                   ],

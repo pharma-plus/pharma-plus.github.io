@@ -23,21 +23,15 @@ import '../pos/payment_models.dart';
 import '../pos/pos_models.dart';
 import 'pos_category_grid.dart';
 
-/// Helpers thème du mini-POS : encre foncée sur marbre clair (thème
-/// principal), blanc sur graphite (thème sombre validé). Aucune règle
-/// métier : uniquement des couleurs.
+/// Helpers thème du mini-POS : la texture de fond est FONCÉE dans les deux
+/// thèmes (émeraude métallisée en clair, graphite/photo en sombre) ⇒ toutes
+/// les écritures du mini-POS sont CLAIRES pour rester lisibles.
 bool _posDark(BuildContext c) => Theme.of(c).brightness == Brightness.dark;
-Color _posInk(BuildContext c, [double alpha = 1]) => _posDark(c)
-    ? Colors.white.withValues(alpha: alpha)
-    : AppColors.inkDark.withValues(alpha: alpha);
-Color _posField(BuildContext c) => _posDark(c)
-    ? Colors.white.withValues(alpha: 0.04)
-    : Colors.white.withValues(alpha: 0.62);
-Color _posLine(BuildContext c) => _posDark(c)
-    ? Colors.white.withValues(alpha: 0.08)
-    : AppColors.inkDark.withValues(alpha: 0.14);
-Color _posGold(BuildContext c) =>
-    _posDark(c) ? const Color(0xFFE9C873) : AppColors.champagneInk;
+Color _posInk(BuildContext c, [double alpha = 1]) =>
+    Colors.white.withValues(alpha: alpha);
+Color _posField(BuildContext c) => Colors.white.withValues(alpha: 0.06);
+Color _posLine(BuildContext c) => Colors.white.withValues(alpha: 0.14);
+Color _posGold(BuildContext c) => const Color(0xFFE9C873);
 
 /// ============================================================
 /// POINT DE VENTE (encart dashboard) — VRAI mini-POS :
@@ -797,9 +791,7 @@ class _PosPanelState extends State<PosPanel> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
-            color: _posDark(context)
-                ? Colors.white.withValues(alpha: 0.05)
-                : Colors.white.withValues(alpha: 0.55),
+            color: Colors.white.withValues(alpha: 0.06),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
                 color: const Color(0xFFC9A24B).withValues(alpha: 0.5)),
@@ -1058,8 +1050,7 @@ class _PosPanelState extends State<PosPanel> {
               child: DropdownButton<String>(
                 isExpanded: true,
                 value: _customerId,
-                dropdownColor:
-                    _posDark(context) ? const Color(0xFF20272D) : Colors.white,
+                dropdownColor: const Color(0xFF20272D),
                 icon: Icon(Icons.keyboard_arrow_down_rounded,
                     size: 16, color: _posInk(context, 0.55)),
                 hint: Row(children: [
@@ -1148,7 +1139,7 @@ class _PosPanelState extends State<PosPanel> {
                     child: Text(_discountPercent ? '%' : 'MAD',
                         style: TextStyle(
                             color: _discountPercent
-                                ? AppColors.sageGreenInk
+                                ? Colors.white
                                 : AppColors.sageGreen,
                             fontSize: 10,
                             fontWeight: FontWeight.w900))),
@@ -1163,9 +1154,7 @@ class _PosPanelState extends State<PosPanel> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-                color: _posDark(context)
-                    ? const Color(0xFF232B31)
-                    : Colors.white.withValues(alpha: 0.72),
+                color: const Color(0xFF232B31),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: _posLine(context))),
             child: Row(
@@ -1184,9 +1173,7 @@ class _PosPanelState extends State<PosPanel> {
                           fontWeight: FontWeight.w900)),
                   Text(_fmt(t.total),
                       style: TextStyle(
-                          color: _posDark(context)
-                              ? AppColors.sageGreen
-                              : AppColors.sageGreenInk,
+                          color: AppColors.sageGreen,
                           fontSize: 15,
                           fontWeight: FontWeight.w900)),
                 ]),
@@ -1411,7 +1398,7 @@ class _PanelShell extends StatelessWidget {
         border: Border.all(
             color: isDark
                 ? AppColors.dividerDark
-                : AppColors.inkDark.withValues(alpha: 0.14)),
+                : Colors.white.withValues(alpha: 0.20)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
@@ -1542,9 +1529,9 @@ class _PanelButton extends StatelessWidget {
       child: Container(
         height: 38,
         decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.16),
+            color: color.withValues(alpha: 0.28),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: color.withValues(alpha: 0.5))),
+            border: Border.all(color: color.withValues(alpha: 0.65))),
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           Icon(icon, size: 15, color: _posInk(context, 0.9)),
           const SizedBox(width: 5),
@@ -1619,9 +1606,7 @@ class _PaymentModeBtn extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected
               ? selectedColor.withValues(alpha: 0.15)
-              : _posDark(context)
-                  ? Colors.white.withValues(alpha: 0.03)
-                  : Colors.white.withValues(alpha: 0.5),
+              : Colors.white.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
               color: selected ? selectedColor : _posLine(context),
@@ -1683,9 +1668,7 @@ class _CartRow extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 5),
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-          color: _posDark(context)
-              ? Colors.white.withValues(alpha: 0.03)
-              : Colors.white.withValues(alpha: 0.55),
+          color: Colors.white.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(9),
           border: Border.all(color: _posLine(context))),
       child: Row(children: [

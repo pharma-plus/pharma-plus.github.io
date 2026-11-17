@@ -38,8 +38,8 @@ class MarbleBackground extends StatelessWidget {
 
   /// Récupère la configuration de texte du `MarbleBackground` ancêtre.
   static MarbleBackgroundData? of(BuildContext context) {
-    final scope = context
-        .dependOnInheritedWidgetOfExactType<_MarbleBackgroundScope>();
+    final scope =
+        context.dependOnInheritedWidgetOfExactType<_MarbleBackgroundScope>();
     return scope?.data;
   }
 
@@ -60,6 +60,15 @@ class MarbleBackground extends StatelessWidget {
         child: RepaintBoundary(
           child: Stack(
             children: [
+              // Fond de repli FONCÉ (émeraude / graphite) : même si l'image
+              // de texture tarde ou échoue, aucun flash blanc et les textes
+              // clairs restent lisibles.
+              Positioned.fill(
+                child: ColoredBox(
+                  color:
+                      dark ? const Color(0xFF101314) : const Color(0xFF0B2A1E),
+                ),
+              ),
               if (dark)
                 Positioned.fill(
                   child: CustomPaint(
