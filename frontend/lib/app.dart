@@ -66,7 +66,14 @@ class RootGate extends StatelessWidget {
     return Consumer<AuthStore>(
       builder: (context, auth, _) {
         if (!auth.isInitialized) {
-          return _withPopScope(const _SplashScreen());
+          return Scaffold(
+            backgroundColor: AppColors.pharmaBg,
+            body: const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation(AppColors.champagne),
+              ),
+            ),
+          );
         }
         if (auth.initError) {
           return _withPopScope(_InitErrorScreen(
