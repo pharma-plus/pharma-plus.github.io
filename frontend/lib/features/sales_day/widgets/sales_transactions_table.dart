@@ -15,6 +15,7 @@ import '../../../core/utils/format.dart';
 import '../models/sales_day_model.dart';
 import '../services/sales_analytics_service.dart';
 import '../controllers/sales_day_controller.dart';
+import 'sales_design_system.dart';
 
 class SalesTransactionsTable extends StatefulWidget {
   final SalesDayController controller;
@@ -71,16 +72,16 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
   Color _statusColor(String status) {
     switch (status) {
       case 'completed':
-        return AppColors.sageGreenInk;
+        return SalesDesign.readable(AppColors.sageGreenInk);
       case 'returned':
       case 'voided':
       case 'cancelled':
       case 'refunded':
-        return AppColors.pharmaDanger;
+        return SalesDesign.readable(AppColors.pharmaDanger);
       case 'pending':
         return AppColors.pharmaWarning;
       default:
-        return AppColors.pharmaMuted;
+        return SalesDesign.onDarkMuted;
     }
   }
 
@@ -103,7 +104,7 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
               child: Text(
                 'Transactions',
                 style: TextStyle(
-                  color: AppColors.inkDark,
+                  color: SalesDesign.onDark,
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
                 ),
@@ -117,10 +118,10 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
                   decoration: const InputDecoration(
                     isDense: true,
                     prefixIcon: Icon(Icons.search,
-                        size: 18, color: AppColors.pharmaMuted),
+                        size: 18, color: SalesDesign.onDarkMuted),
                     hintText: 'N° de vente…',
-                    hintStyle:
-                        TextStyle(color: AppColors.pharmaMuted, fontSize: 11.5),
+                    hintStyle: TextStyle(
+                        color: SalesDesign.onDarkMuted, fontSize: 11.5),
                     contentPadding:
                         EdgeInsets.symmetric(vertical: 8, horizontal: 10),
                     border: OutlineInputBorder(
@@ -133,7 +134,7 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
                     ),
                   ),
                   style:
-                      const TextStyle(color: AppColors.inkDark, fontSize: 12),
+                      const TextStyle(color: SalesDesign.onDark, fontSize: 12),
                   onChanged: onSearch,
                 ),
               ),
@@ -153,8 +154,8 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
             const SizedBox(width: 10, height: 10),
             Text(
               '${c.txTotal} transaction(s) au total',
-              style:
-                  const TextStyle(color: AppColors.pharmaMuted, fontSize: 10.5),
+              style: const TextStyle(
+                  color: SalesDesign.onDarkMuted, fontSize: 10.5),
             ),
           ],
         ),
@@ -169,8 +170,9 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
                 Expanded(
                   child: Text(
                     c.txError!.userMessage,
-                    style: const TextStyle(
-                        color: AppColors.pharmaDanger, fontSize: 11),
+                    style: TextStyle(
+                        color: SalesDesign.readable(AppColors.pharmaDanger),
+                        fontSize: 11),
                   ),
                 ),
               ],
@@ -195,13 +197,13 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
               child: Column(
                 children: [
                   Icon(Icons.receipt_outlined,
-                      color: AppColors.pharmaMuted.withValues(alpha: 0.5),
+                      color: SalesDesign.onDarkMuted.withValues(alpha: 0.5),
                       size: 34),
                   const SizedBox(height: 8),
                   const Text(
                     'Aucune transaction sur la période pour ce filtre',
                     style:
-                        TextStyle(color: AppColors.pharmaMuted, fontSize: 12),
+                        TextStyle(color: SalesDesign.onDarkMuted, fontSize: 12),
                   ),
                 ],
               ),
@@ -246,18 +248,23 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: active
-              ? AppColors.sageGreenInk.withValues(alpha: 0.16)
+              ? SalesDesign.readable(AppColors.sageGreenInk)
+                  .withValues(alpha: 0.16)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: active ? AppColors.sageGreenInk : AppColors.goldBorder,
+            color: active
+                ? SalesDesign.readable(AppColors.sageGreenInk)
+                : AppColors.goldBorder,
             width: 1,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: active ? AppColors.sageGreenInk : AppColors.pharmaMuted,
+            color: active
+                ? SalesDesign.readable(AppColors.sageGreenInk)
+                : SalesDesign.onDarkMuted,
             fontSize: 10.5,
             fontWeight: active ? FontWeight.w700 : FontWeight.w500,
           ),
@@ -267,7 +274,7 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
   }
 
   Widget _row(List<String> cells, {bool header = false, String? status}) {
-    final color = header ? AppColors.pharmaMuted : AppColors.inkDark;
+    final color = header ? SalesDesign.onDarkMuted : SalesDesign.onDark;
     final style = TextStyle(
       color: color,
       fontSize: 11,
@@ -312,10 +319,9 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
     final rows = c.txRows;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.silver.withValues(alpha: 0.75),
+        color: SalesDesign.panelFill,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color: AppColors.sageGreenDark.withValues(alpha: 0.35), width: 1),
+        border: Border.all(color: AppColors.goldBorder, width: 1),
       ),
       child: Column(
         children: [
@@ -374,7 +380,7 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              color: AppColors.inkDark,
+                              color: SalesDesign.onDark,
                               fontWeight: FontWeight.w700,
                               fontSize: 12,
                             ),
@@ -410,13 +416,13 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
                                 ? 'Date inconnue'
                                 : Fmt.dateTime(t.createdAt),
                             style: const TextStyle(
-                                color: AppColors.pharmaMuted, fontSize: 10.5),
+                                color: SalesDesign.onDarkMuted, fontSize: 10.5),
                           ),
                         ),
                         Text(
                           '${Fmt.number(t.total, decimals: 2)} MAD',
                           style: const TextStyle(
-                            color: AppColors.champagneInkLight,
+                            color: SalesDesign.onDark,
                             fontWeight: FontWeight.w700,
                             fontSize: 12,
                           ),
@@ -429,7 +435,7 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
                       '${_method(t.paymentMethod)}'
                       '${(t.customer != null && t.customer!.isNotEmpty) ? ' · ${t.customer!}' : ''}',
                       style: const TextStyle(
-                          color: AppColors.pharmaMuted, fontSize: 10.5),
+                          color: SalesDesign.onDarkMuted, fontSize: 10.5),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),

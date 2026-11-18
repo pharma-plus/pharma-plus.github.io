@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/utils/format.dart';
 import '../models/sales_day_model.dart';
+import 'sales_design_system.dart';
 
 class SalesPaymentChart extends StatelessWidget {
   final List<SalesPaymentSlice> slices;
@@ -23,12 +24,12 @@ class SalesPaymentChart extends StatelessWidget {
   });
 
   static const List<Color> _palette = [
-    AppColors.sageGreenInk,
-    AppColors.champagneInk,
+    AppColors.sageGreen,
+    AppColors.champagne,
     AppColors.cardBlue,
     AppColors.cardPurple,
     AppColors.cardAmber,
-    AppColors.sageGreenInk,
+    AppColors.sageGreen,
   ];
 
   @override
@@ -41,7 +42,7 @@ class SalesPaymentChart extends StatelessWidget {
         Text(
           title,
           style: const TextStyle(
-            color: AppColors.inkDark,
+            color: SalesDesign.onDark,
             fontWeight: FontWeight.w700,
             fontSize: 14,
           ),
@@ -49,7 +50,7 @@ class SalesPaymentChart extends StatelessWidget {
         const SizedBox(height: 2),
         const Text(
           'Détail réel des paiements de la période (décaissé, hors monnaie rendue)',
-          style: TextStyle(color: AppColors.pharmaMuted, fontSize: 10.5),
+          style: TextStyle(color: SalesDesign.onDarkMuted, fontSize: 10.5),
         ),
         const SizedBox(height: 14),
         if (slices.isEmpty)
@@ -58,7 +59,7 @@ class SalesPaymentChart extends StatelessWidget {
             child: Center(
               child: Text(
                 'Aucun paiement enregistré sur la période',
-                style: TextStyle(color: AppColors.pharmaMuted, fontSize: 12),
+                style: TextStyle(color: SalesDesign.onDarkMuted, fontSize: 12),
               ),
             ),
           )
@@ -67,21 +68,49 @@ class SalesPaymentChart extends StatelessWidget {
             children: [
               SizedBox(
                 height: 150,
-                child: PieChart(
-                  PieChartData(
-                    centerSpaceRadius: 34,
-                    sectionsSpace: 1.5,
-                    pieTouchData: PieTouchData(enabled: false),
-                    sections: [
-                      for (final (i, p) in slices.indexed)
-                        PieChartSectionData(
-                          value: p.amount <= 0 ? 0.0001 : p.amount,
-                          color: _palette[i % _palette.length],
-                          radius: 52,
-                          showTitle: false,
-                        ),
-                    ],
-                  ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    PieChart(
+                      PieChartData(
+                        centerSpaceRadius: 42,
+                        sectionsSpace: 1.5,
+                        pieTouchData: PieTouchData(enabled: false),
+                        sections: [
+                          for (final (i, p) in slices.indexed)
+                            PieChartSectionData(
+                              value: p.amount <= 0 ? 0.0001 : p.amount,
+                              color: _palette[i % _palette.length],
+                              radius: 52,
+                              showTitle: false,
+                            ),
+                        ],
+                      ),
+                    ),
+                    // Total réel = somme des moyens de paiement affichés.
+                    IgnorePointer(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '100%',
+                            style: const TextStyle(
+                              color: SalesDesign.onDark,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          Text(
+                            Fmt.money(total),
+                            style: const TextStyle(
+                              color: SalesDesign.onDarkMuted,
+                              fontSize: 8,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 12),
@@ -103,7 +132,7 @@ class SalesPaymentChart extends StatelessWidget {
                         child: Text(
                           p.label,
                           style: const TextStyle(
-                            color: AppColors.inkDark,
+                            color: SalesDesign.onDark,
                             fontSize: 11.5,
                           ),
                         ),
@@ -112,7 +141,7 @@ class SalesPaymentChart extends StatelessWidget {
                         '${Fmt.number(p.amount, decimals: 2)} MAD · '
                         '${total > 0 ? ((p.amount / total) * 100).toStringAsFixed(1) : '0'} %',
                         style: const TextStyle(
-                          color: AppColors.pharmaMuted,
+                          color: SalesDesign.onDarkMuted,
                           fontSize: 11,
                         ),
                       ),

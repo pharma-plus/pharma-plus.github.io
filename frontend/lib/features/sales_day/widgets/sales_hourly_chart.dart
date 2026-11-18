@@ -24,11 +24,18 @@ class SalesHourlyChart extends StatelessWidget {
   /// visuelle maîtrisée.
   final double height;
 
+  /// État de chargement / d'erreur : permet de distinguer « aucune vente »
+  /// d'un échec de récupération des données.
+  final bool loading;
+  final String? errorMessage;
+
   const SalesHourlyChart({
     super.key,
     required this.hourly,
     this.title = 'Ventes par heure',
     this.height = 168,
+    this.loading = false,
+    this.errorMessage,
   });
 
   @override
@@ -48,7 +55,7 @@ class SalesHourlyChart extends StatelessWidget {
         Text(
           title,
           style: const TextStyle(
-            color: AppColors.inkDark,
+            color: SalesDesign.onDark,
             fontWeight: FontWeight.w700,
             fontSize: 14,
           ),
@@ -57,19 +64,38 @@ class SalesHourlyChart extends StatelessWidget {
         const Text(
           'Heure locale de la pharmacie · montants TTC réels',
           style: TextStyle(
-            color: AppColors.pharmaMuted,
+            color: SalesDesign.onDarkMuted,
             fontSize: 10.5,
           ),
         ),
         const SizedBox(height: 14),
-        if (!busy)
+        if (loading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 34),
+            child: Center(
+              child: SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                    color: AppColors.champagne, strokeWidth: 2),
+              ),
+            ),
+          )
+        else if (errorMessage != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 26),
+            child: SalesNotice(
+              message: 'Graphique indisponible : $errorMessage',
+            ),
+          )
+        else if (!busy)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 34),
             child: Center(
               child: Text(
                 'Aucune vente sur la période',
                 style: TextStyle(
-                  color: AppColors.pharmaMuted,
+                  color: SalesDesign.onDarkMuted,
                   fontSize: 12,
                 ),
               ),
@@ -119,6 +145,10 @@ class SalesHourlyChart extends StatelessWidget {
                   show: true,
                   drawVerticalLine: false,
                   horizontalInterval: _yInterval(data),
+                  getDrawingHorizontalLine: (value) => const FlLine(
+                    color: Color(0x26C6A76B),
+                    strokeWidth: 1,
+                  ),
                 ),
                 borderData: FlBorderData(show: false),
                 titlesData: FlTitlesData(
@@ -132,7 +162,7 @@ class SalesHourlyChart extends StatelessWidget {
                       getTitlesWidget: (v, m) => Text(
                         Fmt.number(v),
                         style: const TextStyle(
-                          color: AppColors.pharmaMuted,
+                          color: SalesDesign.onDarkSoft,
                           fontSize: 9,
                         ),
                       ),
@@ -180,7 +210,7 @@ class SalesHourlyChart extends StatelessWidget {
                         '${hour.toString().padLeft(2, '0')}h · ${Fmt.money(s.y)}'
                         '${count > 0 ? ' · ${Fmt.number(count)} vente(s)' : ''}',
                         const TextStyle(
-                          color: AppColors.inkDark,
+                          color: SalesDesign.onDark,
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                         ),

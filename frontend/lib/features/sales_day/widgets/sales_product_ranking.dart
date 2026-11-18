@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/utils/format.dart';
 import '../models/sales_day_model.dart';
+import 'sales_design_system.dart';
 
 /// Un classement des 10 premiers produits.
 class SalesProductRanking extends StatelessWidget {
@@ -31,8 +32,8 @@ class SalesProductRanking extends StatelessWidget {
   });
 
   static const List<Color> _medals = [
-    AppColors.champagneInkLight, // 1 (or)
-    AppColors.pharmaMuted, // 2 (argent)
+    SalesDesign.onDark, // 1 (or)
+    SalesDesign.onDarkMuted, // 2 (argent)
     Color(0xFFCD7F32), // 3 (bronze)
   ];
 
@@ -40,13 +41,13 @@ class SalesProductRanking extends StatelessWidget {
   Color _barColor(String sortBy) {
     switch (sortBy) {
       case 'qty':
-        return AppColors.sageGreenInk;
+        return SalesDesign.readable(AppColors.sageGreenInk);
       case 'rev':
-        return AppColors.champagneInk;
+        return SalesDesign.readable(AppColors.champagneInk);
       case 'profit':
         return AppColors.cardBlue;
       default:
-        return AppColors.sageGreenInk;
+        return SalesDesign.readable(AppColors.sageGreenInk);
     }
   }
 
@@ -79,7 +80,7 @@ class SalesProductRanking extends StatelessWidget {
                   Text(
                     title,
                     style: const TextStyle(
-                      color: AppColors.inkDark,
+                      color: SalesDesign.onDark,
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
                     ),
@@ -88,7 +89,7 @@ class SalesProductRanking extends StatelessWidget {
                   Text(
                     'Classement par ${sortBy == 'qty' ? 'quantités' : sortBy == 'rev' ? 'chiffre d\'affaires' : 'bénéfice brut'}',
                     style: const TextStyle(
-                      color: AppColors.pharmaMuted,
+                      color: SalesDesign.onDarkMuted,
                       fontSize: 10.5,
                     ),
                   ),
@@ -123,7 +124,7 @@ class SalesProductRanking extends StatelessWidget {
               child: Text(
                 'Aucun produit vendu sur la période',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.pharmaMuted, fontSize: 12),
+                style: TextStyle(color: SalesDesign.onDarkMuted, fontSize: 12),
               ),
             ),
           )
@@ -177,7 +178,8 @@ class SalesProductRanking extends StatelessWidget {
                 child: Text(
                   '$rank',
                   style: TextStyle(
-                    color: isMedal ? _medals[rank - 1] : AppColors.pharmaMuted,
+                    color:
+                        isMedal ? _medals[rank - 1] : SalesDesign.onDarkMuted,
                     fontWeight: FontWeight.w800,
                     fontSize: 12,
                   ),
@@ -194,7 +196,7 @@ class SalesProductRanking extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: AppColors.inkDark,
+                        color: SalesDesign.onDark,
                         fontSize: 12.5,
                         fontWeight: FontWeight.w600,
                       ),
@@ -203,7 +205,7 @@ class SalesProductRanking extends StatelessWidget {
                       Text(
                         product.dosage!,
                         style: const TextStyle(
-                          color: AppColors.pharmaMuted,
+                          color: SalesDesign.onDarkMuted,
                           fontSize: 10,
                         ),
                       ),
@@ -222,7 +224,7 @@ class SalesProductRanking extends StatelessWidget {
                         : Fmt.money(
                             sortBy == 'rev' ? product.revenue : product.profit),
                     style: const TextStyle(
-                      color: AppColors.champagneInkLight,
+                      color: SalesDesign.onDark,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
@@ -233,7 +235,7 @@ class SalesProductRanking extends StatelessWidget {
                         ? 'Qté'
                         : (sortBy == 'rev' ? 'CA' : 'Bénéfice'),
                     style: const TextStyle(
-                      color: AppColors.pharmaMuted,
+                      color: SalesDesign.onDarkMuted,
                       fontSize: 9,
                     ),
                   ),
@@ -260,14 +262,14 @@ class SalesProductRanking extends StatelessWidget {
                 child: _metricChip(
                   'Qté',
                   '${product.quantity.toStringAsFixed(0)}',
-                  AppColors.pharmaMuted,
+                  SalesDesign.onDarkMuted,
                 ),
               ),
               Expanded(
                 child: _metricChip(
                   'CA',
                   Fmt.money(product.revenue),
-                  AppColors.champagneInkLight,
+                  SalesDesign.onDark,
                 ),
               ),
               Expanded(
@@ -283,8 +285,8 @@ class SalesProductRanking extends StatelessWidget {
                     'Marge',
                     '${product.marginPct.toStringAsFixed(0)} %',
                     product.marginPct >= 0
-                        ? AppColors.sageGreenInk
-                        : AppColors.pharmaDanger,
+                        ? SalesDesign.readable(AppColors.sageGreenInk)
+                        : SalesDesign.readable(AppColors.pharmaDanger),
                   ),
                 ),
             ],
@@ -328,7 +330,7 @@ class SalesProductRanking extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(
-            color: AppColors.pharmaMuted,
+            color: SalesDesign.onDarkMuted,
             fontSize: 8,
           ),
         ),
