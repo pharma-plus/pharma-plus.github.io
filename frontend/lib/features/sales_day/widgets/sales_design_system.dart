@@ -1,20 +1,18 @@
 // ============================================================
-// PHARMA+ SALES INTELLIGENCE — Design System commun (Phase 2)
+// PHARMA+ SALES INTELLIGENCE — Design System commun
 // ============================================================
-// Tokens et primitives visuelles réutilisés par les 10 pages du module
-// (Vue générale, Analyse, Bénéfices, Produits, Employés, Paiements,
-// Retours, Comparaisons, Rapports, Alertes).
+// Tokens et primitives visuelles réutilisés par les 10 pages du module.
 //
-// Règle d'or : aucune nouvelle surface créée sans harmoniser sur ces
-// tokens — fond vert émeraude officiel (`MarbleBackground` / `pharma_background`)
-// inchangé, palette PHARMA+ inchangée (AppColors), bordure or champagne,
-// rayons et hauteurs centralisés ici.
+// Règle d'or (Phase 5) : le fond émeraude officiel est conservé, mais
+// toutes les surfaces du module sont SOMBRES et translucides avec un
+// liseré or champagne. Aucune surface ne dépend du thème clair global
+// (`GlassCard` choisissait `Colors.white` sous `AppTheme.light()`).
+// Les textes sont champagne / porcelaine, jamais `inkDark` sur sombre.
 // ============================================================
 
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/colors.dart';
-import '../../../core/widgets/glass_card.dart';
 
 /// Tokens de design du module SALES INTELLIGENCE.
 class SalesDesign {
@@ -40,9 +38,22 @@ class SalesDesign {
 
   static const int kpiGridDesktopColumns = 4;
   static const int kpiGridTabletColumns = 2;
+
+  /// surfaces sombres translucides, indépendantes du thème global.
+  static const Color panelFill = Color(0x8C3A424A);
+  static const Color panelFillStrong = Color(0xE63A424A);
+
+  /// Texte principal clair sur fond sombre.
+  static const Color onDark = AppColors.champagneLight;
+  static const Color onDarkMuted = Color(0xBFE8D5B5);
+  static const Color onDarkSoft = Color(0x8FE8D5B5);
+
+  /// Éclaircit une couleur sémantique pour la rendre lisible sur sombre.
+  static Color readable(Color color, [double amount = 0.42]) =>
+      Color.lerp(color, AppColors.porcelain, amount) ?? color;
 }
 
-/// Panel standard des pages Sales Intelligence (surface sombre + or).
+/// Panel standard : surface sombre translucide + liseré champagne.
 class SalesPanel extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   final Color? borderColor;
@@ -59,12 +70,32 @@ class SalesPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
-      padding: padding,
-      borderColor: borderColor,
-      margin: margin,
-      child: child,
+    final panel = DecoratedBox(
+      decoration: BoxDecoration(
+        color: SalesDesign.panelFill,
+        borderRadius: BorderRadius.circular(SalesDesign.radiusPanel),
+        border: Border.all(
+          color: borderColor ?? AppColors.goldBorder,
+          width: SalesDesign.borderWidth,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.28),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: padding,
+        child: DefaultTextStyle(
+          style: const TextStyle(color: SalesDesign.onDark),
+          child: child,
+        ),
+      ),
     );
+    if (margin != null) return Padding(padding: margin!, child: panel);
+    return panel;
   }
 }
 
@@ -81,19 +112,20 @@ class SalesMetric extends StatelessWidget {
     required this.label,
     required this.value,
     this.unit,
-    this.color = AppColors.inkDark,
+    this.color = SalesDesign.onDark,
     this.hint,
   });
 
   @override
   Widget build(BuildContext context) {
+    final readableColor = SalesDesign.readable(color);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: const TextStyle(
-            color: AppColors.pharmaMuted,
+            color: SalesDesign.onDarkMuted,
             fontSize: 10,
             fontWeight: FontWeight.w600,
           ),
@@ -108,7 +140,7 @@ class SalesMetric extends StatelessWidget {
                 value,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: color,
+                  color: readableColor,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
@@ -119,7 +151,7 @@ class SalesMetric extends StatelessWidget {
               Text(
                 unit!,
                 style: const TextStyle(
-                  color: AppColors.pharmaMuted,
+                  color: SalesDesign.onDarkMuted,
                   fontSize: 10,
                 ),
               ),
@@ -131,7 +163,7 @@ class SalesMetric extends StatelessWidget {
           Text(
             hint!,
             style: const TextStyle(
-              color: AppColors.pharmaMuted,
+              color: SalesDesign.onDarkSoft,
               fontSize: 9,
             ),
           ),
@@ -150,7 +182,8 @@ class SalesNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = warning ? AppColors.pharmaWarning : AppColors.cardBlue;
+    final raw = warning ? AppColors.pharmaWarning : AppColors.cardBlue;
+    final accent = SalesDesign.readable(raw, 0.3);
     return DecoratedBox(
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.10),
@@ -197,8 +230,9 @@ class SalesSectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
+          textAlign: textAlign,
           style: const TextStyle(
-            color: AppColors.inkDark,
+            color: SalesDesign.onDark,
             fontWeight: FontWeight.w700,
             fontSize: 16,
           ),
@@ -207,8 +241,9 @@ class SalesSectionHeader extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             subtitle!,
+            textAlign: textAlign,
             style: const TextStyle(
-              color: AppColors.pharmaMuted,
+              color: SalesDesign.onDarkMuted,
               fontSize: 11,
             ),
           ),
@@ -228,7 +263,7 @@ class SalesEmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.pharmaSurface.withValues(alpha: 0.5),
+        color: SalesDesign.panelFill,
         borderRadius: BorderRadius.circular(SalesDesign.radiusInner),
         border: Border.all(
             color: AppColors.goldBorder, width: SalesDesign.borderWidth),
@@ -240,7 +275,7 @@ class SalesEmptyState extends StatelessWidget {
             message,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: AppColors.pharmaMuted,
+              color: SalesDesign.onDarkMuted,
               fontSize: 12,
             ),
           ),

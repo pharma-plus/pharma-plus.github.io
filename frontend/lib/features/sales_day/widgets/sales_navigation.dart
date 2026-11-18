@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/colors.dart';
 import '../widgets/sales_sidebar_menu.dart';
+import 'sales_design_system.dart';
 
 /// Informations de navigation pour une sous-page.
 class SalesPageInfo {
@@ -151,7 +152,7 @@ class SalesNavigationController extends ChangeNotifier {
       icon: Icons.home_outlined,
       label: 'Maison',
       tooltip: 'Vue générale SALES INTELLIGENCE',
-      color: AppColors.champagneInk,
+      color: SalesDesign.onDark,
       onPressed: onPressed,
       compact: compact,
     );
@@ -164,7 +165,7 @@ class SalesNavigationController extends ChangeNotifier {
       icon: Icons.dashboard_outlined,
       label: 'Dashboard',
       tooltip: 'Retour Dashboard PHARMA+',
-      color: AppColors.pharmaMuted.withValues(alpha: 0.9),
+      color: SalesDesign.onDarkMuted.withValues(alpha: 0.9),
       onPressed: onPressed,
       compact: compact,
     );
@@ -177,7 +178,7 @@ class SalesNavigationController extends ChangeNotifier {
       icon: Icons.chevron_left,
       label: 'Précédent',
       tooltip: 'Page précédente',
-      color: AppColors.pharmaMuted.withValues(alpha: 0.9),
+      color: SalesDesign.onDarkMuted.withValues(alpha: 0.9),
       onPressed: hasPrevious ? onPressed : () {},
       enabled: hasPrevious,
       compact: compact,
@@ -191,7 +192,7 @@ class SalesNavigationController extends ChangeNotifier {
       icon: Icons.chevron_right,
       label: 'Suivant',
       tooltip: 'Page suivante',
-      color: AppColors.pharmaMuted.withValues(alpha: 0.9),
+      color: SalesDesign.onDarkMuted.withValues(alpha: 0.9),
       onPressed: canGoNext ? onPressed : () {},
       enabled: canGoNext,
       compact: compact,
@@ -204,7 +205,7 @@ class SalesNavigationController extends ChangeNotifier {
       icon: Icons.arrow_back,
       label: 'Retour',
       tooltip: 'Retour',
-      color: AppColors.pharmaMuted.withValues(alpha: 0.9),
+      color: SalesDesign.onDarkMuted.withValues(alpha: 0.9),
       onPressed: hasPrevious ? onPressed : () {},
       enabled: hasPrevious,
     );

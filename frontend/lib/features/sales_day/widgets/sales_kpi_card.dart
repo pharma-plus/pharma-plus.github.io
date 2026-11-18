@@ -11,6 +11,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/colors.dart';
+import 'sales_design_system.dart';
 
 class SalesKpiCard extends StatelessWidget {
   final String title;
@@ -34,6 +35,7 @@ class SalesKpiCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final delta = deltaPct;
     final unavailable = value.isEmpty || value == '—';
+    final accentBright = SalesDesign.readable(accent, 0.35);
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -55,7 +57,7 @@ class SalesKpiCard extends StatelessWidget {
             spreadRadius: -2,
           ),
           BoxShadow(
-            color: accent.withValues(alpha: 0.10),
+            color: accentBright.withValues(alpha: 0.10),
             blurRadius: 26,
             offset: const Offset(0, -6),
             spreadRadius: -8,
@@ -80,7 +82,7 @@ class SalesKpiCard extends StatelessWidget {
                       end: Alignment.centerRight,
                       colors: [
                         Colors.transparent,
-                        accent.withValues(alpha: 0.65),
+                        accentBright.withValues(alpha: 0.65),
                         Colors.transparent,
                       ],
                     ),
@@ -100,14 +102,14 @@ class SalesKpiCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: accent.withValues(alpha: 0.14),
+                          color: accentBright.withValues(alpha: 0.14),
                           borderRadius: BorderRadius.circular(9),
                           border: Border.all(
-                            color: accent.withValues(alpha: 0.35),
+                            color: accentBright.withValues(alpha: 0.35),
                             width: 1,
                           ),
                         ),
-                        child: Icon(icon, size: 15, color: accent),
+                        child: Icon(icon, size: 15, color: accentBright),
                       ),
                       const SizedBox(width: 7),
                       Expanded(
@@ -116,7 +118,7 @@ class SalesKpiCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            color: AppColors.pharmaMuted,
+                            color: SalesDesign.onDarkMuted,
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.5,
@@ -138,8 +140,8 @@ class SalesKpiCard extends StatelessWidget {
                             maxLines: 1,
                             style: TextStyle(
                               color: unavailable
-                                  ? AppColors.pharmaMuted
-                                  : AppColors.inkDark,
+                                  ? SalesDesign.onDarkSoft
+                                  : SalesDesign.onDark,
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
                               height: 1.1,
@@ -153,7 +155,7 @@ class SalesKpiCard extends StatelessWidget {
                           child: Text(
                             unit,
                             style: const TextStyle(
-                              color: AppColors.champagneInk,
+                              color: SalesDesign.onDark,
                               fontSize: 10.5,
                               fontWeight: FontWeight.w700,
                             ),
@@ -184,13 +186,12 @@ class SalesKpiCard extends StatelessWidget {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.info_outline,
-              size: 10, color: AppColors.pharmaMuted.withValues(alpha: 0.7)),
+          Icon(Icons.info_outline, size: 10, color: SalesDesign.onDarkSoft),
           const SizedBox(width: 3),
           Text(
             'Évolution indisponible',
             style: TextStyle(
-              color: AppColors.pharmaMuted.withValues(alpha: 0.7),
+              color: SalesDesign.onDarkSoft,
               fontSize: 9,
             ),
           ),
@@ -198,7 +199,10 @@ class SalesKpiCard extends StatelessWidget {
       );
     }
     final up = delta >= 0;
-    final color = up ? AppColors.sageGreenInk : AppColors.pharmaDanger;
+    final color = SalesDesign.readable(
+      up ? AppColors.sageGreenInk : AppColors.pharmaDanger,
+      0.5,
+    );
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

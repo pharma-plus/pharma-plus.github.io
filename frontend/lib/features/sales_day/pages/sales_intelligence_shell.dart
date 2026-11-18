@@ -130,7 +130,11 @@ extension SalesIntelligencePageX on SalesIntelligencePage {
 /// Le POS et le dashboard principal restent totalement intacts :
 /// ce shell est uniquement invoqué depuis le KPI 'VENTES DU JOUR'.
 class SalesIntelligenceShell extends StatefulWidget {
-  const SalesIntelligenceShell({super.key});
+  /// Contrôleur optionnel : permet aux tests de fournir une période fixe
+  /// (goldens déterministes). En production, le shell crée le sien.
+  final SalesDayController? controller;
+
+  const SalesIntelligenceShell({super.key, this.controller});
 
   @override
   State<SalesIntelligenceShell> createState() => _SalesIntelligenceShellState();
@@ -138,6 +142,7 @@ class SalesIntelligenceShell extends StatefulWidget {
 
 class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
   late SalesDayController _analytics;
+  late bool _ownsController;
   late SalesNavigationController _nav;
   SalesIntelligencePage _current = SalesIntelligencePage.overview;
   late final VoidCallback _listener;
@@ -149,19 +154,22 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
   @override
   void initState() {
     super.initState();
-    _analytics = SalesDayController();
+    _ownsController = widget.controller == null;
+    _analytics = widget.controller ?? SalesDayController();
+    _period = _analytics.period;
+    _customRange = _analytics.custom;
     _nav = SalesNavigationController(SalesMenuController());
     _listener = () {
       if (mounted) setState(() {});
     };
     _analytics.addListener(_listener);
-    _analytics.initialLoad();
+    if (_ownsController) _analytics.initialLoad();
   }
 
   @override
   void dispose() {
     _analytics.removeListener(_listener);
-    _analytics.dispose();
+    if (_ownsController) _analytics.dispose();
     _nav.dispose();
     super.dispose();
   }
@@ -220,7 +228,7 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
-          foregroundColor: AppColors.inkDark,
+          foregroundColor: SalesDesign.onDark,
           elevation: 0,
           leading: isWide
               ? null
@@ -245,7 +253,7 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
                     ),
                     child: const Icon(
                       Icons.point_of_sale,
-                      color: AppColors.sageGreenInk,
+                      color: SalesDesign.onDark,
                       size: 16,
                     ),
                   ),
@@ -258,7 +266,7 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
                         const Text(
                           'PHARMA+ SALES INTELLIGENCE',
                           style: TextStyle(
-                            color: AppColors.champagneInk,
+                            color: SalesDesign.onDark,
                             fontWeight: FontWeight.w800,
                             fontSize: 15,
                           ),
@@ -266,7 +274,7 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
                         Text(
                           _current.title,
                           style: const TextStyle(
-                            color: AppColors.inkDark,
+                            color: SalesDesign.onDark,
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                           ),
@@ -279,7 +287,7 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
               Text(
                 'Période : ${SalesAnalyticsService.periodLabel(_period, SalesAnalyticsService.rangeFor(_period, custom: _customRange))}',
                 style: const TextStyle(
-                  color: AppColors.pharmaMuted,
+                  color: SalesDesign.onDarkSoft,
                   fontSize: 10,
                 ),
               ),
@@ -291,7 +299,7 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
                 onPressed: () => _nav.menu.toggle(),
                 icon: Icon(
                   menuOpen ? Icons.close : Icons.menu,
-                  color: AppColors.champagneInk,
+                  color: SalesDesign.onDark,
                   size: 20,
                 ),
                 tooltip: menuOpen ? 'Fermer le menu' : 'Menu',
@@ -300,7 +308,7 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
             IconButton(
               onPressed: () => _analytics.reload(),
               icon: const Icon(Icons.refresh, size: 20),
-              color: AppColors.champagneInk,
+              color: SalesDesign.onDark,
               tooltip: 'Actualiser',
             ),
             const SizedBox(width: 4),
@@ -383,7 +391,7 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
           child: MarbleBackground(
             dark: false,
             child: Container(
-              color: AppColors.silver,
+              color: SalesDesign.panelFillStrong,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -403,7 +411,7 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
 
   Widget _buildNavigationRow() {
     return Container(
-      color: AppColors.silver.withValues(alpha: 0.7),
+      color: SalesDesign.panelFill,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -531,7 +539,7 @@ class _SalesDayOverviewPageState extends State<SalesDayOverviewPage> {
             child: Text(
               c.coverageNote,
               style: const TextStyle(
-                color: AppColors.pharmaMuted,
+                color: SalesDesign.onDarkSoft,
                 fontSize: 10.5,
                 fontStyle: FontStyle.italic,
               ),
@@ -543,6 +551,8 @@ class _SalesDayOverviewPageState extends State<SalesDayOverviewPage> {
           child: SalesHourlyChart(
             hourly: hourly,
             height: SalesDesign.chartHourlyHeight,
+            loading: c.loading,
+            errorMessage: c.error?.userMessage,
           ),
         ),
         const SizedBox(height: SalesDesign.spacingMD),
@@ -611,7 +621,7 @@ class _SalesDayOverviewPageState extends State<SalesDayOverviewPage> {
         const Center(
           child: Text(
             'Source : Supabase · ventes · paiements · lignes de vente',
-            style: TextStyle(color: AppColors.pharmaMuted, fontSize: 9.5),
+            style: TextStyle(color: SalesDesign.onDarkSoft, fontSize: 9.5),
           ),
         ),
       ],
@@ -737,6 +747,8 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
             hourly: hourly,
             height: SalesDesign.chartHourlyHeightDetail,
             title: 'Répartition horaire des ventes',
+            loading: c.loading,
+            errorMessage: c.error?.userMessage,
           ),
         ),
         const SizedBox(height: SalesDesign.spacingLG),
@@ -768,7 +780,7 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
                             Text(
                               t.number.isEmpty ? '—' : t.number,
                               style: const TextStyle(
-                                color: AppColors.inkDark,
+                                color: SalesDesign.onDark,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 12,
                               ),
@@ -779,7 +791,7 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
                                   ? '—'
                                   : '${SalesAnalyticsService.hourMinute(t.createdAt)} · ${t.statusLabel}',
                               style: const TextStyle(
-                                color: AppColors.pharmaMuted,
+                                color: SalesDesign.onDarkMuted,
                                 fontSize: 10.5,
                               ),
                             ),

@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/colors.dart';
 import '../../../core/widgets/marble_texture.dart';
+import 'sales_design_system.dart';
 
 /// Définition d'une rubrique du menu.
 class SalesMenuItem {
@@ -137,7 +138,7 @@ class SalesMenuToggle extends StatelessWidget {
       onPressed: onPressed,
       icon: const Icon(Icons.menu, size: 22),
       tooltip: 'Menu SALES INTELLIGENCE',
-      color: AppColors.champagneInk,
+      color: SalesDesign.onDark,
     );
   }
 }
@@ -161,7 +162,7 @@ class SalesSidebarMenu extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
       width: menu.open ? width : 0,
-      color: AppColors.silver,
+      color: SalesDesign.panelFillStrong,
       child: menu.open
           ? MarbleBackground(
               dark: false,
@@ -170,7 +171,7 @@ class SalesSidebarMenu extends StatelessWidget {
                   // En-tête du menu
                   _buildHeader(context),
                   const Divider(
-                    color: AppColors.dividerLight,
+                    color: AppColors.goldBorder,
                     height: 1,
                   ),
                   // Liste des rubriques
@@ -207,9 +208,9 @@ class SalesSidebarMenu extends StatelessWidget {
                 width: 1,
               ),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.point_of_sale,
-              color: AppColors.sageGreenInk,
+              color: SalesDesign.readable(AppColors.sageGreenInk),
               size: 18,
             ),
           ),
@@ -222,7 +223,7 @@ class SalesSidebarMenu extends StatelessWidget {
                 const Text(
                   'PHARMA+',
                   style: TextStyle(
-                    color: AppColors.champagneInk,
+                    color: SalesDesign.onDark,
                     fontWeight: FontWeight.w800,
                     fontSize: 15,
                   ),
@@ -231,7 +232,7 @@ class SalesSidebarMenu extends StatelessWidget {
                 Text(
                   'SALES INTELLIGENCE',
                   style: TextStyle(
-                    color: AppColors.pharmaMuted.withValues(alpha: 0.8),
+                    color: SalesDesign.onDarkMuted.withValues(alpha: 0.8),
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.8,
@@ -244,7 +245,7 @@ class SalesSidebarMenu extends StatelessWidget {
             IconButton(
               onPressed: menu.closeMenu,
               icon: const Icon(Icons.close, size: 20),
-              color: AppColors.pharmaMuted,
+              color: SalesDesign.onDarkMuted,
               tooltip: 'Fermer le menu',
             ),
         ],
@@ -259,10 +260,10 @@ class SalesSidebarMenu extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          // Sélection façon maquette : pastille vert clair (sauge),
-          // texte encre foncée — toujours lisible sur marbre.
+          // Sélection façon maquette : fond or champagne translucide,
+          // texte clair champagne — lisible sur le fond émeraude.
           color: active
-              ? AppColors.sageGreen.withValues(alpha: 0.45)
+              ? AppColors.goldBorder.withValues(alpha: 0.16)
               : Colors.transparent,
           border: Border(
             left: BorderSide(
@@ -276,16 +277,14 @@ class SalesSidebarMenu extends StatelessWidget {
             Icon(
               item.icon,
               size: 19,
-              color: active ? AppColors.sageGreenInk : AppColors.inkDarkLight,
+              color: active ? SalesDesign.onDark : SalesDesign.onDarkMuted,
             ),
             const SizedBox(width: 14),
             Expanded(
               child: Text(
                 item.title,
                 style: TextStyle(
-                  color: active
-                      ? AppColors.sageGreenInk
-                      : AppColors.inkDark.withValues(alpha: 0.9),
+                  color: SalesDesign.onDark,
                   fontSize: 13.5,
                   fontWeight: active ? FontWeight.w800 : FontWeight.w600,
                 ),

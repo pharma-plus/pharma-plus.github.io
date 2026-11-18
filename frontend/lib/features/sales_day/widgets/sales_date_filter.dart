@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/colors.dart';
 import '../models/sales_day_model.dart' show SalesDayFailure;
 import '../services/sales_analytics_service.dart';
+import 'sales_design_system.dart';
 
 class SalesDateFilter extends StatelessWidget {
   final SalesPeriod period;
@@ -52,7 +53,7 @@ class SalesDateFilter extends StatelessWidget {
                         primary: AppColors.sageGreenInk,
                         onPrimary: Colors.white,
                         surface: AppColors.pharmaSurface,
-                        onSurface: AppColors.inkDark,
+                        onSurface: SalesDesign.onDark,
                       ),
                 ),
                 child: child!,
@@ -78,7 +79,9 @@ class SalesDateFilter extends StatelessWidget {
           child: Text(
             p.label,
             style: TextStyle(
-              color: active ? AppColors.sageGreenInk : AppColors.pharmaMuted,
+              color: active
+                  ? SalesDesign.readable(AppColors.sageGreenInk)
+                  : SalesDesign.onDarkMuted,
               fontSize: 11,
               fontWeight: active ? FontWeight.w700 : FontWeight.w500,
             ),
@@ -94,7 +97,7 @@ class SalesDateFilter extends StatelessWidget {
       children: [
         ...chips,
         const SizedBox(width: 4),
-        Icon(Icons.date_range, size: 14, color: AppColors.champagneInk),
+        Icon(Icons.date_range, size: 14, color: SalesDesign.onDark),
         const SizedBox(width: 2),
         Text(
           periodLabel,
@@ -164,7 +167,7 @@ class SalesStateBlock extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: AppColors.pharmaMuted.withValues(alpha: 0.8),
+                  color: SalesDesign.onDarkMuted.withValues(alpha: 0.8),
                   fontSize: 10,
                 ),
               ),
