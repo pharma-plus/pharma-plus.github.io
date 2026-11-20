@@ -79,7 +79,9 @@ class _DashboardPageState extends State<DashboardPage> {
       _loading = true;
       _error = null;
     });
-    final result = await ApiClient.instance.get('/dashboard/overview');
+    final result = await ApiClient.instance.get('/dashboard/overview', query: {
+      'offsetMin': '${DateTime.now().timeZoneOffset.inMinutes}',
+    });
     if (!mounted) return;
     if (!result.success) {
       setState(() {
@@ -242,6 +244,10 @@ class _DashboardPageState extends State<DashboardPage> {
         return () => ShellNav.index.value = 7; // clients
       case 'EMPLOYÉS':
         return () => ShellNav.index.value = 8; // employés
+      case 'BÉNÉFICE MOIS':
+        // Le KPI « Bénéfice » doit ouvrir la page Bénéfices/marges (index 18),
+        // pas la page Rapports (index 9) du fallback historique.
+        return () => ShellNav.index.value = 18;
       default:
         return () => ShellNav.index.value = 9; // rapports
     }

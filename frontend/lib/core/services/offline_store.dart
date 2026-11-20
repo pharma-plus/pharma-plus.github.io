@@ -159,6 +159,32 @@ class OfflineStore {
     }
   }
 
+  /// Supprime les ventes deja marquees comme synchronisees (synced=1) depuis
+  /// plus de [maxAgeDays] jours. Appellee periodiquement par SyncEngine pour
+  /// eviter que pmg_pending_sales ne croisse indifinitement.
+  Future<void> prunePendingSales({int maxAgeDays = 30}) async {
+    final map = await _readMap(_kPendingSales);
+    final cutoff = DateTime.now().subtract(Duration(days: maxAgeDays));
+    final toRemove = <String>[];
+    map.forEach((id, v) {
+      if (v is Map && (v['synced'] as num?) == 1) {
+        final created = v['created_at'];
+        if (created is String) {
+          final dt = DateTime.tryParse(created);
+          if (dt != null && dt.isBefore(cutoff)) {
+            toRemove.add(id);
+          }
+        }
+      }
+    });
+    for (final id in toRemove) {
+      map.remove(id);
+    }
+    if (toRemove.isNotEmpty) {
+      await _writeMap(_kPendingSales, map);
+    }
+  }
+
   Future<int> getRevision(String entity) async {
     final map = await _readMap(_kRevisions);
     return (map[entity] as num?)?.toInt() ?? 0;

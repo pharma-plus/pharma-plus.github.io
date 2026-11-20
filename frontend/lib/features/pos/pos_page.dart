@@ -24,8 +24,13 @@ import '../../core/widgets/marble_texture.dart';
 import '../../core/widgets/stock_notification.dart';
 import '../shell/shell_nav.dart';
 import '../dashboard/pos_category_grid.dart';
+import '../sales_day/controllers/sales_day_controller.dart';
 import 'pos_models.dart';
 import 'payment_models.dart';
+
+/// Parse décimal acceptant la virgule des claviers AZERTY/fr (P1 clavier).
+double _parseAmount(String raw) =>
+    double.tryParse(raw.trim().replaceFirst(',', '.')) ?? 0;
 
 class PosPage extends StatefulWidget {
   final List<Medication>? initialItems;
@@ -55,7 +60,8 @@ class _PosPageState extends State<PosPage> {
   final _search = TextEditingController();
   final _receivedCtrl = TextEditingController();
   final _discountCtrl = TextEditingController();
-  final FocusNode _searchFocus = FocusNode(); // FocusNode pour navigation clavier
+  final FocusNode _searchFocus =
+      FocusNode(); // FocusNode pour navigation clavier
   List<Medication> _results = [];
   bool _searching = false;
   bool _checkout = false;
@@ -392,8 +398,8 @@ class _PosPageState extends State<PosPage> {
 
   Future<void> _loadBranches() async {
     try {
-      final r = await ApiClient.instance.get('/branches',
-          timeout: const Duration(seconds: 10));
+      final r = await ApiClient.instance
+          .get('/branches', timeout: const Duration(seconds: 10));
       if (!mounted) return;
       if (r.success) {
         final list = (r.data as List? ?? const [])
@@ -481,9 +487,9 @@ class _PosPageState extends State<PosPage> {
       // Liste des pathologies tracees (reellement filtree cote Edge) —
       // chargee uniquement si des indications existent.
       if (_indicationsAvailable) {
-        final pr = await ApiClient.instance
-            .get('/catalog/medications/pathologies',
-                timeout: const Duration(seconds: 10));
+        final pr = await ApiClient.instance.get(
+            '/catalog/medications/pathologies',
+            timeout: const Duration(seconds: 10));
         if (!mounted || !pr.success) return;
         setState(() => _pathologies = ApiList.of(pr.data));
       }
@@ -707,7 +713,8 @@ class _PosPageState extends State<PosPage> {
   /// provenance + référence liée), fallback sur les données locales.
   Future<void> _showQuickInfo(Medication m) async {
     Map<String, dynamic>? details;
-    final r = await ApiClient.instance.get('/catalog/medications/${m.id}/details',
+    final r = await ApiClient.instance.get(
+        '/catalog/medications/${m.id}/details',
         timeout: const Duration(seconds: 10));
     if (r.success && r.data is Map) {
       details = Map<String, dynamic>.from(r.data as Map);
@@ -850,9 +857,13 @@ class _PosPageState extends State<PosPage> {
   // ──────────────── PAYMENT + CHECKOUT ────────────────
 
   bool get _cashSufficient =>
-      _received >= _cart.total || _paymentMode != 'cash';
-  double get _change => (_received > _cart.total) ? _received - _cart.total : 0;
-  double get _due => (_received < _cart.total) ? _cart.total - _received : 0;
+      isPaymentSufficient(received: _received, total: _cart.total) ||
+      _paymentMode != 'cash';
+
+  /// Monnaie rendue arrondie au centime, comme le serveur (change_amount).
+  double get _change =>
+      calculateChange(received: _received, total: _cart.total);
+  double get _due => remainingDue(received: _received, total: _cart.total);
 
   void _setReceived(String v) {
     _received = double.tryParse(v.replaceAll(',', '.')) ?? 0;
@@ -910,15 +921,6 @@ class _PosPageState extends State<PosPage> {
     if (text.isNotEmpty) {
       _search.selection =
           TextSelection(baseOffset: 0, extentOffset: text.length);
-    }
-  }
-
-  /// ↓ : passer de la recherche aux résultats (ex-RawKeyboardListener).
-  /// Défocalise le champ pour libérer le clavier et permettre la navigation
-  /// dans la liste des médicaments trouvés.
-  void _searchArrowDown() {
-    if (_searchFocus.hasFocus && _results.isNotEmpty) {
-      _searchFocus.unfocus();
     }
   }
 
@@ -1019,7 +1021,8 @@ class _PosPageState extends State<PosPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _shortcutRow('F2 / Ctrl+F', 'Recherche produit (focus + sélection)'),
+            _shortcutRow(
+                'F2 / Ctrl+F', 'Recherche produit (focus + sélection)'),
             _shortcutRow('F4', 'Sélection du client'),
             _shortcutRow('F9', 'Encaisser la vente'),
             _shortcutRow('Échap', 'Vider la recherche / annuler'),
@@ -1142,6 +1145,9 @@ class _PosPageState extends State<PosPage> {
         _receivedVN.value = 0;
         _receivedCtrl.clear();
         _paymentMode = 'cash';
+        // Invalider le cache Sales Intelligence : la vente confirmée doit
+        // apparaître immédiatement dans les KPI et la liste des transactions.
+        SalesDayController.invalidateAllCaches();
         if (mounted) {
           final msg = (pay.method == 'card'
                   ? '${S.t('saleSuccess', auth.locale)} · Carte ${pay.cardType ?? ''}'
@@ -1248,7 +1254,11 @@ class _PosPageState extends State<PosPage> {
             const SizedBox(height: 12),
             TextField(
               controller: ctrl,
-              keyboardType: TextInputType.number,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d*')),
+              ],
               autofocus: true,
               decoration: const InputDecoration(
                 labelText: 'Montant initial (MAD)',
@@ -1267,7 +1277,7 @@ class _PosPageState extends State<PosPage> {
       ),
     );
     if (ok != true) return;
-    final initial = double.tryParse(ctrl.text) ?? 0;
+    final initial = _parseAmount(ctrl.text);
     final done = await CashSessionService.open(
         branchId: _branchId!, initialCash: initial);
     if (mounted) {
@@ -1366,7 +1376,11 @@ class _PosPageState extends State<PosPage> {
           children: [
             TextField(
               controller: amountCtrl,
-              keyboardType: TextInputType.number,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d*')),
+              ],
               autofocus: true,
               decoration: const InputDecoration(labelText: 'Montant (MAD)'),
             ),
@@ -1388,7 +1402,7 @@ class _PosPageState extends State<PosPage> {
       ),
     );
     if (ok != true) return;
-    final amount = double.tryParse(amountCtrl.text) ?? 0;
+    final amount = _parseAmount(amountCtrl.text);
     if (amount <= 0) return;
     final done = await CashSessionService.addEvent(
       sessionId: sessionId,
@@ -1425,10 +1439,14 @@ class _PosPageState extends State<PosPage> {
               const SizedBox(height: 12),
               TextField(
                 controller: ctrl,
-                keyboardType: TextInputType.number,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d*')),
+                ],
                 autofocus: true,
                 onChanged: (v) {
-                  final counted = double.tryParse(v) ?? 0;
+                  final counted = _parseAmount(v);
                   setState(() => diff = counted - expected);
                 },
                 decoration:
@@ -1452,7 +1470,7 @@ class _PosPageState extends State<PosPage> {
       ),
     );
     if (ok != true) return;
-    final counted = double.tryParse(ctrl.text) ?? 0;
+    final counted = _parseAmount(ctrl.text);
     final result = await CashSessionService.close(
         sessionId: sessionId, countedCash: counted);
     if (mounted) {
@@ -1484,12 +1502,14 @@ class _PosPageState extends State<PosPage> {
         const SingleActivator(LogicalKeyboardKey.f4): _showCustomerPicker,
         const SingleActivator(LogicalKeyboardKey.f9): _confirmPayment,
         const SingleActivator(LogicalKeyboardKey.escape): _onEscapePos,
-        // ↓ : passer aux résultats depuis la recherche (ex-RawKeyboardListener)
-        const SingleActivator(LogicalKeyboardKey.arrowDown):
-            _searchArrowDown,
+        // NOTE : la flèche ↓ n'est PAS interceptée globalement. Un binding
+        // page entière empêchait le curseur de se déplacer dans les champs
+        // « Montant reçu » / « Remise » sans offrir de navigation réelle
+        // dans les résultats (_searchArrowDown ne faisait que unfocus()).
       },
       child: Focus(
-        autofocus: true,
+        // Pas d'autofocus ici : le focus initial doit aller directement au
+        // champ de recherche, sinon le premier scan HID est perdu.
         child: _buildPosScaffold(locale),
       ),
     );
@@ -1734,8 +1754,8 @@ class _PosPageState extends State<PosPage> {
                   TextButton(
                     onPressed: () => _resumeHeld('${h['id']}'),
                     child: const Text('Reprendre',
-                        style:
-                            TextStyle(fontSize: 11, color: AppColors.sageGreen)),
+                        style: TextStyle(
+                            fontSize: 11, color: AppColors.sageGreen)),
                   ),
                   IconButton(
                     tooltip: 'Supprimer la vente suspendue',
@@ -1772,14 +1792,19 @@ class _PosPageState extends State<PosPage> {
             child: TextField(
               controller: _search,
               focusNode: _searchFocus,
+              // Correctif P0 : le lecteur HID (wedge clavier) émet vers le
+              // widget focalisé. Sans autofocus ici, le premier EAN allait au
+              // Focus générique de la page et était perdu.
+              autofocus: true,
               onChanged: _onSearchChanged,
               // PHASE 4 : le scanner HID (wedge clavier) saisit l'EAN puis
               // envoie « Entrée » — onSubmitted route le code vers le même
               // flux que le scan caméra (voir _onSearchSubmitted).
               onSubmitted: _onSearchSubmitted,
-              // PHASE 4 corr. : les touches ↓ et Échap sont gérées par le
-              // CallbackShortcuts de la page (_searchArrowDown / _onEscapePos).
-              // L'ancien RawKeyboardListener partageait _searchFocus entre
+              // PHASE 4 corr. : Échap est géré par le CallbackShortcuts de la
+              // page (_onEscapePos). La flèche ↓ reste au comportement natif
+              // (curseur dans le champ). L'ancien RawKeyboardListener partageait
+              // _searchFocus entre
               // Focus + RawKeyboardListener + TextField (assertion child != this
               // → exception à la construction, cause du gel).
               style: const TextStyle(color: Colors.white, fontSize: 13),
@@ -2148,7 +2173,7 @@ class _PosPageState extends State<PosPage> {
               );
             }),
           // ── Search results to add ──
-          if (_results.isNotEmpty && _cart.isEmpty)
+          if (_results.isNotEmpty)
             ...List.generate(_results.length, (i) {
               final m = _results[i];
               final stockQty = _stock[m.id];
@@ -2706,19 +2731,9 @@ class _PosPageState extends State<PosPage> {
   }
 
   // ── Totaux ──
-  SaleTotals get _totals => calculateSaleTotalExcl(
-        [
-          for (final l in _cart.lines)
-            SaleLine(
-                unitPrice: l.unitPrice,
-                quantity: l.quantity,
-                tvaRate: l.tvaRate / 100),
-        ],
-        discountValue: _discountIsPercent
-            ? _cart.globalDiscountPercent
-            : _cart.globalDiscountFixed,
-        discountIsPercent: _discountIsPercent,
-      );
+  /// Source unique : le montant affiché est le montant encaissé et le montant
+  /// que l'Edge enregistrera (TVA incluse recalculée après remise).
+  SaleTotals get _totals => _cart.totals;
 }
 
 // ════════════════════════════════════════
@@ -3285,14 +3300,13 @@ class _PayButtonState extends State<_PayButton>
               boxShadow: widget.enabled
                   ? [
                       BoxShadow(
-                        color:
-                            AppColors.sageGreen.withValues(alpha: g * 0.45),
+                        color: AppColors.sageGreen.withValues(alpha: g * 0.45),
                         blurRadius: 10 + g * 6,
                         offset: const Offset(0, 3),
                       ),
                       BoxShadow(
-                        color: AppColors.sageGreenLight
-                            .withValues(alpha: g * 0.2),
+                        color:
+                            AppColors.sageGreenLight.withValues(alpha: g * 0.2),
                         blurRadius: 16 + g * 8,
                         offset: const Offset(0, 0),
                       ),

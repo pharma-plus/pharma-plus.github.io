@@ -5,11 +5,13 @@
 ///  · Menu latéral indépendant (PC) / bouton hamburger (mobile)
 ///  · Navigation Précédent / Suivant / Retour / Maison / Dashboard
 ///  · Filtres globaux conservés entre les pages
-///  · Design sombre premium 3D, responsive PC / tablette / smartphone
+///  · Design sombre premium à RELIEF 2D (ombres, dégradés, liserés) —
+///    aucune géométrie 3D réelle ; responsive PC / tablette / smartphone
 /// ============================================================
 
 import 'package:flutter/material.dart';
 
+import '../../../core/services/auth_store.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/utils/format.dart';
@@ -17,6 +19,7 @@ import '../../../core/widgets/marble_texture.dart';
 import '../controllers/sales_day_controller.dart';
 import '../models/sales_day_model.dart';
 import '../services/sales_analytics_service.dart';
+import '../services/sales_financials.dart';
 import '../widgets/sales_date_filter.dart';
 import '../widgets/sales_design_system.dart';
 import '../widgets/sales_hourly_chart.dart';
@@ -147,29 +150,33 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
   SalesIntelligencePage _current = SalesIntelligencePage.overview;
   late final VoidCallback _listener;
 
-  // Filtres globaux partagés entre les pages.
-  SalesPeriod _period = SalesPeriod.today;
-  DateTimeRange? _customRange;
-
   @override
   void initState() {
     super.initState();
     _ownsController = widget.controller == null;
     _analytics = widget.controller ?? SalesDayController();
-    _period = _analytics.period;
-    _customRange = _analytics.custom;
+    SalesDayController.setActiveInstance(_analytics);
     _nav = SalesNavigationController(SalesMenuController());
     _listener = () {
       if (mounted) setState(() {});
     };
     _analytics.addListener(_listener);
+    // Correctif P0 : le menu des 10 rubriques et le contrôleur de navigation
+    // sont des ChangeNotifier. Sans abonnement, le clic sur le hamburger ne
+    // provoquait aucun rebuild et le menu restait invisible/inerte.
+    _nav.addListener(_listener);
+    _nav.menu.addListener(_listener);
     if (_ownsController) _analytics.initialLoad();
   }
 
   @override
   void dispose() {
     _analytics.removeListener(_listener);
+    _nav.removeListener(_listener);
+    _nav.menu.removeListener(_listener);
     if (_ownsController) _analytics.dispose();
+    // Nettoyer la référence statique si c'est cette instance qui est active.
+    SalesDayController.clearActiveInstance();
     _nav.dispose();
     super.dispose();
   }
@@ -181,11 +188,14 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
   }
 
   void _previous() {
-    _nav.goBack().then((_) {
+    // « Précédent » suit l'ordre logique des 10 rubriques ; « Retour »
+    // (historique) reste géré séparément par _nav.goBack().
+    final previousId = SalesPageOrder.previousId(_nav.currentId);
+    _nav.navigateTo(previousId).then((_) {
       if (mounted)
         setState(() {
           _current = SalesIntelligencePage.values.firstWhere(
-            (p) => p.id == _nav.currentId,
+            (p) => p.id == previousId,
             orElse: () => SalesIntelligencePage.overview,
           );
         });
@@ -216,6 +226,27 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Garde-fou client : l'autorité reste le serveur (sales:view + session),
+    // mais on évite d'ouvrir un écran voué à l'échec pour un rôle non habilité.
+    // (Pas de contrôle quand aucun utilisateur n'est chargé : tests unitaires.)
+    final auth = AuthStore.instance;
+    if (auth.user != null && !auth.canViewSales) {
+      return Scaffold(
+        backgroundColor: AppColors.pharmaBg,
+        appBar: AppBar(title: const Text('Ventes du jour')),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Accès refusé : la permission « sales:view » est requise pour '
+              'consulter les ventes de cet établissement.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: SalesDesign.onDark, fontSize: 14),
+            ),
+          ),
+        ),
+      );
+    }
     final isWide = MediaQuery.of(context).size.width >= 900;
     final menuOpen = _nav.menu.open;
 
@@ -285,7 +316,9 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
                 ],
               ),
               Text(
-                'Période : ${SalesAnalyticsService.periodLabel(_period, SalesAnalyticsService.rangeFor(_period, custom: _customRange))}',
+                // Correction P1 : le libellé doit suivre la période courante du
+                // contrôleur, qui peut changer depuis n'importe quelle page.
+                'Période : ${_analytics.periodLabelText}',
                 style: const TextStyle(
                   color: SalesDesign.onDarkSoft,
                   fontSize: 10,
@@ -345,7 +378,10 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (!_nav.menu.open) navRow else const SizedBox.shrink(),
+                // La barre de navigation reste présente même quand le menu
+                // est ouvert (Maison / Dashboard / Suivant ne doivent pas
+                // disparaître de l'arbre, y compris pour le clavier).
+                navRow,
                 Expanded(child: page),
               ],
             ),
@@ -354,10 +390,17 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
       );
     }
 
-    // Mobile / tablette : menu en overlay (Drawer), navigation en bas
+    // Mobile / tablette : menu en overlay (Drawer), navigation en bas.
+    // Correction P1 : la barre inférieure était en Positioned sans espace
+    // réservé et masquait les dernières lignes des listes.
     return Stack(
       children: [
-        page,
+        Column(
+          children: [
+            Expanded(child: page),
+            const SizedBox(height: 56),
+          ],
+        ),
         if (_nav.menu.open)
           GestureDetector(
             onTap: () => _nav.menu.closeMenu(),
@@ -431,28 +474,32 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
   }
 
   Widget _buildPage() {
-    switch (_current) {
-      case SalesIntelligencePage.overview:
-        return SalesDayOverviewPage(analytics: _analytics);
-      case SalesIntelligencePage.analysis:
-        return SalesAnalysisPage(analytics: _analytics);
-      case SalesIntelligencePage.profits:
-        return SalesProfitsPage(analytics: _analytics);
-      case SalesIntelligencePage.products:
-        return SalesProductsPage(analytics: _analytics);
-      case SalesIntelligencePage.employees:
-        return SalesEmployeesPage(analytics: _analytics);
-      case SalesIntelligencePage.payments:
-        return SalesPaymentsPage(analytics: _analytics);
-      case SalesIntelligencePage.returns:
-        return SalesReturnsPage(analytics: _analytics);
-      case SalesIntelligencePage.comparisons:
-        return SalesComparisonsPage(analytics: _analytics);
-      case SalesIntelligencePage.reports:
-        return SalesReportsPage(analytics: _analytics);
-      case SalesIntelligencePage.alerts:
-        return SalesAlertsPage(analytics: _analytics);
-    }
+    // Correction P1 : toutes les rubriques restent montées dans un IndexedStack
+    // afin de préserver leur état local (filtres, tri, saisie de clôture) lors
+    // d'un changement de rubrique, comme le fait déjà le HomeShell principal.
+    return IndexedStack(
+      index: _current.index,
+      children: [
+        SalesDayOverviewPage(
+          analytics: _analytics,
+          onNavigate: (id) => _goTo(
+            SalesIntelligencePage.values.firstWhere(
+              (p) => p.id == id,
+              orElse: () => SalesIntelligencePage.overview,
+            ),
+          ),
+        ),
+        SalesAnalysisPage(analytics: _analytics),
+        SalesProfitsPage(analytics: _analytics),
+        SalesProductsPage(analytics: _analytics),
+        SalesEmployeesPage(analytics: _analytics),
+        SalesPaymentsPage(analytics: _analytics),
+        SalesReturnsPage(analytics: _analytics),
+        SalesComparisonsPage(analytics: _analytics),
+        SalesReportsPage(analytics: _analytics),
+        SalesAlertsPage(analytics: _analytics),
+      ],
+    );
   }
 }
 
@@ -461,7 +508,13 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
 /// ============================================================
 class SalesDayOverviewPage extends StatefulWidget {
   final SalesDayController analytics;
-  const SalesDayOverviewPage({super.key, required this.analytics});
+  final ValueChanged<String>? onNavigate;
+
+  const SalesDayOverviewPage({
+    super.key,
+    required this.analytics,
+    this.onNavigate,
+  });
 
   @override
   State<SalesDayOverviewPage> createState() => _SalesDayOverviewPageState();
@@ -485,10 +538,22 @@ class _SalesDayOverviewPageState extends State<SalesDayOverviewPage> {
     super.dispose();
   }
 
+  /// Charge le jeu complet nécessaire au KPI « Produits vendus ».
+  void _requestFull() {
+    final c = widget.analytics;
+    if (c.analytics == null || c.fullLoading) return;
+    if (c.fullRows.isNotEmpty || c.fullError != null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) c.ensureFullTransactions();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    _requestFull();
     final c = widget.analytics;
     final kpis = c.analytics?.kpis;
+    final finance = SalesFinancials.fromKpis(kpis);
     final hourly = c.analytics?.hourly ?? const <SalesHourBucket>[];
     final payments = c.analytics?.payments ?? const <SalesPaymentSlice>[];
     final topQty = c.analytics?.topProductsQty ?? const <SalesProductRank>[];
@@ -532,6 +597,25 @@ class _SalesDayOverviewPageState extends State<SalesDayOverviewPage> {
               ),
           grossDeltaPct: c.grossDelta.pct,
           countDeltaPct: c.countDelta.pct,
+          productsSold: c.fullRows
+              .fold<int>(0, (s, t) => s + (t.itemsCount?.toInt() ?? 0)),
+          grossProfitLabel: c.dataUnavailable
+              ? 'N/D'
+              : finance.grossProfit == null
+                  ? (finance.costReliability == SalesCostReliability.absent
+                      ? 'N/D'
+                      : 'Non vérifiable')
+                  : Fmt.number(finance.grossProfit!, decimals: 2),
+          marginLabel: c.dataUnavailable
+              ? 'N/D'
+              : finance.grossMarginPct == null
+                  ? (finance.costReliability == SalesCostReliability.absent
+                      ? 'N/D'
+                      : 'Non vérifiable')
+                  : '${finance.grossMarginPct!.toStringAsFixed(1)} %',
+          dataUnavailable: c.dataUnavailable,
+          productsUnavailable: !c.fullComplete,
+          onNavigate: widget.onNavigate,
         ),
         if (c.coverageNote.isNotEmpty)
           Padding(
@@ -552,7 +636,10 @@ class _SalesDayOverviewPageState extends State<SalesDayOverviewPage> {
             hourly: hourly,
             height: SalesDesign.chartHourlyHeight,
             loading: c.loading,
-            errorMessage: c.error?.userMessage,
+            errorMessage: c.error?.userMessage ??
+                (c.analytics?.incomplete == true
+                    ? 'Données indisponibles (réponse vide)'
+                    : null),
           ),
         ),
         const SizedBox(height: SalesDesign.spacingMD),
@@ -561,7 +648,10 @@ class _SalesDayOverviewPageState extends State<SalesDayOverviewPage> {
           final charts = <Widget>[
             SalesPanel(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-              child: SalesPaymentChart(slices: payments),
+              child: SalesPaymentChart(
+                slices: payments,
+                unavailable: c.dataUnavailable,
+              ),
             ),
             SalesPanel(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
@@ -572,18 +662,21 @@ class _SalesDayOverviewPageState extends State<SalesDayOverviewPage> {
                     title: 'Top 10 par quantité',
                     products: topQty,
                     sortBy: 'qty',
+                    onProductTap: (_) => widget.onNavigate?.call('products'),
                   ),
                   const SizedBox(height: SalesDesign.spacingMD),
                   SalesProductRanking(
                     title: 'Top 10 par CA',
                     products: topRev,
                     sortBy: 'rev',
+                    onProductTap: (_) => widget.onNavigate?.call('products'),
                   ),
                   const SizedBox(height: SalesDesign.spacingMD),
                   SalesProductRanking(
                     title: 'Top 10 par bénéfice',
                     products: topProfit,
                     sortBy: 'profit',
+                    onProductTap: (_) => widget.onNavigate?.call('products'),
                   ),
                 ],
               ),
@@ -748,7 +841,10 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
             height: SalesDesign.chartHourlyHeightDetail,
             title: 'Répartition horaire des ventes',
             loading: c.loading,
-            errorMessage: c.error?.userMessage,
+            errorMessage: c.error?.userMessage ??
+                (c.analytics?.incomplete == true
+                    ? 'Données indisponibles (réponse vide)'
+                    : null),
           ),
         ),
         const SizedBox(height: SalesDesign.spacingLG),
@@ -757,7 +853,9 @@ class _SalesAnalysisPageState extends State<SalesAnalysisPage> {
           subtitle: '10 premières lignes de la période · triées par date API',
         ),
         const SizedBox(height: SalesDesign.spacingSM),
-        if (tx.isEmpty)
+        if (c.txError != null)
+          SalesNotice(message: c.txError!.userMessage)
+        else if (tx.isEmpty)
           const SalesEmptyState(message: 'Aucune transaction sur la période')
         else ...[
           for (final t in tx.take(10))

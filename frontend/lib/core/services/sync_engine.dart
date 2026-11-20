@@ -84,13 +84,22 @@ class SyncEngine {
       // conserve ; le pull incrémental se fait par entité spécifique).
       await _store.pruneIdempotencyKeys();
 
+      // Nettoyage différé des ventes deja synchronisees dans pmg_pending_sales
+      // (evite la croissance indefinie de la file hors-ligne).
+      await _store.prunePendingSales();
+
       await _conn.syncCompleted();
     } catch (e) {
       errors.add(e.toString());
-      await _conn.syncErrorOccurred();
     } finally {
       _running = false;
-      _conn.syncCompleted(); // met à jour pendingCount + statut
+      // Correctif P1 : l'ancien syncCompleted() inconditionnel remettait
+      // failedCount à 0 même après une erreur → l'UI affichait « synchronisé ».
+      if (errors.isEmpty && failed == 0) {
+        await _conn.syncCompleted();
+      } else {
+        await _conn.syncErrorOccurred();
+      }
     }
     return SyncResult(
       flushed: flushed,
@@ -157,6 +166,15 @@ class SyncEngine {
                 idempotencyKey, serverRef ?? path);
           }
           await _store.remove(id);
+          // Nettoyage de l'entrée orphele dans pmg_pending_sales :
+          // savePendingSale() y ecrit le payload au moment de l'echec reseau,
+          // mais markSaleSynced() n'etait jamais appelee en production, donc
+          // l'entree restait a synced=0 a vie. On la marque maintenant des
+          // que la vente est confirmee par le serveur.
+          if (method == 'POST' && path == '/sales' &&
+              body != null && body.containsKey('clientSaleId')) {
+            await _store.markSaleSynced('sale-${body['clientSaleId']}');
+          }
           flushed++;
           if (verbose) debugPrint('[SyncEngine] flushed $method $path');
         } else if (result['statusCode'] == 409) {

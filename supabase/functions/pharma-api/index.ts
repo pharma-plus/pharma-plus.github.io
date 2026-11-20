@@ -3138,11 +3138,38 @@ Deno.serve(async (req) => {
   if (path === "dashboard/overview" || path === "/dashboard/overview") {
     try {
       const now = new Date();
-      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const params = new URL(req.url).searchParams;
+      const offsetMinRaw = Number(params.get("offsetMin") ?? "0");
+      const offsetMin = Number.isFinite(offsetMinRaw)
+        ? Math.min(840, Math.max(-720, Math.trunc(offsetMinRaw)))
+        : 0;
+      /* Heure locale de la pharmacie : now + offsetMin minutes.
+         Ainsi startOfDay correspond au minuit LOCAL de la pharmacie,
+         identique à la logique de /sales/day. */
+      const localNow = new Date(now.getTime() + offsetMin * 60000);
+      const startOfDay = new Date(
+        Date.UTC(
+          localNow.getUTCFullYear(),
+          localNow.getUTCMonth(),
+          localNow.getUTCDate()
+        )
+      );
       const startYesterday = new Date(startOfDay);
       startYesterday.setDate(startYesterday.getDate() - 1);
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const startLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const startOfMonth = new Date(
+        Date.UTC(
+          localNow.getUTCFullYear(),
+          localNow.getUTCMonth(),
+          1
+        )
+      );
+      const startLastMonth = new Date(
+        Date.UTC(
+          localNow.getUTCFullYear(),
+          localNow.getUTCMonth() - 1,
+          1
+        )
+      );
       const iso = (d: Date) => d.toISOString();
 
       const [
@@ -5736,14 +5763,17 @@ Deno.serve(async (req) => {
         for (const s of completed) {
           const total = n(s.total);
           const disc = n(s.discount_total);
+          // Règle TTC : CA brut = total TTC ; CA HT = total − TVA incluse
+          // recalculée (la TVA n'est plus ajoutée au-delà du total).
           grossRevenue += total;
-          netRevenue += n(s.subtotal) - disc;
+          netRevenue += total - n(s.tax_total);
           discountsTotal += disc;
           taxTotal += n(s.tax_total);
           costTotal += n(s.cost_total);
           const paid = n(s.paid_amount);
-          paidAmount += Math.max(0, paid - n(s.change_amount));
-          const rest = total - paid;
+          const change = n(s.change_amount);
+          paidAmount += Math.max(0, paid - change);
+          const rest = total - paid + change;
           if (rest > 0) outstanding += rest;
         }
         const averageBasket = completed.length ? grossRevenue / completed.length : 0;
@@ -6141,6 +6171,13 @@ Deno.serve(async (req) => {
       }
 
       let subtotal = 0, discountTotal = 0, taxTotal = 0, costTotal = 0, lineCount = 0;
+      // Règle TTC : helpers financiers locaux (identiques à calculations.dart).
+      const round2 = (v: number): number => Math.round(v * 100) / 100;
+      const includedVat = (ttc: number, ratePct: number): number => {
+        if (ttc <= 0 || ratePct <= 0) return 0;
+        return round2(ttc - ttc / (1 + ratePct / 100));
+      };
+      const vatLines: Array<{ netTtc: number; tvaRate: number }> = [];
       const rows: any[] = [];
       for (const it of items) {
         const med = medMap.get(it.medication_id);
@@ -6154,17 +6191,19 @@ Deno.serve(async (req) => {
         const unitPrice = Number(it.unit_price ?? med.price_sale ?? 0);
         const discountPct = Number(it.discount ?? 0);
         if (qty <= 0) continue;
-        const gross = unitPrice * qty;
-        const discountAmt = gross * (discountPct / 100);
-        const net = gross - discountAmt;
+        // RÈGLE VALIDÉE 19/11/2026 : PPV = prix TTC. La remise s'applique au
+        // TTC, puis la TVA est extraite de la base taxable après remise, au
+        // taux propre du produit. Aucune TVA ajoutée, aucun taux unique.
+        const grossTtc = unitPrice * qty;
+        const discountAmt = grossTtc * (Math.min(100, Math.max(0, discountPct)) / 100);
+        const netTtc = round2(grossTtc - discountAmt);
         const tvaRate = defaultTvaFor(med);
-        const tvaAmt = net * (tvaRate / 100);
         const cost = Number(med.price_purchase ?? 0) * qty;
-        subtotal += net;
+        subtotal += netTtc;
         discountTotal += discountAmt;
-        taxTotal += tvaAmt;
         costTotal += cost;
         lineCount += qty;
+        vatLines.push({ netTtc, tvaRate });
         rows.push({
           medication_id: med.id,
           lot_id: lotByMed.get(med.id) ?? null,
@@ -6173,23 +6212,35 @@ Deno.serve(async (req) => {
           cost_price: Number(med.price_purchase ?? 0),
           tva_rate: tvaRate,
           discount: discountPct,
+          line_total: netTtc,
         });
       }
       if (rows.length === 0) {
         return json({ error: { code: "VALIDATION", message: "Aucun article valide" } }, 400);
       }
-      /* Remise globale panier : règle Flutter (pos_models.dart).
-         percent > 0 privilégié sur amount (mêmes deux champs envoyés).
-         Le plafond est subtotal + taxTotal (impossible de passer sous 0). */
+      // Remise globale : assise sur le TTC net après remises de ligne,
+      // plafonnée au TTC (jamais subtotal + TVA).
       let globalDiscount = 0;
       if (rawGlobalDiscPct > 0) {
         globalDiscount = subtotal * (rawGlobalDiscPct / 100);
       } else if (rawGlobalDiscAmt > 0) {
         globalDiscount = rawGlobalDiscAmt;
       }
-      globalDiscount = Math.min(globalDiscount, subtotal + taxTotal);
-      const total = subtotal + taxTotal - globalDiscount;
-      const discountTotalAll = discountTotal + globalDiscount;
+      globalDiscount = round2(Math.min(globalDiscount, subtotal));
+      const netAfterGlobal = round2(subtotal - globalDiscount);
+      // TVA incluse recalculée APRÈS remise globale, répartie au prorata
+      // de chaque ligne, avec le taux de cette ligne.
+      if (netAfterGlobal > 0 && subtotal > 0) {
+        for (const l of vatLines) {
+          if (l.netTtc <= 0) continue;
+          const share = (l.netTtc / subtotal) * netAfterGlobal;
+          taxTotal += includedVat(share, l.tvaRate);
+        }
+        taxTotal = round2(taxTotal);
+      }
+      // Le montant à payer est le TTC net : c'est aussi le montant encaissé.
+      const total = netAfterGlobal;
+      const discountTotalAll = round2(discountTotal + globalDiscount);
       const paidAmount =
         payments.reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
       const changeAmount = Math.max(0, paidAmount - total);
@@ -6347,6 +6398,7 @@ Deno.serve(async (req) => {
           unit_cost: Number(r.cost_price ?? 0),
           discount_percent: Number(r.discount ?? 0),
           tax_rate: Number(r.tva_rate ?? 0),
+          line_total: Number(r.line_total ?? 0),
         });
         if (itemErr) {
           console.error("[sales] sale_items error:", itemErr.message);

@@ -30,6 +30,30 @@ class SalesDayController extends ChangeNotifier {
 
   bool _disposed = false;
 
+  /// Référence à l'instance active (définie par SalesIntelligenceShell).
+  /// Permet au POS d'invalider le cache des transactions après une vente
+  /// confirmée sans dépendre directement du contrôleur affiché.
+  static SalesDayController? _activeInstance;
+
+  /// Invalide le cache complet des transactions sur l'instance active.
+  /// À appeler depuis le POS après une vente confirmée (POST /sales 200 OK).
+  static void invalidateAllCaches() {
+    _activeInstance?.invalidateFullTransactionsCache();
+  }
+
+  /// Définit l'instance active (appelé par SalesIntelligenceShell).
+  static void setActiveInstance(SalesDayController controller) {
+    _activeInstance = controller;
+  }
+
+  /// Nettoie la référence statique (appelé par SalesIntelligenceShell en dispose).
+  static void clearActiveInstance() {
+    _activeInstance = null;
+  }
+
+  /// Construit un contrôleur indépendant (utilisé par les tests et le shell).
+  SalesDayController();
+
   // --- Période --------------------------------------------------------
   SalesPeriod period = SalesPeriod.today;
   DateTimeRange? custom;
@@ -38,6 +62,11 @@ class SalesDayController extends ChangeNotifier {
   bool loading = true;
   SalesDayFailure? error;
   SalesDayAnalytics? analytics;
+
+  /// Vrai quand les KPI ne peuvent pas être présentés comme réels : pas encore
+  /// chargés, erreur réseau, ou réponse API vide/incomplète.
+  bool get dataUnavailable =>
+      analytics == null || error != null || analytics!.incomplete;
 
   /// KPI de la période précédente (même durée) — null si indisponible.
   SalesDayKpis? previousKpis;
@@ -114,10 +143,9 @@ class SalesDayController extends ChangeNotifier {
     loading = true;
     error = null;
     txError = null;
-    analytics = null;
-    previousKpis = null;
-    txRows.clear();
-    txTotal = 0;
+    // Correction P1 : on conserve les dernières données réelles pendant le
+    // rechargement. Les mettre à null avant la réponse provoquait un flash
+    // « 0 vente / aucun graphique » à chaque changement de période.
     _fullLoadedKey = null;
     fullRows = const <SalesTransaction>[];
     fullComplete = false;
@@ -256,6 +284,20 @@ class SalesDayController extends ChangeNotifier {
   // --------------------------------------------------------------------
   // Transactions complètes (une seule fois par combinaison période/filtres)
   // --------------------------------------------------------------------
+  /// Invalide le cache du jeu complet de transactions.
+  ///
+  /// À appeler après une vente validée (POS → POST /sales confirmé) afin que
+  /// Sales Intelligence recharge les données depuis le serveur et reflète la
+  /// nouvelle vente. Sans cet appel, le cache [_fullFuture] / [_fullLoadedKey]
+  /// conserve l'ancien jeu et les ventes validées ne remontent pas.
+  void invalidateFullTransactionsCache() {
+    _fullLoadedKey = null;
+    fullRows = const <SalesTransaction>[];
+    fullComplete = false;
+    fullError = null;
+    _fullFuture = null;
+  }
+
   /// Retourne toutes les transactions de la période, SANS filtre de statut
   /// ni de recherche (pagination serveur parcourue intégralement), pour les
   /// agrégations et les exports. « fullComplete = false » signale une
