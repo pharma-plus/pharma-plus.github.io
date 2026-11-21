@@ -51,5 +51,13 @@ void main() {
     test('Aucun onHover exclusif dans POS', () {
       expect(source.contains('onHover:'), isFalse);
     });
+
+    test('Notification de stock : bouton fermer en cible 44x44', () {
+      final notif = File('lib/core/widgets/stock_notification.dart')
+          .readAsStringSync();
+      // L'IconButton de fermeture ne doit plus être réduit à 28x28.
+      expect(notif, contains('BoxConstraints(minWidth: 44, minHeight: 44)'));
+      expect(notif, isNot(contains('minWidth: 28, minHeight: 28')));
+    });
   });
 }

@@ -93,13 +93,15 @@ class StockNotification {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const IconButton(
+                        // Zone tactile 44x44 (icône compacte conservée) :
+                        // cette notification de stock doit pouvoir être
+                        // fermée au doigt sur tablette/smartphone.
+                        IconButton(
                           tooltip: 'Fermer',
-                          visualDensity: VisualDensity.compact,
                           padding: EdgeInsets.zero,
                           constraints:
-                              BoxConstraints(minWidth: 28, minHeight: 28),
-                          icon: Icon(Icons.close,
+                              const BoxConstraints(minWidth: 44, minHeight: 44),
+                          icon: const Icon(Icons.close,
                               color: AppColors.brandGold, size: 17),
                           onPressed: dismiss,
                         ),
