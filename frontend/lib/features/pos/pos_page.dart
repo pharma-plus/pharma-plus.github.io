@@ -1103,12 +1103,13 @@ class _PosPageState extends State<PosPage> {
               amount: _cart.total, received: _cart.total, change: 0);
       // Identifiant unique de vente (idempotence hors-ligne) : le serveur
       // refuse tout doublon → une vente n'est JAMAIS enregistrée 2 fois.
-      // nextInt(max) exige 0 < max < 2^32. Sur Web (dart2js), `1 << 32`
-      // vaut 0 (décalage 32 bits) → RangeError. On fixe 2^31-1, valide partout.
+      // On conserve la chaîne COMPLÈTE (millis + aléa) SANS .hashCode :
+      // hashCode réduit à un entier 32-bit signé (valeurs négatives) et peut
+      // entrer en collision entre deux ventes → la seconde serait refusée à
+      // tort par l'idempotence. nextInt(max) exige 0 < max < 2^32 ; sur Web
+      // (dart2js) `1 << 32` vaut 0 → RangeError, d'où 2^31-1.
       final clientSaleId =
-          '${DateTime.now().millisecondsSinceEpoch}-${math.Random().nextInt(0x7fffffff)}'
-              .hashCode
-              .toString();
+          '${DateTime.now().millisecondsSinceEpoch}-${math.Random().nextInt(0x7fffffff)}';
       final saleBody = <String, dynamic>{
         'branchId': _branchId,
         'saleType': 'pos',
@@ -2828,16 +2829,25 @@ class _QtyBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Zone de toucher 44x44 (norme tactile) avec un visuel compact de 28x28
+    // centré : l'apparence reste identique mais la cible devient tactile.
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(
-          color: AppColors.emerald.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(8),
+      child: SizedBox(
+        width: 44,
+        height: 44,
+        child: Center(
+          child: Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: AppColors.emerald.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 14, color: AppColors.emerald),
+          ),
         ),
-        child: Icon(icon, size: 14, color: AppColors.emerald),
       ),
     );
   }
@@ -3040,18 +3050,22 @@ class _ToggleBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
+        constraints: const BoxConstraints(minHeight: 44),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: selected ? AppColors.emerald : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Text(label,
-            style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: selected ? Colors.white : Colors.white54)),
+        child: Center(
+          child: Text(label,
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: selected ? Colors.white : Colors.white54)),
+        ),
       ),
     );
   }
@@ -3066,21 +3080,25 @@ class _QuickBtn extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          constraints: const BoxConstraints(minHeight: 44),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
           decoration: BoxDecoration(
             color: AppColors.pharmaSurface,
             borderRadius: BorderRadius.circular(8),
             border:
                 Border.all(color: AppColors.goldBorder.withValues(alpha: 0.4)),
           ),
-          child: Text(label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.pharmaGold)),
+          child: Center(
+            child: Text(label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.pharmaGold)),
+          ),
         ),
       ),
     );

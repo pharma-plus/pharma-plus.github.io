@@ -388,7 +388,7 @@ void main() {
             c.analytics = _emptyAnalytics();
             c.notifyListeners();
             await tester.pump();
-            expect(find.text('Aucune vente sur la période'), findsOneWidget,
+            expect(find.text('Aucune vente · valeurs nulles'), findsOneWidget,
                 reason: 'état vide distinct');
             break;
           case '03_benefices':
@@ -406,18 +406,23 @@ void main() {
             break;
           case '05_employes':
             expect(find.text('Performance employés'), findsOneWidget);
-            expect(find.text('Pharmacien A'), findsOneWidget);
-            await _reveal(tester, find.text('Pharmacien B'));
-            expect(find.text('Pharmacien B'), findsOneWidget);
+            // Le nom apparaît désormais aussi dans le bar chart de classement.
+            expect(find.text('Pharmacien A'), findsWidgets);
+            await _reveal(tester, find.text('Pharmacien B').last);
+            expect(find.text('Pharmacien B'), findsWidgets);
             expect(find.text('Ventes'), findsWidgets);
-            expect(find.text('CA net'), findsWidgets);
+            expect(find.text('CA HT'), findsWidgets);
             expect(c.fullRows.length, 8, reason: 'jeu complet agrégé');
             break;
           case '06_paiements':
             expect(find.text('Paiements et caisse'), findsOneWidget);
-            expect(find.byType(SalesPaymentChart), findsOneWidget);
             expect(find.byType(SalesMetric), findsNWidgets(3));
-            expect(find.text('Caisse théorique (MAD)'), findsOneWidget);
+            // La section de clôture persistée a grandi : on défile jusqu'au
+            // graphique avant de l'assertion (ListView construit à la demande).
+            await _reveal(tester, find.byType(SalesPaymentChart));
+            expect(find.byType(SalesPaymentChart), findsOneWidget);
+            expect(find.text('Caisse théorique (indicative, MAD)'),
+                findsOneWidget);
             expect(find.text('Caisse comptée (MAD)'), findsOneWidget);
             await tester.enterText(find.byType(TextField).at(0), '1000');
             await tester.enterText(find.byType(TextField).at(1), '900');

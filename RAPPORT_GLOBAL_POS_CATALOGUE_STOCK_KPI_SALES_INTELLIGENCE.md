@@ -1,10 +1,10 @@
 # RAPPORT_GLOBAL_POS_CATALOGUE_STOCK_KPI_SALES_INTELLIGENCE.md
 
 **Projet :** PHARMA+ (`pharma-maroc-gold`)  
-**Branche :** `phase5-validation` (HEAD local, aucun commit/push/merge effectué)  
-**Date :** 20 novembre 2026  
+**Branche :** `phase5-validation` (mergé sur `main`)
+**Date :** 20 novembre 2026
 **Auteur :** Agent d'ingénierie  
-**Statut :** Corrections locales appliquées + tests exécutés. **Aucun déploiement, aucun commit, aucun push, aucun SQL distant.**
+**Statut :** Corrections locales appliquées, tests exécutés, intégration Git effectuée. **Aucun déploiement Supabase staging, aucun SQL distant, aucun accès production.**
 
 ---
 
@@ -17,7 +17,7 @@ La mission couvrait l'audit et la correction de l'ensemble du parcours de vente 
 | 1 | POS | Deuxième produit inactif après premier ajout | ✅ CORRIGÉ |
 | 2 | Catalogue | Données catalogue cohérentes, aucun doublon | ✅ VERIFIE |
 | 3 | Stock | `stock_balances` avec `quantity` + `reserved_quantity`, RLS par pharmacie | ✅ VERIFIE |
-| 4 | KPI 1 | Deux endpoints différents (`/dashboard/overview` vs `/sales/day`) | 📋 IDENTIFIE — non corrigé (API backend) |
+| 4 | KPI 1 | Divergence fuseau horaire entre `/dashboard/overview` et `/sales/day` | ✅ CORRIGÉ (envoi `offsetMin` côté frontend, calcul heure locale côté Edge Function) |
 | 5 | Sales Intelligence | Cache des transactions non invalidé après vente | ✅ CORRIGÉ |
 | 6 | Offline-first | `pmg_outbox` + `pmg_pending_sales` gérés, `markSaleSynced` appelé | ✅ VERIFIE (correction antérieure) |
 | 7 | Sécurité | RLS par `pharmacy_id` dérivée du JWT, service_role côté serveur | ✅ VERIFIE |

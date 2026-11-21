@@ -176,7 +176,7 @@ class _SalesIntelligenceShellState extends State<SalesIntelligenceShell> {
     _nav.menu.removeListener(_listener);
     if (_ownsController) _analytics.dispose();
     // Nettoyer la référence statique si c'est cette instance qui est active.
-    SalesDayController.clearActiveInstance();
+    SalesDayController.clearActiveInstance(_analytics);
     _nav.dispose();
     super.dispose();
   }

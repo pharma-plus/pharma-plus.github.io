@@ -6065,8 +6065,13 @@ Deno.serve(async (req) => {
       const body = await req.json().catch(() => ({}));
       const branchId = body.branchId ?? body.branch_id;
       const rawSaleType: string = body.saleType ?? body.sale_type ?? "pos";
-      // Aligne sur le schéma du dépôt (007_sales.sql) : 'pos' est la valeur POS.
-      const saleType = ({ pos: "pos", cash: "cash", credit: "credit", online: "online", reservation: "reservation" } as Record<string, string>)[rawSaleType] ?? "pos";
+      // Aligne sur le CHECK de 007_sales.sql : sale_type IN
+      // ('pos','credit','online','reservation'). 'cash' n'est PAS une valeur
+      // autorisée (c'est un moyen de paiement, pas un type de vente) : on le
+      // mappe sur 'pos' pour éviter une violation de contrainte lors de
+      // l'INSERT. Sans ce mapping, un client envoyant saleType:'cash' voyait
+      // sa vente refusée par la base.
+      const saleType = ({ pos: "pos", cash: "pos", credit: "credit", online: "online", reservation: "reservation" } as Record<string, string>)[rawSaleType] ?? "pos";
       const items: any[] = Array.isArray(body.items) ? body.items : [];
       const payments: any[] = Array.isArray(body.payments) ? body.payments : [];
       const customerId = body.customerId ?? body.customer_id ?? body.client_id ?? null;

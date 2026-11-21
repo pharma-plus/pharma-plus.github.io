@@ -171,7 +171,8 @@ class _PosPanelState extends State<PosPanel> {
     super.dispose();
   }
 
-  SaleTotals get _totals => calculateSaleTotalExcl(
+  /// Règle financière validée : prix TTC, TVA incluse recalculée après remise.
+  SaleTotals get _totals => calculateSaleTotal(
         [
           for (final m in _cart.values)
             SaleLine(
@@ -663,12 +664,12 @@ class _PosPanelState extends State<PosPanel> {
           content: Text('Enregistrement de la vente…')),
     );
     try {
-      // nextInt(max) exige 0 < max < 2^32. Sur Web (dart2js), `1 << 32`
-      // vaut 0 (décalage 32 bits) → RangeError. On fixe 2^31-1, valide partout.
+      // Identifiant complet (millis + aléa) SANS .hashCode : réduire à un
+      // entier 32-bit signé peut produire des négatifs et des collisions →
+      // l'idempotence refuserait la seconde vente à tort. nextInt(max) exige
+      // 0 < max < 2^32 ; sur Web (dart2js) `1 << 32` vaut 0 → RangeError.
       final clientSaleId =
-          '${DateTime.now().millisecondsSinceEpoch}-${math.Random().nextInt(0x7fffffff)}'
-              .hashCode
-              .toString();
+          '${DateTime.now().millisecondsSinceEpoch}-${math.Random().nextInt(0x7fffffff)}';
       final saleBody = <String, dynamic>{
         'branchId': branchId,
         'saleType': 'pos',
@@ -759,9 +760,10 @@ class _PosPanelState extends State<PosPanel> {
   }
 
   bool get _cashSufficient =>
-      _received >= _totals.total || _paymentMode != 'cash';
+      isPaymentSufficient(received: _received, total: _totals.total) ||
+      _paymentMode != 'cash';
   double get _change =>
-      (_received > _totals.total) ? _received - _totals.total : 0;
+      calculateChange(received: _received, total: _totals.total);
 
   void _setReceived(String v) {
     _received = double.tryParse(v.replaceAll(',', '.')) ?? 0;

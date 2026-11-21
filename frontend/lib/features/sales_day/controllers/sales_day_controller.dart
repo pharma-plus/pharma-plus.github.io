@@ -46,9 +46,12 @@ class SalesDayController extends ChangeNotifier {
     _activeInstance = controller;
   }
 
-  /// Nettoie la référence statique (appelé par SalesIntelligenceShell en dispose).
-  static void clearActiveInstance() {
-    _activeInstance = null;
+  /// Nettoie la référence statique uniquement si [controller] est l'instance
+  /// active. Évite d'effacer la référence d'un autre shell encore monté.
+  static void clearActiveInstance(SalesDayController controller) {
+    if (identical(_activeInstance, controller)) {
+      _activeInstance = null;
+    }
   }
 
   /// Construit un contrôleur indépendant (utilisé par les tests et le shell).
@@ -296,6 +299,11 @@ class SalesDayController extends ChangeNotifier {
     fullComplete = false;
     fullError = null;
     _fullFuture = null;
+    // Notifier les widgets abonnés : avec Sales Intelligence déjà ouvert,
+    // le cache vidé doit déclencher un rebuild et un rechargement via
+    // ensureFullTransactions(). Sans notify, la vente reste invisible jusqu'à
+    // un changement de période ou un clic manuel sur « Actualiser ».
+    _notify();
   }
 
   /// Retourne toutes les transactions de la période, SANS filtre de statut
