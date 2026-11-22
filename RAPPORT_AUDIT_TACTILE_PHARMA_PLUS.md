@@ -99,4 +99,30 @@ Les tests automatisés ne remplacent **pas** une validation sur appareil tactile
 
 ## 7. CONCLUSION
 
-L'audit tactile a couvert tous les modules demandés. Trois défauts réels ont été corrigés : (1) bouton de fermeture de la notification de stock 28→44 px, (2) `TouchZone` sans `HitTestBehavior.opaque` (tap perdu sur zone transparente), (3) 4 IconButtons actifs du catalogue à 40×40 px → 44×44 px mesurés. La mesure réelle (`tester.getSize`) a révélé que `IconButton.constraints` est ignoré dans cette version de Flutter — la correction repose donc sur `VisualDensity(-1,-1)`, validée par tests widget sans régression responsive. Les incohérences documentaires (pages/modules/fichiers) ont été réconciliées : 10 pages SI = 8 fichiers dédiés + 2 classes inline, 33 modules fonctionnels. Aucune opération distante n'a été effectuée.
+L'audit tactile a couvert tous les modules demandés. Neuf défauts réels ont été corrigés dans 7 composants : (1) bouton de fermeture de la notification de stock 28→44 px, (2) `TouchZone` sans `HitTestBehavior.opaque` (tap perdu sur zone transparente), (3) 4 IconButtons actifs du catalogue à 40×40 px → 44×44 px mesurés, (4) Checkbox de sélection de tableau compacte (<44 px) → cible standard, (5) 2 IconButtons d'actions de tableau à 44×44 mesurés, (6) IconButton de détail de transaction 28×28 → 44×44, (7) FilledButton de création de rôle compact → 48 px, (8) 3 IconButtons POS compacts à 44×44 mesurés, (9) `TouchButton.small` 40→44 px (système de design). La mesure réelle (`tester.getSize`) a révélé que `IconButton.constraints` est ignoré dans cette version de Flutter — la correction repose donc sur `VisualDensity(-1,-1)`, validée par tests widget sans régression responsive. Aucune interaction exclusivement souris (tous `MouseRegion` couplés à `onTap`). ... 33 modules fonctionnels. Aucune opération distante n'a été effectuée.
+
+---
+## 8. GIT / PUSH ET ÉLÉMENTS NON VÉRIFIÉS
+
+| Élément | Valeur / Résultat |
+|---------|-------------------|
+| Dépôt | `https://github.com/pharma-plus/pharma-plus.github.io.git` |
+| Branche de travail | `phase5-validation` |
+| Branche cible | `main` (push `phase5-validation:main`, sans force push) |
+| Commit local | `aeb5874ba277a7f573fbc19dec8a3d193a27b939` |
+| SHA distant `origin/main` | `aeb5874ba277a7f573fbc19dec8a3d193a27b939` (vérifié `git rev-parse origin/main`) |
+| Fichiers commités | 10 (7 source + 2 tests + 1 rapport) |
+| Opérations distantes | Aucune Supabase, aucune migration, aucun RLS, aucun déploiement |
+
+### Éléments non vérifiés (limites documentées)
+- Aucune validation Supabase staging réelle (accès distant/OAuth indisponible ; aucun SQL distant, migration ou déploiement autorisé).
+- Tests physiques sur PC tactile Windows, tablette Android et smartphone Android non réalisés (nécessitent du matériel).
+- CI GitHub Ubuntu non vérifiée localement.
+- Nombreux fichiers modifiés/untracked préexistants non liés à cette mission : volontairement exclus du commit.
+
+### Tests physiques encore nécessaires
+- PC tactile Windows (clic + touch, zoom + clavier virtuel)
+- Tablette Android (portrait + paysage)
+- Smartphone Android (390×844 portrait, 844×390 paysage)
+- Fluidité du défilement au doigt dans les tableaux denses
+- Comportement du clavier virtuel sur les champs de prix/quantité
