@@ -259,8 +259,8 @@ class AppDataRow<T> extends StatelessWidget {
                   child: Checkbox(
                     value: selected,
                     onChanged: onSelect,
-                    visualDensity: VisualDensity.compact,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    // Cible tactile ≥44 px : pas de densité compacte ni
+                    // shrinkWrap sur un élément de sélection au doigt.
                   ),
                 ),
               ),

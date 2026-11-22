@@ -1254,7 +1254,11 @@ class _CatalogPageState extends State<CatalogPage> {
                     icon: const Icon(Icons.medication_outlined,
                         size: 18, color: AppColors.gold),
                     onPressed: () => _showPosology(m),
-                    visualDensity: VisualDensity.compact,
+                    // Cible tactile mesurée à 44x44 : VisualDensity.compact
+                    // rendait 40x40 (sous le seuil), constraints est ignoré
+                    // par IconButton dans cette version de Flutter.
+                    visualDensity:
+                        const VisualDensity(horizontal: -1, vertical: -1),
                     padding: EdgeInsets.zero,
                   ),
                 ),
@@ -1268,13 +1272,15 @@ class _CatalogPageState extends State<CatalogPage> {
                     IconButton(
                       tooltip: 'Fiche détaillée',
                       icon: const Icon(Icons.visibility_outlined, size: 18),
-                      visualDensity: VisualDensity.compact,
+                      visualDensity:
+                          const VisualDensity(horizontal: -1, vertical: -1),
                       onPressed: () => _showDetail(m),
                     ),
                     IconButton(
                       tooltip: 'Modifier',
                       icon: const Icon(Icons.edit_outlined, size: 18),
-                      visualDensity: VisualDensity.compact,
+                      visualDensity:
+                          const VisualDensity(horizontal: -1, vertical: -1),
                       onPressed: () => _showForm(m).then((changed) {
                         if (changed) {
                           _load(page: _page, query: _search.text);
@@ -1494,7 +1500,8 @@ class _CatalogPageState extends State<CatalogPage> {
                 const SizedBox(height: 2),
                 IconButton(
                   tooltip: 'Modifier',
-                  visualDensity: VisualDensity.compact,
+                  visualDensity:
+                      const VisualDensity(horizontal: -1, vertical: -1),
                   icon: const Icon(Icons.edit_outlined, size: 18),
                   onPressed: () => _showForm(m).then((changed) {
                     if (changed) _load(page: _page, query: _search.text);

@@ -212,7 +212,9 @@ class RoleManagementBodyState extends State<RoleManagementBody> {
               icon: const Icon(Icons.add, size: 18),
               label: Text(S.t('newRole', locale)),
               style: FilledButton.styleFrom(
-                visualDensity: VisualDensity.compact,
+                // Hauteur ≥44 px (le thème applique 48 px par défaut) : pas de
+                // densité compacte qui réduirait la cible tactile.
+                minimumSize: const Size(double.infinity, 48),
                 padding: const EdgeInsets.symmetric(horizontal: 10),
               ),
             ),

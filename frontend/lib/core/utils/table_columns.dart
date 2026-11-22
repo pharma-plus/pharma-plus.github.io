@@ -217,8 +217,8 @@ class TableColumnWidths {
       alignment: TextAlign.center,
     ),
     TableColumnType.actionsWide: ColumnWidthConfig(
-      // 96 px : deux IconButton (40 px chacun en densité compacte) + le
-      // padding droit de 8 px de la cellule. 80 px débordait de 8 px.
+      // 96 px : deux IconButton à cible tactile 44x44 (VisualDensity -1)
+      // + le padding droit de 8 px de la cellule = 96 px exactement.
       defaultWidth: 96,
       minWidth: 88,
       maxWidth: 112,
@@ -520,14 +520,17 @@ class TableColumns {
         IconButton(
           tooltip: 'Voir',
           icon: const Icon(Icons.visibility_outlined, size: 18),
-          visualDensity: VisualDensity.compact,
+          // Cible tactile mesurée 44x44 : VisualDensity(-1,-1) (compact
+          // 40x40 est sous le seuil et ignoré par la largeur fixe).
+          // ignoré par la largeur fixe de la colonne (48px = deux 40 + 8).
+          visualDensity: const VisualDensity(horizontal: -1, vertical: -1),
           padding: EdgeInsets.zero,
           onPressed: () {}, // À surcharger
         ),
         IconButton(
           tooltip: 'Modifier',
           icon: const Icon(Icons.edit_outlined, size: 18),
-          visualDensity: VisualDensity.compact,
+          visualDensity: const VisualDensity(horizontal: -1, vertical: -1),
           padding: EdgeInsets.zero,
           onPressed: () {},
         ),

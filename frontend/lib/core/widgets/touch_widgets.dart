@@ -20,7 +20,7 @@ class TouchButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final height = small ? 40.0 : ResponsiveHelper.touchTargetSize;
+    final height = small ? 44.0 : ResponsiveHelper.touchTargetSize;
 
     if (outlined) {
       return SizedBox(
@@ -136,6 +136,10 @@ class TouchZone extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      // Sans opaque, un tap tombant sur une zone transparente de l'enfant
+      // (ex. Container sans decoration) n'atteint pas le GestureDetector :
+      // la cible tactile paraît plus petite que les minSize déclarés.
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: ConstrainedBox(
         constraints: BoxConstraints(

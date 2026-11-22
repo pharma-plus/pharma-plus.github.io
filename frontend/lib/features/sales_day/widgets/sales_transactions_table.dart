@@ -38,6 +38,29 @@ class SalesTransactionsTable extends StatefulWidget {
 class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
   final TextEditingController _searchCtrl = TextEditingController();
 
+  /// Filtres locaux complémentaires (les données enrichies ne sont pas
+  /// filtrables côté API). Ils s'appliquent aux lignes chargées.
+  String _employee = 'all';
+  String _payment = 'all';
+  bool _sortByAmount = false;
+
+  List<SalesTransaction> _visibleRows(List<SalesTransaction> rows) {
+    final filtered = rows.where((t) {
+      final employeeOk =
+          _employee == 'all' || (t.userName ?? 'Non identifié') == _employee;
+      final paymentOk = _payment == 'all' ||
+          SalesPaymentSlice.methodLabel(t.paymentMethod ?? '') == _payment;
+      return employeeOk && paymentOk;
+    }).toList();
+    if (_sortByAmount) {
+      filtered.sort((a, b) => b.total.compareTo(a.total));
+    } else {
+      filtered.sort((a, b) =>
+          (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)));
+    }
+    return filtered;
+  }
+
   @override
   void dispose() {
     _searchCtrl.dispose();
@@ -135,7 +158,9 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
                   ),
                   style:
                       const TextStyle(color: SalesDesign.onDark, fontSize: 12),
+                  textInputAction: TextInputAction.search,
                   onChanged: onSearch,
+                  onSubmitted: onSearch,
                 ),
               ),
             ),
@@ -159,6 +184,49 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
             ),
           ],
         ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            _filterDropdown(
+              'Employé',
+              _employee,
+              {for (final t in c.txRows) t.userName ?? 'Non identifié'}.toList()
+                ..sort(),
+              (v) => setState(() => _employee = v),
+            ),
+            _filterDropdown(
+              'Paiement',
+              _payment,
+              {
+                for (final t in c.txRows)
+                  SalesPaymentSlice.methodLabel(t.paymentMethod ?? '')
+              }.toList()
+                ..sort(),
+              (v) => setState(() => _payment = v),
+            ),
+            TextButton.icon(
+              onPressed: () => setState(() => _sortByAmount = !_sortByAmount),
+              icon: Icon(
+                _sortByAmount ? Icons.sort_by_alpha : Icons.sort,
+                size: 15,
+                color: SalesDesign.onDark,
+              ),
+              label: Text(
+                _sortByAmount ? 'Tri : montant' : 'Tri : date',
+                style: const TextStyle(
+                    color: SalesDesign.onDarkMuted, fontSize: 10.5),
+              ),
+            ),
+            const Text(
+              'Filtres locaux sur les lignes chargées',
+              style: TextStyle(color: SalesDesign.onDarkSoft, fontSize: 9),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
         if (c.txError != null)
           Padding(
             padding: const EdgeInsets.only(top: 8),
@@ -238,6 +306,32 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
     );
   }
 
+  Widget _filterDropdown(
+    String label,
+    String value,
+    List<String> options,
+    ValueChanged<String> onChanged,
+  ) {
+    return SizedBox(
+      width: 132,
+      child: DropdownButton<String>(
+        value: value,
+        isExpanded: true,
+        dropdownColor: AppColors.pharmaSurface,
+        iconEnabledColor: SalesDesign.onDark,
+        style: const TextStyle(color: SalesDesign.onDark, fontSize: 10.5),
+        hint:
+            Text(label, style: const TextStyle(color: SalesDesign.onDarkMuted)),
+        items: [
+          DropdownMenuItem(value: 'all', child: Text('$label : tous')),
+          for (final option in options)
+            DropdownMenuItem(value: option, child: Text(option)),
+        ],
+        onChanged: (v) => onChanged(v ?? 'all'),
+      ),
+    );
+  }
+
   Widget _chip(String label, String value, String current,
       Future<void> Function(String) onStatus) {
     final active = current == value;
@@ -273,14 +367,15 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
     );
   }
 
-  Widget _row(List<String> cells, {bool header = false, String? status}) {
+  Widget _row(List<String> cells,
+      {bool header = false, String? status, Widget? trailing}) {
     final color = header ? SalesDesign.onDarkMuted : SalesDesign.onDark;
     final style = TextStyle(
       color: color,
       fontSize: 11,
       fontWeight: header ? FontWeight.w700 : FontWeight.w500,
     );
-    const widths = [1.35, 1.0, 0.9, 1.0, 1.0, 1.35, 0.9];
+    const widths = [1.2, 1.1, 0.9, 0.9, 0.9, 1.1, 1.0, 0.9];
     return Container(
       decoration: header
           ? BoxDecoration(
@@ -303,20 +398,111 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
             Expanded(
               flex: (widths[i] * 100).round(),
               child: Align(
-                alignment: i >= 2 && i <= 4
+                alignment: i >= 3 && i <= 5
                     ? Alignment.centerRight
                     : Alignment.centerLeft,
                 child: Text(t,
                     style: style, maxLines: 1, overflow: TextOverflow.ellipsis),
               ),
             ),
+          if (trailing != null) const SizedBox(width: 4),
+          if (trailing != null) trailing,
+        ],
+      ),
+    );
+  }
+
+  Widget _detailButton(SalesTransaction t) {
+    return IconButton(
+      onPressed: () => _showDetail(t),
+      icon: const Icon(Icons.visibility_outlined, size: 16),
+      color: SalesDesign.onDark,
+      tooltip: 'Voir le détail de ${t.number.isEmpty ? 'la vente' : t.number}',
+      padding: EdgeInsets.zero,
+      // Cible tactile mesurée 44x44 : 28x28 était inatteignable au doigt.
+      visualDensity: const VisualDensity(horizontal: -1, vertical: -1),
+    );
+  }
+
+  void _showDetail(SalesTransaction t) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.pharmaSurface,
+      isScrollControlled: true,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SalesSectionHeader(
+                title: t.number.isEmpty ? 'Vente sans numéro' : t.number,
+                subtitle:
+                    '${_statusLabel(t.status)} · ${_method(t.paymentMethod)}',
+              ),
+              const SizedBox(height: 12),
+              _detailLine('Date',
+                  t.createdAt == null ? '—' : Fmt.dateTime(t.createdAt)),
+              _detailLine('Type', t.saleType.isEmpty ? '—' : t.saleType),
+              _detailLine('Employé', t.userName ?? 'Non identifié'),
+              _detailLine('Articles',
+                  t.itemsCount == null ? '—' : '${t.itemsCount!.round()}'),
+              _detailLine('Client', t.customer ?? '—'),
+              _detailLine('Sous-total TTC avant remise globale',
+                  '${Fmt.number(t.subtotal, decimals: 2)} MAD'),
+              _detailLine(
+                  'Remise', '${Fmt.number(t.discountTotal, decimals: 2)} MAD'),
+              _detailLine('TVA', '${Fmt.number(t.taxTotal, decimals: 2)} MAD'),
+              _detailLine(
+                  'Total TTC', '${Fmt.number(t.total, decimals: 2)} MAD'),
+              _detailLine('Montant réglé (brut)',
+                  '${Fmt.number(t.paidAmount, decimals: 2)} MAD'),
+              _detailLine('Monnaie rendue',
+                  '${Fmt.number(t.changeAmount, decimals: 2)} MAD'),
+              _detailLine('Net encaissé',
+                  '${Fmt.number(t.paidAmount - t.changeAmount, decimals: 2)} MAD'),
+              _detailLine('Mode de paiement', _method(t.paymentMethod)),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  // Le focus entre dans la feuille : Entrée / Espace ferment.
+                  autofocus: true,
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Fermer'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _detailLine(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(label,
+                style: const TextStyle(
+                    color: SalesDesign.onDarkMuted, fontSize: 11)),
+          ),
+          Expanded(
+            child: Text(value,
+                style:
+                    const TextStyle(color: SalesDesign.onDark, fontSize: 11.5)),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildTable(SalesDayController c) {
-    final rows = c.txRows;
+    final rows = _visibleRows(c.txRows);
     return DecoratedBox(
       decoration: BoxDecoration(
         color: SalesDesign.panelFill,
@@ -328,10 +514,11 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
           _row(const [
             'Référence',
             'Date et heure',
+            'Employé',
+            'Articles',
             'Total',
             'Encaissé',
-            'Reste',
-            'Mode · Client',
+            'Paiement',
             'Statut',
           ], header: true),
           for (final t in rows)
@@ -340,16 +527,13 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
               t.createdAt == null
                   ? '—'
                   : '${SalesAnalyticsService.hourMinute(t.createdAt)} · ${t.createdAt!.toLocal().day.toString().padLeft(2, '0')}',
+              t.userName ?? 'Non identifié',
+              t.itemsCount == null ? '—' : '${t.itemsCount!.round()}',
               Fmt.number(t.total, decimals: 2),
               Fmt.number(t.paidAmount, decimals: 2),
-              Fmt.number((t.total - t.paidAmount).clamp(0, double.infinity),
-                  decimals: 2),
-              [
-                _method(t.paymentMethod),
-                if (t.customer != null && t.customer!.isNotEmpty) t.customer!,
-              ].where((s) => s.isNotEmpty).join(' · '),
+              _method(t.paymentMethod),
               _statusLabel(t.status),
-            ], status: t.status),
+            ], status: t.status, trailing: _detailButton(t)),
         ],
       ),
     );
@@ -358,7 +542,7 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
   Widget _buildCards(SalesDayController c) {
     return Column(
       children: [
-        for (final t in c.txRows)
+        for (final t in _visibleRows(c.txRows))
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: DecoratedBox(
@@ -405,6 +589,7 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
                             ),
                           ),
                         ),
+                        _detailButton(t),
                       ],
                     ),
                     const SizedBox(height: 5),
@@ -438,6 +623,13 @@ class _SalesTransactionsTableState extends State<SalesTransactionsTable> {
                           color: SalesDesign.onDarkMuted, fontSize: 10.5),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${t.userName ?? 'Non identifié'} · '
+                      '${t.itemsCount == null ? 'articles —' : '${t.itemsCount!.round()} article(s)'}',
+                      style: const TextStyle(
+                          color: SalesDesign.onDarkSoft, fontSize: 10),
                     ),
                   ],
                 ),

@@ -1760,7 +1760,7 @@ class _PosPageState extends State<PosPage> {
                   ),
                   IconButton(
                     tooltip: 'Supprimer la vente suspendue',
-                    visualDensity: VisualDensity.compact,
+                    visualDensity: const VisualDensity(horizontal: -1, vertical: -1),
                     icon: const Icon(Icons.delete_outline_rounded,
                         size: 15, color: AppColors.danger),
                     onPressed: () => _dropHeld('${h['id']}'),
@@ -1999,7 +1999,6 @@ class _PosPageState extends State<PosPage> {
             child: Row(
               children: [
                 Chip(
-                  visualDensity: VisualDensity.compact,
                   label: Text('Pathologie : $_activePathologie',
                       style: const TextStyle(fontSize: 11)),
                   onDeleted: () {
@@ -2229,7 +2228,7 @@ class _PosPageState extends State<PosPage> {
                       ),
                       IconButton(
                         tooltip: 'Fiche rapide',
-                        visualDensity: VisualDensity.compact,
+                        visualDensity: const VisualDensity(horizontal: -1, vertical: -1),
                         icon: const Icon(Icons.info_outline_rounded,
                             size: 18, color: AppColors.pharmaGold),
                         onPressed: () => _showQuickInfo(m),
