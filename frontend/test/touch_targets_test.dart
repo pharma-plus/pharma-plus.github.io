@@ -129,5 +129,61 @@ void main() {
       expect(snippet, isNot(contains('small ? 40.0')));
       expect(snippet, contains('small ? 44.0'));
     });
+
+    // --- Corrections supplémentaires (adaptation tactile globale) ---
+
+    test('Login : Checkbox « Se souvenir » sans densité compacte ni shrinkWrap', () {
+      final login =
+          File('lib/features/auth/login_page.dart').readAsStringSync();
+      final idx = login.indexOf('Checkbox(');
+      final snippet = login.substring(idx);
+      expect(snippet, isNot(contains('VisualDensity(-3, -3)')));
+      expect(snippet, isNot(contains('materialTapTargetSize: MaterialTapTargetSize.shrinkWrap')));
+    });
+
+    test('Login : TextButton « Mot de passe oublié » cible ≥44×44', () {
+      final login =
+          File('lib/features/auth/login_page.dart').readAsStringSync();
+      final idx = login.indexOf('TextButton(');
+      final snippet = login.substring(idx);
+      expect(snippet, isNot(contains('minimumSize: Size.zero')));
+      expect(snippet, isNot(contains('tapTargetSize: MaterialTapTargetSize.shrinkWrap')));
+      expect(snippet, contains('minimumSize: const Size(48, 48)'));
+    });
+
+    test('POS panel : pas de height 30 ou 38 sur éléments interactifs', () {
+      final panel =
+          File('lib/features/dashboard/pos_panel.dart').readAsStringSync();
+      expect(panel, isNot(contains('height: 30,')));
+      expect(panel, isNot(contains('height: 38,')));
+    });
+
+    test('Dashboard : OutlinedButton « Voir toutes » height: 44', () {
+      final dash =
+          File('lib/features/dashboard/dashboard_page.dart').readAsStringSync();
+      // Le OulinedButton « Voir toutes » ne doit plus avoir height 30/36.
+      expect(dash, isNot(contains('height: compact ? 30 : 36')));
+      // Il doit avoir height: 44 quelque part dans le fichier.
+      expect(dash, contains('height: 44,'));
+    });
+
+    test('Filter bar : TextButton « Tout effacer » cible ≥44×44', () {
+      final bar =
+          File('lib/core/widgets/shared/app_filter_bar.dart')
+              .readAsStringSync();
+      // Le bloc « Tout effacer » doit avoir minimumSize 44×44 et padding vertical adéquat.
+      final idx = bar.indexOf('Icons.clear_all_rounded');
+      final snippet = bar.substring(idx, idx + 600);
+      expect(snippet, contains('vertical: tokens.sp3'), reason: 'padding vertical augmenté');
+      expect(snippet, contains('minimumSize: const Size(44, 44)'), reason: 'cible tactile ≥44×44');
+    });
+
+    test('PharmaWideCard : GestureDetector avec HitTestBehavior.opaque', () {
+      final card =
+          File('lib/core/widgets/pharma_wide_card.dart').readAsStringSync();
+      final idx = card.indexOf('class PharmaWideCard');
+      final snippet = card.substring(idx);
+      expect(snippet, contains('behavior: HitTestBehavior.opaque'));
+    });
   });
 }

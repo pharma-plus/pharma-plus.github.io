@@ -1735,7 +1735,7 @@ class _AlertsStockPanel extends StatelessWidget {
         SizedBox(height: compact ? 9 : 12),
         SizedBox(
           width: double.infinity,
-          height: compact ? 30 : 36,
+          height: 44,
           child: OutlinedButton(
             onPressed: onViewAll,
             style: OutlinedButton.styleFrom(

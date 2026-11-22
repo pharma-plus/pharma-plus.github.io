@@ -75,8 +75,9 @@ class AppFilterBar extends StatelessWidget {
                     foregroundColor: tokens.danger,
                     padding: EdgeInsets.symmetric(
                       horizontal: tokens.sp3,
-                      vertical: tokens.sp1,
+                      vertical: tokens.sp3,
                     ),
+                    minimumSize: const Size(44, 44),
                   ),
                 ),
               ],

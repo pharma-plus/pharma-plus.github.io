@@ -532,10 +532,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                           side: BorderSide(
                             color: textColor.withValues(alpha: 0.6),
                           ),
-                          visualDensity:
-                              const VisualDensity(horizontal: -3, vertical: -3),
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
+                          // Cible tactile ≥44 px : pas de densité compacte ni
+                          // shrinkWrap sur un élément de sélection au doigt.
                           onChanged: (value) =>
                               setState(() => _remember = value ?? false),
                         ),
@@ -570,9 +568,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                       ));
                     },
                     style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: const Size(48, 48),
                       alignment: Alignment.centerRight,
                     ),
                     child: Text(

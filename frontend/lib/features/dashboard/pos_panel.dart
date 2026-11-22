@@ -818,7 +818,7 @@ class _PosPanelState extends State<PosPanel> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 380),
             child: Container(
-              height: 38,
+              height: 44,
               decoration: BoxDecoration(
                   color: _posField(context),
                   borderRadius: BorderRadius.circular(10),
@@ -865,6 +865,7 @@ class _PosPanelState extends State<PosPanel> {
               onTap: _scanBarcode,
               borderRadius: BorderRadius.circular(10),
               child: Container(
+                height: 44,
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
@@ -1100,7 +1101,7 @@ class _PosPanelState extends State<PosPanel> {
           Row(children: [
             SizedBox(
               width: 80,
-              height: 30,
+              height: 44,
               child: TextField(
                 controller: _discountCtrl,
                 keyboardType:
@@ -1126,7 +1127,7 @@ class _PosPanelState extends State<PosPanel> {
             InkWell(
               onTap: () => setState(() => _discountPercent = !_discountPercent),
               child: Container(
-                height: 30,
+                height: 44,
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 decoration: BoxDecoration(
                     color: _discountPercent
@@ -1406,7 +1407,7 @@ class _PanelShell extends StatelessWidget {
         Row(children: [
           Container(
             width: 30,
-            height: 30,
+            height: 44,
             decoration: BoxDecoration(
                 color: iconColor.withValues(alpha: 0.14),
                 borderRadius: BorderRadius.circular(9)),
@@ -1542,7 +1543,7 @@ class _PanelButton extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: Container(
-        height: 38,
+        height: 44,
         decoration: BoxDecoration(
             color: color.withValues(alpha: 0.28),
             borderRadius: BorderRadius.circular(10),
@@ -1573,7 +1574,7 @@ class _PayButton extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: Container(
-        height: 38,
+        height: 44,
         decoration: BoxDecoration(
             // Charte « boutons vert clair » : sauge + encre foncée lisible.
             gradient: const LinearGradient(colors: [
@@ -1643,6 +1644,7 @@ class _QuickPayBtn extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
+          height: 44,
           padding: const EdgeInsets.symmetric(vertical: 6),
           decoration: BoxDecoration(
               color: _posField(context),

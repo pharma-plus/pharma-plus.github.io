@@ -6,6 +6,7 @@
 //  - VisualDensity.compact  -> IconButton rend 40x40 (SOUS le seuil 44).
 //  - IconButton.constraints est IGNORÉ ici (rend 48x48 même avec min 44).
 //  - VisualDensity(horizontal:-1, vertical:-1) -> 44x44 exact (correction).
+//  - Checkbox par défaut -> cible ≥44 px (Material par défaut).
 // Vérifie aussi que TouchZone capte les taps sur zones transparentes.
 // ============================================================
 
@@ -67,6 +68,74 @@ void main() {
       await tester.tap(find.byType(IconButton));
       await tester.pump();
       expect(taps, 1, reason: 'l\'interaction doit rester fonctionnelle');
+    });
+
+    testWidgets('IconButton par défaut rend 48x48 (≥44)', (tester) async {
+      await tester.pumpWidget(_host(IconButton(
+        icon: const Icon(Icons.edit),
+        onPressed: () {},
+      )));
+      final size = tester.getSize(find.byType(IconButton));
+      expect(size.width >= 44, isTrue,
+          reason: 'IconButton par défaut doit faire ≥44 px');
+      expect(size.height >= 44, isTrue);
+    });
+  });
+
+  group('Dimensions rendues (Checkbox) — mesures réelles', () {
+    testWidgets('Checkbox par défaut rend ≥44x44', (tester) async {
+      var value = false;
+      await tester.pumpWidget(_host(Checkbox(
+        value: value,
+        onChanged: (v) => value = v ?? false,
+      )));
+      final size = tester.getSize(find.byType(Checkbox));
+      expect(size.width >= 44, isTrue,
+          reason: 'Checkbox par défaut doit faire ≥44 px');
+      expect(size.height >= 44, isTrue);
+    });
+
+    testWidgets('Checkbox avec densité compacte rend <44x44 (problème)',
+        (tester) async {
+      var value = false;
+      await tester.pumpWidget(_host(Checkbox(
+        value: value,
+        visualDensity: VisualDensity.compact,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        onChanged: (v) => value = v ?? false,
+      )));
+      final size = tester.getSize(find.byType(Checkbox));
+      expect(size.width < 44, isTrue,
+          reason: 'Checkbox compacte est sous le seuil tactile 44');
+      expect(size.height < 44, isTrue);
+    });
+  });
+
+  group('Dimensions rendues (Boutons Material) — mesures réelles', () {
+    testWidgets('FilledButton par défaut rend ≥44x44', (tester) async {
+      await tester.pumpWidget(_host(FilledButton(
+        onPressed: () {},
+        child: const Text('OK'),
+      )));
+      final size = tester.getSize(find.byType(FilledButton));
+      expect(size.width >= 44, isTrue,
+          reason: 'FilledButton par défaut doit faire ≥44 px');
+      expect(size.height >= 44, isTrue);
+    });
+
+    testWidgets('TouchButton small rend 44x44 (pas 40)', (tester) async {
+      var tapped = false;
+      await tester.pumpWidget(_host(TouchButton(
+        onPressed: () => tapped = true,
+        label: 'Test',
+        small: true,
+      )));
+      final size = tester.getSize(find.byType(TouchButton));
+      expect(size.height >= 44, isTrue,
+          reason: 'TouchButton small doit faire ≥44 px de hauteur');
+      await tester.tap(find.byType(TouchButton));
+      await tester.pump();
+      expect(tapped, true, reason: 'l\'interaction doit rester fonctionnelle');
     });
   });
 
