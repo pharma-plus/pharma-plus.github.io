@@ -272,6 +272,11 @@ class SalesDayAnalytics {
   /// Top 10 par bénéfice brut.
   final List<SalesProductRank> topProductsProfit;
 
+  /// Vrai si la réponse API était vide/incomplète : les zéros du modèle ne
+  /// représentent alors PAS une absence réelle de ventes et doivent être
+  /// affichés « N/D » par l'interface.
+  final bool incomplete;
+
   const SalesDayAnalytics({
     required this.kpis,
     required this.hourly,
@@ -279,6 +284,7 @@ class SalesDayAnalytics {
     required this.topProductsQty,
     required this.topProductsRev,
     required this.topProductsProfit,
+    this.incomplete = false,
   });
 
   factory SalesDayAnalytics.fromJson(Map<String, dynamic> j) {
@@ -319,6 +325,7 @@ class SalesDayAnalytics {
       topProductsProfit: listOf(j['top_products_by_profit'])
           .map(SalesProductRank.fromJson)
           .toList(),
+      incomplete: j['incomplete'] == true,
     );
   }
 }

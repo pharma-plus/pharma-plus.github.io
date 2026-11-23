@@ -3,13 +3,18 @@
 // ============================================================
 // Couverture :
 // 1. Déduplication des transactions par id (doublons de pagination / jeu complet)
+//    — TEST DE PRODUCTION : appelle le véritable contrôleur via MockClient.
 // 2. Calculs HT/TTC/TVA (marge, retour, annulation)
 // 3. Comparaisons (période vs période, écart seulement si précédente > 0)
 // 4. Isolation entre pharmacies (pharmacy_id depuis le JWT, pas du client)
 // 5. Idempotence / synchronisation (invalidation de cache)
 // ============================================================
 
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart' as http_testing;
 
 import '../lib/core/services/api_client.dart';
 import '../lib/features/sales_day/controllers/sales_day_controller.dart';
@@ -31,41 +36,95 @@ void main() {
 
   // ------------------------------------------------------------------
   // 1. DÉDUPLICATION DES TRANSACTIONS (pas de doublon de pagination)
+  //    Test de production : appelle le véritable SalesDayController
+  //    via un MockClient qui simule des ids répétés entre deux pages.
   // ------------------------------------------------------------------
   group('Déduplication transactions (id unique)', () {
-    test('loadMore ne duplique pas une transaction déjà présente', () {
+    test(
+        'loadMore ne duplique pas une transaction déjà présente sur la page précédente',
+        () async {
+      var txCalls = 0;
+      ApiClient.setClientForTesting(http_testing.MockClient((r) async {
+        // Analytics (/sales/day) — répond toujours avec des KPIs vides.
+        if (!r.url.path.endsWith('/transactions')) {
+          return http.Response(jsonEncode({'data': {'kpis': {}}}), 200);
+        }
+        // Transactions (/sales/day/transactions) — pagination avec doublon.
+        txCalls++;
+        final page = int.tryParse(r.url.queryParameters['page'] ?? '1') ?? 1;
+        if (page == 1) {
+          // Page 1 pleine : 50 transactions s1..s50.
+          final rows = List.generate(50, (i) => {
+            'id': 's${i + 1}',
+            'number': 'V-${i + 1}',
+            'status': 'completed',
+            'total': 100.0,
+            'paid_amount': 100.0,
+            'created_at': '2026-11-10T10:15:00Z',
+          });
+          return http.Response(jsonEncode({
+            'data': rows,
+            'meta': {'total': 53, 'page': 1, 'limit': 50},
+          }), 200);
+        } else {
+          // Page 2 : s50 (doublon), s51, s52, s53 (nouveaux).
+          final rows = List.generate(4, (i) {
+            final id = i == 0 ? 's50' : 's${50 + i}';
+            return {
+              'id': id,
+              'number': 'V-$id',
+              'status': 'completed',
+              'total': 100.0,
+              'paid_amount': 100.0,
+              'created_at': '2026-11-10T10:15:00Z',
+            };
+          });
+          return http.Response(jsonEncode({
+            'data': rows,
+            'meta': {'total': 53, 'page': 2, 'limit': 50},
+          }), 200);
+        }
+      }));
+
       final c = SalesDayController();
-
-      // Simule une première page déjà chargée.
-      c.txRows
-        ..add(const SalesTransaction(
-          id: 's1', number: 'V-1', createdAt: null, status: 'completed',
-          saleType: 'pos', subtotal: 100, discountTotal: 0, taxTotal: 0,
-          total: 100, paidAmount: 100, changeAmount: 0,
-          paymentMethod: 'cash', customer: null, itemsCount: 1,
-          userId: 'u1', userName: 'Test',
-        ))
-        ..add(const SalesTransaction(
-          id: 's2', number: 'V-2', createdAt: null, status: 'completed',
-          saleType: 'pos', subtotal: 200, discountTotal: 0, taxTotal: 0,
-          total: 200, paidAmount: 200, changeAmount: 0,
-          paymentMethod: 'cash', customer: null, itemsCount: 1,
-          userId: 'u1', userName: 'Test',
+      // Simule la page 1 déjà chargée (50 transactions).
+      for (var i = 1; i <= 50; i++) {
+        c.txRows.add(SalesTransaction(
+          id: 's$i',
+          number: 'V-$i',
+          createdAt: null,
+          status: 'completed',
+          saleType: 'pos',
+          subtotal: 100,
+          discountTotal: 0,
+          taxTotal: 0,
+          total: 100,
+          paidAmount: 100,
+          changeAmount: 0,
+          paymentMethod: 'cash',
+          customer: null,
+          itemsCount: 1,
+          userId: 'u1',
+          userName: 'Test',
         ));
+      }
+      c.txTotal = 53;
+      expect(c.txRows.length, 50);
+      expect(c.txHasMore, isTrue);
 
-      // Simulation de la logique de loadMore (déduplication par id).
-      final seen = c.txRows.map((t) => t.id).toSet();
-      final newRow = const SalesTransaction(
-        id: 's2', number: 'V-2', createdAt: null, status: 'completed',
-        saleType: 'pos', subtotal: 200, discountTotal: 0, taxTotal: 0,
-        total: 200, paidAmount: 200, changeAmount: 0,
-        paymentMethod: 'cash', customer: null, itemsCount: 1,
-        userId: 'u1', userName: 'Test',
-      );
-      if (seen.add(newRow.id)) c.txRows.add(newRow);
+      // loading est true par défaut ; loadMore() en tient compte (ligne 211).
+      c.loading = false;
 
-      expect(c.txRows.length, 2, reason: 'pas de doublon de s2');
+      await c.loadMore();
+
+      // s50 déduit, s51, s52, s53 ajoutés → 53 transactions, 53 ids uniques.
+      expect(c.txRows.length, 53, reason: 'pas de doublon de s50');
+      expect(c.txRows.map((t) => t.id).toSet().length, 53,
+          reason: 'tous les ids sont uniques');
+      expect(txCalls, 1, reason: 'une seule requête page 2');
+
       c.dispose();
+      ApiClient.resetClientForTesting();
     });
 
     test('Une transaction avec un nouvel id est ajoutée', () {
@@ -78,6 +137,7 @@ void main() {
         userId: 'u1', userName: 'Test',
       ));
 
+      // Vérifie le comportement de déduplication du contrôleur (extrait de loadMore).
       final seen = c.txRows.map((t) => t.id).toSet();
       final newRow = const SalesTransaction(
         id: 's3', number: 'V-3', createdAt: null, status: 'completed',
